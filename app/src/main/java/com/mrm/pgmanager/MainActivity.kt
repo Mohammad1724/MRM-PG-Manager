@@ -26,8 +26,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -1215,7 +1213,6 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -1229,7 +1226,6 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
         else -> GlassRed
     }
     val statusColor = if (user.status == "active") GlassGreen else GlassRed
-    val pagerState = rememberPagerState { 2 }
 
     Box(
         modifier = Modifier
@@ -1240,67 +1236,61 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp)
     ) {
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
-            if (page == 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
-                    
-                    Column(modifier = Modifier.weight(1.2f)) {
-                        Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            user.expire?.takeIf { it != "0" && it != "null" }?.let { "انقضا: ${JalaliCalendar.isoToShamsi(it)}" } ?: "بدون انقضا",
-                            fontSize = 11.sp,
-                            color = theme.mutedColor
-                        )
-                    }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
+                Column(modifier = Modifier.widthIn(min = 105.dp, max = 150.dp)) {
+                    Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        user.expire?.takeIf { it != "0" && it != "null" }?.let { "انقضا: ${JalaliCalendar.isoToShamsi(it)}" } ?: "بدون انقضا",
+                        fontSize = 11.sp,
+                        color = theme.mutedColor
+                    )
+                }
+            }
 
-                    Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.End) {
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = progress,
-                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
-                            color = progressColor,
-                            trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
-                        )
-                    }
-                    Text("›•", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+            Column(modifier = Modifier.width(135.dp), horizontalAlignment = Alignment.End) {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
                 }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
-                        Text(if (user.isOnline) "🟢 آنلاین در لحظه" else "⚫ آفلاین", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else theme.mutedColor)
-                        Text("ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}", fontSize = 11.sp, color = theme.mutedColor)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (user.subUrl.isNotEmpty()) {
-                            MiniGlassButton("📋 کپی لینک", onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
-                                android.widget.Toast.makeText(context, "لینک اشتراک کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
-                            })
-                        }
-                        MiniGlassButton("✏ ویرایش", onClick = onClick)
-                    }
-                    Text("•‹", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
+                    color = progressColor,
+                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
+                )
+            }
+
+            Box(Modifier.width(1.dp).height(24.dp).background(theme.cardBorderBrush))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.widthIn(min = 115.dp)) {
+                Text(if (user.isOnline) "🟢 آنلاین در لحظه" else "⚫ آفلاین", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else theme.mutedColor)
+                Text("ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}", fontSize = 11.sp, color = theme.mutedColor)
+            }
+
+            Box(Modifier.width(1.dp).height(24.dp).background(theme.cardBorderBrush))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (user.subUrl.isNotEmpty()) {
+                    MiniGlassButton("📋 کپی", onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                        android.widget.Toast.makeText(context, "لینک کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                    })
                 }
+                MiniGlassButton("✏ ویرایش", onClick = onClick)
             }
         }
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -1314,7 +1304,6 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
         else -> GlassRed
     }
     val statusColor = if (user.status == "active") GlassGreen else GlassRed
-    val pagerState = rememberPagerState { 2 }
 
     Box(
         modifier = Modifier
@@ -1325,79 +1314,67 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(vertical = 7.dp)
     ) {
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
-            if (page == 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(statusColor))
-                    
-                    Text(
-                        user.username,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = theme.inkColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1.1f)
-                    )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(statusColor))
+                Text(
+                    user.username,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = theme.inkColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(min = 90.dp, max = 130.dp)
+                )
+            }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.weight(1.3f)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = progress,
-                            modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
-                            color = progressColor,
-                            trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
-                        )
-                        Text(
-                            if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = progressColor
-                        )
-                    }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.width(135.dp)
+            ) {
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
+                    color = progressColor,
+                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
+                )
+                Text(
+                    if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = progressColor
+                )
+            }
 
-                    Text(
-                        formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
-                        fontSize = 11.sp,
-                        color = theme.mutedColor,
-                        maxLines = 1
-                    )
-                    Text("›•", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+            Text(
+                formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
+                fontSize = 11.sp,
+                color = theme.mutedColor,
+                maxLines = 1
+            )
+
+            Box(Modifier.width(1.dp).height(20.dp).background(theme.cardBorderBrush))
+            Text(if (user.isOnline) "🟢 آنلاین" else "⚫ آفلاین", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else theme.mutedColor)
+            Text("ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}", fontSize = 11.sp, color = theme.mutedColor)
+
+            Box(Modifier.width(1.dp).height(20.dp).background(theme.cardBorderBrush))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (user.subUrl.isNotEmpty()) {
+                    MiniGlassButton("📋 کپی", onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                        android.widget.Toast.makeText(context, "کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                    })
                 }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        if (user.isOnline) "🟢 آنلاین • ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}" else "⚫ آفلاین • ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (user.isOnline) GlassGreen else theme.mutedColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (user.subUrl.isNotEmpty()) {
-                            MiniGlassButton("📋 کپی", onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
-                                android.widget.Toast.makeText(context, "کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
-                            })
-                        }
-                        MiniGlassButton("✏ ویرایش", onClick = onClick)
-                    }
-                    Text("•‹", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                }
+                MiniGlassButton("✏ ویرایش", onClick = onClick)
             }
         }
     }
@@ -1860,9 +1837,9 @@ private fun UsersScreen(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -10f && isHeaderVisible) {
+                if (available.y < -16f && isHeaderVisible) {
                     isHeaderVisible = false
-                } else if (available.y > 8f && !isHeaderVisible) {
+                } else if (available.y > 16f && !isHeaderVisible) {
                     isHeaderVisible = true
                 }
                 return Offset.Zero
@@ -1959,8 +1936,8 @@ private fun UsersScreen(
         ) {
             AnimatedVisibility(
                 visible = isHeaderVisible,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) + fadeIn(tween(180)),
+                exit = shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow)) + fadeOut(tween(150))
             ) {
                 Column {
                     LuxuryTopStatsHeader(
@@ -1973,20 +1950,23 @@ private fun UsersScreen(
                         onOpenThemeDialog = { showThemeDialog = true },
                         loading = loading
                     )
-                    GlassSearchBar(query = query, onQueryChange = { query = it })
-                    Spacer(Modifier.height(10.dp))
-                    FilterAndControlBar(
-                        currentFilter = currentFilter,
-                        onFilterChange = { currentFilter = it },
-                        currentSort = currentSort,
-                        onSortChange = { currentSort = it },
-                        viewMode = viewMode,
-                        onViewModeChange = { viewMode = it },
-                        users = users
-                    )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
             }
+
+            // Sticky Search Bar & Filters (کادر سرچ و فیلترها همیشه در بالای صفحه باقی می‌مانند)
+            GlassSearchBar(query = query, onQueryChange = { query = it })
+            Spacer(Modifier.height(10.dp))
+            FilterAndControlBar(
+                currentFilter = currentFilter,
+                onFilterChange = { currentFilter = it },
+                currentSort = currentSort,
+                onSortChange = { currentSort = it },
+                viewMode = viewMode,
+                onViewModeChange = { viewMode = it },
+                users = users
+            )
+            Spacer(Modifier.height(12.dp))
 
             when {
                 loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
