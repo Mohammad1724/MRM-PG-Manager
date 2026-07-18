@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -23,15 +25,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -133,18 +140,32 @@ private fun LiquidGlassTheme(content: @Composable () -> Unit) {
     }
 }
 
+@Composable
+private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
+    Image(
+        painter = painterResource(id = R.drawable.logo_mrm),
+        contentDescription = "MRM Logo",
+        contentScale = ContentScale.Fit,
+        modifier = modifier
+            .height(height)
+            .widthIn(max = height * 2.8f)
+    )
+}
+
 data class Session(val baseUrl: String, val token: String, val username: String)
 data class PanelUser(
+    val id: Long,
     val username: String,
     val status: String,
     val usedTraffic: Long,
     val dataLimit: Long,
-    val expire: String?
+    val expire: String?,
+    val createdAt: String?
 )
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
-enum class UserSort { NAME, USAGE, EXPIRY }
-enum class ViewMode { GRID, COMPACT_LIST }
+enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
+enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
 
 @Composable
 private fun MRMApp(context: Context) {
@@ -289,14 +310,8 @@ private fun LuxuryTopStatsHeader(
                     ),
                     color = GlassInk
                 )
-                Box(
-                    modifier = Modifier
-                        .background(GlassGoldLight.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
-                        .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 9.dp, vertical = 3.dp)
-                ) {
-                    Text("PRO", color = GlassGold, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-                }
+                // Logo replacing the previous PRO badge with exactly the same badge height (~24.dp)
+                AppLogo(height = 24.dp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 // Refresh Button
@@ -378,7 +393,7 @@ private fun FilterAndControlBar(
     users: List<PanelUser>
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Quick Filters Scrollable Bar (بدون نیاز به تایپ نام کاربر یا اسکرول طولانی)
+        // Quick Filters Scrollable Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -393,28 +408,37 @@ private fun FilterAndControlBar(
             FilterChipItem("⚪ Disabled", currentFilter == UserFilter.DISABLED) { onFilterChange(UserFilter.DISABLED) }
         }
 
-        // Sort & View Toggle
+        // Sort & View Toggle (پشتیبانی از ۳ حالت نمایش و مرتب‌سازی به ترتیب ساخت)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sort:", fontSize = 12.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Sort:", fontSize = 11.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
                 SortPill("Name", currentSort == UserSort.NAME) { onSortChange(UserSort.NAME) }
                 SortPill("Usage", currentSort == UserSort.USAGE) { onSortChange(UserSort.USAGE) }
                 SortPill("Expiry", currentSort == UserSort.EXPIRY) { onSortChange(UserSort.EXPIRY) }
+                SortPill("Created", currentSort == UserSort.CREATED) { onSortChange(UserSort.CREATED) }
             }
+            Spacer(Modifier.width(6.dp))
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.5f))
+                    .background(Color.White.copy(alpha = 0.55f))
                     .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(12.dp))
                     .padding(2.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 ViewModeIcon("田", viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
                 ViewModeIcon("☰", viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+                ViewModeIcon("≡", viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
             }
         }
     }
@@ -447,9 +471,9 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.9f) else Color.Transparent)
+            .background(if (selected) Color.White.copy(alpha = 0.95f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
             label,
@@ -474,7 +498,7 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// 1. Luxury 2-Column Grid Card (کارت گرید فشرده و باکلاس)
+// 1. Luxury 2-Column Grid Card (کارت گرید فشرده و باکلاس - 田)
 @Composable
 private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -503,7 +527,6 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
             .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Header: Status Dot & Username
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -521,7 +544,6 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                 )
             }
 
-            // Usage Center Display
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -554,7 +576,6 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                 trackColor = Color.White.copy(alpha = 0.85f)
             )
 
-            // Footer: Limit & Expiry Tag
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -579,7 +600,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-// 2. Luxury Compact Row (نمای لیستی بسیار فشرده و شیک برای بررسی سریع ده‌ها کاربر)
+// 2. Luxury Compact Row (نمای لیستی متوسط - ☰)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -635,6 +656,76 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
+// 3. Luxury Micro Slim Row (نمای ستونی باریک‌تر برای مشاهده تعداد بسیار زیاد کاربر در یک صفحه - ≡)
+@Composable
+private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
+    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
+    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    
+    val progressColor = when {
+        user.dataLimit <= 0L || progressPercent < 75 -> GlassGreen
+        progressPercent in 75..99 -> GlassAmber
+        else -> GlassRed
+    }
+    val statusColor = if (user.status == "active") GlassGreen else GlassRed
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.38f))
+            .border(BorderStroke(0.8.dp, Color.White.copy(0.7f)), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(statusColor))
+            
+            Text(
+                user.username,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = GlassInk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1.1f)
+            )
+
+            // Ultra-slim progress bar & percentage right in the middle
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1.3f)
+            ) {
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
+                    color = progressColor,
+                    trackColor = Color.White.copy(alpha = 0.85f)
+                )
+                Text(
+                    if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = progressColor
+                )
+            }
+
+            Text(
+                formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
+                fontSize = 11.sp,
+                color = GlassMuted,
+                maxLines = 1
+            )
+            Text("›", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
+        }
+    }
+}
+
 @Composable
 private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     val scope = rememberCoroutineScope()
@@ -646,22 +737,40 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
 
     Scaffold(containerColor = Color.Transparent) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
+            // Large centered background watermark logo (لوگوی بزرگ زیر کل صفحه ورود)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 50.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AppLogo(
+                    modifier = Modifier.graphicsLayer(alpha = 0.08f, scaleX = 2.5f, scaleY = 2.5f),
+                    height = 140.dp
+                )
+            }
+
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 72.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Centered top logo right above title (لوگوی وسط صفحه بالا در ورود)
+                AppLogo(height = 64.dp)
+                Spacer(Modifier.height(4.dp))
+                
                 Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = GlassInk)
                 Text("Manager Pro", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = GlassGold)
-                Text("Sign in to manage your server with diamond security", color = GlassMuted, fontSize = 14.sp)
-                Spacer(Modifier.height(10.dp))
+                Text("Sign in to manage your server with diamond security", color = GlassMuted, fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
                 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(28.dp))
-                        .background(Color.White.copy(alpha = 0.50f))
+                        .background(Color.White.copy(alpha = 0.55f))
                         .border(BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White, Color.White.copy(0.2f)))), RoundedCornerShape(28.dp))
                         .padding(22.dp)
                 ) {
@@ -742,7 +851,7 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
 
     LaunchedEffect(Unit) { load() }
 
-    // Filter and Sort logic
+    // Filter and Sort logic (پشتیبانی از ۴ نوع مرتب‌سازی از جمله به ترتیب ساخت)
     val processedUsers = remember(users, query, currentFilter, currentSort) {
         var list = users.filter { it.username.contains(query, ignoreCase = true) }
         
@@ -764,6 +873,8 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
             UserSort.NAME -> list.sortedBy { it.username.lowercase() }
             UserSort.USAGE -> list.sortedByDescending { it.usedTraffic }
             UserSort.EXPIRY -> list.sortedBy { it.expire ?: "9999" }
+            // Sort by creation order (بزرگترین ID یا تاریخ ساخت به معنای جدیدترین کاربر ساخته شده است)
+            UserSort.CREATED -> list.sortedByDescending { if (it.id > 0) it.id else (it.createdAt ?: "").hashCode().toLong() }
         }
     }
 
@@ -833,24 +944,37 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                         Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                             Text("No matching users found in this filter.", color = GlassMuted, fontSize = 14.sp)
                         }
-                    } else if (viewMode == ViewMode.GRID) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 90.dp)
-                        ) {
-                            items(processedUsers) { user ->
-                                LuxuryGridCard(user, onClick = { selectedUser = user })
+                    } else when (viewMode) {
+                        ViewMode.GRID -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding = PaddingValues(bottom = 90.dp)
+                            ) {
+                                items(processedUsers) { user ->
+                                    LuxuryGridCard(user, onClick = { selectedUser = user })
+                                }
                             }
                         }
-                    } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(bottom = 90.dp)
-                        ) {
-                            items(processedUsers) { user ->
-                                LuxuryCompactRow(user, onClick = { selectedUser = user })
+                        ViewMode.COMPACT_LIST -> {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(bottom = 90.dp)
+                            ) {
+                                items(processedUsers) { user ->
+                                    LuxuryCompactRow(user, onClick = { selectedUser = user })
+                                }
+                            }
+                        }
+                        ViewMode.MICRO_LIST -> {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                contentPadding = PaddingValues(bottom = 90.dp)
+                            ) {
+                                items(processedUsers) { user ->
+                                    LuxuryMicroRow(user, onClick = { selectedUser = user })
+                                }
                             }
                         }
                     }
@@ -1053,7 +1177,7 @@ private fun UserEditorDialog(
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(14.dp)
-                            ) {
+                                ) {
                                 Text(if (isDisabled) "Activate" else "Disable", fontWeight = FontWeight.Bold)
                             }
                         }
@@ -1193,11 +1317,13 @@ private object PanelApi {
     }
 
     private fun parseUser(user: JSONObject) = PanelUser(
+        id = user.optLong("id", 0L),
         username = user.getString("username"),
         status = user.optString("status", "unknown"),
         usedTraffic = user.optLong("used_traffic", 0),
         dataLimit = user.optLong("data_limit", 0),
-        expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" }
+        expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
+        createdAt = if (user.isNull("created_at")) null else user.optString("created_at")
     )
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
