@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -315,7 +315,7 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
 }
 
 // ==========================================
-// 3. LOGO & CRISP VECTOR ICONS
+// 3. LOGO, GLASS BUTTONS & CRISP VECTOR ICONS
 // ==========================================
 @Composable
 private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -363,20 +363,17 @@ private fun PasswordEyeIcon(visible: Boolean) {
     Canvas(modifier = Modifier.size(20.dp)) {
         val w = size.width
         val h = size.height
-        // Outer eye oval contour
         drawOval(
             color = theme.inkColor,
             topLeft = Offset(1f, h * 0.22f),
             size = androidx.compose.ui.geometry.Size(w - 2f, h * 0.56f),
             style = Stroke(width = 2.2f)
         )
-        // Center Pupil circle
         drawCircle(
             color = if (visible) theme.lamp.primary else theme.inkColor,
             radius = if (visible) w * 0.20f else w * 0.14f,
             center = Offset(w * 0.5f, h * 0.5f)
         )
-        // Diagonal slash across the eye when password is hidden
         if (!visible) {
             drawLine(
                 color = theme.lamp.primary,
@@ -396,18 +393,154 @@ private fun ExitIcon() {
     Canvas(modifier = Modifier.size(16.dp)) {
         val w = size.width
         val h = size.height
-        // Left door bracket
         drawRect(
             color = GlassRed,
             topLeft = Offset(0f, 1f),
             size = androidx.compose.ui.geometry.Size(w * 0.45f, h - 2f),
             style = Stroke(width = 2f)
         )
-        // Arrow shaft exiting to the right
         drawLine(color = GlassRed, start = Offset(w * 0.25f, h * 0.5f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
-        // Arrow head right
         drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.22f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
         drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.78f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
+    }
+}
+
+/**
+ * Symmetrical Action Icon Button (برای دکمه‌های تم، رفرش و خروج هم‌اندازه و بدون متن)
+ */
+@Composable
+private fun ActionIconButton(
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isRed: Boolean = false
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(19.dp))
+            .background(
+                if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.80f)
+                else if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f)
+            )
+            .border(
+                BorderStroke(
+                    1.dp,
+                    if (isRed) Color(0xFFF2BABA)
+                    else if (theme.isDark) Color.White.copy(0.3f) else Color.White
+                ),
+                RoundedCornerShape(19.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        icon()
+    }
+}
+
+/**
+ * Glass Button with internal lamp glow (دکمه‌های شیشه‌ای با نور لامپ داخلی برای دیالوگ)
+ */
+@Composable
+private fun GlassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isRed: Boolean = false
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.65f)
+                else if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.55f)
+            )
+            .border(
+                BorderStroke(
+                    1.dp,
+                    if (isRed) Color(0xFFF2BABA)
+                    else Brush.linearGradient(
+                        listOf(Color.White.copy(0.9f), theme.lamp.light.copy(0.4f), Color.White.copy(0.2f))
+                    )
+                ),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            if (isRed) GlassRed.copy(0.18f) else theme.lamp.primary.copy(0.20f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+        Text(
+            text = text,
+            color = if (isRed) GlassRed else theme.inkColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp
+        )
+    }
+}
+
+@Composable
+private fun MiniGlassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isRed: Boolean = false
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.65f)
+                else if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.55f)
+            )
+            .border(
+                BorderStroke(
+                    1.dp,
+                    if (isRed) Color(0xFFF2BABA).copy(0.8f)
+                    else Brush.linearGradient(listOf(Color.White.copy(0.85f), theme.lamp.primary.copy(0.3f)))
+                ),
+                RoundedCornerShape(12.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            if (isRed) GlassRed.copy(0.18f) else theme.lamp.primary.copy(0.18f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+        Text(
+            text = text,
+            color = if (isRed) GlassRed else theme.inkColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp
+        )
     }
 }
 
@@ -577,7 +710,7 @@ private fun GlassSearchBar(
     }
 }
 
-// 4. TOP HEADER (علامت تغییر تم سمت چپ زیر PasarGuard + دکمه خروج تمیز)
+// 4. TOP HEADER (تغییر تم سمت چپ زیر PasarGuard + دکمه‌های رفرش و خروج هم‌اندازه و بدون متن)
 @Composable
 private fun LuxuryTopStatsHeader(
     totalUsers: Int,
@@ -600,7 +733,7 @@ private fun LuxuryTopStatsHeader(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left side: PasarGuard + AppLogo, and Theme selector button underneath it
+            // Left side: PasarGuard + AppLogo, and Theme icon button directly under PasarGuard on the left
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -614,57 +747,32 @@ private fun LuxuryTopStatsHeader(
                     AppLogo(height = 24.dp)
                 }
                 
-                // Theme selector button placed on the LEFT side right under PasarGuard
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f))
-                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(14.dp))
-                        .clickable(onClick = onOpenThemeDialog)
-                        .padding(horizontal = 11.dp, vertical = 5.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🎨", fontSize = 13.sp)
-                        Text("Theme", color = theme.inkColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+                // Theme icon button placed on the LEFT right under PasarGuard
+                ActionIconButton(
+                    icon = { Text("🎨", fontSize = 16.sp) },
+                    onClick = onOpenThemeDialog
+                )
             }
 
-            // Right side: Refresh & Exit buttons
+            // Right side: Symmetrical icon-only Refresh & Exit buttons of exactly the same size
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f))
-                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(16.dp))
-                        .clickable(enabled = !loading, onClick = onRefresh)
-                        .padding(horizontal = 11.dp, vertical = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                ActionIconButton(
+                    icon = {
                         if (loading) {
-                            CircularProgressIndicator(Modifier.size(13.dp), color = theme.inkColor, strokeWidth = 2.dp)
+                            CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp)
                         } else {
-                            Text("🔄", fontSize = 12.sp)
+                            Text("🔄", fontSize = 15.sp)
                         }
-                        Text("Refresh", color = theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+                    },
+                    onClick = onRefresh,
+                    enabled = !loading
+                )
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.80f))
-                        .border(BorderStroke(1.dp, Color(0xFFF2BABA)), RoundedCornerShape(16.dp))
-                        .clickable(onClick = onLogout)
-                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ExitIcon()
-                        Text("Exit", color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+                ActionIconButton(
+                    icon = { ExitIcon() },
+                    onClick = onLogout,
+                    isRed = true
+                )
             }
         }
 
@@ -1042,7 +1150,7 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
 }
 
 // ==========================================
-// 6. THEME EDITOR DIALOG
+// 6. THEME EDITOR DIALOG (دکمه Done شیشه‌ای و شیک)
 // ==========================================
 @Composable
 private fun ThemeEditorDialog(
@@ -1063,7 +1171,6 @@ private fun ThemeEditorDialog(
             Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text("🎨 Appearance & Theme", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    TextButton(onClick = onDismiss) { Text("Done", fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1105,6 +1212,9 @@ private fun ThemeEditorDialog(
                         }
                     }
                 }
+
+                // Glass confirmation button replacing plain text
+                GlassButton("✓ تایید و بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -1138,7 +1248,6 @@ private fun ShamsiCalendarPickerDialog(
     val theme = LocalThemeState.current
     val today = JalaliCalendar.todayJalali()
     
-    // Parse initial date or default to today
     val parsedInitial = remember(initialDateShamsi) {
         val p = initialDateShamsi.replace("-", "/").split("/")
         if (p.size == 3) {
@@ -1178,7 +1287,6 @@ private fun ShamsiCalendarPickerDialog(
                     }) { Text("امروز", color = theme.lamp.primary, fontWeight = FontWeight.Bold) }
                 }
 
-                // Month / Year Header Selector
                 Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Button(
@@ -1223,7 +1331,6 @@ private fun ShamsiCalendarPickerDialog(
                     }
                 }
 
-                // Days Grid (6 columns or 7)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1246,19 +1353,13 @@ private fun ShamsiCalendarPickerDialog(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) { Text("انصراف", color = theme.mutedColor) }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val finalDate = JalaliCalendar.Date(selectedYear, selectedMonth, selectedDay)
-                            onDateSelected(finalDate.toString())
-                            onDismiss()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("تایید تاریخ", fontWeight = FontWeight.Bold)
-                    }
+                    GlassButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(10.dp))
+                    GlassButton("تایید تاریخ", onClick = {
+                        val finalDate = JalaliCalendar.Date(selectedYear, selectedMonth, selectedDay)
+                        onDateSelected(finalDate.toString())
+                        onDismiss()
+                    }, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -1283,7 +1384,13 @@ private fun LoginScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = Color.Transparent) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+        ) {
             // Large centered MRM watermark
             Box(
                 modifier = Modifier
@@ -1297,22 +1404,12 @@ private fun LoginScreen(
                 )
             }
 
-            // 1. Theme selector moved to TOP LEFT on Login Screen (سمت چپ صفحه ورود)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(20.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (themeState.isDark) Color.White.copy(0.12f) else Color.White.copy(0.70f))
-                    .border(BorderStroke(1.dp, Color.White.copy(0.5f)), RoundedCornerShape(16.dp))
-                    .clickable { showThemeDialog = true }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🎨", fontSize = 15.sp)
-                    Text("Theme", color = themeState.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            // 1. Theme icon button moved to TOP LEFT on Login Screen (فقط آیکون 🎨 سمت چپ)
+            ActionIconButton(
+                icon = { Text("🎨", fontSize = 16.sp) },
+                onClick = { showThemeDialog = true },
+                modifier = Modifier.align(Alignment.TopStart).padding(20.dp)
+            )
 
             Column(
                 Modifier
@@ -1324,7 +1421,7 @@ private fun LoginScreen(
                 AppLogo(height = 64.dp)
                 Spacer(Modifier.height(4.dp))
                 
-                // 2. Removed "Manager Pro" text as requested
+                // Removed Manager Pro text
                 Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
                 Text("Sign in to manage your server with diamond security", color = themeState.mutedColor, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
@@ -1341,7 +1438,6 @@ private fun LoginScreen(
                         Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = themeState.inkColor)
                         GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
                         GlassTextField(username, { username = it }, "Username")
-                        // 3. Password field equipped with standard Eye Icon (علامت چشم مرسوم در سایت‌ها)
                         GlassTextField(password, { password = it }, "Password", password = true)
                         error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
                         Button(
@@ -1396,9 +1492,10 @@ private fun UsersScreen(
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
 
+    // 4. Default Sort set to CREATED and Default View set to MICRO_LIST (ستونی باریک‌تر)
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
-    var currentSort by remember { mutableStateOf(UserSort.NAME) }
-    var viewMode by remember { mutableStateOf(ViewMode.GRID) }
+    var currentSort by remember { mutableStateOf(UserSort.CREATED) }
+    var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
 
     fun load() {
         scope.launch {
@@ -1644,20 +1741,12 @@ private fun UsersScreen(
                     Text("Delete ${user.username}?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     Text("This action will permanently remove the user and cannot be undone.", color = theme.mutedColor, fontSize = 14.sp)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { deleteUser = null }) {
-                            Text("Cancel", color = theme.mutedColor)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                deleteUser = null
-                                runAction { PanelApi.deleteUser(session, user.username) }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = GlassRed, contentColor = Color.White),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text("Delete", fontWeight = FontWeight.Bold)
-                        }
+                        GlassButton("انصراف", onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(10.dp))
+                        GlassButton("حذف کاربر", onClick = {
+                            deleteUser = null
+                            runAction { PanelApi.deleteUser(session, user.username) }
+                        }, modifier = Modifier.weight(1f), isRed = true)
                     }
                 }
             }
@@ -1668,7 +1757,7 @@ private fun UsersScreen(
 private data class UserEditorValues(val username: String, val value: Double)
 
 // ==========================================
-// 9. USER EDITOR DIALOG (با تقویم شمسی، افزودن سریع روز، و ریست حجم/زمان)
+// 9. USER EDITOR DIALOG (تمام دکمه‌ها شیشه‌ای و نور لامپی، برچسب تاریخ اصلاح‌شده)
 // ==========================================
 @Composable
 private fun UserEditorDialog(
@@ -1690,7 +1779,6 @@ private fun UserEditorDialog(
             ).trimEnd('0').trimEnd('.')
         )
     }
-    // Convert initial ISO date to Shamsi string
     var expireShamsi by remember {
         mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "")
     }
@@ -1741,77 +1829,76 @@ private fun UserEditorDialog(
                     keyboardType = KeyboardType.Decimal
                 )
 
-                // Shamsi Date Field + Calendar Selector Button
+                // 5. Label changed to just "تاریخ انقضا" as requested
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.weight(1f)) {
                             GlassTextField(
                                 value = expireShamsi,
                                 onValueChange = { expireShamsi = it },
-                                label = "تاریخ انقضا شمسی (مثلا ۱۴۰۵/۰۵/۱۰)"
+                                label = "تاریخ انقضا"
                             )
                         }
-                        Button(
-                            onClick = { showShamsiCalendar = true },
-                            modifier = Modifier.height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.2f), contentColor = theme.inkColor),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text("📅 تقویم", fontWeight = FontWeight.Bold)
-                        }
+                        MiniGlassButton("📅 تقویم", onClick = { showShamsiCalendar = true }, modifier = Modifier.width(76.dp))
                     }
 
-                    // Quick Day Adders (+۳۰ روز، +۶۰ روز، یا ورود دستی روز)
+                    // 7. Sleek horizontal day adders and capsule glass day input perfectly vertically aligned
                     Text("افزودن سریع به زمان:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        QuickAddDayPill("+۳۰ روز") {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                    ) {
+                        MiniGlassButton("+۳۰ روز", onClick = {
                             val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
                             val newIso = JalaliCalendar.addDaysToIso(baseIso, 30)
                             expireShamsi = JalaliCalendar.isoToShamsi(newIso)
-                        }
-                        QuickAddDayPill("+۶۰ روز") {
+                        })
+                        MiniGlassButton("+۶۰ روز", onClick = {
                             val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
                             val newIso = JalaliCalendar.addDaysToIso(baseIso, 60)
                             expireShamsi = JalaliCalendar.isoToShamsi(newIso)
-                        }
-                        QuickAddDayPill("+۹۰ روز") {
+                        })
+                        MiniGlassButton("+۹۰ روز", onClick = {
                             val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
                             val newIso = JalaliCalendar.addDaysToIso(baseIso, 90)
                             expireShamsi = JalaliCalendar.isoToShamsi(newIso)
-                        }
-                        
-                        // Custom numeric day adder input
-                        Box(Modifier.width(80.dp)) {
-                            OutlinedTextField(
+                        })
+
+                        // Glass pill input (+روز) aligned directly at 34.dp height
+                        Box(
+                            modifier = Modifier
+                                .width(74.dp)
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (theme.isDark) Color.White.copy(0.1f) else Color.White.copy(0.55f))
+                                .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.CenterLeft
+                        ) {
+                            if (customAddDays.isEmpty()) {
+                                Text("+روز", fontSize = 11.sp, color = theme.mutedColor.copy(alpha = 0.8f))
+                            }
+                            BasicTextField(
                                 value = customAddDays,
                                 onValueChange = { customAddDays = it },
-                                placeholder = { Text("+روز", fontSize = 11.sp) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White.copy(0.2f),
-                                    unfocusedContainerColor = Color.White.copy(0.1f)
-                                ),
-                                textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
-                                modifier = Modifier.height(44.dp)
+                                textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
+
                         if (customAddDays.isNotEmpty()) {
-                            Button(
-                                onClick = {
-                                    val d = customAddDays.toIntOrNull() ?: 0
-                                    if (d > 0) {
-                                        val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
-                                        val newIso = JalaliCalendar.addDaysToIso(baseIso, d)
-                                        expireShamsi = JalaliCalendar.isoToShamsi(newIso)
-                                        customAddDays = ""
-                                    }
-                                },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                                modifier = Modifier.height(44.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("+") }
+                            MiniGlassButton("✓ افزودن", onClick = {
+                                val d = customAddDays.toIntOrNull() ?: 0
+                                if (d > 0) {
+                                    val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
+                                    val newIso = JalaliCalendar.addDaysToIso(baseIso, d)
+                                    expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+                                    customAddDays = ""
+                                }
+                            })
                         }
                     }
                 }
@@ -1827,51 +1914,33 @@ private fun UserEditorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("وضعیت فعلی: ${formatBytes(user.usedTraffic)} مصرف شده • ${user.status.uppercase()}", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             
-                            // 5. Quick Reset Actions (ریست حجم و زمان کاربر)
+                            // 6. Smaller, glassmorphic reset buttons with internal lamp glow
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                 onResetUsage?.let { resetU ->
-                                    Button(
-                                        onClick = resetU,
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA89B), contentColor = Color.White),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) { Text("♻ ریست حجم (۰ B)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    MiniGlassButton("♻ ریست حجم (۰ B)", onClick = resetU, modifier = Modifier.weight(1f))
                                 }
                                 onResetExpiry?.let { resetE ->
-                                    Button(
-                                        onClick = resetE,
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7A42D4), contentColor = Color.White),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) { Text("♻ ریست زمان (نامحدود)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                    MiniGlassButton("♻ ریست زمان (نامحدود)", onClick = resetE, modifier = Modifier.weight(1f))
                                 }
                             }
 
+                            // 6. Glassmorphic Activate/Disable and Delete buttons with internal lamp glow
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 onToggle?.let { toggle ->
                                     val isDisabled = user.status == "disabled"
-                                    Button(
+                                    GlassButton(
+                                        text = if (isDisabled) "فعال‌سازی کاربر" else "غیرفعال‌سازی کاربر",
                                         onClick = toggle,
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isDisabled) GlassGreen else GlassAmber,
-                                            contentColor = Color.White
-                                        ),
-                                        shape = RoundedCornerShape(14.dp)
-                                    ) {
-                                        Text(if (isDisabled) "فعال‌سازی" else "غیرفعال‌سازی", fontWeight = FontWeight.Bold)
-                                    }
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                                 onDelete?.let { delete ->
-                                    OutlinedButton(
+                                    GlassButton(
+                                        text = "حذف کاربر",
                                         onClick = delete,
                                         modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GlassRed),
-                                        border = BorderStroke(1.dp, GlassRed.copy(alpha = 0.6f)),
-                                        shape = RoundedCornerShape(14.dp)
-                                    ) {
-                                        Text("حذف کاربر", fontWeight = FontWeight.Bold)
-                                    }
+                                        isRed = true
+                                    )
                                 }
                             }
                         }
@@ -1882,30 +1951,23 @@ private fun UserEditorDialog(
                     Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
 
+                // 6. Glassmorphic Save and Cancel buttons at bottom
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) {
-                        Text("انصراف", color = theme.mutedColor, fontWeight = FontWeight.SemiBold)
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val cleanLimitStr = limitGb.replace(',', '.').trim()
-                            val limit = if (cleanLimitStr.isBlank()) 0.0 else cleanLimitStr.toDoubleOrNull()
-                            if (username.length !in 3..32 && initial == null) {
-                                formError = "Username must be 3 to 32 characters."
-                            } else if (limit == null || limit < 0) {
-                                formError = "Data limit must be a valid number."
-                            } else if (expireShamsi.isNotBlank() && !Regex("^\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}$").matches(expireShamsi)) {
-                                formError = "فرمت تاریخ شمسی صحیح نیست (مثلا ۱۴۰۵/۰۵/۱۰)."
-                            } else {
-                                onSave(UserEditorValues(username, limit), expireShamsi)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("ذخیره تغییرات", fontWeight = FontWeight.Bold)
-                    }
+                    GlassButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(10.dp))
+                    GlassButton("ذخیره تغییرات", onClick = {
+                        val cleanLimitStr = limitGb.replace(',', '.').trim()
+                        val limit = if (cleanLimitStr.isBlank()) 0.0 else cleanLimitStr.toDoubleOrNull()
+                        if (username.length !in 3..32 && initial == null) {
+                            formError = "Username must be 3 to 32 characters."
+                        } else if (limit == null || limit < 0) {
+                            formError = "Data limit must be a valid number."
+                        } else if (expireShamsi.isNotBlank() && !Regex("^\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}$").matches(expireShamsi)) {
+                            formError = "فرمت تاریخ شمسی صحیح نیست (مثلا ۱۴۰۵/۰۵/۱۰)."
+                        } else {
+                            onSave(UserEditorValues(username, limit), expireShamsi)
+                        }
+                    }, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -1918,161 +1980,4 @@ private fun UserEditorDialog(
             onDateSelected = { dateStr -> expireShamsi = dateStr }
         )
     }
-}
-
-@Composable
-private fun QuickAddDayPill(label: String, onClick: () -> Unit) {
-    val theme = LocalThemeState.current
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(if (theme.isDark) 0.15f else 0.7f))
-            .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.4f)), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 5.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-    }
-}
-
-private fun formatBytes(value: Long): String {
-    if (value <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val index = (kotlin.math.ln(value.toDouble()) / kotlin.math.ln(1024.0)).toInt().coerceAtMost(units.lastIndex)
-    return "${DecimalFormat("#.##").format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
-}
-
-private object PanelApi {
-    private val client = OkHttpClient()
-    private val jsonType = "application/json; charset=utf-8".toMediaType()
-
-    private fun baseUrl(input: String): String {
-        val prepared = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
-        val uri = URI(prepared)
-        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
-        return buildString {
-            append(uri.scheme)
-            append("://")
-            append(uri.host)
-            if (uri.port != -1) append(":${uri.port}")
-        }
-    }
-
-    private fun userUrl(session: Session, username: String): String =
-        "${session.baseUrl}/api/user/${URLEncoder.encode(username, "UTF-8")}"
-
-    private fun requestBuilder(session: Session, url: String): Request.Builder =
-        Request.Builder().url(url).header("Authorization", "Bearer ${session.token}")
-
-    suspend fun login(address: String, username: String, password: String): Session = withContext(Dispatchers.IO) {
-        require(username.isNotBlank() && password.isNotBlank()) { "Credentials required" }
-        val base = baseUrl(address)
-        val body = FormBody.Builder().add("username", username).add("password", password).build()
-        val request = Request.Builder().url("$base/api/admin/token").post(body).build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Login failed: ${response.code}")
-            val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
-            Session(base, token, username)
-        }
-    }
-
-    suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=0&limit=1000").get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Request failed: ${response.code}")
-            val data = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
-            List(data.length()) { index -> parseUser(data.getJSONObject(index)) }
-        }
-    }
-
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
-        val body = JSONObject()
-            .put("username", username)
-            .put("status", "active")
-            .put("data_limit", gbToBytes(limitGb))
-            .put("expire", expireValue(expireIso))
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
-    }
-
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
-        val body = JSONObject()
-            .put("data_limit", gbToBytes(limitGb))
-            .put("expire", expireValue(expireIso))
-        executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
-    }
-
-    suspend fun resetUsage(session: Session, username: String) = withContext(Dispatchers.IO) {
-        executeJson(requestBuilder(session, "${userUrl(session, username)}/reset").post("".toRequestBody(jsonType)).build())
-    }
-
-    suspend fun setDisabled(session: Session, username: String, disabled: Boolean) = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("disabled", disabled)
-        executeJson(requestBuilder(session, "${userUrl(session, username)}/disabled").put(body.toString().toRequestBody(jsonType)).build())
-    }
-
-    suspend fun deleteUser(session: Session, username: String) = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, userUrl(session, username)).delete().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Delete failed: ${response.code}")
-        }
-    }
-
-    private fun executeJson(request: Request) {
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                val details = response.body?.string()?.take(250).orEmpty()
-                error("Request failed: ${response.code} $details")
-            }
-        }
-    }
-
-    private fun parseUser(user: JSONObject) = PanelUser(
-        id = user.optLong("id", 0L),
-        username = user.getString("username"),
-        status = user.optString("status", "unknown"),
-        usedTraffic = user.optLong("used_traffic", 0),
-        dataLimit = user.optLong("data_limit", 0),
-        expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
-        createdAt = if (user.isNull("created_at")) null else user.optString("created_at")
-    )
-
-    private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
-    private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59Z"
-}
-
-private class SessionStore(context: Context) {
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "mrm_pg_manager",
-        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-
-    fun read(): Session? {
-        val base = prefs.getString("base", null) ?: return null
-        val token = prefs.getString("token", null) ?: return null
-        return Session(base, token, prefs.getString("username", "") ?: "")
-    }
-
-    fun save(value: Session) = prefs.edit()
-        .putString("base", value.baseUrl)
-        .putString("token", value.token)
-        .putString("username", value.username)
-        .apply()
-
-    fun clear() = prefs.edit().clear().apply()
-
-    fun readTheme(): ThemeState {
-        val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
-        val isDark = prefs.getBoolean("theme_dark", false)
-        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
-        return ThemeState(lamp = lamp, isDark = isDark)
-    }
-
-    fun saveTheme(themeState: ThemeState) = prefs.edit()
-        .putString("theme_lamp", themeState.lamp.name)
-        .putBoolean("theme_dark", themeState.isDark)
-        .apply()
 }
