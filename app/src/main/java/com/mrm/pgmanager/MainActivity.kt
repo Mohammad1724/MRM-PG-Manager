@@ -80,6 +80,7 @@ import java.net.URI
 import java.net.URLEncoder
 import java.text.DecimalFormat
 import java.time.LocalDate
+import java.util.concurrent.TimeUnit
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -659,7 +660,7 @@ private fun PrimarySaveButton(
 
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(46.dp)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(
@@ -709,7 +710,7 @@ private fun MutedCancelButton(
 
     Box(
         modifier = modifier
-            .height(48.dp)
+            .height(46.dp)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.06f))
@@ -2466,7 +2467,11 @@ private fun formatBytes(value: Long): String {
 }
 
 private object PanelApi {
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .writeTimeout(20, TimeUnit.SECONDS)
+        .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     private fun baseUrl(input: String): String {
