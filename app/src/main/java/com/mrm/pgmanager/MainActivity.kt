@@ -51,7 +51,7 @@ private fun MRMApp(context: Context) {
 @Composable
 private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf("https://psrg1.iranshop21.monster:7431/dashboard/#/login") }
+    var url by remember { mutableStateOf("https://abc.exampel.com:1234/dashboard/") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -139,7 +139,7 @@ private object PanelApi {
         }
     }
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url("${session.baseUrl}/api/user/s?offset=0&limit=100").header("Authorization", "Bearer ${session.token}").get().build()
+        val request = Request.Builder().url("${session.baseUrl}/api/users?offset=0&limit=100").header("Authorization", "Bearer ${session.token}").get().build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Request failed: ${response.code}")
             val data = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
