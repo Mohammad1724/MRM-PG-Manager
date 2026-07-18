@@ -16,4 +16,4 @@ Push this repository to GitHub. Open **Actions**, select **Build Android APK**, 
 
 ## Notes
 
-The application calls `POST /api/admin/token` and `GET /api/user/s`. Use HTTPS and an administrator account with user-read permission.
+The application calls `POST /api/admin/token` and `GET /api/users`. Use HTTPS and an administrator account with user-read permission.
