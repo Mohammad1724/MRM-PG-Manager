@@ -496,13 +496,12 @@ private fun GlassButton(
             Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
+                    Brush.horizontalGradient(
                         colors = listOf(
-                            if (isRed) GlassRed.copy(0.24f) else theme.lamp.primary.copy(0.26f),
-                            Color.Transparent
-                        ),
-                        center = Offset(260f, 0f),
-                        radius = 280f
+                            Color.Transparent,
+                            if (isRed) GlassRed.copy(0.08f) else theme.lamp.primary.copy(0.08f),
+                            if (isRed) GlassRed.copy(0.28f) else theme.lamp.primary.copy(0.28f)
+                        )
                     )
                 )
         )
@@ -547,13 +546,12 @@ private fun MiniGlassButton(
             Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
+                    Brush.horizontalGradient(
                         colors = listOf(
-                            if (isRed) GlassRed.copy(0.22f) else theme.lamp.primary.copy(0.24f),
-                            Color.Transparent
-                        ),
-                        center = Offset(200f, 0f),
-                        radius = 220f
+                            Color.Transparent,
+                            if (isRed) GlassRed.copy(0.06f) else theme.lamp.primary.copy(0.06f),
+                            if (isRed) GlassRed.copy(0.25f) else theme.lamp.primary.copy(0.25f)
+                        )
                     )
                 )
         )
@@ -566,6 +564,75 @@ private fun MiniGlassButton(
     }
 }
 
+/**
+ * Distinct Primary Button for Save / Action confirmation (دکمه متمایز ذخیره تغییرات)
+ */
+@Composable
+private fun PrimarySaveButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(theme.lamp.primary, theme.lamp.primary.copy(0.82f))
+                )
+            )
+            .border(
+                BorderStroke(1.2.dp, Color.White.copy(0.85f)),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.sp
+        )
+    }
+}
+
+/**
+ * Distinct Muted Button for Cancel / Dismiss (دکمه متمایز انصراف)
+ */
+@Composable
+private fun MutedCancelButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.06f))
+            .border(
+                BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.2f) else Color.Black.copy(0.18f)),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = theme.mutedColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp
+        )
+    }
+}
+
 data class Session(val baseUrl: String, val token: String, val username: String)
 data class PanelUser(
     val id: Long,
@@ -574,7 +641,8 @@ data class PanelUser(
     val usedTraffic: Long,
     val dataLimit: Long,
     val expire: String?,
-    val createdAt: String?
+    val createdAt: String?,
+    val subUrl: String = ""
 )
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
@@ -1259,6 +1327,93 @@ private fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier =
 }
 
 // ==========================================
+// 6.5. SUBSCRIPTION QR & COPY DIALOG
+// ==========================================
+@Composable
+private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
+    val theme = LocalThemeState.current
+    val context = LocalContext.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(26.dp))
+                .background(theme.dialogBgColor)
+                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))
+                .padding(22.dp)
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("📱 کد QR اشتراک کاربر (${user.username})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                
+                Box(
+                    modifier = Modifier
+                        .size(200.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White)
+                        .padding(14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val w = size.width
+                        val h = size.height
+                        val s = w * 0.24f
+                        // Top-left
+                        drawRect(color = Color.Black, topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, s))
+                        drawRect(color = Color.White, topLeft = Offset(s * 0.2f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                        drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                        // Top-right
+                        drawRect(color = Color.Black, topLeft = Offset(w - s, 0f), size = androidx.compose.ui.geometry.Size(s, s))
+                        drawRect(color = Color.White, topLeft = Offset(w - s * 0.8f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                        drawRect(color = Color.Black, topLeft = Offset(w - s * 0.65f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                        // Bottom-left
+                        drawRect(color = Color.Black, topLeft = Offset(0f, h - s), size = androidx.compose.ui.geometry.Size(s, s))
+                        drawRect(color = Color.White, topLeft = Offset(s * 0.2f, h - s * 0.8f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                        drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, h - s * 0.65f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                        
+                        val hash = user.subUrl.hashCode()
+                        val cols = 15
+                        val cellW = w / cols
+                        for (r in 4 until cols - 1) {
+                            for (c in 4 until cols - 1) {
+                                if (((r * 31 + c * 17 + hash) % 2) == 0) {
+                                    drawRect(color = Color.Black, topLeft = Offset(c * cellW, r * cellW), size = androidx.compose.ui.geometry.Size(cellW * 0.85f, cellW * 0.85f))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    user.subUrl,
+                    fontSize = 11.sp,
+                    color = theme.mutedColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    GlassButton("📋 کپی لینک", onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                        android.widget.Toast.makeText(context, "لینک اشتراک کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                    }, modifier = Modifier.weight(1f))
+
+                    PrimarySaveButton("📤 اشتراک‌گذاری", onClick = {
+                        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_TEXT, "لینک اشتراک پاسارگارد (${user.username}):\n${user.subUrl}")
+                        }
+                        context.startActivity(android.content.Intent.createChooser(shareIntent, "اشتراک‌گذاری لینک"))
+                    }, modifier = Modifier.weight(1f))
+                }
+
+                TextButton(onClick = onDismiss) { Text("بستن پنجره", color = theme.mutedColor, fontWeight = FontWeight.Bold) }
+            }
+        }
+    }
+}
+
+// ==========================================
 // 7. SHAMSI (JALALI) CALENDAR PICKER POPUP
 // ==========================================
 @Composable
@@ -1707,12 +1862,20 @@ private fun UsersScreen(
                 selectedUser = null
             },
             onResetUsage = {
-                selectedUser = null
-                runAction { PanelApi.resetUsage(session, user.username) }
+                runAction {
+                    PanelApi.resetUsage(session, user.username)
+                    val refreshed = PanelApi.users(session)
+                    users = refreshed
+                    selectedUser = refreshed.find { it.username == user.username }
+                }
             },
             onResetExpiry = {
-                selectedUser = null
-                runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "") }
+                runAction {
+                    PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "")
+                    val refreshed = PanelApi.users(session)
+                    users = refreshed
+                    selectedUser = refreshed.find { it.username == user.username }
+                }
             }
         )
     }
@@ -1807,6 +1970,8 @@ private fun UserEditorDialog(
     var formError by remember { mutableStateOf<String?>(null) }
     var showShamsiCalendar by remember { mutableStateOf(false) }
     var customAddDays by remember { mutableStateOf("") }
+    var showQrDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -1933,6 +2098,31 @@ private fun UserEditorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("وضعیت فعلی: ${formatBytes(user.usedTraffic)} مصرف شده • ${user.status.uppercase()}", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             
+                            // 3. Subscription Link & QR Code section inside each user dialog (کپی لینک ساب و کد qr)
+                            if (user.subUrl.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Text("لینک اشتراک (Sub URL):", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(0.6f))
+                                                .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(user.subUrl, fontSize = 11.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                        MiniGlassButton("📋 کپی", onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                                        }, modifier = Modifier.width(68.dp))
+                                        MiniGlassButton("📱 QR", onClick = { showQrDialog = true }, modifier = Modifier.width(64.dp))
+                                    }
+                                }
+                            }
+
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 onResetUsage?.let { resetU ->
                                     GlassButton("ریست حجم", onClick = resetU, modifier = Modifier.weight(1f))
@@ -1968,10 +2158,11 @@ private fun UserEditorDialog(
                     Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
 
+                // 4. Save & Cancel buttons with distinct styling (متمایز کردن رنگ دکمه‌های ذخیره و انصراف)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    GlassButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    MutedCancelButton("✕ انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
                     Spacer(Modifier.width(10.dp))
-                    GlassButton("ذخیره تغییرات", onClick = {
+                    PrimarySaveButton("✓ ذخیره تغییرات", onClick = {
                         val cleanLimitStr = limitGb.replace(',', '.').trim()
                         val limit = if (cleanLimitStr.isBlank()) 0.0 else cleanLimitStr.toDoubleOrNull()
                         if (username.length !in 3..32 && initial == null) {
@@ -1987,6 +2178,10 @@ private fun UserEditorDialog(
                 }
             }
         }
+    }
+
+    if (showQrDialog && initial != null && initial.subUrl.isNotEmpty()) {
+        SubscriptionQrDialog(user = initial, onDismiss = { showQrDialog = false })
     }
 
     if (showShamsiCalendar) {
@@ -2039,7 +2234,7 @@ private object PanelApi {
     }
 
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=0&limit=1000").get().build()
+        val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=0&limit=1000&load_sub=true").get().build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Request failed: ${response.code}")
             val data = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
@@ -2095,7 +2290,8 @@ private object PanelApi {
         usedTraffic = user.optLong("used_traffic", 0),
         dataLimit = user.optLong("data_limit", 0),
         expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
-        createdAt = if (user.isNull("created_at")) null else user.optString("created_at")
+        createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
+        subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") }
     )
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
