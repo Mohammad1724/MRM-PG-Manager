@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
@@ -62,87 +63,143 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { LiquidGlassTheme { MRMApp(this) } }
+        setContent { MRMApp(this) }
     }
 }
 
-// Luxury Champagne & Brushed Gold Glass Palette
-private val GlassGold = Color(0xFFC59B27)
-private val GlassGoldLight = Color(0xFFF3E5AB)
-private val GlassCream = Color(0xFFFAF6EE)
-private val GlassInk = Color(0xFF1C1B18)
-private val GlassMuted = Color(0xFF6A655B)
+// 1. Lamp Color Palette & Theme Configuration (رنگ‌های قابل انتخاب لامپ و تم دارک)
+enum class LampColor(
+    val label: String,
+    val primary: Color,
+    val light: Color,
+    val spotHigh: Color,
+    val spotLow: Color
+) {
+    GOLD("Champagne Gold", Color(0xFFC59B27), Color(0xFFF3E5AB), Color(0xBBF5D061), Color(0x44E5B84B)),
+    MAGENTA("Royal Magenta", Color(0xFFC8327E), Color(0xFFFAD1E6), Color(0xBBC8327E), Color(0x44E86FA8)),
+    TURQUOISE("Neon Turquoise", Color(0xFF0EA89B), Color(0xFFB5F2EC), Color(0xBB2AD4C5), Color(0x4414A094)),
+    VIOLET("Cyber Violet", Color(0xFF7A42D4), Color(0xFFE2D1FC), Color(0xBB9862F5), Color(0x447A42D4)),
+    EMERALD("Emerald Glow", Color(0xFF1A8C5B), Color(0xFFC2F2DC), Color(0xBB2EC486), Color(0x441A8C5B))
+}
+
+data class ThemeState(
+    val lamp: LampColor = LampColor.GOLD,
+    val isDark: Boolean = false
+) {
+    val inkColor: Color
+        get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF1C1B18)
+
+    val mutedColor: Color
+        get() = if (isDark) Color(0xFFA09C94) else Color(0xFF6A655B)
+
+    val cardBgColor: Color
+        get() = if (isDark) Color(0xFF222226).copy(alpha = 0.68f) else Color.White.copy(alpha = 0.48f)
+
+    val cardBorderBrush: Brush
+        get() = if (isDark) {
+            Brush.linearGradient(listOf(Color.White.copy(0.38f), Color.White.copy(0.08f)))
+        } else {
+            Brush.linearGradient(listOf(Color.White.copy(0.95f), Color.White.copy(0.2f)))
+        }
+
+    val dialogBgColor: Color
+        get() = if (isDark) Color(0xFF18181C).copy(alpha = 0.94f) else Color(0xFFFFFDF8).copy(alpha = 0.92f)
+
+    val searchBgColor: Color
+        get() = if (isDark) Color(0xFF2C2C32).copy(alpha = 0.72f) else Color.White.copy(alpha = 0.65f)
+}
+
+val LocalThemeState = compositionLocalOf { ThemeState() }
+
 private val GlassGreen = Color(0xFF1A8C5B)
 private val GlassAmber = Color(0xFFD9822B)
 private val GlassRed = Color(0xFFC93B3B)
 private val GlassShape = RoundedCornerShape(24.dp)
 
 @Composable
-private fun LiquidGlassTheme(content: @Composable () -> Unit) {
-    val colors = lightColorScheme(
-        primary = GlassGold,
-        onPrimary = Color.White,
-        secondary = GlassGoldLight,
-        background = GlassCream,
-        surface = Color.White.copy(alpha = 0.60f),
-        onSurface = GlassInk,
-        onBackground = GlassInk,
-        error = GlassRed
-    )
-    MaterialTheme(colorScheme = colors) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFFFFFDF9),
-                            Color(0xFFFFF7E6),
-                            Color(0xFFFFF4DC)
+private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
+    val colors = if (themeState.isDark) {
+        darkColorScheme(
+            primary = themeState.lamp.primary,
+            onPrimary = Color.White,
+            secondary = themeState.lamp.light,
+            background = Color(0xFF101012),
+            surface = Color(0xFF1E1E22).copy(alpha = 0.70f),
+            onSurface = themeState.inkColor,
+            onBackground = themeState.inkColor,
+            error = GlassRed
+        )
+    } else {
+        lightColorScheme(
+            primary = themeState.lamp.primary,
+            onPrimary = Color.White,
+            secondary = themeState.lamp.light,
+            background = Color(0xFFFAF6EE),
+            surface = Color.White.copy(alpha = 0.60f),
+            onSurface = themeState.inkColor,
+            onBackground = themeState.inkColor,
+            error = GlassRed
+        )
+    }
+
+    val bgGradient = if (themeState.isDark) {
+        Brush.verticalGradient(listOf(Color(0xFF151518), Color(0xFF0E0E10), Color(0xFF08080A)))
+    } else {
+        Brush.verticalGradient(listOf(Color(0xFFFFFDF9), Color(0xFFFFF7E6), Color(0xFFFFF4DC)))
+    }
+
+    CompositionLocalProvider(LocalThemeState provides themeState) {
+        MaterialTheme(colorScheme = colors) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bgGradient)
+            ) {
+                // Directional Spotlight Lamp from LEFT side (نور جهت‌دار لامپ از سمت چپ صفحه)
+                Box(
+                    Modifier
+                        .size(420.dp)
+                        .align(Alignment.TopStart)
+                        .offset(x = (-110).dp, y = (-40).dp)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    themeState.lamp.spotHigh,
+                                    themeState.lamp.spotLow,
+                                    Color.Transparent
+                                )
+                            ),
+                            RoundedCornerShape(200.dp)
                         )
-                    )
                 )
-        ) {
-            // Luxury Spotlight Lamp shining from the LEFT side on main pages (نور لامپ از سمت چپ صفحه اصلی)
-            Box(
-                Modifier
-                    .size(420.dp)
-                    .align(Alignment.TopStart)
-                    .offset(x = (-110).dp, y = (-40).dp)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xBBF5D061), // Champagne Gold Spotlight
-                                Color(0x44E5B84B),
-                                Color.Transparent
-                            )
-                        ),
-                        RoundedCornerShape(200.dp)
-                    )
-            )
-            Box(
-                Modifier
-                    .size(340.dp)
-                    .align(Alignment.CenterStart)
-                    .offset(x = (-120).dp, y = 180.dp)
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0x66F5D061),
-                                Color.Transparent
-                            )
-                        ),
-                        RoundedCornerShape(200.dp)
-                    )
-            )
-            content()
+                Box(
+                    Modifier
+                        .size(340.dp)
+                        .align(Alignment.CenterStart)
+                        .offset(x = (-120).dp, y = 180.dp)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    themeState.lamp.spotHigh.copy(alpha = 0.5f),
+                                    Color.Transparent
+                                )
+                            ),
+                            RoundedCornerShape(200.dp)
+                        )
+                )
+                content()
+            }
         }
     }
 }
 
+/**
+ * AppLogo Composable:
+ * Dynamically resolves `logo_mrm.png` inside `app/src/main/res/drawable/` safely.
+ */
 @Composable
 private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val resId = remember(context) {
         context.resources.getIdentifier("logo_mrm", "drawable", context.packageName)
     }
@@ -156,16 +213,14 @@ private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
                 .widthIn(max = height * 2.8f)
         )
     } else {
-        // Build-safe fallback when logo_mrm.png hasn't been pushed/committed to res/drawable yet
+        val theme = LocalThemeState.current
         Box(
             modifier = modifier
                 .height(height)
                 .widthIn(max = height * 2.8f)
                 .clip(RoundedCornerShape(height / 3.2f))
                 .background(
-                    Brush.linearGradient(
-                        listOf(GlassGold, Color(0xFFF5D061), Color(0xFF9C6700))
-                    )
+                    Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.light))
                 )
                 .border(
                     BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
@@ -203,17 +258,35 @@ enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
 private fun MRMApp(context: Context) {
     val store = remember { SessionStore(context) }
     var session by remember { mutableStateOf(store.read()) }
+    var themeState by remember { mutableStateOf(store.readTheme()) }
 
-    if (session == null) {
-        LoginScreen(onLoggedIn = { value ->
-            store.save(value)
-            session = value
-        })
-    } else {
-        UsersScreen(session = session!!, onLogout = {
-            store.clear()
-            session = null
-        })
+    LiquidGlassTheme(themeState = themeState) {
+        if (session == null) {
+            LoginScreen(
+                onLoggedIn = { value ->
+                    store.save(value)
+                    session = value
+                },
+                themeState = themeState,
+                onThemeChange = { newTheme ->
+                    themeState = newTheme
+                    store.saveTheme(newTheme)
+                }
+            )
+        } else {
+            UsersScreen(
+                session = session!!,
+                onLogout = {
+                    store.clear()
+                    session = null
+                },
+                themeState = themeState,
+                onThemeChange = { newTheme ->
+                    themeState = newTheme
+                    store.saveTheme(newTheme)
+                }
+            )
+        }
     }
 }
 
@@ -227,22 +300,43 @@ private fun GlassTextField(
     password: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    val theme = LocalThemeState.current
+    var passwordVisible by remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, fontSize = 14.sp) },
         singleLine = true,
         modifier = modifier.fillMaxWidth(),
-        visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        trailingIcon = if (password) {
+            {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(19.dp))
+                        .clickable { passwordVisible = !passwordVisible },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (passwordVisible) "👁" else "🙈",
+                        fontSize = 18.sp
+                    )
+                }
+            }
+        } else null,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White.copy(alpha = 0.50f),
-            unfocusedContainerColor = Color.White.copy(alpha = 0.30f),
-            focusedBorderColor = GlassGold,
-            unfocusedBorderColor = Color.White.copy(alpha = 0.90f),
-            focusedLabelColor = GlassGold,
-            cursorColor = GlassGold
+            focusedContainerColor = if (theme.isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.50f),
+            unfocusedContainerColor = if (theme.isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.30f),
+            focusedBorderColor = theme.lamp.primary,
+            unfocusedBorderColor = if (theme.isDark) Color.White.copy(alpha = 0.35f) else Color.White.copy(alpha = 0.90f),
+            focusedLabelColor = theme.lamp.primary,
+            unfocusedLabelColor = theme.mutedColor,
+            cursorColor = theme.lamp.primary
         ),
+        textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp),
         shape = RoundedCornerShape(16.dp)
     )
 }
@@ -253,20 +347,21 @@ private fun GlassSearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val theme = LocalThemeState.current
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(50.dp)
             .clip(RoundedCornerShape(25.dp))
-            .background(Color.White.copy(alpha = 0.65f))
+            .background(theme.searchBgColor)
             .border(
                 BorderStroke(
                     1.2.dp,
                     Brush.horizontalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.98f),
-                            GlassGoldLight.copy(alpha = 0.6f),
-                            Color.White.copy(alpha = 0.40f)
+                            Color.White.copy(alpha = if (theme.isDark) 0.4f else 0.98f),
+                            theme.lamp.light.copy(alpha = 0.6f),
+                            Color.White.copy(alpha = if (theme.isDark) 0.15f else 0.40f)
                         )
                     )
                 ),
@@ -285,7 +380,7 @@ private fun GlassSearchBar(
                 if (query.isEmpty()) {
                     Text(
                         "Search by username...",
-                        color = GlassMuted.copy(alpha = 0.7f),
+                        color = theme.mutedColor.copy(alpha = 0.7f),
                         fontSize = 14.sp
                     )
                 }
@@ -293,7 +388,7 @@ private fun GlassSearchBar(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = GlassInk, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Medium),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -302,11 +397,11 @@ private fun GlassSearchBar(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.8f))
+                        .background(Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.8f))
                         .clickable { onQueryChange("") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("×", color = GlassInk, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("×", color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -320,8 +415,10 @@ private fun LuxuryTopStatsHeader(
     totalUsedTraffic: Long,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
+    onOpenThemeDialog: () -> Unit,
     loading: Boolean
 ) {
+    val theme = LocalThemeState.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,36 +437,49 @@ private fun LuxuryTopStatsHeader(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = GlassInk
+                    color = theme.inkColor
                 )
-                // Logo replacing the previous PRO badge with exactly the same badge height (~24.dp)
                 AppLogo(height = 24.dp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Theme Customizer Button (دکمه تغییر تم دارک و رنگ نور لامپ)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f))
+                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(16.dp))
+                        .clickable(onClick = onOpenThemeDialog)
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🎨", fontSize = 15.sp)
+                }
+
                 // Refresh Button
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.70f))
-                        .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(16.dp))
+                        .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f))
+                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(16.dp))
                         .clickable(enabled = !loading, onClick = onRefresh)
                         .padding(horizontal = 11.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         if (loading) {
-                            CircularProgressIndicator(Modifier.size(13.dp), color = GlassInk, strokeWidth = 2.dp)
+                            CircularProgressIndicator(Modifier.size(13.dp), color = theme.inkColor, strokeWidth = 2.dp)
                         } else {
                             Text("🔄", fontSize = 12.sp)
                         }
-                        Text("Refresh", color = GlassInk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Refresh", color = theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
+
                 // Logout Button
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFFF2F2).copy(alpha = 0.80f))
+                        .background(Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.80f))
                         .border(BorderStroke(1.dp, Color(0xFFF2BABA)), RoundedCornerShape(16.dp))
                         .clickable(onClick = onLogout)
                         .padding(horizontal = 11.dp, vertical = 7.dp),
@@ -383,34 +493,35 @@ private fun LuxuryTopStatsHeader(
             }
         }
 
-        // Luxury Summary Banner (کادر خلاصه وضعیت باکلاس و شیک)
+        // Luxury Summary Banner
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color.White.copy(alpha = 0.45f))
+                .background(if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(alpha = 0.45f))
                 .border(
-                    BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color.White.copy(0.9f), Color.White.copy(0.3f)))),
+                    BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color.White.copy(if (theme.isDark) 0.3f else 0.9f), Color.White.copy(if (theme.isDark) 0.08f else 0.3f)))),
                     RoundedCornerShape(20.dp)
                 )
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            StatItem(label = "Total Users", value = "$totalUsers", color = GlassInk)
-            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = 0.8f)))
+            StatItem(label = "Total Users", value = "$totalUsers", color = theme.inkColor)
+            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = if (theme.isDark) 0.2f else 0.8f)))
             StatItem(label = "Active Now", value = "$activeUsers", color = GlassGreen)
-            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = 0.8f)))
-            StatItem(label = "Total Traffic", value = formatBytes(totalUsedTraffic), color = GlassGold)
+            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = if (theme.isDark) 0.2f else 0.8f)))
+            StatItem(label = "Total Traffic", value = formatBytes(totalUsedTraffic), color = theme.lamp.primary)
         }
     }
 }
 
 @Composable
 private fun StatItem(label: String, value: String, color: Color) {
+    val theme = LocalThemeState.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, fontSize = 11.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
+        Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -424,8 +535,8 @@ private fun FilterAndControlBar(
     onViewModeChange: (ViewMode) -> Unit,
     users: List<PanelUser>
 ) {
+    val theme = LocalThemeState.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Quick Filters Scrollable Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -440,7 +551,6 @@ private fun FilterAndControlBar(
             FilterChipItem("⚪ Disabled", currentFilter == UserFilter.DISABLED) { onFilterChange(UserFilter.DISABLED) }
         }
 
-        // Sort & View Toggle (پشتیبانی از ۳ حالت نمایش و مرتب‌سازی به ترتیب ساخت)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -453,7 +563,7 @@ private fun FilterAndControlBar(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Sort:", fontSize = 11.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
+                Text("Sort:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                 SortPill("Name", currentSort == UserSort.NAME) { onSortChange(UserSort.NAME) }
                 SortPill("Usage", currentSort == UserSort.USAGE) { onSortChange(UserSort.USAGE) }
                 SortPill("Expiry", currentSort == UserSort.EXPIRY) { onSortChange(UserSort.EXPIRY) }
@@ -463,8 +573,8 @@ private fun FilterAndControlBar(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.55f))
-                    .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(12.dp))
+                    .background(if (theme.isDark) Color.White.copy(0.1f) else Color.White.copy(alpha = 0.55f))
+                    .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(12.dp))
                     .padding(2.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
@@ -478,12 +588,13 @@ private fun FilterAndControlBar(
 
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) GlassGold else Color.White.copy(alpha = 0.45f))
+            .background(if (selected) theme.lamp.primary else (if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.45f)))
             .border(
-                BorderStroke(1.dp, if (selected) GlassGold else Color.White.copy(alpha = 0.8f)),
+                BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.8f)),
                 RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)
@@ -491,7 +602,7 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
     ) {
         Text(
             label,
-            color = if (selected) Color.White else GlassInk,
+            color = if (selected) Color.White else theme.inkColor,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
         )
@@ -500,16 +611,17 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
 
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.95f) else Color.Transparent)
+            .background(if (selected) (if (theme.isDark) Color.White.copy(0.2f) else Color.White.copy(alpha = 0.95f)) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
             label,
-            color = if (selected) GlassGold else GlassMuted,
+            color = if (selected) theme.lamp.primary else theme.mutedColor,
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
         )
@@ -518,21 +630,23 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) Color.White else Color.Transparent)
+            .background(if (selected) (if (theme.isDark) Color.White.copy(0.25f) else Color.White) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(icon, fontSize = 13.sp, color = if (selected) GlassGold else GlassMuted, fontWeight = FontWeight.Bold)
+        Text(icon, fontSize = 13.sp, color = if (selected) theme.lamp.primary else theme.mutedColor, fontWeight = FontWeight.Bold)
     }
 }
 
-// 1. Luxury 2-Column Grid Card (کارت گرید فشرده و باکلاس - 田)
+// 1. Luxury Grid Card (田)
 @Composable
 private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     
@@ -547,14 +661,8 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White.copy(alpha = 0.48f))
-            .border(
-                BorderStroke(
-                    1.dp,
-                    Brush.linearGradient(listOf(Color.White.copy(0.95f), Color.White.copy(0.2f)))
-                ),
-                RoundedCornerShape(22.dp)
-            )
+            .background(theme.cardBgColor)
+            .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
             .padding(14.dp)
     ) {
@@ -569,7 +677,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                     user.username,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = GlassInk,
+                    color = theme.inkColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -582,12 +690,12 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text("USED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
+                    Text("USED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     Text(
                         formatBytes(user.usedTraffic),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = GlassInk
+                        color = theme.inkColor
                     )
                 }
                 Text(
@@ -605,7 +713,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                     .height(6.dp)
                     .clip(RoundedCornerShape(10.dp)),
                 color = progressColor,
-                trackColor = Color.White.copy(alpha = 0.85f)
+                trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
             )
 
             Row(
@@ -616,15 +724,15 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                 Text(
                     if (user.dataLimit == 0L) "No Limit" else "/ " + formatBytes(user.dataLimit),
                     fontSize = 11.sp,
-                    color = GlassMuted
+                    color = theme.mutedColor
                 )
                 user.expire?.takeIf { it != "0" && it != "null" }?.let {
                     Box(
                         modifier = Modifier
-                            .background(Color.White.copy(0.65f), RoundedCornerShape(8.dp))
+                            .background(if (theme.isDark) Color.White.copy(0.18f) else Color.White.copy(0.65f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(it.take(10), fontSize = 10.sp, color = GlassInk, fontWeight = FontWeight.Medium)
+                        Text(it.take(10), fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -632,9 +740,10 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-// 2. Luxury Compact Row (نمای لیستی متوسط - ☰)
+// 2. Luxury Compact Row (☰)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     
@@ -649,8 +758,8 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.45f))
-            .border(BorderStroke(1.dp, Color.White.copy(0.8f)), RoundedCornerShape(16.dp))
+            .background(theme.cardBgColor)
+            .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.18f) else Color.White.copy(0.8f)), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
@@ -662,17 +771,17 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
             Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
             
             Column(modifier = Modifier.weight(1.2f)) {
-                Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = GlassInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     user.expire?.takeIf { it != "0" && it != "null" }?.let { "Exp: ${it.take(10)}" } ?: "No Expiry",
                     fontSize = 11.sp,
-                    color = GlassMuted
+                    color = theme.mutedColor
                 )
             }
 
             Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.End) {
                 Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GlassInk)
+                    Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
                 }
                 Spacer(Modifier.height(4.dp))
@@ -680,17 +789,18 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
                     progress = progress,
                     modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
                     color = progressColor,
-                    trackColor = Color.White.copy(alpha = 0.85f)
+                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
                 )
             }
-            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
+            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
         }
     }
 }
 
-// 3. Luxury Micro Slim Row (نمای ستونی باریک‌تر برای مشاهده تعداد بسیار زیاد کاربر در یک صفحه - ≡)
+// 3. Luxury Micro Slim Row (≡)
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     
@@ -705,8 +815,8 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.38f))
-            .border(BorderStroke(0.8.dp, Color.White.copy(0.7f)), RoundedCornerShape(12.dp))
+            .background(if (theme.isDark) Color(0xFF222226).copy(0.55f) else Color.White.copy(alpha = 0.38f))
+            .border(BorderStroke(0.8.dp, if (theme.isDark) Color.White.copy(0.15f) else Color.White.copy(0.7f)), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
@@ -721,13 +831,12 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
                 user.username,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = GlassInk,
+                color = theme.inkColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1.1f)
             )
 
-            // Ultra-slim progress bar & percentage right in the middle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -737,7 +846,7 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
                     progress = progress,
                     modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
                     color = progressColor,
-                    trackColor = Color.White.copy(alpha = 0.85f)
+                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
                 )
                 Text(
                     if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
@@ -750,26 +859,127 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
             Text(
                 formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
                 fontSize = 11.sp,
-                color = GlassMuted,
+                color = theme.mutedColor,
                 maxLines = 1
             )
-            Text("›", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
+            Text("›", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+        }
+    }
+}
+
+// Theme Customizer Dialog (پنجره تنظیمات ظاهر و نور لامپ)
+@Composable
+private fun ThemeEditorDialog(
+    themeState: ThemeState,
+    onDismiss: () -> Unit,
+    onThemeChange: (ThemeState) -> Unit
+) {
+    val theme = LocalThemeState.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(30.dp))
+                .background(theme.dialogBgColor)
+                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(30.dp))
+                .padding(24.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("🎨 Appearance & Theme", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    TextButton(onClick = onDismiss) { Text("Done", fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
+                }
+
+                // Mode Selector
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Background Mode", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        ModeToggleBtn("☀️ Light", !themeState.isDark, Modifier.weight(1f)) {
+                            onThemeChange(themeState.copy(isDark = false))
+                        }
+                        ModeToggleBtn("🌙 Dark", themeState.isDark, Modifier.weight(1f)) {
+                            onThemeChange(themeState.copy(isDark = true))
+                        }
+                    }
+                }
+
+                // Lamp Accent Selector
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Spotlight Accent Color", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LampColor.values().forEach { lamp ->
+                            val isSelected = themeState.lamp == lamp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (isSelected) lamp.primary.copy(alpha = 0.2f) else Color.Transparent)
+                                    .border(
+                                        BorderStroke(1.dp, if (isSelected) lamp.primary else Color.White.copy(alpha = if (theme.isDark) 0.15f else 0.5f)),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { onThemeChange(themeState.copy(lamp = lamp)) }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(
+                                        Modifier
+                                            .size(20.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(lamp.primary)
+                                    )
+                                    Text(lamp.label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = theme.inkColor, fontSize = 14.sp)
+                                    Spacer(Modifier.weight(1f))
+                                    if (isSelected) {
+                                        Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
+private fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) theme.lamp.primary else (if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(0.6f)))
+            .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.4f)), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.White else theme.inkColor,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun LoginScreen(
+    onLoggedIn: (Session) -> Unit,
+    themeState: ThemeState,
+    onThemeChange: (ThemeState) -> Unit
+) {
     val scope = rememberCoroutineScope()
     var url by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     Scaffold(containerColor = Color.Transparent) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            // Large centered background watermark logo (لوگوی بزرگ زیر کل صفحه ورود)
+            // Large centered MRM background watermark (افزایش وضوح لوگوی پس‌زمینه لاگین)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -777,9 +987,26 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 AppLogo(
-                    modifier = Modifier.graphicsLayer(alpha = 0.08f, scaleX = 2.5f, scaleY = 2.5f),
+                    modifier = Modifier.graphicsLayer(alpha = if (themeState.isDark) 0.28f else 0.22f, scaleX = 2.6f, scaleY = 2.6f),
                     height = 140.dp
                 )
+            }
+
+            // Top right Theme Customizer Button on Login Screen
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(20.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (themeState.isDark) Color.White.copy(0.12f) else Color.White.copy(0.70f))
+                    .border(BorderStroke(1.dp, Color.White.copy(0.5f)), RoundedCornerShape(16.dp))
+                    .clickable { showThemeDialog = true }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("🎨", fontSize = 15.sp)
+                    Text("Theme", color = themeState.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
             Column(
@@ -789,27 +1016,27 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Centered top logo right above title (لوگوی وسط صفحه بالا در ورود)
                 AppLogo(height = 64.dp)
                 Spacer(Modifier.height(4.dp))
                 
-                Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = GlassInk)
-                Text("Manager Pro", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = GlassGold)
-                Text("Sign in to manage your server with diamond security", color = GlassMuted, fontSize = 13.sp)
+                Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
+                Text("Manager Pro", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = themeState.lamp.primary)
+                Text("Sign in to manage your server with diamond security", color = themeState.mutedColor, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
                 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(28.dp))
-                        .background(Color.White.copy(alpha = 0.55f))
-                        .border(BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White, Color.White.copy(0.2f)))), RoundedCornerShape(28.dp))
+                        .background(if (themeState.isDark) Color(0xFF1E1E22).copy(0.85f) else Color.White.copy(0.55f))
+                        .border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(28.dp))
                         .padding(22.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GlassInk)
+                        Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = themeState.inkColor)
                         GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
                         GlassTextField(username, { username = it }, "Username")
+                        // Password field with eye toggle (کاشی پسورد مجهز به علامت چشم برای نمایش/مخفی کردن رمز)
                         GlassTextField(password, { password = it }, "Password", password = true)
                         error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
                         Button(
@@ -827,7 +1054,7 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GlassGold, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = themeState.lamp.primary, contentColor = Color.White),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) else Text("Connect to Panel", fontWeight = FontWeight.Bold)
@@ -835,12 +1062,25 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                     }
                 }
             }
+
+            if (showThemeDialog) {
+                ThemeEditorDialog(
+                    themeState = themeState,
+                    onDismiss = { showThemeDialog = false },
+                    onThemeChange = onThemeChange
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun UsersScreen(session: Session, onLogout: () -> Unit) {
+private fun UsersScreen(
+    session: Session,
+    onLogout: () -> Unit,
+    themeState: ThemeState,
+    onThemeChange: (ThemeState) -> Unit
+) {
     val scope = rememberCoroutineScope()
     var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -849,8 +1089,8 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
     var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
-    // Navigation state for quick filters and views
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(UserSort.NAME) }
     var viewMode by remember { mutableStateOf(ViewMode.GRID) }
@@ -883,7 +1123,6 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
 
     LaunchedEffect(Unit) { load() }
 
-    // Filter and Sort logic (پشتیبانی از ۴ نوع مرتب‌سازی از جمله به ترتیب ساخت)
     val processedUsers = remember(users, query, currentFilter, currentSort) {
         var list = users.filter { it.username.contains(query, ignoreCase = true) }
         
@@ -905,7 +1144,6 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
             UserSort.NAME -> list.sortedBy { it.username.lowercase() }
             UserSort.USAGE -> list.sortedByDescending { it.usedTraffic }
             UserSort.EXPIRY -> list.sortedBy { it.expire ?: "9999" }
-            // Sort by creation order (بزرگترین ID یا تاریخ ساخت به معنای جدیدترین کاربر ساخته شده است)
             UserSort.CREATED -> list.sortedByDescending { if (it.id > 0) it.id else (it.createdAt ?: "").hashCode().toLong() }
         }
     }
@@ -915,11 +1153,10 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            // Sleek Luxury Floating Action Button
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(25.dp))
-                    .background(Brush.linearGradient(listOf(GlassGold, Color(0xFFE5B84B))))
+                    .background(Brush.linearGradient(listOf(themeState.lamp.primary, themeState.lamp.light)))
                     .border(BorderStroke(1.2.dp, Color.White.copy(0.9f)), RoundedCornerShape(25.dp))
                     .clickable { createUser = true }
                     .padding(horizontal = 18.dp, vertical = 12.dp),
@@ -943,6 +1180,7 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                 totalUsedTraffic = totalUsedTraffic,
                 onRefresh = { load() },
                 onLogout = onLogout,
+                onOpenThemeDialog = { showThemeDialog = true },
                 loading = loading
             )
             GlassSearchBar(query = query, onQueryChange = { query = it })
@@ -960,13 +1198,13 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
 
             when {
                 loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = GlassGold)
+                    CircularProgressIndicator(color = themeState.lamp.primary)
                 }
                 error != null -> Box(
                     Modifier
                         .fillMaxWidth()
                         .clip(GlassShape)
-                        .background(Color.White.copy(0.6f))
+                        .background(if (themeState.isDark) Color.White.copy(0.1f) else Color.White.copy(0.6f))
                         .padding(20.dp)
                 ) {
                     Text("Error: $error", color = GlassRed, fontWeight = FontWeight.Medium)
@@ -974,7 +1212,7 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                 else -> {
                     if (processedUsers.isEmpty()) {
                         Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text("No matching users found in this filter.", color = GlassMuted, fontSize = 14.sp)
+                            Text("No matching users found in this filter.", color = themeState.mutedColor, fontSize = 14.sp)
                         }
                     } else when (viewMode) {
                         ViewMode.GRID -> {
@@ -1013,6 +1251,14 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (showThemeDialog) {
+        ThemeEditorDialog(
+            themeState = themeState,
+            onDismiss = { showThemeDialog = false },
+            onThemeChange = onThemeChange
+        )
     }
 
     selectedUser?.let { user ->
@@ -1054,23 +1300,23 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
     }
 
     deleteUser?.let { user ->
+        val theme = LocalThemeState.current
         Dialog(onDismissRequest = { deleteUser = null }) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
                     .clip(GlassShape)
-                    .background(Color(0xFFFFFBF1).copy(alpha = 0.90f))
-                    .border(BorderStroke(1.2.dp, Color.White), GlassShape)
+                    .background(theme.dialogBgColor)
+                    .border(BorderStroke(1.2.dp, theme.cardBorderBrush), GlassShape)
             ) {
-                // Lamp light from RIGHT side on Delete Dialog (نور لامپ از سمت راست)
                 Box(
                     Modifier
                         .size(240.dp)
                         .align(Alignment.TopEnd)
                         .offset(x = 60.dp, y = (-50).dp)
                         .background(
-                            Brush.radialGradient(listOf(Color(0xBBF5D061), Color.Transparent)),
+                            Brush.radialGradient(listOf(theme.lamp.spotHigh, Color.Transparent)),
                             shape = RoundedCornerShape(200.dp)
                         )
                 )
@@ -1078,11 +1324,11 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                     Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text("Delete ${user.username}?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = GlassInk)
-                    Text("This action will permanently remove the user and cannot be undone.", color = GlassMuted, fontSize = 14.sp)
+                    Text("Delete ${user.username}?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    Text("This action will permanently remove the user and cannot be undone.", color = theme.mutedColor, fontSize = 14.sp)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { deleteUser = null }) {
-                            Text("Cancel", color = GlassMuted)
+                            Text("Cancel", color = theme.mutedColor)
                         }
                         Spacer(Modifier.width(8.dp))
                         Button(
@@ -1112,6 +1358,7 @@ private fun UserEditorDialog(
     onToggle: (() -> Unit)?,
     onDelete: (() -> Unit)?
 ) {
+    val theme = LocalThemeState.current
     var username by remember { mutableStateOf(initial?.username ?: "") }
     var limitGb by remember {
         mutableStateOf(
@@ -1129,35 +1376,16 @@ private fun UserEditorDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(30.dp))
-                .background(Color(0xFFFFFDF8).copy(alpha = 0.92f))
-                .border(
-                    BorderStroke(
-                        1.5.dp,
-                        Brush.linearGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.98f),
-                                GlassGoldLight.copy(alpha = 0.70f),
-                                Color.White.copy(alpha = 0.35f)
-                            )
-                        )
-                    ),
-                    RoundedCornerShape(30.dp)
-                )
+                .background(theme.dialogBgColor)
+                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(30.dp))
         ) {
-            // Spotlight / Lamp light shining specifically from the RIGHT side (نور لامپ از سمت راست در پنجره باز شده)
             Box(
                 Modifier
                     .size(260.dp)
                     .align(Alignment.TopEnd)
                     .offset(x = 70.dp, y = (-50).dp)
                     .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xBBF5D061), // Champagne Gold Lamp light from right
-                                Color(0x44E5B84B),
-                                Color.Transparent
-                            )
-                        ),
+                        Brush.radialGradient(listOf(theme.lamp.spotHigh, theme.lamp.spotLow, Color.Transparent)),
                         shape = RoundedCornerShape(200.dp)
                     )
             )
@@ -1171,7 +1399,7 @@ private fun UserEditorDialog(
                     if (initial == null) "Create New User" else "Edit ${initial.username}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = GlassInk
+                    color = theme.inkColor
                 )
 
                 if (initial == null) {
@@ -1194,7 +1422,7 @@ private fun UserEditorDialog(
                 initial?.let {
                     Text(
                         "Used: ${formatBytes(it.usedTraffic)} • Status: ${it.status.uppercase()}",
-                        color = GlassMuted,
+                        color = theme.mutedColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -1209,7 +1437,7 @@ private fun UserEditorDialog(
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(14.dp)
-                                ) {
+                            ) {
                                 Text(if (isDisabled) "Activate" else "Disable", fontWeight = FontWeight.Bold)
                             }
                         }
@@ -1233,7 +1461,7 @@ private fun UserEditorDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = GlassMuted, fontWeight = FontWeight.SemiBold)
+                        Text("Cancel", color = theme.mutedColor, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(
@@ -1250,7 +1478,7 @@ private fun UserEditorDialog(
                                 onSave(UserEditorValues(username, limit), expireDate)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = GlassGold, contentColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text("Save", fontWeight = FontWeight.Bold)
@@ -1384,4 +1612,16 @@ private class SessionStore(context: Context) {
         .apply()
 
     fun clear() = prefs.edit().clear().apply()
+
+    fun readTheme(): ThemeState {
+        val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
+        val isDark = prefs.getBoolean("theme_dark", false)
+        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
+        return ThemeState(lamp = lamp, isDark = isDark)
+    }
+
+    fun saveTheme(themeState: ThemeState) = prefs.edit()
+        .putString("theme_lamp", themeState.lamp.name)
+        .putBoolean("theme_dark", themeState.isDark)
+        .apply()
 }
