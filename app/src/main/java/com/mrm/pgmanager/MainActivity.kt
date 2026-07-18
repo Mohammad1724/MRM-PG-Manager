@@ -12,6 +12,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -436,9 +442,22 @@ private fun ActionIconButton(
     isRed: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.90f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "iconScale"
+    )
+
     Box(
         modifier = modifier
             .size(38.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(19.dp))
             .background(
                 if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.80f)
@@ -446,13 +465,13 @@ private fun ActionIconButton(
             )
             .border(
                 BorderStroke(
-                    1.dp,
+                    if (isPressed) 1.5.dp else 1.dp,
                     if (isRed) Color(0xFFF2BABA)
                     else if (theme.isDark) Color.White.copy(0.3f) else Color.White
                 ),
                 RoundedCornerShape(19.dp)
             )
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         icon()
@@ -460,7 +479,7 @@ private fun ActionIconButton(
 }
 
 /**
- * Glass Button with internal lamp glow (دکمه‌های شیشه‌ای با نور لامپ داخلی برای دیالوگ)
+ * Glass Button with interactive spring bounce & luminous side-lamp glow (دکمه‌های شیشه‌ای تعاملی با انیمیشن فنری و نور لامپ جهت‌دار)
  */
 @Composable
 private fun GlassButton(
@@ -471,12 +490,32 @@ private fun GlassButton(
     isRed: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "btnScale"
+    )
+
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.50f else 0.18f,
+        animationSpec = tween(durationMillis = 150),
+        label = "btnGlow"
+    )
+
     val baseBg = if (isRed) {
         if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
     }
-    val borderColor = if (isRed) {
+    val borderColor = if (isPressed && enabled) {
+        if (isRed) SolidColor(GlassRed) else SolidColor(theme.lamp.primary)
+    } else if (isRed) {
         SolidColor(GlassRed.copy(alpha = 0.65f))
     } else {
         Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
@@ -485,13 +524,29 @@ private fun GlassButton(
     Box(
         modifier = modifier
             .height(46.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(baseBg)
-            .border(BorderStroke(1.2.dp, borderColor), RoundedCornerShape(16.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .border(BorderStroke(if (isPressed) 1.6.dp else 1.2.dp, borderColor), RoundedCornerShape(16.dp))
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Soft directional lamp light from the top-left side across the button
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            if (isRed) GlassRed.copy(glowAlpha) else theme.lamp.primary.copy(glowAlpha),
+                            Color.Transparent
+                        ),
+                        center = Offset(70f, 0f),
+                        radius = 360f
+                    )
+                )
+        )
         Text(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
@@ -509,12 +564,32 @@ private fun MiniGlassButton(
     isRed: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "miniScale"
+    )
+
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.50f else 0.18f,
+        animationSpec = tween(durationMillis = 150),
+        label = "miniGlow"
+    )
+
     val baseBg = if (isRed) {
         if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
     }
-    val borderColor = if (isRed) {
+    val borderColor = if (isPressed) {
+        if (isRed) SolidColor(GlassRed) else SolidColor(theme.lamp.primary)
+    } else if (isRed) {
         SolidColor(GlassRed.copy(alpha = 0.65f))
     } else {
         Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
@@ -523,13 +598,28 @@ private fun MiniGlassButton(
     Box(
         modifier = modifier
             .height(34.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(12.dp))
             .background(baseBg)
-            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .border(BorderStroke(if (isPressed) 1.5.dp else 1.dp, borderColor), RoundedCornerShape(12.dp))
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            if (isRed) GlassRed.copy(glowAlpha) else theme.lamp.primary.copy(glowAlpha),
+                            Color.Transparent
+                        ),
+                        center = Offset(60f, 0f),
+                        radius = 260f
+                    )
+                )
+        )
         Text(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
@@ -540,7 +630,7 @@ private fun MiniGlassButton(
 }
 
 /**
- * Distinct Primary Button for Save / Action confirmation (دکمه متمایز ذخیره تغییرات)
+ * Distinct Primary Button for Save / Action confirmation (دکمه متمایز ذخیره تغییرات با انیمیشن فنری)
  */
 @Composable
 private fun PrimarySaveButton(
@@ -550,20 +640,34 @@ private fun PrimarySaveButton(
     enabled: Boolean = true
 ) {
     val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "saveScale"
+    )
+
     Box(
         modifier = modifier
             .height(48.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.horizontalGradient(
-                    listOf(theme.lamp.primary, theme.lamp.primary.copy(0.82f))
+                    if (isPressed) listOf(theme.lamp.primary, Color(0xFFF5D061))
+                    else listOf(theme.lamp.primary, theme.lamp.primary.copy(0.82f))
                 )
             )
             .border(
-                BorderStroke(1.2.dp, Color.White.copy(0.85f)),
+                BorderStroke(if (isPressed) 1.8.dp else 1.2.dp, Color.White.copy(0.85f)),
                 RoundedCornerShape(16.dp)
             )
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -577,7 +681,7 @@ private fun PrimarySaveButton(
 }
 
 /**
- * Distinct Muted Button for Cancel / Dismiss (دکمه متمایز انصراف)
+ * Distinct Muted Button for Cancel / Dismiss (دکمه متمایز انصراف با انیمیشن فنری)
  */
 @Composable
 private fun MutedCancelButton(
@@ -586,16 +690,29 @@ private fun MutedCancelButton(
     modifier: Modifier = Modifier
 ) {
     val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "cancelScale"
+    )
+
     Box(
         modifier = modifier
             .height(48.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.06f))
             .border(
                 BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.2f) else Color.Black.copy(0.18f)),
                 RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
