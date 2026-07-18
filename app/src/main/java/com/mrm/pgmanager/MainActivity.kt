@@ -1215,6 +1215,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -1299,6 +1300,7 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
