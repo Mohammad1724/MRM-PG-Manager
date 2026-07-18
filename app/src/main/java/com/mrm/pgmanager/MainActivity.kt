@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +21,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -463,7 +464,7 @@ private fun GlassButton(
             .border(
                 BorderStroke(
                     1.dp,
-                    if (isRed) Color(0xFFF2BABA)
+                    if (isRed) SolidColor(Color(0xFFF2BABA))
                     else Brush.linearGradient(
                         listOf(Color.White.copy(0.9f), theme.lamp.light.copy(0.4f), Color.White.copy(0.2f))
                     )
@@ -514,7 +515,7 @@ private fun MiniGlassButton(
             .border(
                 BorderStroke(
                     1.dp,
-                    if (isRed) Color(0xFFF2BABA).copy(0.8f)
+                    if (isRed) SolidColor(Color(0xFFF2BABA).copy(0.8f))
                     else Brush.linearGradient(listOf(Color.White.copy(0.85f), theme.lamp.primary.copy(0.3f)))
                 ),
                 RoundedCornerShape(12.dp)
@@ -1829,7 +1830,6 @@ private fun UserEditorDialog(
                     keyboardType = KeyboardType.Decimal
                 )
 
-                // 5. Label changed to just "تاریخ انقضا" as requested
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.weight(1f)) {
@@ -1842,7 +1842,6 @@ private fun UserEditorDialog(
                         MiniGlassButton("📅 تقویم", onClick = { showShamsiCalendar = true }, modifier = Modifier.width(76.dp))
                     }
 
-                    // 7. Sleek horizontal day adders and capsule glass day input perfectly vertically aligned
                     Text("افزودن سریع به زمان:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1865,7 +1864,6 @@ private fun UserEditorDialog(
                             expireShamsi = JalaliCalendar.isoToShamsi(newIso)
                         })
 
-                        // Glass pill input (+روز) aligned directly at 34.dp height
                         Box(
                             modifier = Modifier
                                 .width(74.dp)
@@ -1914,7 +1912,6 @@ private fun UserEditorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("وضعیت فعلی: ${formatBytes(user.usedTraffic)} مصرف شده • ${user.status.uppercase()}", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             
-                            // 6. Smaller, glassmorphic reset buttons with internal lamp glow
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                 onResetUsage?.let { resetU ->
                                     MiniGlassButton("♻ ریست حجم (۰ B)", onClick = resetU, modifier = Modifier.weight(1f))
@@ -1924,7 +1921,6 @@ private fun UserEditorDialog(
                                 }
                             }
 
-                            // 6. Glassmorphic Activate/Disable and Delete buttons with internal lamp glow
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 onToggle?.let { toggle ->
                                     val isDisabled = user.status == "disabled"
@@ -1951,7 +1947,6 @@ private fun UserEditorDialog(
                     Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
 
-                // 6. Glassmorphic Save and Cancel buttons at bottom
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     GlassButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
                     Spacer(Modifier.width(10.dp))
@@ -1980,4 +1975,144 @@ private fun UserEditorDialog(
             onDateSelected = { dateStr -> expireShamsi = dateStr }
         )
     }
+}
+private fun formatBytes(value: Long): String {
+    if (value <= 0) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val index = (kotlin.math.ln(value.toDouble()) / kotlin.math.ln(1024.0)).toInt().coerceAtMost(units.lastIndex)
+    return "${DecimalFormat("#.##").format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
+}
+
+private object PanelApi {
+    private val client = OkHttpClient()
+    private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    private fun baseUrl(input: String): String {
+        val prepared = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
+        val uri = URI(prepared)
+        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
+        return buildString {
+            append(uri.scheme)
+            append("://")
+            append(uri.host)
+            if (uri.port != -1) append(":${uri.port}")
+        }
+    }
+
+    private fun userUrl(session: Session, username: String): String =
+        "${session.baseUrl}/api/user/${URLEncoder.encode(username, "UTF-8")}"
+
+    private fun requestBuilder(session: Session, url: String): Request.Builder =
+        Request.Builder().url(url).header("Authorization", "Bearer ${session.token}")
+
+    suspend fun login(address: String, username: String, password: String): Session = withContext(Dispatchers.IO) {
+        require(username.isNotBlank() && password.isNotBlank()) { "Credentials required" }
+        val base = baseUrl(address)
+        val body = FormBody.Builder().add("username", username).add("password", password).build()
+        val request = Request.Builder().url("$base/api/admin/token").post(body).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Login failed: ${response.code}")
+            val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
+            Session(base, token, username)
+        }
+    }
+
+    suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=0&limit=1000").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Request failed: ${response.code}")
+            val data = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
+            List(data.length()) { index -> parseUser(data.getJSONObject(index)) }
+        }
+    }
+
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("username", username)
+            .put("status", "active")
+            .put("data_limit", gbToBytes(limitGb))
+            .put("expire", expireValue(expireIso))
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("data_limit", gbToBytes(limitGb))
+            .put("expire", expireValue(expireIso))
+        executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun resetUsage(session: Session, username: String) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, "${userUrl(session, username)}/reset").post("".toRequestBody(jsonType)).build())
+    }
+
+    suspend fun setDisabled(session: Session, username: String, disabled: Boolean) = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("disabled", disabled)
+        executeJson(requestBuilder(session, "${userUrl(session, username)}/disabled").put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun deleteUser(session: Session, username: String) = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, userUrl(session, username)).delete().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Delete failed: ${response.code}")
+        }
+    }
+
+    private fun executeJson(request: Request) {
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val details = response.body?.string()?.take(250).orEmpty()
+                error("Request failed: ${response.code} $details")
+            }
+        }
+    }
+
+    private fun parseUser(user: JSONObject) = PanelUser(
+        id = user.optLong("id", 0L),
+        username = user.getString("username"),
+        status = user.optString("status", "unknown"),
+        usedTraffic = user.optLong("used_traffic", 0),
+        dataLimit = user.optLong("data_limit", 0),
+        expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
+        createdAt = if (user.isNull("created_at")) null else user.optString("created_at")
+    )
+
+    private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
+    private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59Z"
+}
+
+private class SessionStore(context: Context) {
+    private val prefs = EncryptedSharedPreferences.create(
+        context,
+        "mrm_pg_manager",
+        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    fun read(): Session? {
+        val base = prefs.getString("base", null) ?: return null
+        val token = prefs.getString("token", null) ?: return null
+        return Session(base, token, prefs.getString("username", "") ?: "")
+    }
+
+    fun save(value: Session) = prefs.edit()
+        .putString("base", value.baseUrl)
+        .putString("token", value.token)
+        .putString("username", value.username)
+        .apply()
+
+    fun clear() = prefs.edit().clear().apply()
+
+    fun readTheme(): ThemeState {
+        val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
+        val isDark = prefs.getBoolean("theme_dark", false)
+        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
+        return ThemeState(lamp = lamp, isDark = isDark)
+    }
+
+    fun saveTheme(themeState: ThemeState) = prefs.edit()
+        .putString("theme_lamp", themeState.lamp.name)
+        .putBoolean("theme_dark", themeState.isDark)
+        .apply()
 }
