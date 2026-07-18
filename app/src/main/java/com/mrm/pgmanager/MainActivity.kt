@@ -1754,32 +1754,26 @@ private fun LoginScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 50.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                    .padding(horizontal = 24.dp, vertical = 60.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Floating Diamond Header Card
+                // Floating Diamond Header Card with App Logo and PasarGuard
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
                         .background(if (themeState.isDark) Color.White.copy(0.06f) else Color.White.copy(0.60f))
                         .border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(24.dp))
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                        .padding(horizontal = 32.dp, vertical = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AppLogo(height = 68.dp)
-                        Text("PasarGuard Pro", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
-                        // Security SSL pill badge
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(themeState.lamp.primary.copy(alpha = 0.15f))
-                                .border(BorderStroke(1.dp, themeState.lamp.primary.copy(0.4f)), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("🛡️ 256-bit Encrypted SSL Portal", fontSize = 11.sp, color = themeState.lamp.primary, fontWeight = FontWeight.Bold)
-                        }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AppLogo(height = 76.dp)
+                        Text(
+                            "PasarGuard",
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            color = themeState.inkColor
+                        )
                     }
                 }
                 
@@ -1793,17 +1787,13 @@ private fun LoginScreen(
                         .padding(26.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("🔐", fontSize = 18.sp)
-                            Text("پنل ورود مدیریت سرور", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                        }
                         GlassTextField(url, { url = it }, "آدرس کامل پنل (Full Panel Address)", keyboardType = KeyboardType.Uri)
                         GlassTextField(username, { username = it }, "نام کاربری (Username)")
                         GlassTextField(password, { password = it }, "رمز عبور (Password)", password = true)
                         error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
                         
                         PrimarySaveButton(
-                            text = if (loading) "در حال اتصال به پنل..." else "🚀 اتصال امن به پنل پاسارگارد",
+                            text = if (loading) "در حال اتصال..." else "اتصال به پنل",
                             enabled = !loading,
                             onClick = {
                                 loading = true
