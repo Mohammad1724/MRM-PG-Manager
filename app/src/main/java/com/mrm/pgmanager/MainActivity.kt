@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,10 +14,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +48,48 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+
+private val GlassYellow = Color(0xFFFFC94A)
+private val GlassCream = Color(0xFFFFFBF1)
+private val GlassInk = Color(0xFF25231E)
+private val GlassMuted = Color(0xFF6D685D)
+private val GlassGreen = Color(0xFF378B65)
+private val GlassRed = Color(0xFFC54F4F)
+private val GlassShape = RoundedCornerShape(28.dp)
+
+@Composable
+private fun LiquidGlassTheme(content: @Composable () -> Unit) {
+    val colors = lightColorScheme(
+        primary = Color(0xFFB87800),
+        onPrimary = Color.White,
+        secondary = GlassYellow,
+        background = GlassCream,
+        surface = Color.White.copy(alpha = 0.78f),
+        onSurface = GlassInk,
+        onBackground = GlassInk,
+        error = GlassRed
+    )
+    MaterialTheme(colorScheme = colors) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(listOf(Color(0xFFFFFDF8), Color(0xFFFFF4CB), Color(0xFFFFFCF4)))
+            )
+        ) { content() }
+    }
+}
+
+@Composable
+private fun GlassCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val base = modifier.clip(GlassShape).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    Card(
+        modifier = base,
+        shape = GlassShape,
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.76f)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.92f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content) }
 }
 
 data class Session(val baseUrl: String, val token: String, val username: String)
@@ -79,17 +129,19 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(topBar = { CenterAlignedTopAppBar(title = { Text("MRM PG Manager") }) }) { padding ->
+    Scaffold(containerColor = Color.Transparent, topBar = { CenterAlignedTopAppBar(colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent), title = { Text("MRM PG Manager") }) }) { padding ->
         Column(
             modifier = Modifier.padding(padding).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Manage your PasarGuard panel", style = MaterialTheme.typography.titleMedium)
+            Text("MRM PG Manager", style = MaterialTheme.typography.headlineMedium, color = GlassInk)
+            Text("Manage your PasarGuard panel", color = GlassMuted)
+            GlassCard {
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
                 label = { Text("Full panel address") },
-                placeholder = { Text("https://panel.example.com:7431/dashboard/#/login") },
+                placeholder = { Text("https://panel.example.com:1234/dashboard/") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
@@ -109,6 +161,7 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation()
             )
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(
                 enabled = !loading,
@@ -168,6 +221,7 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
     LaunchedEffect(Unit) { load() }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("Users") },
@@ -319,12 +373,20 @@ private fun UserEditorDialog(
 
 @Composable
 private fun UserCard(user: PanelUser, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(user.username, style = MaterialTheme.typography.titleMedium)
-            Text("${user.status} • Used: ${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "Unlimited" else formatBytes(user.dataLimit)}")
-            user.expire?.takeIf { it != "0" }?.let { Text("Expiry: ${it.take(10)}") }
+    val limitText = if (user.dataLimit == 0L) "Unlimited" else formatBytes(user.dataLimit)
+    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit).coerceIn(0f, 1f) else 0f
+    val statusColor = if (user.status == "active") GlassGreen else GlassRed
+    GlassCard(Modifier.fillMaxWidth(), onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                Text(user.username, style = MaterialTheme.typography.titleMedium, color = GlassInk)
+                Text(user.status.uppercase(), color = statusColor, fontSize = 12.sp)
+            }
+            Text("${(progress * 100).toInt()}%", color = GlassMuted)
         }
+        LinearProgressIndicator(progress = progress, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(20.dp)), color = GlassYellow, trackColor = Color(0xFFFFE9A8))
+        Text("Used: ${formatBytes(user.usedTraffic)} / $limitText", color = GlassMuted)
+        user.expire?.takeIf { it != "0" }?.let { Text("Expiry: ${it.take(10)}", color = GlassMuted) }
     }
 }
 
