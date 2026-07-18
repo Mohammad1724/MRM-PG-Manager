@@ -40,6 +40,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -1701,6 +1702,355 @@ private fun ShamsiCalendarPickerDialog(
                         onDateSelected(finalDate.toString())
                         onDismiss()
                     }, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// 7.8. VISION OS JELLY-GLASS COMPONENTS FOR LOGIN
+// ==========================================
+@Composable
+private fun JellyGlassActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false
+) {
+    val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.94f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "jellyScale"
+    )
+
+    val shineAlpha by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.95f else 0.55f,
+        animationSpec = tween(durationMillis = 140),
+        label = "jellyShine"
+    )
+
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .shadow(
+                elevation = if (isPressed) 6.dp else 16.dp,
+                shape = RoundedCornerShape(28.dp),
+                spotColor = theme.lamp.primary.copy(alpha = 0.45f)
+            )
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.horizontalGradient(
+                    if (isPressed) listOf(theme.lamp.primary, Color(0xFF38B6FF))
+                    else listOf(theme.lamp.primary, theme.lamp.primary.copy(alpha = 0.82f))
+                )
+            )
+            .border(
+                BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color.White.copy(0.9f), theme.lamp.light.copy(0.5f), Color.White.copy(0.2f)))),
+                RoundedCornerShape(28.dp)
+            )
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        // 1. Subsurface jelly light from inside
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color.White.copy(alpha = shineAlpha * 0.5f), Color.Transparent),
+                        center = Offset(150f, 20f),
+                        radius = 260f
+                    )
+                )
+        )
+
+        // 2. iOS Apple Jelly Specular Top Highlight Bar (نوار درخشش شیشه‌ای و ژله‌ای در لبه بالایی دکمه آیفون)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = shineAlpha), Color.White.copy(alpha = 0.02f))
+                    )
+                )
+        )
+
+        // 3. Content: Loading spinner or crisp white text
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.5.dp)
+            } else {
+                Text("✨", fontSize = 16.sp)
+            }
+            Text(
+                text = text,
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                letterSpacing = 0.3.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun JellyGlassInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    leadingIcon: String,
+    modifier: Modifier = Modifier,
+    password: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    val theme = LocalThemeState.current
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (theme.isDark) Color(0xFF141418).copy(0.70f) else Color.White.copy(0.65f))
+            .border(
+                BorderStroke(
+                    1.2.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(if (theme.isDark) 0.35f else 0.95f), theme.lamp.primary.copy(0.3f), Color.White.copy(if (theme.isDark) 0.1f else 0.4f))
+                    )
+                ),
+                RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(leadingIcon, fontSize = 17.sp)
+            
+            Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+                if (value.isEmpty()) {
+                    Text(label, color = theme.mutedColor.copy(0.75f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (password) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (theme.isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
+                        .clickable { passwordVisible = !passwordVisible },
+                    contentAlignment = Alignment.Center
+                ) {
+                    PasswordEyeIcon(visible = passwordVisible)
+                }
+            } else if (value.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(0.6f))
+                        .clickable { onValueChange("") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("×", color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// 7.8. VISION OS JELLY-GLASS COMPONENTS FOR LOGIN
+// ==========================================
+@Composable
+private fun JellyGlassActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false
+) {
+    val theme = LocalThemeState.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.94f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "jellyScale"
+    )
+
+    val shineAlpha by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.95f else 0.55f,
+        animationSpec = tween(durationMillis = 140),
+        label = "jellyShine"
+    )
+
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .shadow(
+                elevation = if (isPressed) 6.dp else 18.dp,
+                shape = RoundedCornerShape(28.dp),
+                spotColor = theme.lamp.primary.copy(alpha = 0.5f)
+            )
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.horizontalGradient(
+                    if (isPressed) listOf(theme.lamp.primary, Color(0xFF38B6FF))
+                    else listOf(theme.lamp.primary, theme.lamp.primary.copy(alpha = 0.82f))
+                )
+            )
+            .border(
+                BorderStroke(1.5.dp, Brush.linearGradient(listOf(Color.White.copy(0.9f), theme.lamp.light.copy(0.5f), Color.White.copy(0.2f)))),
+                RoundedCornerShape(28.dp)
+            )
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(Color.White.copy(alpha = shineAlpha * 0.5f), Color.Transparent),
+                        center = Offset(150f, 20f),
+                        radius = 260f
+                    )
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = shineAlpha), Color.White.copy(alpha = 0.02f))
+                    )
+                )
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.5.dp)
+            } else {
+                Text("✨", fontSize = 16.sp)
+            }
+            Text(
+                text = text,
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                letterSpacing = 0.3.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun JellyGlassInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    leadingIcon: String,
+    modifier: Modifier = Modifier,
+    password: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    val theme = LocalThemeState.current
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (theme.isDark) Color(0xFF141418).copy(0.70f) else Color.White.copy(0.65f))
+            .border(
+                BorderStroke(
+                    1.2.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(if (theme.isDark) 0.35f else 0.95f), theme.lamp.primary.copy(0.3f), Color.White.copy(if (theme.isDark) 0.1f else 0.4f))
+                    )
+                ),
+                RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(leadingIcon, fontSize = 17.sp)
+            
+            Box(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+                if (value.isEmpty()) {
+                    Text(label, color = theme.mutedColor.copy(0.75f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    visualTransformation = if (password && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (password) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (theme.isDark) Color.White.copy(0.1f) else Color.Black.copy(0.05f))
+                        .clickable { passwordVisible = !passwordVisible },
+                    contentAlignment = Alignment.Center
+                ) {
+                    PasswordEyeIcon(visible = passwordVisible)
+                }
+            } else if (value.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(0.6f))
+                        .clickable { onValueChange("") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("×", color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
