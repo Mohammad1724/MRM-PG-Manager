@@ -493,19 +493,16 @@ private fun GlassButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.94f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "btnScale"
-    )
-
     val glowAlpha by animateFloatAsState(
         targetValue = if (isPressed && enabled) 0.50f else 0.18f,
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = 140),
         label = "btnGlow"
+    )
+
+    val contentScale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.95f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "btnScale"
     )
 
     val baseBg = if (isRed) {
@@ -513,8 +510,9 @@ private fun GlassButton(
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
     }
+    val activeColor = if (isRed) GlassRed else theme.lamp.primary
     val borderColor = if (isPressed && enabled) {
-        if (isRed) SolidColor(GlassRed) else SolidColor(theme.lamp.primary)
+        SolidColor(activeColor)
     } else if (isRed) {
         SolidColor(GlassRed.copy(alpha = 0.65f))
     } else {
@@ -524,26 +522,22 @@ private fun GlassButton(
     Box(
         modifier = modifier
             .height(46.dp)
-            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(16.dp))
             .background(baseBg)
-            .border(BorderStroke(if (isPressed) 1.6.dp else 1.2.dp, borderColor), RoundedCornerShape(16.dp))
-            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
-            .padding(horizontal = 14.dp),
+            .border(BorderStroke(if (isPressed && enabled) 1.6.dp else 1.2.dp, borderColor), RoundedCornerShape(16.dp))
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // Soft directional lamp light from the top-left side across the button
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
+                    Brush.horizontalGradient(
                         colors = listOf(
-                            if (isRed) GlassRed.copy(glowAlpha) else theme.lamp.primary.copy(glowAlpha),
+                            activeColor.copy(alpha = glowAlpha),
+                            activeColor.copy(alpha = glowAlpha * 0.35f),
                             Color.Transparent
-                        ),
-                        center = Offset(70f, 0f),
-                        radius = 360f
+                        )
                     )
                 )
         )
@@ -551,7 +545,12 @@ private fun GlassButton(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
             fontWeight = FontWeight.Bold,
-            fontSize = 13.sp
+            fontSize = 13.sp,
+            modifier = Modifier
+                .graphicsLayer(scaleX = contentScale, scaleY = contentScale)
+                .padding(horizontal = 12.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -567,19 +566,16 @@ private fun MiniGlassButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "miniScale"
-    )
-
     val glowAlpha by animateFloatAsState(
         targetValue = if (isPressed) 0.50f else 0.18f,
-        animationSpec = tween(durationMillis = 150),
+        animationSpec = tween(durationMillis = 140),
         label = "miniGlow"
+    )
+
+    val contentScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.93f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "miniScale"
     )
 
     val baseBg = if (isRed) {
@@ -587,8 +583,9 @@ private fun MiniGlassButton(
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
     }
+    val activeColor = if (isRed) GlassRed else theme.lamp.primary
     val borderColor = if (isPressed) {
-        if (isRed) SolidColor(GlassRed) else SolidColor(theme.lamp.primary)
+        SolidColor(activeColor)
     } else if (isRed) {
         SolidColor(GlassRed.copy(alpha = 0.65f))
     } else {
@@ -598,25 +595,22 @@ private fun MiniGlassButton(
     Box(
         modifier = modifier
             .height(34.dp)
-            .graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(12.dp))
             .background(baseBg)
             .border(BorderStroke(if (isPressed) 1.5.dp else 1.dp, borderColor), RoundedCornerShape(12.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Box(
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.radialGradient(
+                    Brush.horizontalGradient(
                         colors = listOf(
-                            if (isRed) GlassRed.copy(glowAlpha) else theme.lamp.primary.copy(glowAlpha),
+                            activeColor.copy(alpha = glowAlpha),
+                            activeColor.copy(alpha = glowAlpha * 0.3f),
                             Color.Transparent
-                        ),
-                        center = Offset(60f, 0f),
-                        radius = 260f
+                        )
                     )
                 )
         )
@@ -624,7 +618,12 @@ private fun MiniGlassButton(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
             fontWeight = FontWeight.Bold,
-            fontSize = 11.sp
+            fontSize = 11.sp,
+            modifier = Modifier
+                .graphicsLayer(scaleX = contentScale, scaleY = contentScale)
+                .padding(horizontal = 8.dp),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -2085,6 +2084,8 @@ private fun UserEditorDialog(
     var showShamsiCalendar by remember { mutableStateOf(false) }
     var customAddDays by remember { mutableStateOf("") }
     var showQrDialog by remember { mutableStateOf(false) }
+    var confirmResetUsage by remember { mutableStateOf(false) }
+    var confirmResetExpiry by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Dialog(onDismissRequest = onDismiss) {
@@ -2238,11 +2239,11 @@ private fun UserEditorDialog(
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                onResetUsage?.let { resetU ->
-                                    GlassButton("ریست حجم", onClick = resetU, modifier = Modifier.weight(1f))
+                                onResetUsage?.let {
+                                    GlassButton("ریست حجم", onClick = { confirmResetUsage = true }, modifier = Modifier.weight(1f))
                                 }
-                                onResetExpiry?.let { resetE ->
-                                    GlassButton("ریست زمان", onClick = resetE, modifier = Modifier.weight(1f))
+                                onResetExpiry?.let {
+                                    GlassButton("ریست زمان", onClick = { confirmResetExpiry = true }, modifier = Modifier.weight(1f))
                                 }
                             }
 
@@ -2289,6 +2290,68 @@ private fun UserEditorDialog(
                             onSave(UserEditorValues(username, limit), expireShamsi)
                         }
                     }, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+
+    if (confirmResetUsage && initial != null) {
+        Dialog(onDismissRequest = { confirmResetUsage = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(theme.dialogBgColor)
+                    .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp))
+                    .padding(22.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("⚠️ تایید بازنشانی حجم مصرفی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = GlassRed)
+                    Text(
+                        "آیا مطمئن هستید که می‌خواهید تمام حجم مصرفی کاربر (${initial.username}) را به 0 B بازنشانی کنید؟\nاین عملیات غیرقابل بازگشت است.",
+                        color = theme.inkColor,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        MutedCancelButton("✕ انصراف", onClick = { confirmResetUsage = false }, modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(10.dp))
+                        GlassButton("✓ تایید و ریست", onClick = {
+                            confirmResetUsage = false
+                            onResetUsage?.invoke()
+                        }, modifier = Modifier.weight(1f), isRed = true)
+                    }
+                }
+            }
+        }
+    }
+
+    if (confirmResetExpiry && initial != null) {
+        Dialog(onDismissRequest = { confirmResetExpiry = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(theme.dialogBgColor)
+                    .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp))
+                    .padding(22.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("⚠️ تایید بازنشانی زمان انقضا", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.lamp.primary)
+                    Text(
+                        "آیا مطمئن هستید که می‌خواهید تاریخ انقضای کاربر (${initial.username}) را نامحدود (بدون انقضا) کنید؟",
+                        color = theme.inkColor,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        MutedCancelButton("✕ انصراف", onClick = { confirmResetExpiry = false }, modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(10.dp))
+                        GlassButton("✓ تایید و ریست", onClick = {
+                            confirmResetExpiry = false
+                            onResetExpiry?.invoke()
+                        }, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
