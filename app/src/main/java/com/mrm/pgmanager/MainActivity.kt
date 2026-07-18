@@ -231,7 +231,7 @@ enum class LampColor(
 }
 
 data class ThemeState(
-    val lamp: LampColor = LampColor.GOLD,
+    val lamp: LampColor = LampColor.SKY_BLUE,
     val isDark: Boolean = false
 ) {
     val inkColor: Color
@@ -1754,33 +1754,56 @@ private fun LoginScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 60.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 24.dp, vertical = 50.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AppLogo(height = 64.dp)
-                Spacer(Modifier.height(4.dp))
+                // Floating Diamond Header Card
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(if (themeState.isDark) Color.White.copy(0.06f) else Color.White.copy(0.60f))
+                        .border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(24.dp))
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AppLogo(height = 68.dp)
+                        Text("PasarGuard Pro", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
+                        // Security SSL pill badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(themeState.lamp.primary.copy(alpha = 0.15f))
+                                .border(BorderStroke(1.dp, themeState.lamp.primary.copy(0.4f)), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("🛡️ 256-bit Encrypted SSL Portal", fontSize = 11.sp, color = themeState.lamp.primary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
                 
-                // Removed Manager Pro text
-                Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
-                Text("Sign in to manage your server with diamond security", color = themeState.mutedColor, fontSize = 13.sp)
-                Spacer(Modifier.height(8.dp))
-                
+                // Double-Bevel Luxury Authentication Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(if (themeState.isDark) Color(0xFF1E1E22).copy(0.85f) else Color.White.copy(0.55f))
-                        .border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(28.dp))
-                        .padding(22.dp)
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(if (themeState.isDark) Color(0xFF1C1C22).copy(0.90f) else Color.White.copy(0.75f))
+                        .border(BorderStroke(2.dp, Brush.linearGradient(listOf(Color.White, themeState.lamp.primary.copy(0.6f), Color.White.copy(0.2f)))), RoundedCornerShape(30.dp))
+                        .padding(26.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = themeState.inkColor)
-                        GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
-                        GlassTextField(username, { username = it }, "Username")
-                        GlassTextField(password, { password = it }, "Password", password = true)
-                        error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
-                        Button(
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("🔐", fontSize = 18.sp)
+                            Text("پنل ورود مدیریت سرور", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                        }
+                        GlassTextField(url, { url = it }, "آدرس کامل پنل (Full Panel Address)", keyboardType = KeyboardType.Uri)
+                        GlassTextField(username, { username = it }, "نام کاربری (Username)")
+                        GlassTextField(password, { password = it }, "رمز عبور (Password)", password = true)
+                        error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                        
+                        PrimarySaveButton(
+                            text = if (loading) "در حال اتصال به پنل..." else "🚀 اتصال امن به پنل پاسارگارد",
                             enabled = !loading,
                             onClick = {
                                 loading = true
@@ -1789,17 +1812,13 @@ private fun LoginScreen(
                                     runCatching { PanelApi.login(url, username, password) }
                                         .onSuccess(onLoggedIn)
                                         .onFailure {
-                                            error = "Unable to connect. Check panel address and credentials."
+                                            error = "خطا در اتصال: آدرس پنل، نام کاربری یا رمز عبور اشتباه است."
                                         }
                                     loading = false
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = themeState.lamp.primary, contentColor = Color.White),
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) else Text("Connect to Panel", fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.fillMaxWidth().height(54.dp)
+                        )
                     }
                 }
             }
@@ -2592,9 +2611,9 @@ private class SessionStore(context: Context) {
     fun clear() = prefs.edit().clear().apply()
 
     fun readTheme(): ThemeState {
-        val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
+        val lampName = prefs.getString("theme_lamp", LampColor.SKY_BLUE.name) ?: LampColor.SKY_BLUE.name
         val isDark = prefs.getBoolean("theme_dark", false)
-        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
+        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.SKY_BLUE)
         return ThemeState(lamp = lamp, isDark = isDark)
     }
 
