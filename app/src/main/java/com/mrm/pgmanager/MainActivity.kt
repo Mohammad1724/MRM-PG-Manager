@@ -42,11 +42,7 @@ import java.text.DecimalFormat
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme(colorScheme = lightColorScheme()) {
-                MRMApp(this)
-            }
-        }
+        setContent { LiquidGlassTheme { MRMApp(this) } }
     }
 }
 
@@ -121,6 +117,31 @@ private fun MRMApp(context: Context) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun GlassTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    password: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = value, onValueChange = onValueChange, label = { Text(label) }, singleLine = true,
+        modifier = modifier.fillMaxWidth(), visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.White.copy(alpha = 0.18f),
+            unfocusedContainerColor = Color.White.copy(alpha = 0.12f),
+            focusedBorderColor = GlassYellow,
+            unfocusedBorderColor = Color.White.copy(alpha = 0.75f),
+            focusedLabelColor = Color(0xFF9C6700),
+            cursorColor = Color(0xFF9C6700)
+        ), shape = RoundedCornerShape(18.dp)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     val scope = rememberCoroutineScope()
     var url by remember { mutableStateOf("") }
@@ -129,58 +150,31 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(containerColor = Color.Transparent, topBar = { CenterAlignedTopAppBar(colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent), title = { Text("MRM PG Manager") }) }) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text("MRM PG Manager", style = MaterialTheme.typography.headlineMedium, color = GlassInk)
-            Text("Manage your PasarGuard panel", color = GlassMuted)
-            GlassCard {
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                label = { Text("Full panel address") },
-                placeholder = { Text("https://panel.example.com:1234/dashboard/") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-            )
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation()
-            )
-            }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Button(
-                enabled = !loading,
-                onClick = {
-                    loading = true
-                    error = null
-                    scope.launch {
-                        runCatching { PanelApi.login(url, username, password) }
-                            .onSuccess(onLoggedIn)
-                            .onFailure {
-                                error = "Unable to connect. Check panel address, SSL, username and password."
-                            }
-                        loading = false
+    Scaffold(containerColor = Color.Transparent) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            Box(Modifier.size(330.dp).offset(x = 120.dp, y = 28.dp).background(Brush.radialGradient(listOf(Color(0x55FFFF72), Color.Transparent)), RoundedCornerShape(200.dp)))
+            Box(Modifier.size(260.dp).offset(x = (-90).dp, y = 500.dp).background(Brush.radialGradient(listOf(Color(0x33FFD34E), Color.Transparent)), RoundedCornerShape(160.dp)))
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 72.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                Text("MRM", style = MaterialTheme.typography.displayLarge, color = GlassInk)
+                Text("PG Manager", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF9C6700))
+                Text("Manage your PasarGuard panel securely", color = GlassMuted)
+                Spacer(Modifier.height(10.dp))
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Text("Sign in", style = MaterialTheme.typography.titleLarge, color = GlassInk)
+                    GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
+                    GlassTextField(username, { username = it }, "Username")
+                    GlassTextField(password, { password = it }, "Password", password = true)
+                    error?.let { Text(it, color = GlassRed) }
+                    Button(enabled = !loading, onClick = {
+                        loading = true; error = null
+                        scope.launch {
+                            runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { error = "Unable to connect. Check panel address and login details." }
+                            loading = false
+                        }
+                    }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF0B800), contentColor = GlassInk), shape = RoundedCornerShape(18.dp)) {
+                        if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = GlassInk, strokeWidth = 2.dp) else Text("Sign in")
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                else Text("Sign in")
+                }
             }
         }
     }
