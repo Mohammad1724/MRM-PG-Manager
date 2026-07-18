@@ -8,9 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -26,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,22 +59,25 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val GlassYellow = Color(0xFFFFC94A)
-private val GlassCream = Color(0xFFFFFBF1)
-private val GlassInk = Color(0xFF25231E)
-private val GlassMuted = Color(0xFF6D685D)
-private val GlassGreen = Color(0xFF2E9B66)
-private val GlassRed = Color(0xFFD33F3F)
-private val GlassShape = RoundedCornerShape(28.dp)
+// Luxury Champagne & Brushed Gold Glass Palette
+private val GlassGold = Color(0xFFC59B27)
+private val GlassGoldLight = Color(0xFFF3E5AB)
+private val GlassCream = Color(0xFFFAF6EE)
+private val GlassInk = Color(0xFF1C1B18)
+private val GlassMuted = Color(0xFF6A655B)
+private val GlassGreen = Color(0xFF1A8C5B)
+private val GlassAmber = Color(0xFFD9822B)
+private val GlassRed = Color(0xFFC93B3B)
+private val GlassShape = RoundedCornerShape(24.dp)
 
 @Composable
 private fun LiquidGlassTheme(content: @Composable () -> Unit) {
     val colors = lightColorScheme(
-        primary = Color(0xFFB87800),
+        primary = GlassGold,
         onPrimary = Color.White,
-        secondary = GlassYellow,
+        secondary = GlassGoldLight,
         background = GlassCream,
-        surface = Color.White.copy(alpha = 0.55f),
+        surface = Color.White.copy(alpha = 0.60f),
         onSurface = GlassInk,
         onBackground = GlassInk,
         error = GlassRed
@@ -80,24 +89,24 @@ private fun LiquidGlassTheme(content: @Composable () -> Unit) {
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFFFFFDF8),
-                            Color(0xFFFFF4CB),
-                            Color(0xFFFFFCF4)
+                            Color(0xFFFFFDF9),
+                            Color(0xFFFFF7E6),
+                            Color(0xFFFFF4DC)
                         )
                     )
                 )
         ) {
-            // Lamp light shining from the LEFT side on main pages (نور لامپ از سمت چپ صفحه اصلی)
+            // Luxury Spotlight Lamp shining from the LEFT side on main pages (نور لامپ از سمت چپ صفحه اصلی)
             Box(
                 Modifier
-                    .size(380.dp)
+                    .size(420.dp)
                     .align(Alignment.TopStart)
-                    .offset(x = (-90).dp, y = (-30).dp)
+                    .offset(x = (-110).dp, y = (-40).dp)
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xAAFFC94A), // Vibrant golden lamp light
-                                Color(0x44FFB300),
+                                Color(0xBBF5D061), // Champagne Gold Spotlight
+                                Color(0x44E5B84B),
                                 Color.Transparent
                             )
                         ),
@@ -106,13 +115,13 @@ private fun LiquidGlassTheme(content: @Composable () -> Unit) {
             )
             Box(
                 Modifier
-                    .size(300.dp)
+                    .size(340.dp)
                     .align(Alignment.CenterStart)
-                    .offset(x = (-100).dp, y = 160.dp)
+                    .offset(x = (-120).dp, y = 180.dp)
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0x66FFC94A),
+                                Color(0x66F5D061),
                                 Color.Transparent
                             )
                         ),
@@ -124,38 +133,6 @@ private fun LiquidGlassTheme(content: @Composable () -> Unit) {
     }
 }
 
-@Composable
-private fun GlassCard(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    // Built with pure Box instead of M3 Card to prevent rectangular shadow boxes under transparent glass
-    val boxModifier = modifier
-        .clip(GlassShape)
-        .background(Color.White.copy(alpha = 0.38f))
-        .border(
-            BorderStroke(
-                1.2.dp,
-                Brush.linearGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.92f),
-                        Color.White.copy(alpha = 0.25f)
-                    )
-                )
-            ),
-            GlassShape
-        )
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(18.dp)
-
-    Column(
-        modifier = boxModifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        content = content
-    )
-}
-
 data class Session(val baseUrl: String, val token: String, val username: String)
 data class PanelUser(
     val username: String,
@@ -164,6 +141,10 @@ data class PanelUser(
     val dataLimit: Long,
     val expire: String?
 )
+
+enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
+enum class UserSort { NAME, USAGE, EXPIRY }
+enum class ViewMode { GRID, COMPACT_LIST }
 
 @Composable
 private fun MRMApp(context: Context) {
@@ -196,20 +177,20 @@ private fun GlassTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { Text(label, fontSize = 14.sp) },
         singleLine = true,
         modifier = modifier.fillMaxWidth(),
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.White.copy(alpha = 0.35f),
-            unfocusedContainerColor = Color.White.copy(alpha = 0.22f),
-            focusedBorderColor = GlassYellow,
-            unfocusedBorderColor = Color.White.copy(alpha = 0.85f),
-            focusedLabelColor = Color(0xFF9C6700),
-            cursorColor = Color(0xFF9C6700)
+            focusedContainerColor = Color.White.copy(alpha = 0.50f),
+            unfocusedContainerColor = Color.White.copy(alpha = 0.30f),
+            focusedBorderColor = GlassGold,
+            unfocusedBorderColor = Color.White.copy(alpha = 0.90f),
+            focusedLabelColor = GlassGold,
+            cursorColor = GlassGold
         ),
-        shape = RoundedCornerShape(18.dp)
+        shape = RoundedCornerShape(16.dp)
     )
 }
 
@@ -222,62 +203,57 @@ private fun GlassSearchBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .clip(RoundedCornerShape(26.dp))
-            .background(Color.White.copy(alpha = 0.58f))
+            .height(50.dp)
+            .clip(RoundedCornerShape(25.dp))
+            .background(Color.White.copy(alpha = 0.65f))
             .border(
                 BorderStroke(
                     1.2.dp,
                     Brush.horizontalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.95f),
-                            Color(0xFFFFD34E).copy(alpha = 0.5f),
-                            Color.White.copy(alpha = 0.35f)
+                            Color.White.copy(alpha = 0.98f),
+                            GlassGoldLight.copy(alpha = 0.6f),
+                            Color.White.copy(alpha = 0.40f)
                         )
                     )
                 ),
-                RoundedCornerShape(26.dp)
+                RoundedCornerShape(25.dp)
             )
-            .padding(horizontal = 18.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("🔍", fontSize = 16.sp)
+            Text("🔍", fontSize = 15.sp)
             Box(Modifier.weight(1f)) {
                 if (query.isEmpty()) {
                     Text(
-                        "Search users by username...",
+                        "Search by username...",
                         color = GlassMuted.copy(alpha = 0.7f),
-                        fontSize = 15.sp
+                        fontSize = 14.sp
                     )
                 }
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = GlassInk, fontSize = 15.sp),
+                    textStyle = TextStyle(color = GlassInk, fontSize = 14.sp, fontWeight = FontWeight.Medium),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
             if (query.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(Color.White.copy(alpha = 0.65f))
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.8f))
                         .clickable { onQueryChange("") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "×",
-                        color = GlassInk,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("×", color = GlassInk, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -285,114 +261,376 @@ private fun GlassSearchBar(
 }
 
 @Composable
-private fun GlassTopHeader(
-    userCount: Int,
+private fun LuxuryTopStatsHeader(
+    totalUsers: Int,
+    activeUsers: Int,
+    totalUsedTraffic: Long,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
     loading: Boolean
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(top = 12.dp, bottom = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                "Users",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = GlassInk
-            )
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFFFE9A8).copy(alpha = 0.85f), RoundedCornerShape(14.dp))
-                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.9f)), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "$userCount",
-                    color = Color(0xFF9C6700),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
+                    "PasarGuard",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = GlassInk
                 )
+                Box(
+                    modifier = Modifier
+                        .background(GlassGoldLight.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
+                        .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 9.dp, vertical = 3.dp)
+                ) {
+                    Text("PRO", color = GlassGold, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Refresh Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.70f))
+                        .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(16.dp))
+                        .clickable(enabled = !loading, onClick = onRefresh)
+                        .padding(horizontal = 11.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        if (loading) {
+                            CircularProgressIndicator(Modifier.size(13.dp), color = GlassInk, strokeWidth = 2.dp)
+                        } else {
+                            Text("🔄", fontSize = 12.sp)
+                        }
+                        Text("Refresh", color = GlassInk, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                // Logout Button
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFFFF2F2).copy(alpha = 0.80f))
+                        .border(BorderStroke(1.dp, Color(0xFFF2BABA)), RoundedCornerShape(16.dp))
+                        .clickable(onClick = onLogout)
+                        .padding(horizontal = 11.dp, vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("⎋", fontSize = 13.sp, color = GlassRed)
+                        Text("Exit", color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
+
+        // Luxury Summary Banner (کادر خلاصه وضعیت باکلاس و شیک)
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color.White.copy(alpha = 0.45f))
+                .border(
+                    BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color.White.copy(0.9f), Color.White.copy(0.3f)))),
+                    RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatItem(label = "Total Users", value = "$totalUsers", color = GlassInk)
+            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = 0.8f)))
+            StatItem(label = "Active Now", value = "$activeUsers", color = GlassGreen)
+            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = 0.8f)))
+            StatItem(label = "Total Traffic", value = formatBytes(totalUsedTraffic), color = GlassGold)
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(label, fontSize = 11.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun FilterAndControlBar(
+    currentFilter: UserFilter,
+    onFilterChange: (UserFilter) -> Unit,
+    currentSort: UserSort,
+    onSortChange: (UserSort) -> Unit,
+    viewMode: ViewMode,
+    onViewModeChange: (ViewMode) -> Unit,
+    users: List<PanelUser>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Quick Filters Scrollable Bar (بدون نیاز به تایپ نام کاربر یا اسکرول طولانی)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Refresh Button
-            Box(
+            FilterChipItem("🌟 All (${users.size})", currentFilter == UserFilter.ALL) { onFilterChange(UserFilter.ALL) }
+            FilterChipItem("🟢 Active (${users.count { it.status == "active" }})", currentFilter == UserFilter.ACTIVE) { onFilterChange(UserFilter.ACTIVE) }
+            FilterChipItem("🟡 Near Limit", currentFilter == UserFilter.NEAR_LIMIT) { onFilterChange(UserFilter.NEAR_LIMIT) }
+            FilterChipItem("🔴 Expired/Full", currentFilter == UserFilter.EXPIRED) { onFilterChange(UserFilter.EXPIRED) }
+            FilterChipItem("⚪ Disabled", currentFilter == UserFilter.DISABLED) { onFilterChange(UserFilter.DISABLED) }
+        }
+
+        // Sort & View Toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Sort:", fontSize = 12.sp, color = GlassMuted, fontWeight = FontWeight.Medium)
+                SortPill("Name", currentSort == UserSort.NAME) { onSortChange(UserSort.NAME) }
+                SortPill("Usage", currentSort == UserSort.USAGE) { onSortChange(UserSort.USAGE) }
+                SortPill("Expiry", currentSort == UserSort.EXPIRY) { onSortChange(UserSort.EXPIRY) }
+            }
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White.copy(alpha = 0.65f))
-                    .border(
-                        BorderStroke(
-                            1.dp,
-                            Brush.linearGradient(
-                                listOf(
-                                    Color.White,
-                                    Color(0xFFFFD34E).copy(alpha = 0.4f)
-                                )
-                            )
-                        ),
-                        RoundedCornerShape(18.dp)
-                    )
-                    .clickable(enabled = !loading, onClick = onRefresh)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.5f))
+                    .border(BorderStroke(1.dp, Color.White), RoundedCornerShape(12.dp))
+                    .padding(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (loading) {
-                        CircularProgressIndicator(
-                            Modifier.size(14.dp),
-                            color = GlassInk,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("🔄", fontSize = 13.sp)
+                ViewModeIcon("田", viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
+                ViewModeIcon("☰", viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) GlassGold else Color.White.copy(alpha = 0.45f))
+            .border(
+                BorderStroke(1.dp, if (selected) GlassGold else Color.White.copy(alpha = 0.8f)),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.White else GlassInk,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Color.White.copy(alpha = 0.9f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            label,
+            color = if (selected) GlassGold else GlassMuted,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Color.White else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(icon, fontSize = 13.sp, color = if (selected) GlassGold else GlassMuted, fontWeight = FontWeight.Bold)
+    }
+}
+
+// 1. Luxury 2-Column Grid Card (کارت گرید فشرده و باکلاس)
+@Composable
+private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
+    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
+    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    
+    val progressColor = when {
+        user.dataLimit <= 0L || progressPercent < 75 -> GlassGreen
+        progressPercent in 75..99 -> GlassAmber
+        else -> GlassRed
+    }
+    val statusColor = if (user.status == "active") GlassGreen else GlassRed
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White.copy(alpha = 0.48f))
+            .border(
+                BorderStroke(
+                    1.dp,
+                    Brush.linearGradient(listOf(Color.White.copy(0.95f), Color.White.copy(0.2f)))
+                ),
+                RoundedCornerShape(22.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Header: Status Dot & Username
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(Modifier.size(7.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
+                Text(
+                    user.username,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GlassInk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Usage Center Display
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
+                    Text("USED", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
+                    Text(
+                        formatBytes(user.usedTraffic),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = GlassInk
+                    )
+                }
+                Text(
+                    if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = progressColor
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                color = progressColor,
+                trackColor = Color.White.copy(alpha = 0.85f)
+            )
+
+            // Footer: Limit & Expiry Tag
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (user.dataLimit == 0L) "No Limit" else "/ " + formatBytes(user.dataLimit),
+                    fontSize = 11.sp,
+                    color = GlassMuted
+                )
+                user.expire?.takeIf { it != "0" && it != "null" }?.let {
+                    Box(
+                        modifier = Modifier
+                            .background(Color.White.copy(0.65f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(it.take(10), fontSize = 10.sp, color = GlassInk, fontWeight = FontWeight.Medium)
                     }
-                    Text(
-                        "Refresh",
-                        color = GlassInk,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
                 }
             }
-            // Logout Button
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xFFFFF0F0).copy(alpha = 0.75f))
-                    .border(
-                        BorderStroke(1.dp, Color(0xFFF2BABA).copy(alpha = 0.8f)),
-                        RoundedCornerShape(18.dp)
-                    )
-                    .clickable(onClick = onLogout)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("⎋", fontSize = 14.sp, color = GlassRed)
-                    Text(
-                        "Exit",
-                        color = GlassRed,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+        }
+    }
+}
+
+// 2. Luxury Compact Row (نمای لیستی بسیار فشرده و شیک برای بررسی سریع ده‌ها کاربر)
+@Composable
+private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
+    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
+    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    
+    val progressColor = when {
+        user.dataLimit <= 0L || progressPercent < 75 -> GlassGreen
+        progressPercent in 75..99 -> GlassAmber
+        else -> GlassRed
+    }
+    val statusColor = if (user.status == "active") GlassGreen else GlassRed
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.45f))
+            .border(BorderStroke(1.dp, Color.White.copy(0.8f)), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
+            
+            Column(modifier = Modifier.weight(1.2f)) {
+                Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = GlassInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    user.expire?.takeIf { it != "0" && it != "null" }?.let { "Exp: ${it.take(10)}" } ?: "No Expiry",
+                    fontSize = 11.sp,
+                    color = GlassMuted
+                )
             }
+
+            Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.End) {
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GlassInk)
+                    Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                }
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
+                    color = progressColor,
+                    trackColor = Color.White.copy(alpha = 0.85f)
+                )
+            }
+            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GlassMuted)
         }
     }
 }
@@ -414,61 +652,45 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                     .padding(horizontal = 24.dp, vertical = 72.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
-                Text("MRM", style = MaterialTheme.typography.displayLarge, color = GlassInk)
-                Text(
-                    "PG Manager",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color(0xFF9C6700)
-                )
-                Text("Manage your PasarGuard panel securely", color = GlassMuted)
+                Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = GlassInk)
+                Text("Manager Pro", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = GlassGold)
+                Text("Sign in to manage your server with diamond security", color = GlassMuted, fontSize = 14.sp)
                 Spacer(Modifier.height(10.dp))
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Text(
-                        "Sign in",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = GlassInk
-                    )
-                    GlassTextField(
-                        url,
-                        { url = it },
-                        "Full panel address",
-                        keyboardType = KeyboardType.Uri
-                    )
-                    GlassTextField(username, { username = it }, "Username")
-                    GlassTextField(
-                        password,
-                        { password = it },
-                        "Password",
-                        password = true
-                    )
-                    error?.let { Text(it, color = GlassRed) }
-                    Button(
-                        enabled = !loading,
-                        onClick = {
-                            loading = true
-                            error = null
-                            scope.launch {
-                                runCatching { PanelApi.login(url, username, password) }
-                                    .onSuccess(onLoggedIn)
-                                    .onFailure {
-                                        error =
-                                            "Unable to connect. Check panel address and login details."
-                                    }
-                                loading = false
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF0B800),
-                            contentColor = GlassInk
-                        ),
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        if (loading) CircularProgressIndicator(
-                            Modifier.size(20.dp),
-                            color = GlassInk,
-                            strokeWidth = 2.dp
-                        ) else Text("Sign in")
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White.copy(alpha = 0.50f))
+                        .border(BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White, Color.White.copy(0.2f)))), RoundedCornerShape(28.dp))
+                        .padding(22.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GlassInk)
+                        GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
+                        GlassTextField(username, { username = it }, "Username")
+                        GlassTextField(password, { password = it }, "Password", password = true)
+                        error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+                        Button(
+                            enabled = !loading,
+                            onClick = {
+                                loading = true
+                                error = null
+                                scope.launch {
+                                    runCatching { PanelApi.login(url, username, password) }
+                                        .onSuccess(onLoggedIn)
+                                        .onFailure {
+                                            error = "Unable to connect. Check panel address and credentials."
+                                        }
+                                    loading = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GlassGold, contentColor = Color.White),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp) else Text("Connect to Panel", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -486,6 +708,11 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
     var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
+
+    // Navigation state for quick filters and views
+    var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
+    var currentSort by remember { mutableStateOf(UserSort.NAME) }
+    var viewMode by remember { mutableStateOf(ViewMode.GRID) }
 
     fun load() {
         scope.launch {
@@ -515,30 +742,49 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
 
     LaunchedEffect(Unit) { load() }
 
+    // Filter and Sort logic
+    val processedUsers = remember(users, query, currentFilter, currentSort) {
+        var list = users.filter { it.username.contains(query, ignoreCase = true) }
+        
+        list = when (currentFilter) {
+            UserFilter.ALL -> list
+            UserFilter.ACTIVE -> list.filter { it.status == "active" }
+            UserFilter.NEAR_LIMIT -> list.filter {
+                val progress = if (it.dataLimit > 0) (it.usedTraffic.toDouble() / it.dataLimit.toDouble()) else 0.0
+                progress >= 0.75 || (it.expire != null && it.expire != "0" && it.expire != "null")
+            }
+            UserFilter.EXPIRED -> list.filter {
+                val progress = if (it.dataLimit > 0) (it.usedTraffic.toDouble() / it.dataLimit.toDouble()) else 0.0
+                progress >= 1.0 || it.status == "expired"
+            }
+            UserFilter.DISABLED -> list.filter { it.status == "disabled" }
+        }
+
+        when (currentSort) {
+            UserSort.NAME -> list.sortedBy { it.username.lowercase() }
+            UserSort.USAGE -> list.sortedByDescending { it.usedTraffic }
+            UserSort.EXPIRY -> list.sortedBy { it.expire ?: "9999" }
+        }
+    }
+
+    val totalUsedTraffic = remember(users) { users.sumOf { it.usedTraffic } }
+
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            // Sleek Glass Floating Action Button
+            // Sleek Luxury Floating Action Button
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        Brush.linearGradient(listOf(Color(0xFFFFD34E), Color(0xFFE5A800)))
-                    )
-                    .border(
-                        BorderStroke(1.2.dp, Color.White.copy(alpha = 0.85f)),
-                        RoundedCornerShape(26.dp)
-                    )
+                    .clip(RoundedCornerShape(25.dp))
+                    .background(Brush.linearGradient(listOf(GlassGold, Color(0xFFE5B84B))))
+                    .border(BorderStroke(1.2.dp, Color.White.copy(0.9f)), RoundedCornerShape(25.dp))
                     .clickable { createUser = true }
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GlassInk)
-                    Text("Create User", fontWeight = FontWeight.Bold, color = GlassInk, fontSize = 14.sp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("+", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("New User", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                 }
             }
         }
@@ -548,42 +794,63 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            GlassTopHeader(
-                userCount = users.size,
+            LuxuryTopStatsHeader(
+                totalUsers = users.size,
+                activeUsers = users.count { it.status == "active" },
+                totalUsedTraffic = totalUsedTraffic,
                 onRefresh = { load() },
                 onLogout = onLogout,
                 loading = loading
             )
-            GlassSearchBar(
-                query = query,
-                onQueryChange = { query = it }
+            GlassSearchBar(query = query, onQueryChange = { query = it })
+            Spacer(Modifier.height(10.dp))
+            FilterAndControlBar(
+                currentFilter = currentFilter,
+                onFilterChange = { currentFilter = it },
+                currentSort = currentSort,
+                onSortChange = { currentSort = it },
+                viewMode = viewMode,
+                onViewModeChange = { viewMode = it },
+                users = users
             )
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
+
             when {
-                loading -> Box(
-                    Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFFB87800))
+                loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = GlassGold)
                 }
-                error != null -> GlassCard(Modifier.fillMaxWidth()) {
+                error != null -> Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(GlassShape)
+                        .background(Color.White.copy(0.6f))
+                        .padding(20.dp)
+                ) {
                     Text("Error: $error", color = GlassRed, fontWeight = FontWeight.Medium)
                 }
                 else -> {
-                    val filteredUsers = users.filter {
-                        it.username.contains(query, ignoreCase = true)
-                    }
-                    if (filteredUsers.isEmpty()) {
+                    if (processedUsers.isEmpty()) {
                         Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                            Text("No users found.", color = GlassMuted)
+                            Text("No matching users found in this filter.", color = GlassMuted, fontSize = 14.sp)
                         }
-                    } else {
-                        LazyColumn(
+                    } else if (viewMode == ViewMode.GRID) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                             contentPadding = PaddingValues(bottom = 90.dp)
                         ) {
-                            items(filteredUsers) { user ->
-                                UserCard(user, onClick = { selectedUser = user })
+                            items(processedUsers) { user ->
+                                LuxuryGridCard(user, onClick = { selectedUser = user })
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 90.dp)
+                        ) {
+                            items(processedUsers) { user ->
+                                LuxuryCompactRow(user, onClick = { selectedUser = user })
                             }
                         }
                     }
@@ -599,22 +866,13 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
             onSave = { limitGb, expire ->
                 selectedUser = null
                 runAction {
-                    PanelApi.modifyUser(
-                        session,
-                        user.username,
-                        limitGb.value,
-                        expire
-                    )
+                    PanelApi.modifyUser(session, user.username, limitGb.value, expire)
                 }
             },
             onToggle = {
                 selectedUser = null
                 runAction {
-                    PanelApi.setDisabled(
-                        session,
-                        user.username,
-                        user.status != "disabled"
-                    )
+                    PanelApi.setDisabled(session, user.username, user.status != "disabled")
                 }
             },
             onDelete = {
@@ -631,12 +889,7 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
             onSave = { limitGb, expire ->
                 createUser = false
                 runAction {
-                    PanelApi.createUser(
-                        session,
-                        limitGb.username,
-                        limitGb.value,
-                        expire
-                    )
+                    PanelApi.createUser(session, limitGb.username, limitGb.value, expire)
                 }
             },
             onToggle = null,
@@ -651,17 +904,17 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
                     .clip(GlassShape)
-                    .background(Color(0xFFFFFBF1).copy(alpha = 0.88f))
+                    .background(Color(0xFFFFFBF1).copy(alpha = 0.90f))
                     .border(BorderStroke(1.2.dp, Color.White), GlassShape)
             ) {
                 // Lamp light from RIGHT side on Delete Dialog (نور لامپ از سمت راست)
                 Box(
                     Modifier
-                        .size(220.dp)
+                        .size(240.dp)
                         .align(Alignment.TopEnd)
                         .offset(x = 60.dp, y = (-50).dp)
                         .background(
-                            Brush.radialGradient(listOf(Color(0xAAFFC94A), Color.Transparent)),
+                            Brush.radialGradient(listOf(Color(0xBBF5D061), Color.Transparent)),
                             shape = RoundedCornerShape(200.dp)
                         )
                 )
@@ -669,21 +922,9 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                     Modifier.padding(22.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text(
-                        "Delete ${user.username}?",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = GlassInk
-                    )
-                    Text(
-                        "This action will permanently remove the user and cannot be undone.",
-                        color = GlassMuted,
-                        fontSize = 14.sp
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
+                    Text("Delete ${user.username}?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = GlassInk)
+                    Text("This action will permanently remove the user and cannot be undone.", color = GlassMuted, fontSize = 14.sp)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { deleteUser = null }) {
                             Text("Cancel", color = GlassMuted)
                         }
@@ -693,13 +934,10 @@ private fun UsersScreen(session: Session, onLogout: () -> Unit) {
                                 deleteUser = null
                                 runAction { PanelApi.deleteUser(session, user.username) }
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = GlassRed,
-                                contentColor = Color.White
-                            ),
+                            colors = ButtonDefaults.buttonColors(containerColor = GlassRed, contentColor = Color.White),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("Delete")
+                            Text("Delete", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -734,20 +972,20 @@ private fun UserEditorDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(32.dp))
-                .background(Color(0xFFFFFBF1).copy(alpha = 0.88f))
+                .clip(RoundedCornerShape(30.dp))
+                .background(Color(0xFFFFFDF8).copy(alpha = 0.92f))
                 .border(
                     BorderStroke(
                         1.5.dp,
                         Brush.linearGradient(
                             listOf(
-                                Color.White.copy(alpha = 0.95f),
-                                Color(0xFFFFD34E).copy(alpha = 0.65f),
-                                Color.White.copy(alpha = 0.25f)
+                                Color.White.copy(alpha = 0.98f),
+                                GlassGoldLight.copy(alpha = 0.70f),
+                                Color.White.copy(alpha = 0.35f)
                             )
                         )
                     ),
-                    RoundedCornerShape(32.dp)
+                    RoundedCornerShape(30.dp)
                 )
         ) {
             // Spotlight / Lamp light shining specifically from the RIGHT side (نور لامپ از سمت راست در پنجره باز شده)
@@ -759,8 +997,8 @@ private fun UserEditorDialog(
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xAAFFC94A), // Bright golden lamp light from right
-                                Color(0x44FFB300),
+                                Color(0xBBF5D061), // Champagne Gold Lamp light from right
+                                Color(0x44E5B84B),
                                 Color.Transparent
                             )
                         ),
@@ -776,16 +1014,12 @@ private fun UserEditorDialog(
                 Text(
                     if (initial == null) "Create New User" else "Edit ${initial.username}",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = GlassInk
                 )
 
                 if (initial == null) {
-                    GlassTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = "Username"
-                    )
+                    GlassTextField(value = username, onValueChange = { username = it }, label = "Username")
                 }
 
                 GlassTextField(
@@ -805,24 +1039,22 @@ private fun UserEditorDialog(
                     Text(
                         "Used: ${formatBytes(it.usedTraffic)} • Status: ${it.status.uppercase()}",
                         color = GlassMuted,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         onToggle?.let { toggle ->
                             val isDisabled = it.status == "disabled"
                             Button(
                                 onClick = toggle,
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isDisabled) GlassGreen else Color(0xFFE5A800),
+                                    containerColor = if (isDisabled) GlassGreen else GlassAmber,
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Text(if (isDisabled) "Activate" else "Disable")
+                                Text(if (isDisabled) "Activate" else "Disable", fontWeight = FontWeight.Bold)
                             }
                         }
                         onDelete?.let { delete ->
@@ -833,7 +1065,7 @@ private fun UserEditorDialog(
                                 border = BorderStroke(1.dp, GlassRed.copy(alpha = 0.6f)),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Text("Delete")
+                                Text("Delete", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -843,12 +1075,9 @@ private fun UserEditorDialog(
                     Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = GlassMuted)
+                        Text("Cancel", color = GlassMuted, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(
@@ -865,77 +1094,12 @@ private fun UserEditorDialog(
                                 onSave(UserEditorValues(username, limit), expireDate)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF0B800),
-                            contentColor = GlassInk
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = GlassGold, contentColor = Color.White),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text("Save", fontWeight = FontWeight.Bold)
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UserCard(user: PanelUser, onClick: () -> Unit) {
-    val limitText = if (user.dataLimit == 0L) "Unlimited" else formatBytes(user.dataLimit)
-    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
-    
-    // Color coding based on usage percentage
-    val progressColor = when {
-        user.dataLimit <= 0L || progressPercent < 75 -> GlassGreen
-        progressPercent in 75..99 -> Color(0xFFE5A800) // Gold/Yellow
-        else -> GlassRed
-    }
-    
-    val statusColor = if (user.status == "active") GlassGreen else GlassRed
-
-    GlassCard(Modifier.fillMaxWidth(), onClick) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    user.username,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = GlassInk
-                )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(
-                        Modifier
-                            .size(7.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(statusColor)
-                    )
-                    Text(user.status.uppercase(), color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Text(
-                if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
-                color = GlassInk,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
-        }
-        LinearProgressIndicator(
-            progress = progress,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(10.dp)
-                .clip(RoundedCornerShape(20.dp)),
-            color = progressColor,
-            trackColor = Color.White.copy(alpha = 0.85f) // White track as requested
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Used: ${formatBytes(user.usedTraffic)} / $limitText", color = GlassMuted, fontSize = 12.sp)
-            user.expire?.takeIf { it != "0" && it != "null" }?.let {
-                Text("Expiry: ${it.take(10)}", color = GlassMuted, fontSize = 12.sp)
             }
         }
     }
