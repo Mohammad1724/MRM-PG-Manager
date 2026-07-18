@@ -142,14 +142,46 @@ private fun LiquidGlassTheme(content: @Composable () -> Unit) {
 
 @Composable
 private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
-    Image(
-        painter = painterResource(id = R.drawable.logo_mrm),
-        contentDescription = "MRM Logo",
-        contentScale = ContentScale.Fit,
-        modifier = modifier
-            .height(height)
-            .widthIn(max = height * 2.8f)
-    )
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resId = remember(context) {
+        context.resources.getIdentifier("logo_mrm", "drawable", context.packageName)
+    }
+    if (resId != 0) {
+        Image(
+            painter = painterResource(id = resId),
+            contentDescription = "MRM Logo",
+            contentScale = ContentScale.Fit,
+            modifier = modifier
+                .height(height)
+                .widthIn(max = height * 2.8f)
+        )
+    } else {
+        // Build-safe fallback when logo_mrm.png hasn't been pushed/committed to res/drawable yet
+        Box(
+            modifier = modifier
+                .height(height)
+                .widthIn(max = height * 2.8f)
+                .clip(RoundedCornerShape(height / 3.2f))
+                .background(
+                    Brush.linearGradient(
+                        listOf(GlassGold, Color(0xFFF5D061), Color(0xFF9C6700))
+                    )
+                )
+                .border(
+                    BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
+                    RoundedCornerShape(height / 3.2f)
+                )
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "MRM",
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = (height.value * 0.45f).sp
+            )
+        }
+    }
 }
 
 data class Session(val baseUrl: String, val token: String, val username: String)
