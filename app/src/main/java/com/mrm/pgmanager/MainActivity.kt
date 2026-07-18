@@ -471,41 +471,27 @@ private fun GlassButton(
     isRed: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val baseBg = if (isRed) {
+        if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
+    } else {
+        if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
+    }
+    val borderColor = if (isRed) {
+        SolidColor(GlassRed.copy(alpha = 0.65f))
+    } else {
+        Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
+    }
+
     Box(
         modifier = modifier
             .height(46.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.65f)
-                else if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.55f)
-            )
-            .border(
-                BorderStroke(
-                    1.dp,
-                    if (isRed) SolidColor(Color(0xFFF2BABA))
-                    else Brush.linearGradient(
-                        listOf(Color.White.copy(0.9f), theme.lamp.light.copy(0.4f), Color.White.copy(0.2f))
-                    )
-                ),
-                RoundedCornerShape(16.dp)
-            )
+            .background(baseBg)
+            .border(BorderStroke(1.2.dp, borderColor), RoundedCornerShape(16.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            if (isRed) GlassRed.copy(0.08f) else theme.lamp.primary.copy(0.08f),
-                            if (isRed) GlassRed.copy(0.28f) else theme.lamp.primary.copy(0.28f)
-                        )
-                    )
-                )
-        )
         Text(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
@@ -523,39 +509,27 @@ private fun MiniGlassButton(
     isRed: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val baseBg = if (isRed) {
+        if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
+    } else {
+        if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.85f)
+    }
+    val borderColor = if (isRed) {
+        SolidColor(GlassRed.copy(alpha = 0.65f))
+    } else {
+        Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
+    }
+
     Box(
         modifier = modifier
             .height(34.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.65f)
-                else if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.55f)
-            )
-            .border(
-                BorderStroke(
-                    1.dp,
-                    if (isRed) SolidColor(Color(0xFFF2BABA).copy(0.8f))
-                    else Brush.linearGradient(listOf(Color.White.copy(0.85f), theme.lamp.primary.copy(0.3f)))
-                ),
-                RoundedCornerShape(12.dp)
-            )
+            .background(baseBg)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            if (isRed) GlassRed.copy(0.06f) else theme.lamp.primary.copy(0.06f),
-                            if (isRed) GlassRed.copy(0.25f) else theme.lamp.primary.copy(0.25f)
-                        )
-                    )
-                )
-        )
         Text(
             text = text,
             color = if (isRed) GlassRed else theme.inkColor,
@@ -1394,32 +1368,13 @@ private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val w = size.width
-                            val h = size.height
-                            val s = w * 0.24f
-                            // Top-left
-                            drawRect(color = Color.Black, topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, s))
-                            drawRect(color = Color.White, topLeft = Offset(s * 0.2f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                            drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                            // Top-right
-                            drawRect(color = Color.Black, topLeft = Offset(w - s, 0f), size = androidx.compose.ui.geometry.Size(s, s))
-                            drawRect(color = Color.White, topLeft = Offset(w - s * 0.8f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                            drawRect(color = Color.Black, topLeft = Offset(w - s * 0.65f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                            // Bottom-left
-                            drawRect(color = Color.Black, topLeft = Offset(0f, h - s), size = androidx.compose.ui.geometry.Size(s, s))
-                            drawRect(color = Color.White, topLeft = Offset(s * 0.2f, h - s * 0.8f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                            drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, h - s * 0.65f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                            
-                            val hash = user.subUrl.hashCode()
-                            val cols = 15
-                            val cellW = w / cols
-                            for (r in 4 until cols - 1) {
-                                for (c in 4 until cols - 1) {
-                                    if (((r * 31 + c * 17 + hash) % 2) == 0) {
-                                        drawRect(color = Color.Black, topLeft = Offset(c * cellW, r * cellW), size = androidx.compose.ui.geometry.Size(cellW * 0.85f, cellW * 0.85f))
-                                    }
-                                }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.padding(8.dp)) {
+                            Text("⚠️ QR نیازمند سینک ZXing", color = Color(0xFFD33F3F), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text("برای اسکن QR، خط زیر را به build.gradle.kts اضافه کنید:", color = Color.DarkGray, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Spacer(Modifier.height(4.dp))
+                            Box(Modifier.background(Color(0xFFF0F0F0), RoundedCornerShape(6.dp)).padding(6.dp)) {
+                                Text("implementation(\"com.google.zxing:core:3.5.3\")", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
