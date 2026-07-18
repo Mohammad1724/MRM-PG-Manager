@@ -38,6 +38,10 @@ import android.app.Activity
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.asImageBitmap
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
@@ -1333,6 +1337,29 @@ private fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier =
 private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
+    
+    val qrBitmap = remember(user.subUrl) {
+        runCatching {
+            val writer = QRCodeWriter()
+            val bitMatrix = writer.encode(
+                user.subUrl,
+                BarcodeFormat.QR_CODE,
+                512,
+                512,
+                mapOf(EncodeHintType.MARGIN to 1)
+            )
+            val w = bitMatrix.width
+            val h = bitMatrix.height
+            val pixels = IntArray(w * h)
+            for (y in 0 until h) {
+                for (x in 0 until w) {
+                    pixels[y * w + x] = if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                }
+            }
+            android.graphics.Bitmap.createBitmap(pixels, w, h, android.graphics.Bitmap.Config.ARGB_8888)
+        }.getOrNull()
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
@@ -1347,39 +1374,21 @@ private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                 
                 Box(
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(220.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color.White)
-                        .padding(14.dp),
+                        .padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val w = size.width
-                        val h = size.height
-                        val s = w * 0.24f
-                        // Top-left
-                        drawRect(color = Color.Black, topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, s))
-                        drawRect(color = Color.White, topLeft = Offset(s * 0.2f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                        drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                        // Top-right
-                        drawRect(color = Color.Black, topLeft = Offset(w - s, 0f), size = androidx.compose.ui.geometry.Size(s, s))
-                        drawRect(color = Color.White, topLeft = Offset(w - s * 0.8f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                        drawRect(color = Color.Black, topLeft = Offset(w - s * 0.65f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                        // Bottom-left
-                        drawRect(color = Color.Black, topLeft = Offset(0f, h - s), size = androidx.compose.ui.geometry.Size(s, s))
-                        drawRect(color = Color.White, topLeft = Offset(s * 0.2f, h - s * 0.8f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
-                        drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, h - s * 0.65f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
-                        
-                        val hash = user.subUrl.hashCode()
-                        val cols = 15
-                        val cellW = w / cols
-                        for (r in 4 until cols - 1) {
-                            for (c in 4 until cols - 1) {
-                                if (((r * 31 + c * 17 + hash) % 2) == 0) {
-                                    drawRect(color = Color.Black, topLeft = Offset(c * cellW, r * cellW), size = androidx.compose.ui.geometry.Size(cellW * 0.85f, cellW * 0.85f))
-                                }
-                            }
-                        }
+                    if (qrBitmap != null) {
+                        Image(
+                            bitmap = qrBitmap.asImageBitmap(),
+                            contentDescription = "Subscription QR Code",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text("در حال تولید QR...", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
 
