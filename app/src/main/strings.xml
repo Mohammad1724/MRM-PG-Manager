@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">MRM PG Manager</string>
+    <string name="panel_address">آدرس کامل پنل</string>
+    <string name="panel_hint">https://panel.example.com:7431/dashboard/#/login</string>
+    <string name="username">نام کاربری</string>
+    <string name="password">رمز عبور</string>
+    <string name="sign_in">ورود به پنل</string>
+    <string name="users">کاربران</string>
+    <string name="refresh">بروزرسانی</string>
+    <string name="logout">خروج</string>
+    <string name="search_users">جست‌وجوی کاربر</string>
+    <string name="connection_error">اتصال برقرار نشد. آدرس پنل، SSL، نام کاربری و رمز عبور را بررسی کنید.</string>
+    <string name="no_users">کاربری پیدا نشد</string>
+    <string name="used">مصرف</string>
+    <string name="limit">سقف حجم</string>
+    <string name="expired">منقضی</string>
+    <string name="unlimited">نامحدود</string>
+    <string name="manage_panel">مدیریت پنل پاسارگارد</string>
+    <string name="status">وضعیت</string>
+</resources>
