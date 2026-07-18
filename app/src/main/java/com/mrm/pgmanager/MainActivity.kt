@@ -34,7 +34,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import android.app.Activity
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
@@ -207,6 +210,7 @@ enum class LampColor(
     GOLD("Champagne Gold", Color(0xFFC59B27), Color(0xFFF3E5AB), Color(0xBBF5D061), Color(0x44E5B84B)),
     MAGENTA("Royal Magenta", Color(0xFFC8327E), Color(0xFFFAD1E6), Color(0xBBC8327E), Color(0x44E86FA8)),
     TURQUOISE("Neon Turquoise", Color(0xFF0EA89B), Color(0xFFB5F2EC), Color(0xBB2AD4C5), Color(0x4414A094)),
+    SKY_BLUE("Sky Blue", Color(0xFF1982C4), Color(0xFFBAE1FF), Color(0xBB3BA3EC), Color(0x441982C4)),
     VIOLET("Cyber Violet", Color(0xFF7A42D4), Color(0xFFE2D1FC), Color(0xBB9862F5), Color(0x447A42D4)),
     EMERALD("Emerald Glow", Color(0xFF1A8C5B), Color(0xFFC2F2DC), Color(0xBB2EC486), Color(0x441A8C5B))
 }
@@ -275,6 +279,19 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
         Brush.verticalGradient(listOf(Color(0xFF151518), Color(0xFF0E0E10), Color(0xFF08080A)))
     } else {
         Brush.verticalGradient(listOf(Color(0xFFFFFDF9), Color(0xFFFFF7E6), Color(0xFFFFF4DC)))
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !themeState.isDark
+                WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !themeState.isDark
+            }
+        }
     }
 
     CompositionLocalProvider(LocalThemeState provides themeState) {
@@ -480,10 +497,12 @@ private fun GlassButton(
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            if (isRed) GlassRed.copy(0.18f) else theme.lamp.primary.copy(0.20f),
+                        colors = listOf(
+                            if (isRed) GlassRed.copy(0.24f) else theme.lamp.primary.copy(0.26f),
                             Color.Transparent
-                        )
+                        ),
+                        center = Offset(260f, 0f),
+                        radius = 280f
                     )
                 )
         )
@@ -529,10 +548,12 @@ private fun MiniGlassButton(
                 .fillMaxSize()
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            if (isRed) GlassRed.copy(0.18f) else theme.lamp.primary.copy(0.18f),
+                        colors = listOf(
+                            if (isRed) GlassRed.copy(0.22f) else theme.lamp.primary.copy(0.24f),
                             Color.Transparent
-                        )
+                        ),
+                        center = Offset(200f, 0f),
+                        radius = 220f
                     )
                 )
         )
@@ -1912,12 +1933,12 @@ private fun UserEditorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("وضعیت فعلی: ${formatBytes(user.usedTraffic)} مصرف شده • ${user.status.uppercase()}", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 onResetUsage?.let { resetU ->
-                                    MiniGlassButton("♻ ریست حجم (۰ B)", onClick = resetU, modifier = Modifier.weight(1f))
+                                    GlassButton("ریست حجم", onClick = resetU, modifier = Modifier.weight(1f))
                                 }
                                 onResetExpiry?.let { resetE ->
-                                    MiniGlassButton("♻ ریست زمان (نامحدود)", onClick = resetE, modifier = Modifier.weight(1f))
+                                    GlassButton("ریست زمان", onClick = resetE, modifier = Modifier.weight(1f))
                                 }
                             }
 
