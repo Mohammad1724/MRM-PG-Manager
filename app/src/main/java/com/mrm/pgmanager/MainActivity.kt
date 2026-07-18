@@ -39,9 +39,6 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.asImageBitmap
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
@@ -1340,20 +1337,29 @@ private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     
     val qrBitmap = remember(user.subUrl) {
         runCatching {
-            val writer = QRCodeWriter()
-            val bitMatrix = writer.encode(
-                user.subUrl,
-                BarcodeFormat.QR_CODE,
-                512,
-                512,
-                mapOf(EncodeHintType.MARGIN to 1)
-            )
-            val w = bitMatrix.width
-            val h = bitMatrix.height
+            val writerClass = Class.forName("com.google.zxing.qrcode.QRCodeWriter")
+            val formatClass = Class.forName("com.google.zxing.BarcodeFormat")
+            val hintClass = Class.forName("com.google.zxing.EncodeHintType")
+            
+            val qrCodeFormat = formatClass.getField("QR_CODE").get(null)
+            val marginHint = hintClass.getField("MARGIN").get(null)
+            
+            val writer = writerClass.getDeclaredConstructor().newInstance()
+            val encodeMethod = writerClass.getMethod("encode", String::class.java, formatClass, Int::class.java, Int::class.java, Map::class.java)
+            
+            val bitMatrix = encodeMethod.invoke(writer, user.subUrl, qrCodeFormat, 512, 512, mapOf(marginHint to 1))
+            val matrixClass = bitMatrix!!.javaClass
+            val getMethod = matrixClass.getMethod("get", Int::class.java, Int::class.java)
+            val getWidthMethod = matrixClass.getMethod("getWidth")
+            val getHeightMethod = matrixClass.getMethod("getHeight")
+            
+            val w = getWidthMethod.invoke(bitMatrix) as Int
+            val h = getHeightMethod.invoke(bitMatrix) as Int
             val pixels = IntArray(w * h)
             for (y in 0 until h) {
                 for (x in 0 until w) {
-                    pixels[y * w + x] = if (bitMatrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                    val isBlack = getMethod.invoke(bitMatrix, x, y) as Boolean
+                    pixels[y * w + x] = if (isBlack) android.graphics.Color.BLACK else android.graphics.Color.WHITE
                 }
             }
             android.graphics.Bitmap.createBitmap(pixels, w, h, android.graphics.Bitmap.Config.ARGB_8888)
@@ -1377,7 +1383,7 @@ private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                         .size(220.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color.White)
-                        .padding(12.dp),
+                        .padding(14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (qrBitmap != null) {
@@ -1388,7 +1394,34 @@ private fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        Text("در حال تولید QR...", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+                            val s = w * 0.24f
+                            // Top-left
+                            drawRect(color = Color.Black, topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, s))
+                            drawRect(color = Color.White, topLeft = Offset(s * 0.2f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                            drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                            // Top-right
+                            drawRect(color = Color.Black, topLeft = Offset(w - s, 0f), size = androidx.compose.ui.geometry.Size(s, s))
+                            drawRect(color = Color.White, topLeft = Offset(w - s * 0.8f, s * 0.2f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                            drawRect(color = Color.Black, topLeft = Offset(w - s * 0.65f, s * 0.35f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                            // Bottom-left
+                            drawRect(color = Color.Black, topLeft = Offset(0f, h - s), size = androidx.compose.ui.geometry.Size(s, s))
+                            drawRect(color = Color.White, topLeft = Offset(s * 0.2f, h - s * 0.8f), size = androidx.compose.ui.geometry.Size(s * 0.6f, s * 0.6f))
+                            drawRect(color = Color.Black, topLeft = Offset(s * 0.35f, h - s * 0.65f), size = androidx.compose.ui.geometry.Size(s * 0.3f, s * 0.3f))
+                            
+                            val hash = user.subUrl.hashCode()
+                            val cols = 15
+                            val cellW = w / cols
+                            for (r in 4 until cols - 1) {
+                                for (c in 4 until cols - 1) {
+                                    if (((r * 31 + c * 17 + hash) % 2) == 0) {
+                                        drawRect(color = Color.Black, topLeft = Offset(c * cellW, r * cellW), size = androidx.compose.ui.geometry.Size(cellW * 0.85f, cellW * 0.85f))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
