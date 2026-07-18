@@ -18,6 +18,16 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -494,14 +504,14 @@ private fun GlassButton(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.50f else 0.18f,
+        targetValue = if (isPressed && enabled) 0.65f else 0.18f,
         animationSpec = tween(durationMillis = 140),
         label = "btnGlow"
     )
 
-    val contentScale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.95f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+    val boxScale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.93f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "btnScale"
     )
 
@@ -522,6 +532,7 @@ private fun GlassButton(
     Box(
         modifier = modifier
             .height(46.dp)
+            .graphicsLayer(scaleX = boxScale, scaleY = boxScale)
             .clip(RoundedCornerShape(16.dp))
             .background(baseBg)
             .border(BorderStroke(if (isPressed && enabled) 1.6.dp else 1.2.dp, borderColor), RoundedCornerShape(16.dp))
@@ -546,9 +557,7 @@ private fun GlassButton(
             color = if (isRed) GlassRed else theme.inkColor,
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
-            modifier = Modifier
-                .graphicsLayer(scaleX = contentScale, scaleY = contentScale)
-                .padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -567,14 +576,14 @@ private fun MiniGlassButton(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.50f else 0.18f,
+        targetValue = if (isPressed) 0.65f else 0.18f,
         animationSpec = tween(durationMillis = 140),
         label = "miniGlow"
     )
 
-    val contentScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.93f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+    val boxScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.91f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "miniScale"
     )
 
@@ -595,6 +604,7 @@ private fun MiniGlassButton(
     Box(
         modifier = modifier
             .height(34.dp)
+            .graphicsLayer(scaleX = boxScale, scaleY = boxScale)
             .clip(RoundedCornerShape(12.dp))
             .background(baseBg)
             .border(BorderStroke(if (isPressed) 1.5.dp else 1.dp, borderColor), RoundedCornerShape(12.dp))
@@ -619,9 +629,7 @@ private fun MiniGlassButton(
             color = if (isRed) GlassRed else theme.inkColor,
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
-            modifier = Modifier
-                .graphicsLayer(scaleX = contentScale, scaleY = contentScale)
-                .padding(horizontal = 8.dp),
+            modifier = Modifier.padding(horizontal = 8.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -733,7 +741,9 @@ data class PanelUser(
     val dataLimit: Long,
     val expire: String?,
     val createdAt: String?,
-    val subUrl: String = ""
+    val subUrl: String = "",
+    val onlineAt: String? = null,
+    val isOnline: Boolean = false
 )
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
@@ -896,6 +906,7 @@ private fun GlassSearchBar(
 private fun LuxuryTopStatsHeader(
     totalUsers: Int,
     activeUsers: Int,
+    onlineUsers: Int,
     totalUsedTraffic: Long,
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
@@ -914,7 +925,6 @@ private fun LuxuryTopStatsHeader(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left side: PasarGuard + AppLogo, and Theme icon button directly under PasarGuard on the left
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -928,14 +938,12 @@ private fun LuxuryTopStatsHeader(
                     AppLogo(height = 24.dp)
                 }
                 
-                // Theme icon button placed on the LEFT right under PasarGuard
                 ActionIconButton(
                     icon = { Text("🎨", fontSize = 16.sp) },
                     onClick = onOpenThemeDialog
                 )
             }
 
-            // Right side: Symmetrical icon-only Refresh & Exit buttons of exactly the same size
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 ActionIconButton(
                     icon = {
@@ -957,7 +965,7 @@ private fun LuxuryTopStatsHeader(
             }
         }
 
-        // Luxury Summary Banner
+        // Luxury Summary Banner (شامل آمار آنلاین در لحظه)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -967,15 +975,17 @@ private fun LuxuryTopStatsHeader(
                     BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color.White.copy(if (theme.isDark) 0.3f else 0.9f), Color.White.copy(if (theme.isDark) 0.08f else 0.3f)))),
                     RoundedCornerShape(20.dp)
                 )
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            StatItem(label = "Total Users", value = "$totalUsers", color = theme.inkColor)
+            StatItem(label = "کل کاربران", value = "$totalUsers", color = theme.inkColor)
             Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = if (theme.isDark) 0.2f else 0.8f)))
-            StatItem(label = "Active Now", value = "$activeUsers", color = GlassGreen)
+            StatItem(label = "فعال", value = "$activeUsers", color = GlassGreen)
             Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = if (theme.isDark) 0.2f else 0.8f)))
-            StatItem(label = "Total Traffic", value = formatBytes(totalUsedTraffic), color = theme.lamp.primary)
+            StatItem(label = "آنلاین در لحظه", value = "$onlineUsers", color = Color(0xFF0EA89B))
+            Box(Modifier.width(1.dp).height(24.dp).background(Color.White.copy(alpha = if (theme.isDark) 0.2f else 0.8f)))
+            StatItem(label = "کل ترافیک", value = formatBytes(totalUsedTraffic), color = theme.lamp.primary)
         }
     }
 }
@@ -1208,6 +1218,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
+    val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     
@@ -1217,6 +1228,7 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
         else -> GlassRed
     }
     val statusColor = if (user.status == "active") GlassGreen else GlassRed
+    val pagerState = rememberPagerState { 2 }
 
     Box(
         modifier = Modifier
@@ -1225,38 +1237,64 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
             .background(theme.cardBgColor)
             .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.18f) else Color.White.copy(0.8f)), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(vertical = 10.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
-            
-            Column(modifier = Modifier.weight(1.2f)) {
-                Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    user.expire?.takeIf { it != "0" && it != "null" }?.let { "انقضا: ${JalaliCalendar.isoToShamsi(it)}" } ?: "بدون انقضا",
-                    fontSize = 11.sp,
-                    color = theme.mutedColor
-                )
-            }
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+            if (page == 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(statusColor))
+                    
+                    Column(modifier = Modifier.weight(1.2f)) {
+                        Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            user.expire?.takeIf { it != "0" && it != "null" }?.let { "انقضا: ${JalaliCalendar.isoToShamsi(it)}" } ?: "بدون انقضا",
+                            fontSize = 11.sp,
+                            color = theme.mutedColor
+                        )
+                    }
 
-            Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.End) {
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                    Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                    Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.End) {
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text(formatBytes(user.usedTraffic), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Text(if (user.dataLimit == 0L) "∞" else "${progressPercent}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
+                            color = progressColor,
+                            trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
+                        )
+                    }
+                    Text("›•", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                 }
-                Spacer(Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(10.dp)),
-                    color = progressColor,
-                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
-                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+                        Text(if (user.isOnline) "🟢 آنلاین در لحظه" else "⚫ آفلاین", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else theme.mutedColor)
+                        Text("ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}", fontSize = 11.sp, color = theme.mutedColor)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (user.subUrl.isNotEmpty()) {
+                            MiniGlassButton("📋 کپی لینک", onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                                android.widget.Toast.makeText(context, "لینک اشتراک کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                            })
+                        }
+                        MiniGlassButton("✏ ویرایش", onClick = onClick)
+                    }
+                    Text("•‹", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                }
             }
-            Text("›", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
         }
     }
 }
@@ -1264,6 +1302,7 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
+    val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     
@@ -1273,6 +1312,7 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
         else -> GlassRed
     }
     val statusColor = if (user.status == "active") GlassGreen else GlassRed
+    val pagerState = rememberPagerState { 2 }
 
     Box(
         modifier = Modifier
@@ -1281,51 +1321,82 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
             .background(if (theme.isDark) Color(0xFF222226).copy(0.55f) else Color.White.copy(alpha = 0.38f))
             .border(BorderStroke(0.8.dp, if (theme.isDark) Color.White.copy(0.15f) else Color.White.copy(0.7f)), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .padding(vertical = 7.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(statusColor))
-            
-            Text(
-                user.username,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = theme.inkColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1.1f)
-            )
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+            if (page == 0) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(statusColor))
+                    
+                    Text(
+                        user.username,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = theme.inkColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1.1f)
+                    )
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.weight(1.3f)
-            ) {
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
-                    color = progressColor,
-                    trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
-                )
-                Text(
-                    if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = progressColor
-                )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1.3f)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(6.dp)),
+                            color = progressColor,
+                            trackColor = Color.White.copy(alpha = if (theme.isDark) 0.25f else 0.85f)
+                        )
+                        Text(
+                            if (user.dataLimit == 0L) "∞" else "${progressPercent}%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = progressColor
+                        )
+                    }
+
+                    Text(
+                        formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
+                        fontSize = 11.sp,
+                        color = theme.mutedColor,
+                        maxLines = 1
+                    )
+                    Text("›•", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        if (user.isOnline) "🟢 آنلاین • ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}" else "⚫ آفلاین • ساخت: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (user.isOnline) GlassGreen else theme.mutedColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (user.subUrl.isNotEmpty()) {
+                            MiniGlassButton("📋 کپی", onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub URL", user.subUrl))
+                                android.widget.Toast.makeText(context, "کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                            })
+                        }
+                        MiniGlassButton("✏ ویرایش", onClick = onClick)
+                    }
+                    Text("•‹", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                }
             }
-
-            Text(
-                formatBytes(user.usedTraffic) + if (user.dataLimit > 0) " / " + formatBytes(user.dataLimit) else "",
-                fontSize = 11.sp,
-                color = theme.mutedColor,
-                maxLines = 1
-            )
-            Text("›", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
         }
     }
 }
@@ -1781,8 +1852,22 @@ private fun UsersScreen(
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var onlineCount by remember { mutableStateOf(0) }
+    var isHeaderVisible by remember { mutableStateOf(true) }
 
-    // 4. Default Sort set to CREATED and Default View set to MICRO_LIST (ستونی باریک‌تر)
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -10f && isHeaderVisible) {
+                    isHeaderVisible = false
+                } else if (available.y > 8f && !isHeaderVisible) {
+                    isHeaderVisible = true
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
@@ -1791,12 +1876,15 @@ private fun UsersScreen(
         scope.launch {
             loading = true
             error = null
-            runCatching { PanelApi.users(session) }
-                .onSuccess { users = it }
-                .onFailure {
-                    error = it.message ?: "Unable to load users"
-                    if (it.message?.contains("401") == true) onLogout()
-                }
+            runCatching {
+                val list = PanelApi.users(session)
+                val sysOnline = PanelApi.onlineUserCount(session)
+                users = list
+                onlineCount = maxOf(sysOnline, list.count { it.isOnline })
+            }.onFailure {
+                error = it.message ?: "Unable to load users"
+                if (it.message?.contains("401") == true) onLogout()
+            }
             loading = false
         }
     }
@@ -1844,6 +1932,7 @@ private fun UsersScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
+        modifier = Modifier.nestedScroll(nestedScrollConnection),
         floatingActionButton = {
             Box(
                 modifier = Modifier
@@ -1866,27 +1955,36 @@ private fun UsersScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            LuxuryTopStatsHeader(
-                totalUsers = users.size,
-                activeUsers = users.count { it.status == "active" },
-                totalUsedTraffic = totalUsedTraffic,
-                onRefresh = { load() },
-                onLogout = onLogout,
-                onOpenThemeDialog = { showThemeDialog = true },
-                loading = loading
-            )
-            GlassSearchBar(query = query, onQueryChange = { query = it })
-            Spacer(Modifier.height(10.dp))
-            FilterAndControlBar(
-                currentFilter = currentFilter,
-                onFilterChange = { currentFilter = it },
-                currentSort = currentSort,
-                onSortChange = { currentSort = it },
-                viewMode = viewMode,
-                onViewModeChange = { viewMode = it },
-                users = users
-            )
-            Spacer(Modifier.height(12.dp))
+            AnimatedVisibility(
+                visible = isHeaderVisible,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    LuxuryTopStatsHeader(
+                        totalUsers = users.size,
+                        activeUsers = users.count { it.status == "active" },
+                        onlineUsers = onlineCount,
+                        totalUsedTraffic = totalUsedTraffic,
+                        onRefresh = { load() },
+                        onLogout = onLogout,
+                        onOpenThemeDialog = { showThemeDialog = true },
+                        loading = loading
+                    )
+                    GlassSearchBar(query = query, onQueryChange = { query = it })
+                    Spacer(Modifier.height(10.dp))
+                    FilterAndControlBar(
+                        currentFilter = currentFilter,
+                        onFilterChange = { currentFilter = it },
+                        currentSort = currentSort,
+                        onSortChange = { currentSort = it },
+                        viewMode = viewMode,
+                        onViewModeChange = { viewMode = it },
+                        users = users
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
 
             when {
                 loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -2468,8 +2566,21 @@ private object PanelApi {
         dataLimit = user.optLong("data_limit", 0),
         expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
         createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
-        subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") }
+        subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
+        onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
+        isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300)
     )
+
+    suspend fun onlineUserCount(session: Session): Int = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/system/users").get().build()
+            client.newCall(req).execute().use { res ->
+                if (res.isSuccessful) {
+                    JSONObject(res.body?.string() ?: "{}").optInt("online_users", 0)
+                } else 0
+            }
+        }.getOrDefault(0)
+    }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
     private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59Z"
