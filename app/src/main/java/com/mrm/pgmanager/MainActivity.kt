@@ -1872,7 +1872,7 @@ private fun UserEditorDialog(
                                 .background(if (theme.isDark) Color.White.copy(0.1f) else Color.White.copy(0.55f))
                                 .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(12.dp))
                                 .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.CenterLeft
+                            contentAlignment = Alignment.CenterStart
                         ) {
                             if (customAddDays.isEmpty()) {
                                 Text("+روز", fontSize = 11.sp, color = theme.mutedColor.copy(alpha = 0.8f))
