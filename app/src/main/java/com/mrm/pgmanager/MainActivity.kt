@@ -29,6 +29,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +59,7 @@ import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.text.DecimalFormat
+import java.time.LocalDate
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -67,7 +69,132 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 1. Lamp Color Palette & Theme Configuration (رنگ‌های قابل انتخاب لامپ و تم دارک)
+// ==========================================
+// 1. JALALI (SHAMSI / PERSIAN) CALENDAR CORE
+// ==========================================
+object JalaliCalendar {
+    data class Date(val year: Int, val month: Int, val day: Int) {
+        override fun toString(): String = "%04d/%02d/%02d".format(year, month, day)
+        
+        fun getMonthName(): String {
+            val names = arrayOf("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
+            return if (month in 1..12) names[month - 1] else "$month"
+        }
+    }
+
+    fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Date {
+        val gDaysInMonth = intArrayOf(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        val jDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
+        
+        val gy2 = gy - 1600
+        val gm2 = gm - 1
+        val gd2 = gd - 1
+        
+        var gDayNo = 365 * gy2 + (gy2 + 3) / 4 - (gy2 + 99) / 100 + (gy2 + 399) / 400
+        for (i in 0 until gm2) gDayNo += gDaysInMonth[i]
+        if (gm2 > 1 && ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0))) gDayNo++
+        gDayNo += gd2
+        
+        var jDayNo = gDayNo - 79
+        val jNp = jDayNo / 12053
+        jDayNo %= 12053
+        
+        var jy = 979 + 33 * jNp + 4 * (jDayNo / 1461)
+        jDayNo %= 1461
+        
+        if (jDayNo >= 366) {
+            jy += (jDayNo - 1) / 365
+            jDayNo = (jDayNo - 1) % 365
+        }
+        
+        var i = 0
+        while (i < 11 && jDayNo >= jDaysInMonth[i]) {
+            jDayNo -= jDaysInMonth[i]
+            i++
+        }
+        return Date(jy, i + 1, jDayNo + 1)
+    }
+
+    fun jalaliToGregorian(jy: Int, jm: Int, jd: Int): String {
+        val jy2 = jy - 979
+        val jm2 = jm - 1
+        val jd2 = jd - 1
+        
+        val jDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
+        var jDayNo = 365 * jy2 + (jy2 / 33) * 8 + (jy2 % 33 + 3) / 4
+        for (i in 0 until jm2) jDayNo += jDaysInMonth[i]
+        jDayNo += jd2
+        
+        var gDayNo = jDayNo + 79
+        var gy = 1600 + 400 * (gDayNo / 146097)
+        gDayNo %= 146097
+        
+        var leap = true
+        if (gDayNo >= 36525) {
+            gDayNo--
+            gy += 100 * (gDayNo / 36524)
+            gDayNo %= 36524
+            if (gDayNo >= 365) gDayNo++ else leap = false
+        }
+        
+        gy += 4 * (gDayNo / 1461)
+        gDayNo %= 1461
+        
+        if (gDayNo >= 366) {
+            leap = false
+            gDayNo--
+            gy += gDayNo / 365
+            gDayNo %= 365
+        }
+        
+        val gDaysInMonth = intArrayOf(31, if (leap && ((gy % 4 == 0 && gy % 100 != 0) || gy % 400 == 0)) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        var i = 0
+        while (i < 12 && gDayNo >= gDaysInMonth[i]) {
+            gDayNo -= gDaysInMonth[i]
+            i++
+        }
+        return "%04d-%02d-%02d".format(gy, i + 1, gDayNo + 1)
+    }
+
+    fun isoToShamsi(iso: String?): String {
+        if (iso.isNullOrBlank() || iso == "0" || iso == "null") return ""
+        val parts = iso.take(10).split("-")
+        if (parts.size != 3) return iso.take(10)
+        val gy = parts[0].toIntOrNull() ?: return iso.take(10)
+        val gm = parts[1].toIntOrNull() ?: return iso.take(10)
+        val gd = parts[2].toIntOrNull() ?: return iso.take(10)
+        return gregorianToJalali(gy, gm, gd).toString()
+    }
+
+    fun shamsiToIso(shamsi: String): String {
+        if (shamsi.isBlank()) return ""
+        val clean = shamsi.replace("-", "/").split("/")
+        if (clean.size != 3) return shamsi
+        val jy = clean[0].toIntOrNull() ?: return shamsi
+        val jm = clean[1].toIntOrNull() ?: return shamsi
+        val jd = clean[2].toIntOrNull() ?: return shamsi
+        return jalaliToGregorian(jy, jm, jd)
+    }
+
+    fun todayJalali(): Date {
+        val today = LocalDate.now()
+        return gregorianToJalali(today.year, today.monthValue, today.dayOfMonth)
+    }
+
+    fun addDaysToIso(iso: String?, daysToAdd: Int): String {
+        val baseDate = if (iso.isNullOrBlank() || iso == "0" || iso == "null") {
+            LocalDate.now()
+        } else {
+            runCatching { LocalDate.parse(iso.take(10)) }.getOrDefault(LocalDate.now())
+        }
+        val target = baseDate.plusDays(daysToAdd.toLong())
+        return target.toString()
+    }
+}
+
+// ==========================================
+// 2. THEME & PALETTE SYSTEM
+// ==========================================
 enum class LampColor(
     val label: String,
     val primary: Color,
@@ -155,7 +282,7 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
                     .fillMaxSize()
                     .background(bgGradient)
             ) {
-                // Directional Spotlight Lamp from LEFT side (نور جهت‌دار لامپ از سمت چپ صفحه)
+                // Directional Spotlight Lamp from LEFT side
                 Box(
                     Modifier
                         .size(420.dp)
@@ -163,11 +290,7 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
                         .offset(x = (-110).dp, y = (-40).dp)
                         .background(
                             Brush.radialGradient(
-                                listOf(
-                                    themeState.lamp.spotHigh,
-                                    themeState.lamp.spotLow,
-                                    Color.Transparent
-                                )
+                                listOf(themeState.lamp.spotHigh, themeState.lamp.spotLow, Color.Transparent)
                             ),
                             RoundedCornerShape(200.dp)
                         )
@@ -179,10 +302,7 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
                         .offset(x = (-120).dp, y = 180.dp)
                         .background(
                             Brush.radialGradient(
-                                listOf(
-                                    themeState.lamp.spotHigh.copy(alpha = 0.5f),
-                                    Color.Transparent
-                                )
+                                listOf(themeState.lamp.spotHigh.copy(alpha = 0.5f), Color.Transparent)
                             ),
                             RoundedCornerShape(200.dp)
                         )
@@ -193,10 +313,9 @@ private fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> 
     }
 }
 
-/**
- * AppLogo Composable:
- * Dynamically resolves `logo_mrm.png` inside `app/src/main/res/drawable/` safely.
- */
+// ==========================================
+// 3. LOGO & CRISP VECTOR ICONS
+// ==========================================
 @Composable
 private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
     val context = LocalContext.current
@@ -219,13 +338,8 @@ private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
                 .height(height)
                 .widthIn(max = height * 2.8f)
                 .clip(RoundedCornerShape(height / 3.2f))
-                .background(
-                    Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.light))
-                )
-                .border(
-                    BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)),
-                    RoundedCornerShape(height / 3.2f)
-                )
+                .background(Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.light)))
+                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)), RoundedCornerShape(height / 3.2f))
                 .padding(horizontal = 8.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -236,6 +350,63 @@ private fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
                 fontSize = (height.value * 0.45f).sp
             )
         }
+    }
+}
+
+/**
+ * Universal Eye Icon for Password toggle (علامت چشم مرسوم در سایت‌ها)
+ */
+@Composable
+private fun PasswordEyeIcon(visible: Boolean) {
+    val theme = LocalThemeState.current
+    Canvas(modifier = Modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        // Outer eye oval contour
+        drawOval(
+            color = theme.inkColor,
+            topLeft = Offset(1f, h * 0.22f),
+            size = androidx.compose.ui.geometry.Size(w - 2f, h * 0.56f),
+            style = Stroke(width = 2.2f)
+        )
+        // Center Pupil circle
+        drawCircle(
+            color = if (visible) theme.lamp.primary else theme.inkColor,
+            radius = if (visible) w * 0.20f else w * 0.14f,
+            center = Offset(w * 0.5f, h * 0.5f)
+        )
+        // Diagonal slash across the eye when password is hidden
+        if (!visible) {
+            drawLine(
+                color = theme.lamp.primary,
+                start = Offset(w * 0.10f, h * 0.90f),
+                end = Offset(w * 0.90f, h * 0.10f),
+                strokeWidth = 2.8f
+            )
+        }
+    }
+}
+
+/**
+ * Crisp Universal Exit Icon (آیکون تمیز و استاندارد خروج به جای علامت به هم ریخته)
+ */
+@Composable
+private fun ExitIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        // Left door bracket
+        drawRect(
+            color = GlassRed,
+            topLeft = Offset(0f, 1f),
+            size = androidx.compose.ui.geometry.Size(w * 0.45f, h - 2f),
+            style = Stroke(width = 2f)
+        )
+        // Arrow shaft exiting to the right
+        drawLine(color = GlassRed, start = Offset(w * 0.25f, h * 0.5f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
+        // Arrow head right
+        drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.22f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
+        drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.78f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
     }
 }
 
@@ -315,15 +486,12 @@ private fun GlassTextField(
             {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(19.dp))
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(20.dp))
                         .clickable { passwordVisible = !passwordVisible },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (passwordVisible) "👁" else "🙈",
-                        fontSize = 18.sp
-                    )
+                    PasswordEyeIcon(visible = passwordVisible)
                 }
             }
         } else null,
@@ -408,6 +576,7 @@ private fun GlassSearchBar(
     }
 }
 
+// 4. TOP HEADER (علامت تغییر تم سمت چپ زیر PasarGuard + دکمه خروج تمیز)
 @Composable
 private fun LuxuryTopStatsHeader(
     totalUsers: Int,
@@ -427,35 +596,41 @@ private fun LuxuryTopStatsHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "PasarGuard",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = theme.inkColor
-                )
-                AppLogo(height = 24.dp)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Theme Customizer Button (دکمه تغییر تم دارک و رنگ نور لامپ)
+            // Left side: PasarGuard + AppLogo, and Theme selector button underneath it
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "PasarGuard",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = theme.inkColor
+                    )
+                    AppLogo(height = 24.dp)
+                }
+                
+                // Theme selector button placed on the LEFT side right under PasarGuard
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.70f))
-                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(16.dp))
+                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.3f) else Color.White), RoundedCornerShape(14.dp))
                         .clickable(onClick = onOpenThemeDialog)
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 11.dp, vertical = 5.dp)
                 ) {
-                    Text("🎨", fontSize = 15.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("🎨", fontSize = 13.sp)
+                        Text("Theme", color = theme.inkColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
+            }
 
-                // Refresh Button
+            // Right side: Refresh & Exit buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
@@ -475,18 +650,17 @@ private fun LuxuryTopStatsHeader(
                     }
                 }
 
-                // Logout Button
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.80f))
                         .border(BorderStroke(1.dp, Color(0xFFF2BABA)), RoundedCornerShape(16.dp))
                         .clickable(onClick = onLogout)
-                        .padding(horizontal = 11.dp, vertical = 7.dp),
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("⎋", fontSize = 13.sp, color = GlassRed)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ExitIcon()
                         Text("Exit", color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
@@ -643,7 +817,7 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// 1. Luxury Grid Card (田)
+// 5. CARDS (تاریخ‌ها به شمسی تبدیل و نمایش داده می‌شوند)
 @Composable
 private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -726,13 +900,14 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
                     fontSize = 11.sp,
                     color = theme.mutedColor
                 )
-                user.expire?.takeIf { it != "0" && it != "null" }?.let {
+                user.expire?.takeIf { it != "0" && it != "null" }?.let { iso ->
+                    val shamsi = JalaliCalendar.isoToShamsi(iso)
                     Box(
                         modifier = Modifier
                             .background(if (theme.isDark) Color.White.copy(0.18f) else Color.White.copy(0.65f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(it.take(10), fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                        Text(shamsi, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -740,7 +915,6 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-// 2. Luxury Compact Row (☰)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -773,7 +947,7 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1.2f)) {
                 Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    user.expire?.takeIf { it != "0" && it != "null" }?.let { "Exp: ${it.take(10)}" } ?: "No Expiry",
+                    user.expire?.takeIf { it != "0" && it != "null" }?.let { "انقضا: ${JalaliCalendar.isoToShamsi(it)}" } ?: "بدون انقضا",
                     fontSize = 11.sp,
                     color = theme.mutedColor
                 )
@@ -797,7 +971,6 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-// 3. Luxury Micro Slim Row (≡)
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
@@ -867,7 +1040,9 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     }
 }
 
-// Theme Customizer Dialog (پنجره تنظیمات ظاهر و نور لامپ)
+// ==========================================
+// 6. THEME EDITOR DIALOG
+// ==========================================
 @Composable
 private fun ThemeEditorDialog(
     themeState: ThemeState,
@@ -890,20 +1065,18 @@ private fun ThemeEditorDialog(
                     TextButton(onClick = onDismiss) { Text("Done", fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 }
 
-                // Mode Selector
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Background Mode", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        ModeToggleBtn("☀️ Light", !themeState.isDark, Modifier.weight(1f)) {
+                        ModeToggleBtn("☀️ Light Mode", !themeState.isDark, Modifier.weight(1f)) {
                             onThemeChange(themeState.copy(isDark = false))
                         }
-                        ModeToggleBtn("🌙 Dark", themeState.isDark, Modifier.weight(1f)) {
+                        ModeToggleBtn("🌙 Dark Mode", themeState.isDark, Modifier.weight(1f)) {
                             onThemeChange(themeState.copy(isDark = true))
                         }
                     }
                 }
 
-                // Lamp Accent Selector
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Spotlight Accent Color", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -922,17 +1095,10 @@ private fun ThemeEditorDialog(
                                     .padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Box(
-                                        Modifier
-                                            .size(20.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(lamp.primary)
-                                    )
+                                    Box(Modifier.size(20.dp).clip(RoundedCornerShape(10.dp)).background(lamp.primary))
                                     Text(lamp.label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = theme.inkColor, fontSize = 14.sp)
                                     Spacer(Modifier.weight(1f))
-                                    if (isSelected) {
-                                        Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    }
+                                    if (isSelected) Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
                             }
                         }
@@ -955,14 +1121,152 @@ private fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier =
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            label,
-            color = if (selected) Color.White else theme.inkColor,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-        )
+        Text(label, color = if (selected) Color.White else theme.inkColor, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
 
+// ==========================================
+// 7. SHAMSI (JALALI) CALENDAR PICKER POPUP
+// ==========================================
+@Composable
+private fun ShamsiCalendarPickerDialog(
+    initialDateShamsi: String,
+    onDismiss: () -> Unit,
+    onDateSelected: (String) -> Unit
+) {
+    val theme = LocalThemeState.current
+    val today = JalaliCalendar.todayJalali()
+    
+    // Parse initial date or default to today
+    val parsedInitial = remember(initialDateShamsi) {
+        val p = initialDateShamsi.replace("-", "/").split("/")
+        if (p.size == 3) {
+            val y = p[0].toIntOrNull() ?: today.year
+            val m = p[1].toIntOrNull() ?: today.month
+            val d = p[2].toIntOrNull() ?: today.day
+            JalaliCalendar.Date(y, m, d)
+        } else today
+    }
+
+    var selectedYear by remember { mutableStateOf(parsedInitial.year) }
+    var selectedMonth by remember { mutableStateOf(parsedInitial.month) }
+    var selectedDay by remember { mutableStateOf(parsedInitial.day) }
+
+    val daysInMonth = when {
+        selectedMonth in 1..6 -> 31
+        selectedMonth in 7..11 -> 30
+        else -> if (selectedYear % 4 == 3) 30 else 29
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(26.dp))
+                .background(theme.dialogBgColor)
+                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))
+                .padding(22.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("📅 تقویم شمسی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    TextButton(onClick = {
+                        selectedYear = today.year
+                        selectedMonth = today.month
+                        selectedDay = today.day
+                    }) { Text("امروز", color = theme.lamp.primary, fontWeight = FontWeight.Bold) }
+                }
+
+                // Month / Year Header Selector
+                Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(
+                            onClick = { if (selectedMonth > 1) selectedMonth-- else { selectedMonth = 12; selectedYear-- } },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(34.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.2f), contentColor = theme.inkColor)
+                        ) { Text("◀") }
+                        
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color.White.copy(0.1f))
+                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val tempD = JalaliCalendar.Date(selectedYear, selectedMonth, 1)
+                            Text("${tempD.getMonthName()} $selectedYear", fontWeight = FontWeight.Bold, color = theme.inkColor, fontSize = 15.sp)
+                        }
+
+                        Button(
+                            onClick = { if (selectedMonth < 12) selectedMonth++ else { selectedMonth = 1; selectedYear++ } },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(34.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.2f), contentColor = theme.inkColor)
+                        ) { Text("▶") }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Button(
+                            onClick = { selectedYear-- },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(30.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.1f), contentColor = theme.inkColor)
+                        ) { Text("-", fontSize = 12.sp) }
+                        Button(
+                            onClick = { selectedYear++ },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(30.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.1f), contentColor = theme.inkColor)
+                        ) { Text("+", fontSize = 12.sp) }
+                    }
+                }
+
+                // Days Grid (6 columns or 7)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(7),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.height(200.dp)
+                ) {
+                    items((1..daysInMonth).toList()) { day ->
+                        val isSel = day == selectedDay
+                        Box(
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSel) theme.lamp.primary else (if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(0.6f)))
+                                .clickable { selectedDay = day },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("$day", color = if (isSel) Color.White else theme.inkColor, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
+                        }
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("انصراف", color = theme.mutedColor) }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val finalDate = JalaliCalendar.Date(selectedYear, selectedMonth, selectedDay)
+                            onDateSelected(finalDate.toString())
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("تایید تاریخ", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// 8. LOGIN & USERS SCREENS
+// ==========================================
 @Composable
 private fun LoginScreen(
     onLoggedIn: (Session) -> Unit,
@@ -979,7 +1283,7 @@ private fun LoginScreen(
 
     Scaffold(containerColor = Color.Transparent) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            // Large centered MRM background watermark (افزایش وضوح لوگوی پس‌زمینه لاگین)
+            // Large centered MRM watermark
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -992,10 +1296,10 @@ private fun LoginScreen(
                 )
             }
 
-            // Top right Theme Customizer Button on Login Screen
+            // 1. Theme selector moved to TOP LEFT on Login Screen (سمت چپ صفحه ورود)
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .padding(20.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (themeState.isDark) Color.White.copy(0.12f) else Color.White.copy(0.70f))
@@ -1019,8 +1323,8 @@ private fun LoginScreen(
                 AppLogo(height = 64.dp)
                 Spacer(Modifier.height(4.dp))
                 
+                // 2. Removed "Manager Pro" text as requested
                 Text("PasarGuard", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = themeState.inkColor)
-                Text("Manager Pro", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = themeState.lamp.primary)
                 Text("Sign in to manage your server with diamond security", color = themeState.mutedColor, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
                 
@@ -1036,7 +1340,7 @@ private fun LoginScreen(
                         Text("Authentication", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = themeState.inkColor)
                         GlassTextField(url, { url = it }, "Full panel address", keyboardType = KeyboardType.Uri)
                         GlassTextField(username, { username = it }, "Username")
-                        // Password field with eye toggle (کاشی پسورد مجهز به علامت چشم برای نمایش/مخفی کردن رمز)
+                        // 3. Password field equipped with standard Eye Icon (علامت چشم مرسوم در سایت‌ها)
                         GlassTextField(password, { password = it }, "Password", password = true)
                         error?.let { Text(it, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
                         Button(
@@ -1265,10 +1569,11 @@ private fun UsersScreen(
         UserEditorDialog(
             initial = user,
             onDismiss = { selectedUser = null },
-            onSave = { limitGb, expire ->
+            onSave = { limitGb, expireShamsi ->
                 selectedUser = null
                 runAction {
-                    PanelApi.modifyUser(session, user.username, limitGb.value, expire)
+                    val iso = JalaliCalendar.shamsiToIso(expireShamsi)
+                    PanelApi.modifyUser(session, user.username, limitGb.value, iso)
                 }
             },
             onToggle = {
@@ -1280,6 +1585,14 @@ private fun UsersScreen(
             onDelete = {
                 deleteUser = user
                 selectedUser = null
+            },
+            onResetUsage = {
+                selectedUser = null
+                runAction { PanelApi.resetUsage(session, user.username) }
+            },
+            onResetExpiry = {
+                selectedUser = null
+                runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "") }
             }
         )
     }
@@ -1288,14 +1601,17 @@ private fun UsersScreen(
         UserEditorDialog(
             initial = null,
             onDismiss = { createUser = false },
-            onSave = { limitGb, expire ->
+            onSave = { limitGb, expireShamsi ->
                 createUser = false
                 runAction {
-                    PanelApi.createUser(session, limitGb.username, limitGb.value, expire)
+                    val iso = JalaliCalendar.shamsiToIso(expireShamsi)
+                    PanelApi.createUser(session, limitGb.username, limitGb.value, iso)
                 }
             },
             onToggle = null,
-            onDelete = null
+            onDelete = null,
+            onResetUsage = null,
+            onResetExpiry = null
         )
     }
 
@@ -1350,13 +1666,18 @@ private fun UsersScreen(
 
 private data class UserEditorValues(val username: String, val value: Double)
 
+// ==========================================
+// 9. USER EDITOR DIALOG (با تقویم شمسی، افزودن سریع روز، و ریست حجم/زمان)
+// ==========================================
 @Composable
 private fun UserEditorDialog(
     initial: PanelUser?,
     onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
     onToggle: (() -> Unit)?,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    onResetUsage: (() -> Unit)?,
+    onResetExpiry: (() -> Unit)?
 ) {
     val theme = LocalThemeState.current
     var username by remember { mutableStateOf(initial?.username ?: "") }
@@ -1368,8 +1689,13 @@ private fun UserEditorDialog(
             ).trimEnd('0').trimEnd('.')
         )
     }
-    var expireDate by remember { mutableStateOf(initial?.expire?.take(10) ?: "") }
+    // Convert initial ISO date to Shamsi string
+    var expireShamsi by remember {
+        mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "")
+    }
     var formError by remember { mutableStateOf<String?>(null) }
+    var showShamsiCalendar by remember { mutableStateOf(false) }
+    var customAddDays by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -1392,11 +1718,12 @@ private fun UserEditorDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    if (initial == null) "Create New User" else "Edit ${initial.username}",
+                    if (initial == null) "ایجاد کاربر جدید" else "ویرایش ${initial.username}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = theme.inkColor
@@ -1409,47 +1736,142 @@ private fun UserEditorDialog(
                 GlassTextField(
                     value = limitGb,
                     onValueChange = { limitGb = it },
-                    label = "Data limit (GB, blank = unlimited)",
+                    label = "حجم مصرفی (گیگابایت، خالی = نامحدود)",
                     keyboardType = KeyboardType.Decimal
                 )
 
-                GlassTextField(
-                    value = expireDate,
-                    onValueChange = { expireDate = it },
-                    label = "Expiry date (YYYY-MM-DD, blank = unlimited)"
-                )
-
-                initial?.let {
-                    Text(
-                        "Used: ${formatBytes(it.usedTraffic)} • Status: ${it.status.uppercase()}",
-                        color = theme.mutedColor,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        onToggle?.let { toggle ->
-                            val isDisabled = it.status == "disabled"
-                            Button(
-                                onClick = toggle,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isDisabled) GlassGreen else GlassAmber,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text(if (isDisabled) "Activate" else "Disable", fontWeight = FontWeight.Bold)
-                            }
+                // Shamsi Date Field + Calendar Selector Button
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.weight(1f)) {
+                            GlassTextField(
+                                value = expireShamsi,
+                                onValueChange = { expireShamsi = it },
+                                label = "تاریخ انقضا شمسی (مثلا ۱۴۰۵/۰۵/۱۰)"
+                            )
                         }
-                        onDelete?.let { delete ->
-                            OutlinedButton(
-                                onClick = delete,
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = GlassRed),
-                                border = BorderStroke(1.dp, GlassRed.copy(alpha = 0.6f)),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Text("Delete", fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = { showShamsiCalendar = true },
+                            modifier = Modifier.height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.2f), contentColor = theme.inkColor),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("📅 تقویم", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Quick Day Adders (+۳۰ روز، +۶۰ روز، یا ورود دستی روز)
+                    Text("افزودن سریع به زمان:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        QuickAddDayPill("+۳۰ روز") {
+                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
+                            val newIso = JalaliCalendar.addDaysToIso(baseIso, 30)
+                            expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+                        }
+                        QuickAddDayPill("+۶۰ روز") {
+                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
+                            val newIso = JalaliCalendar.addDaysToIso(baseIso, 60)
+                            expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+                        }
+                        QuickAddDayPill("+۹۰ روز") {
+                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
+                            val newIso = JalaliCalendar.addDaysToIso(baseIso, 90)
+                            expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+                        }
+                        
+                        // Custom numeric day adder input
+                        Box(Modifier.width(80.dp)) {
+                            OutlinedTextField(
+                                value = customAddDays,
+                                onValueChange = { customAddDays = it },
+                                placeholder = { Text("+روز", fontSize = 11.sp) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White.copy(0.2f),
+                                    unfocusedContainerColor = Color.White.copy(0.1f)
+                                ),
+                                textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
+                                modifier = Modifier.height(44.dp)
+                            )
+                        }
+                        if (customAddDays.isNotEmpty()) {
+                            Button(
+                                onClick = {
+                                    val d = customAddDays.toIntOrNull() ?: 0
+                                    if (d > 0) {
+                                        val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
+                                        val newIso = JalaliCalendar.addDaysToIso(baseIso, d)
+                                        expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+                                        customAddDays = ""
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                modifier = Modifier.height(44.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("+") }
+                        }
+                    }
+                }
+
+                initial?.let { user ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White.copy(if (theme.isDark) 0.06f else 0.4f))
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("وضعیت فعلی: ${formatBytes(user.usedTraffic)} مصرف شده • ${user.status.uppercase()}", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                            
+                            // 5. Quick Reset Actions (ریست حجم و زمان کاربر)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                onResetUsage?.let { resetU ->
+                                    Button(
+                                        onClick = resetU,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA89B), contentColor = Color.White),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) { Text("♻ ریست حجم (۰ B)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                }
+                                onResetExpiry?.let { resetE ->
+                                    Button(
+                                        onClick = resetE,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7A42D4), contentColor = Color.White),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) { Text("♻ ریست زمان (نامحدود)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                }
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                onToggle?.let { toggle ->
+                                    val isDisabled = user.status == "disabled"
+                                    Button(
+                                        onClick = toggle,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isDisabled) GlassGreen else GlassAmber,
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(14.dp)
+                                    ) {
+                                        Text(if (isDisabled) "فعال‌سازی" else "غیرفعال‌سازی", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                onDelete?.let { delete ->
+                                    OutlinedButton(
+                                        onClick = delete,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GlassRed),
+                                        border = BorderStroke(1.dp, GlassRed.copy(alpha = 0.6f)),
+                                        shape = RoundedCornerShape(14.dp)
+                                    ) {
+                                        Text("حذف کاربر", fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1461,7 +1883,7 @@ private fun UserEditorDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = theme.mutedColor, fontWeight = FontWeight.SemiBold)
+                        Text("انصراف", color = theme.mutedColor, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(
@@ -1472,20 +1894,44 @@ private fun UserEditorDialog(
                                 formError = "Username must be 3 to 32 characters."
                             } else if (limit == null || limit < 0) {
                                 formError = "Data limit must be a valid number."
-                            } else if (expireDate.isNotBlank() && !Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(expireDate)) {
-                                formError = "Use YYYY-MM-DD for expiry date."
+                            } else if (expireShamsi.isNotBlank() && !Regex("^\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}$").matches(expireShamsi)) {
+                                formError = "فرمت تاریخ شمسی صحیح نیست (مثلا ۱۴۰۵/۰۵/۱۰)."
                             } else {
-                                onSave(UserEditorValues(username, limit), expireDate)
+                                onSave(UserEditorValues(username, limit), expireShamsi)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary, contentColor = Color.White),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("Save", fontWeight = FontWeight.Bold)
+                        Text("ذخیره تغییرات", fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
+    }
+
+    if (showShamsiCalendar) {
+        ShamsiCalendarPickerDialog(
+            initialDateShamsi = expireShamsi,
+            onDismiss = { showShamsiCalendar = false },
+            onDateSelected = { dateStr -> expireShamsi = dateStr }
+        )
+    }
+}
+
+@Composable
+private fun QuickAddDayPill(label: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.White.copy(if (theme.isDark) 0.15f else 0.7f))
+            .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.4f)), RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1539,20 +1985,24 @@ private object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireDate: String) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
         val body = JSONObject()
             .put("username", username)
             .put("status", "active")
             .put("data_limit", gbToBytes(limitGb))
-            .put("expire", expireValue(expireDate))
+            .put("expire", expireValue(expireIso))
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireDate: String) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
         val body = JSONObject()
             .put("data_limit", gbToBytes(limitGb))
-            .put("expire", expireValue(expireDate))
+            .put("expire", expireValue(expireIso))
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun resetUsage(session: Session, username: String) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, "${userUrl(session, username)}/reset").post("".toRequestBody(jsonType)).build())
     }
 
     suspend fun setDisabled(session: Session, username: String, disabled: Boolean) = withContext(Dispatchers.IO) {
