@@ -65,6 +65,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -826,8 +827,89 @@ private fun JellyGlassInputField(value: String, onValueChange: (String) -> Unit,
 }
 
 // ==========================================
-// 8. LOGIN & USERS SCREENS - REDESIGNED LUXURY
+// 8. LOGIN SCREEN - ULTRA PREMIUM 2025 REDESIGN
+// Simple, Eye-catching, Chic, Latest UI Trends
 // ==========================================
+
+@Composable
+private fun UltraPremiumField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    leadingIcon: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isPassword: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalThemeState.current
+    var isFocused by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor, modifier = Modifier.padding(start = 4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(if (theme.isDark) Color(0xFF1E1E24).copy(alpha = 0.92f) else Color.White.copy(alpha = 0.88f))
+                .border(
+                    BorderStroke(
+                        width = if (isFocused) 1.8.dp else 1.1.dp,
+                        color = if (isFocused) theme.lamp.primary else if (theme.isDark) Color.White.copy(0.14f) else Color.White.copy(0.85f)
+                    ),
+                    RoundedCornerShape(18.dp)
+                )
+                .shadow(if (isFocused) 10.dp else 2.dp, RoundedCornerShape(18.dp), ambientColor = if (isFocused) theme.lamp.primary.copy(0.18f) else Color.Transparent, spotColor = if (isFocused) theme.lamp.primary.copy(0.20f) else Color.Transparent)
+        ) {
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Icon bubble
+                Box(
+                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp))
+                        .background(if (isFocused) theme.lamp.primary.copy(0.16f) else if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.04f))
+                        .border(BorderStroke(1.dp, if (isFocused) theme.lamp.primary.copy(0.22f) else Color.Transparent), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) { Text(leadingIcon, fontSize = 17.sp) }
+
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.58f), fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
+                    BasicTextField(
+                        value = value,
+                        onValueChange = onValueChange,
+                        singleLine = true,
+                        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+                        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                        textStyle = TextStyle(color = theme.inkColor, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+                        modifier = Modifier.fillMaxWidth().onFocusChanged { isFocused = it.isFocused }
+                    )
+                }
+
+                // Action suffix
+                if (isPassword) {
+                    Box(
+                        Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
+                            .background(if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.05f))
+                            .clickable { passwordVisible = !passwordVisible },
+                        contentAlignment = Alignment.Center
+                    ) { PasswordEyeIcon(visible = passwordVisible) }
+                } else if (value.isNotEmpty()) {
+                    Box(
+                        Modifier.size(28.dp).clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(if (theme.isDark) 0.14f else 0.70f))
+                            .clickable { onValueChange("") },
+                        contentAlignment = Alignment.Center
+                    ) { Text("×", color = theme.mutedColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun LoginScreen(onLoggedIn: (Session) -> Unit, themeState: ThemeState, onThemeChange: (ThemeState) -> Unit) {
     val scope = rememberCoroutineScope()
@@ -837,51 +919,246 @@ private fun LoginScreen(onLoggedIn: (Session) -> Unit, themeState: ThemeState, o
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    val theme = LocalThemeState.current
 
     Scaffold(containerColor = Color.Transparent) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState())) {
-            // Soft watermark logo background - larger & more premium
-            Box(Modifier.fillMaxSize().padding(top = 80.dp), contentAlignment = Alignment.TopCenter) {
-                AppLogo(modifier = Modifier.graphicsLayer(alpha = if (themeState.isDark) 0.18f else 0.12f, scaleX = 3.2f, scaleY = 3.2f), height = 160.dp)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+        ) {
+            // === AURORA BACKGROUND FOR LOGIN - extra large blurred orb centered ===
+            Box(
+                Modifier.size(700.dp).align(Alignment.TopCenter).offset(y = (-180).dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(themeState.lamp.spotHigh.copy(alpha = 0.55f), themeState.lamp.spotLow.copy(0.22f), Color.Transparent),
+                            radius = 420f
+                        ),
+                        RoundedCornerShape(400.dp)
+                    )
+                    .blur(28.dp)
+            )
+            Box(
+                Modifier.size(520.dp).align(Alignment.BottomCenter).offset(y = 180.dp)
+                    .background(
+                        Brush.radialGradient(listOf(themeState.lamp.light.copy(0.22f), Color.Transparent)),
+                        RoundedCornerShape(400.dp)
+                    )
+                    .blur(32.dp)
+            )
+
+            // Top bar - minimal
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).align(Alignment.TopCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(36.dp).clip(RoundedCornerShape(11.dp))
+                            .background(Brush.linearGradient(listOf(themeState.lamp.primary, themeState.lamp.light)))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.7f)), RoundedCornerShape(11.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { Text("M", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp) }
+                    Column {
+                        Text("MRM", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = themeState.inkColor, letterSpacing = 0.8.sp)
+                        Text("PASARGUARD", fontSize = 9.sp, color = themeState.mutedColor, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    }
+                }
+                ActionIconButton(icon = { Text("🎨", fontSize = 15.sp) }, onClick = { showThemeDialog = true })
             }
 
-            ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = { showThemeDialog = true }, modifier = Modifier.align(Alignment.TopStart).padding(20.dp))
+            // Main content - scrollable centered
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 72.dp, bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Spacer(Modifier.height(10.dp))
 
-            Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 56.dp), verticalArrangement = Arrangement.spacedBy(22.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                // Hero Brand Card - upgraded
-                Box(modifier = Modifier.clip(RoundedCornerShape(28.dp)).background(if (themeState.isDark) Color.White.copy(0.07f) else Color.White.copy(0.62f)).border(BorderStroke(1.4.dp, themeState.cardBorderBrush), RoundedCornerShape(28.dp)).padding(horizontal = 28.dp, vertical = 22.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(Modifier.size(72.dp).clip(RoundedCornerShape(20.dp)).background(Brush.linearGradient(listOf(themeState.lamp.primary, themeState.lamp.light))).border(BorderStroke(1.5.dp, Color.White.copy(0.85f)), RoundedCornerShape(20.dp)), contentAlignment = Alignment.Center) {
-                            AppLogo(height = 40.dp)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("PasarGuard", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.6).sp), color = themeState.inkColor)
-                            Text("MRM Manager • Luxury Edition", fontSize = 12.sp, color = themeState.mutedColor, fontWeight = FontWeight.SemiBold)
-                        }
-                        Box(Modifier.clip(RoundedCornerShape(10.dp)).background(themeState.lamp.primary.copy(0.12f)).padding(horizontal = 12.dp, vertical = 4.dp)) {
-                            Text("v1.1 • Vision OS Glass", fontSize = 10.sp, color = themeState.lamp.primary, fontWeight = FontWeight.Bold)
+                // === HERO BRAND ===
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(
+                        Modifier.size(92.dp).clip(RoundedCornerShape(28.dp))
+                            .background(Brush.linearGradient(listOf(Color.White.copy(if (themeState.isDark) 0.12f else 0.86f), Color.White.copy(if (themeState.isDark) 0.04f else 0.52f))))
+                            .border(BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White.copy(0.9f), themeState.lamp.primary.copy(0.35f)))), RoundedCornerShape(28.dp))
+                            .shadow(20.dp, RoundedCornerShape(28.dp), spotColor = themeState.lamp.primary.copy(0.22f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            Modifier.size(64.dp).clip(RoundedCornerShape(18.dp))
+                                .background(Brush.linearGradient(listOf(themeState.lamp.primary, themeState.lamp.light)))
+                                .border(BorderStroke(1.dp, Color.White.copy(0.85f)), RoundedCornerShape(18.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AppLogo(height = 36.dp)
                         }
                     }
-                }
-
-                // Auth Card - using Jelly Inputs for premium feel
-                Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(if (themeState.isDark) Color(0xFF1C1C22).copy(0.92f) else Color.White.copy(0.82f)).border(BorderStroke(1.6.dp, Brush.linearGradient(listOf(Color.White.copy(0.9f), themeState.lamp.primary.copy(0.45f), Color.White.copy(0.25f)))), RoundedCornerShape(30.dp)).padding(22.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text("ورود به پنل مدیریت", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = themeState.inkColor)
-                        JellyGlassInputField(value = url, onValueChange = { url = it }, label = "آدرس کامل پنل (https://...)", leadingIcon = "🌐", keyboardType = KeyboardType.Uri)
-                        JellyGlassInputField(value = username, onValueChange = { username = it }, label = "نام کاربری", leadingIcon = "👤")
-                        JellyGlassInputField(value = password, onValueChange = { password = it }, label = "رمز عبور", leadingIcon = "🔒", password = true)
-                        error?.let { Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GlassRed.copy(0.10f)).border(BorderStroke(1.dp, GlassRed.copy(0.22f)), RoundedCornerShape(12.dp)).padding(12.dp)) { Text(it, color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.Bold, lineHeight = 18.sp) } }
-                        JellyGlassActionButton(text = if (loading) "در حال اتصال ..." else "اتصال امن به پنل ✨", enabled = !loading, loading = loading, onClick = {
-                            loading = true; error = null
-                            scope.launch {
-                                runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { error = "خطا در اتصال: آدرس، نام کاربری یا رمز عبور اشتباه است.\n${it.message?.take(120)}" }
-                                loading = false
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            "PasarGuard",
+                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black, letterSpacing = (-1.0).sp),
+                            color = themeState.inkColor
+                        )
+                        Text(
+                            "MRM Manager",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = themeState.mutedColor,
+                            letterSpacing = 0.2.sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            Modifier.clip(RoundedCornerShape(100.dp))
+                                .background(themeState.lamp.primary.copy(0.12f))
+                                .border(BorderStroke(1.dp, themeState.lamp.primary.copy(0.18f)), RoundedCornerShape(100.dp))
+                                .padding(horizontal = 14.dp, vertical = 5.dp)
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(themeState.lamp.primary))
+                                Text("Luxury Edition • v2.0 • 2025 Design", fontSize = 10.5.sp, color = themeState.lamp.primary, fontWeight = FontWeight.Bold, letterSpacing = 0.3.sp)
                             }
-                        }, modifier = Modifier.fillMaxWidth().height(58.dp))
-                        Text("🔐 توکن با رمزنگاری امن ذخیره می‌شود. از HTTPS استفاده کنید.", fontSize = 11.sp, color = themeState.mutedColor, lineHeight = 14.sp)
+                        }
                     }
                 }
+
+                // === LOGIN CARD - ultra clean ===
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(if (themeState.isDark) Color(0xFF18181E).copy(alpha = 0.94f) else Color.White.copy(alpha = 0.90f))
+                        .border(BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White.copy(0.92f), themeState.lamp.primary.copy(0.18f), Color.White.copy(0.32f)))), RoundedCornerShape(28.dp))
+                        .shadow(28.dp, RoundedCornerShape(28.dp), spotColor = themeState.lamp.primary.copy(0.12f), ambientColor = Color.Black.copy(0.05f))
+                ) {
+                    // inner top shine
+                    Box(
+                        Modifier.fillMaxWidth().height(1.2.dp).align(Alignment.TopCenter)
+                            .background(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(0.85f), Color.Transparent)))
+                    )
+                    Column(
+                        Modifier.fillMaxWidth().padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("خوش آمدید 👋", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                            Text("برای مدیریت پنل پاسارگارد وارد شوید", fontSize = 13.sp, color = themeState.mutedColor, fontWeight = FontWeight.Medium)
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            UltraPremiumField(
+                                value = url,
+                                onValueChange = { url = it },
+                                label = "آدرس پنل",
+                                placeholder = "https://panel.example.com:2053/dashboard",
+                                leadingIcon = "🌐",
+                                keyboardType = KeyboardType.Uri
+                            )
+                            UltraPremiumField(
+                                value = username,
+                                onValueChange = { username = it },
+                                label = "نام کاربری مدیر",
+                                placeholder = "admin username",
+                                leadingIcon = "👤"
+                            )
+                            UltraPremiumField(
+                                value = password,
+                                onValueChange = { password = it },
+                                label = "رمز عبور",
+                                placeholder = "••••••••••••",
+                                leadingIcon = "🔒",
+                                isPassword = true,
+                                keyboardType = KeyboardType.Password
+                            )
+                        }
+
+                        // Error with icon
+                        if (error != null) {
+                            Box(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                    .background(GlassRed.copy(alpha = 0.08f))
+                                    .border(BorderStroke(1.dp, GlassRed.copy(alpha = 0.18f)), RoundedCornerShape(14.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Box(
+                                        Modifier.size(28.dp).clip(RoundedCornerShape(9.dp))
+                                            .background(GlassRed.copy(0.14f)), contentAlignment = Alignment.Center
+                                    ) { Text("⚠️", fontSize = 14.sp) }
+                                    Text(error!!, color = GlassRed, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, lineHeight = 18.sp, modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+
+                        // Primary Button - 2025 style: huge radius, gradient, shine
+                        Box(
+                            Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(18.dp))
+                                .background(Brush.horizontalGradient(listOf(themeState.lamp.primary, themeState.lamp.primary.copy(0.88f), themeState.lamp.light)))
+                                .border(BorderStroke(1.2.dp, Color.White.copy(0.75f)), RoundedCornerShape(18.dp))
+                                .shadow(16.dp, RoundedCornerShape(18.dp), spotColor = themeState.lamp.primary.copy(0.35f))
+                                .clickable(enabled = !loading) {
+                                    if (loading) return@clickable
+                                    loading = true; error = null
+                                    scope.launch {
+                                        runCatching { PanelApi.login(url, username, password) }
+                                            .onSuccess(onLoggedIn)
+                                            .onFailure { error = "اتصال ناموفق بود. آدرس پنل و نام کاربری/رمز را چک کنید." }
+                                        loading = false
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // shine
+                            Box(
+                                Modifier.fillMaxWidth().height(24.dp).align(Alignment.TopCenter)
+                                    .background(Brush.verticalGradient(listOf(Color.White.copy(0.42f), Color.Transparent)))
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White, strokeWidth = 2.2.dp)
+                                else Box(
+                                    Modifier.size(26.dp).clip(RoundedCornerShape(9.dp))
+                                        .background(Color.White.copy(0.22f)), contentAlignment = Alignment.Center
+                                ) { Text("✦", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black) }
+                                Text(
+                                    if (loading) "در حال اتصال امن..." else "ورود امن به پنل",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.2.sp
+                                )
+                            }
+                        }
+
+                        // Security footer inside card
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .background(if (themeState.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f))
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(Modifier.size(24.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF1A8C5B).copy(0.14f)), contentAlignment = Alignment.Center) { Text("🔐", fontSize = 12.sp) }
+                            Text("اتصال رمزنگاری شده • توکن امن ذخیره می‌شود • HTTPS", fontSize = 11.sp, color = themeState.mutedColor, fontWeight = FontWeight.Medium, lineHeight = 13.sp, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                // Bottom meta
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.width(18.dp).height(1.dp).background(themeState.mutedColor.copy(0.3f)))
+                        Text("MRM Studio • Crafted with Vision OS Design • 2025", fontSize = 10.5.sp, color = themeState.mutedColor.copy(0.8f), letterSpacing = 0.5.sp)
+                        Box(Modifier.width(18.dp).height(1.dp).background(themeState.mutedColor.copy(0.3f)))
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
             }
 
             if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
