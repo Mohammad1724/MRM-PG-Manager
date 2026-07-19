@@ -59,13 +59,15 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "") = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
+        if (note.isNotBlank()) body.put("note", note)
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "") = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
+        if (note.isNotBlank()) body.put("note", note)
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
@@ -102,7 +104,8 @@ object PanelApi {
         createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
         subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
         onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
-        isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300)
+        isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300),
+        note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" }
     )
 
     suspend fun onlineUserCount(session: Session): Int = withContext(Dispatchers.IO) {
