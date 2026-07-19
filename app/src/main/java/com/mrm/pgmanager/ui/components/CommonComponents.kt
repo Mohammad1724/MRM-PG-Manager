@@ -154,14 +154,14 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
     val activeColor = if (isRed) GlassRed else theme.lamp.primary
     val borderColor = if (isPressed) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
     Box(
-        modifier = modifier.height(34.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
-            .clip(RoundedCornerShape(12.dp)).background(baseBg)
-            .border(BorderStroke(if (isPressed) 1.5.dp else 1.dp, borderColor), RoundedCornerShape(12.dp))
+        modifier = modifier.height(26.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
+            .clip(RoundedCornerShape(8.dp)).background(baseBg)
+            .border(BorderStroke(if (isPressed) 1.2.dp else 0.8.dp, borderColor), RoundedCornerShape(8.dp))
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(activeColor.copy(alpha = glowAlpha), activeColor.copy(alpha = glowAlpha * 0.3f), Color.Transparent))))
-        Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 7.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
