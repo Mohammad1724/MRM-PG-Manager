@@ -54,7 +54,8 @@ import java.time.temporal.ChronoUnit
 
 private fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.22f)
 private fun glassBorder(isDark: Boolean) = Color.White.copy(alpha = if (isDark) 0.12f else 0.28f)
-private fun trackBg(isDark: Boolean) = Color.White.copy(alpha = if (isDark) 0.22f else 0.32f)
+// FIX: Track more gray and visible - 30% gray instead of 12% white
+private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.24f) else Color(0xFF8A8A8A).copy(alpha = 0.28f)
 
 private fun daysLeftText(expire: String?): String {
     if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
@@ -197,38 +198,34 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// FIX 1: Progress bar visible, thicker, 6dp, track 24% visible
-// FIX 2: Online dot green/gray left of username
-// FIX 3: Show GB / GB and days left
+// FIX 1: Progress bar visible, thicker, 8dp, gray track 28%
+// FIX 2: Online dot
+// FIX 3: GB / GB and days left
 @Composable
 private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val progress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.06f // FIX 1: if unlimited or new, show minimal 6% so bar visible
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f) // minimal 8% visible
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val statusColor = when (user.status) { "active" -> GlassGreen; "disabled" -> Color(0xFF8A8A8A); "expired" -> GlassRed; "limited" -> GlassAmber; "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
-    val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E) // FIX 2
+    val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(22.dp)).clickable(onClick = onClick)) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // FIX 2: Dot left of username
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot)) // online dot
+                Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
                 Text(user.username, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (user.isOnline) Text("آنلاین", fontSize = 9.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
             }
-            // FIX 3: GB / GB
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Column {
-                    Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${daysLeftFull(user.expire)} • ${if (user.dataLimit == 0L) "∞" else "$progressPercent%"}", fontSize = 10.sp, color = theme.mutedColor)
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${daysLeftFull(user.expire)} • ${if (user.dataLimit == 0L) "∞" else "$progressPercent%"}", fontSize = 10.sp, color = theme.mutedColor)
             }
-            // FIX 1: Thicker, more visible track
-            Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
-                Box(Modifier.fillMaxWidth(if (user.dataLimit == 0L) 0.06f else actualProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
+            // Thicker 8dp, gray background, always visible
+            Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.16f)), RoundedCornerShape(10.dp))) {
+                Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
         }
     }
@@ -239,23 +236,31 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.06f
+    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 11.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        // FIX: Fixed layout - no horizontalScroll, fixed widths so bars align
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Username - FIXED 130dp
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.width(130.dp)) {
                 Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
-                Column(Modifier.widthIn(min = 100.dp, max = 160.dp)) {
-                    Text(user.username, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${if (user.dataLimit == 0L) formatBytes(user.usedTraffic) + " / نامحدود" else formatBytes(user.usedTraffic) + " / " + formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
+                Text(user.username, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
-            Column(Modifier.width(130.dp)) {
-                Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp))) }
-                Spacer(Modifier.height(3.dp))
-                Text("${if (user.dataLimit == 0L) "∞" else "$progressPercent%"} • ${daysLeftFull(user.expire)}", fontSize = 10.sp, color = theme.mutedColor)
+            // Progress - FIXED 110dp, always same position
+            Column(Modifier.width(110.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.18f)), RoundedCornerShape(10.dp))) {
+                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp)))
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(if (user.dataLimit == 0L) "∞ ${daysLeftFull(user.expire)}" else "$progressPercent% • ${daysLeftFull(user.expire)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(10.dp))
+            // Info - FIXED
+            Column(Modifier.weight(1f)) {
+                Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(daysLeftFull(user.expire), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (user.subUrl.isNotEmpty()) MiniGlassButton("📋") {
@@ -274,19 +279,20 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.06f
+    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
-            Text(user.username, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.widthIn(min = 80.dp, max = 120.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Column(Modifier.width(140.dp)) {
-                Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.username, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.width(90.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.width(130.dp)) {
+                Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(3.dp))
-                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
+                Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.16f)), RoundedCornerShape(6.dp))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
+            Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (user.subUrl.isNotEmpty()) MiniGlassButton("📋") {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
