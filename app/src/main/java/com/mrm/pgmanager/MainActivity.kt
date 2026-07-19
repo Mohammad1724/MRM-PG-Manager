@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Spring
@@ -314,7 +315,7 @@ private fun GlassButton(text: String, onClick: () -> Unit, modifier: Modifier = 
 }
 
 @Composable
-private fun MiniGlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, isRed: Boolean = false) {
+private fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean = false, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
