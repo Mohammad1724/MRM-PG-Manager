@@ -216,15 +216,15 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit) {
         Column(Modifier.padding(start = 3.dp).padding(13.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
-                Text(user.username, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (user.isOnline) Text("آنلاین", fontSize = 9.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${daysLeftFull(user.expire)} • ${if (user.dataLimit == 0L) "∞" else "$progressPercent%"}", fontSize = 10.sp, color = theme.mutedColor)
             }
-            // Thicker 8dp, gray background, always visible
-            Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.16f)), RoundedCornerShape(10.dp))) {
+            // Thinner 4dp but still visible gray track
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.16f)), RoundedCornerShape(10.dp))) {
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
         }
@@ -240,29 +240,27 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 11.dp)) {
-        // FIX: Fixed layout - no horizontalScroll, fixed widths so bars align
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Username - FIXED 130dp
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.width(130.dp)) {
-                Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
-                Text(user.username, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            // Username - FIXED 130dp - smaller font 11.5sp so full name visible
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.width(130.dp)) {
+                Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
+                Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
-            // Progress - FIXED 110dp, always same position
+            // Progress - FIXED 110dp - thinner 4dp
             Column(Modifier.width(110.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.18f)), RoundedCornerShape(10.dp))) {
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp)))
                 }
                 Spacer(Modifier.height(2.dp))
-                Text(if (user.dataLimit == 0L) "∞ ${daysLeftFull(user.expire)}" else "$progressPercent% • ${daysLeftFull(user.expire)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(if (user.dataLimit == 0L) "∞ ${daysLeftFull(user.expire)}" else "$progressPercent% • ${daysLeftFull(user.expire)}", fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Spacer(Modifier.width(10.dp))
-            // Info - FIXED
+            Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(daysLeftFull(user.expire), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1)
+                Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(daysLeftFull(user.expire), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 if (user.subUrl.isNotEmpty()) MiniGlassButton("📋") {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
@@ -278,22 +276,21 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
-    val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
+    val progressColor = when { val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0; p < 70 -> GlassGreen; p in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 7.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(onlineDot))
-            Text(user.username, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.width(90.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Column(Modifier.width(130.dp)) {
-                Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(3.dp))
-                Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark)).border(BorderStroke(0.5.dp, Color.Gray.copy(0.16f)), RoundedCornerShape(6.dp))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
+            Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(onlineDot))
+            Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.width(88.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.width(125.dp)) {
+                Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
             Spacer(Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 if (user.subUrl.isNotEmpty()) MiniGlassButton("📋") {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
