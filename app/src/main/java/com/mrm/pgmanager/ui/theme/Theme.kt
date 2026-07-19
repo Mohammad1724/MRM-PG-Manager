@@ -40,7 +40,7 @@ enum class LampColor(
 }
 
 data class ThemeState(
-    val lamp: LampColor = LampColor.SKY_BLUE,
+    val lamp: LampColor = LampColor.GOLD,
     val isDark: Boolean = false
 ) {
     val inkColor: Color get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF1C1B18)
