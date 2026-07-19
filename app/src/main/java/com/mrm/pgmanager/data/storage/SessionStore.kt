@@ -31,9 +31,9 @@ class SessionStore(context: Context) {
     fun clear() = prefs.edit().clear().apply()
 
     fun readTheme(): ThemeState {
-        val lampName = prefs.getString("theme_lamp", LampColor.SKY_BLUE.name) ?: LampColor.SKY_BLUE.name
+        val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
         val isDark = prefs.getBoolean("theme_dark", false)
-        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.SKY_BLUE)
+        val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
         return ThemeState(lamp = lamp, isDark = isDark)
     }
 
