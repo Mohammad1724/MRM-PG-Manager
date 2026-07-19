@@ -276,8 +276,9 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit) {
 private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
+    val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
-    val progressColor = when { val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0; p < 70 -> GlassGreen; p in 70..89 -> GlassAmber; else -> GlassRed }
+    val progressColor = when { p < 70 -> GlassGreen; p in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 7.dp)) {
