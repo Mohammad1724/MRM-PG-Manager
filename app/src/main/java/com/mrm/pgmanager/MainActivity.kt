@@ -1782,22 +1782,31 @@ private fun JellyGlassActionButton(
                 )
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            if (loading) {
-                CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.5.dp)
-            } else {
-                Text("✨", fontSize = 16.sp)
-            }
             Text(
                 text = text,
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 15.sp,
-                letterSpacing = 0.3.sp
+                letterSpacing = 0.2.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 22.dp)
+            ) {
+                if (loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.5.dp)
+                } else {
+                    Text("✨", fontSize = 16.sp)
+                }
+            }
         }
     }
 }
