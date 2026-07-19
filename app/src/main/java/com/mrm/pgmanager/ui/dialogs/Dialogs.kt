@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +39,7 @@ import com.mrm.pgmanager.data.model.UserEditorValues
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.JalaliCalendar
+import com.mrm.pgmanager.utils.formatBytes
 import java.util.Locale
 
 @Composable
@@ -48,60 +50,30 @@ fun ThemeEditorDialog(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp))
-                .background(theme.dialogBgColor)
-                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(30.dp))
-                .padding(24.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        Text("🎨 ظاهر برنامه", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        Text("رنگ و تم را شخصی‌سازی کنید", fontSize = 12.sp, color = theme.mutedColor)
-                    }
-                    AppLogo(height = 22.dp)
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("🎨 تم برنامه", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    ModeToggleBtn("☀️ روشن", !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = false)) }
+                    ModeToggleBtn("🌙 تیره", themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = true)) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("حالت پس‌زمینه", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        ModeToggleBtn("☀️ روشن", !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = false)) }
-                        ModeToggleBtn("🌙 تیره", themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = true)) }
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("رنگ تاکیدی", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
-                            val isSelected = themeState.lamp == lamp
-                            Box(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) lamp.primary.copy(0.16f) else Color.Transparent)
-                                    .border(BorderStroke(1.2.dp, if (isSelected) lamp.primary else Color.White.copy(if (theme.isDark) 0.14f else 0.45f)), RoundedCornerShape(16.dp))
-                                    .clickable { onThemeChange(themeState.copy(lamp = lamp)) }
-                                    .padding(horizontal = 14.dp, vertical = 12.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    Box(
-                                        Modifier.size(34.dp).clip(RoundedCornerShape(10.dp))
-                                            .background(Brush.linearGradient(listOf(lamp.primary, lamp.light)))
-                                            .border(BorderStroke(1.dp, Color.White.copy(0.8f)), RoundedCornerShape(10.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) { Text(lamp.emoji, fontSize = 16.sp) }
-                                    Column(Modifier.weight(1f)) {
-                                        Text(lamp.labelFa, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = theme.inkColor, fontSize = 13.sp)
-                                        Text(lamp.label, fontSize = 10.sp, color = theme.mutedColor)
-                                    }
-                                    if (isSelected) Box(
-                                        Modifier.size(24.dp).clip(RoundedCornerShape(12.dp)).background(lamp.primary),
-                                        contentAlignment = Alignment.Center
-                                    ) { Text("✓", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                                }
+                    com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
+                        val sel = themeState.lamp == lamp
+                        Box(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (sel) lamp.primary.copy(0.14f) else Color.Transparent)
+                                .border(BorderStroke(1.dp, if (sel) lamp.primary else Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
+                                .clickable { onThemeChange(themeState.copy(lamp = lamp)) }.padding(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(lamp.primary), contentAlignment = Alignment.Center) { Text(lamp.emoji, fontSize = 13.sp) }
+                                Text(lamp.labelFa, color = theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
+                                if (sel) Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
-                GlassButton("✓ تایید و بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -112,13 +84,11 @@ fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier = Modifie
     val theme = LocalThemeState.current
     Box(
         modifier = modifier.clip(RoundedCornerShape(14.dp))
-            .background(if (selected) Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.primary.copy(0.78f))) else Brush.linearGradient(listOf(if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.6f), if (theme.isDark) Color.White.copy(0.04f) else Color.White.copy(0.30f))))
-            .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick).padding(vertical = 13.dp),
+            .background(if (selected) theme.lamp.primary else Color.White.copy(if (theme.isDark) 0.08f else 0.42f))
+            .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.22f)), RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick).padding(vertical = 11.dp),
         contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = if (selected) Color.White else theme.inkColor, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
-    }
+    ) { Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
 }
 
 @Composable
@@ -150,32 +120,25 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
         }.getOrNull()
     }
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor)
-                .border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(22.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("📱 اشتراک ${user.username}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                Box(
-                    Modifier.size(240.dp).clip(RoundedCornerShape(20.dp)).background(Color.White).padding(14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-                    else Text("QR نیازمند ZXing", color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 12.sp)
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(20.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor)
+                Box(Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
+                    if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                    else Text("QR خطا", fontSize = 12.sp)
                 }
-                Text(user.subUrl, fontSize = 11.sp, color = theme.mutedColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f), RoundedCornerShape(8.dp)).padding(8.dp).fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    GlassButton("📋 کپی", onClick = {
+                    GlassButton("کپی", onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
                     }, modifier = Modifier.weight(1f))
-                    PrimarySaveButton("📤 اشتراک", onClick = {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "پاسارگارد ${user.username}:\n${user.subUrl}") }
-                        context.startActivity(Intent.createChooser(shareIntent, "اشتراک‌گذاری"))
+                    PrimarySaveButton("اشتراک", onClick = {
+                        val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, user.subUrl) }
+                        context.startActivity(Intent.createChooser(i, "اشتراک"))
                     }, modifier = Modifier.weight(1f))
                 }
-                TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor, fontWeight = FontWeight.Bold) }
+                TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
             }
         }
     }
@@ -185,53 +148,44 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
 fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit, onDateSelected: (String) -> Unit) {
     val theme = LocalThemeState.current
     val today = JalaliCalendar.todayJalali()
-    val parsedInitial = remember(initialDateShamsi) {
+    val parsed = remember(initialDateShamsi) {
         val p = initialDateShamsi.replace("-", "/").split("/")
         if (p.size == 3) JalaliCalendar.Date(p[0].toIntOrNull() ?: today.year, p[1].toIntOrNull() ?: today.month, p[2].toIntOrNull() ?: today.day) else today
     }
-    var selectedYear by remember { mutableStateOf(parsedInitial.year) }
-    var selectedMonth by remember { mutableStateOf(parsedInitial.month) }
-    var selectedDay by remember { mutableStateOf(parsedInitial.day) }
-    val daysInMonth = when { selectedMonth in 1..6 -> 31; selectedMonth in 7..11 -> 30; else -> if (selectedYear % 4 == 3) 30 else 29 }
+    var y by remember { mutableStateOf(parsed.year) }
+    var m by remember { mutableStateOf(parsed.month) }
+    var d by remember { mutableStateOf(parsed.day) }
+    val daysInMonth = when { m in 1..6 -> 31; m in 7..11 -> 30; else -> if (y % 4 == 3) 30 else 29 }
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(22.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("📅 تقویم شمسی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    TextButton(onClick = { selectedYear = today.year; selectedMonth = today.month; selectedDay = today.day }) { Text("امروز", color = theme.lamp.primary, fontWeight = FontWeight.Bold) }
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("📅 تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.lamp.primary) }
                 }
-                Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Button(onClick = { if (selectedMonth > 1) selectedMonth-- else { selectedMonth = 12; selectedYear-- } }, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(34.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.18f), contentColor = theme.inkColor)) { Text("◀") }
-                        Box(Modifier.clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.1f)).padding(horizontal = 14.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
-                            val tempD = JalaliCalendar.Date(selectedYear, selectedMonth, 1)
-                            Text("${tempD.getMonthName()} $selectedYear", fontWeight = FontWeight.Bold, color = theme.inkColor, fontSize = 14.sp)
-                        }
-                        Button(onClick = { if (selectedMonth < 12) selectedMonth++ else { selectedMonth = 1; selectedYear++ } }, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(34.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.18f), contentColor = theme.inkColor)) { Text("▶") }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Button(onClick = { selectedYear-- }, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(30.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.08f), contentColor = theme.inkColor)) { Text("-", fontSize = 12.sp) }
-                        Button(onClick = { selectedYear++ }, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(30.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(0.08f), contentColor = theme.inkColor)) { Text("+", fontSize = 12.sp) }
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(onClick = { if (m > 1) m-- else { m = 12; y-- } }, modifier = Modifier.size(32.dp), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.14f))) { Text("◀", fontSize = 12.sp) }
+                    Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.08f)).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Button(onClick = { if (m < 12) m++ else { m = 1; y++ } }, modifier = Modifier.size(32.dp), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.lamp.primary.copy(0.14f))) { Text("▶", fontSize = 12.sp) }
                 }
-                LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(210.dp)) {
+                LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
                     items((1..daysInMonth).toList()) { day ->
-                        val isSel = day == selectedDay
-                        Box(modifier = Modifier.aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(if (isSel) theme.lamp.primary else (if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(0.60f))).clickable { selectedDay = day }, contentAlignment = Alignment.Center) {
-                            Text("$day", color = if (isSel) Color.White else theme.inkColor, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
+                        val sel = day == d
+                        Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.lamp.primary else Color.White.copy(0.08f)).clickable { d = day }, contentAlignment = Alignment.Center) {
+                            Text("$day", color = if (sel) Color.White else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    Spacer(Modifier.width(10.dp))
-                    PrimarySaveButton("تایید تاریخ", onClick = { onDateSelected(JalaliCalendar.Date(selectedYear, selectedMonth, selectedDay).toString()); onDismiss() }, modifier = Modifier.weight(1f))
+                    PrimarySaveButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
+// === NEW PROFESSIONAL USER EDITOR - compact tiles, gold glass ===
 @Composable
 fun UserEditorDialog(
     initial: PanelUser?,
@@ -246,180 +200,177 @@ fun UserEditorDialog(
     var username by remember { mutableStateOf(initial?.username ?: "") }
     var limitGb by remember { mutableStateOf(if (initial == null || initial.dataLimit == 0L) "" else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')) }
     var expireShamsi by remember { mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "") }
+    var note by remember { mutableStateOf(initial?.note ?: "") }
     var formError by remember { mutableStateOf<String?>(null) }
-    var showShamsiCalendar by remember { mutableStateOf(false) }
-    var customAddDays by remember { mutableStateOf("") }
-    var showQrDialog by remember { mutableStateOf(false) }
-    var confirmResetUsage by remember { mutableStateOf(false) }
-    var confirmResetExpiry by remember { mutableStateOf(false) }
+    var showCalendar by remember { mutableStateOf(false) }
+    var showQr by remember { mutableStateOf(false) }
+    var customDay by remember { mutableStateOf("") }
+    var customGb by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    fun addGb(amount: Double) {
+        val current = limitGb.toDoubleOrNull() ?: 0.0
+        val newVal = (current + amount).coerceAtLeast(0.0)
+        limitGb = if (newVal == 0.0) "" else "%.2f".format(Locale.US, newVal).trimEnd('0').trimEnd('.')
+    }
+    fun addDays(days: Int) {
+        val baseIso = if (initial?.expire != null && initial.expire != "0" && initial.expire != "null") initial.expire else null
+        val newIso = JalaliCalendar.addDaysToIso(baseIso, days)
+        expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+    }
+
     Dialog(onDismissRequest = onDismiss) {
-        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(theme.dialogBgColor).border(BorderStroke(1.6.dp, theme.cardBorderBrush), RoundedCornerShape(30.dp))) {
-            Box(
-                Modifier.size(280.dp).align(Alignment.TopEnd).offset(x = 80.dp, y = (-60).dp)
-                    .background(Brush.radialGradient(listOf(theme.lamp.spotHigh, theme.lamp.spotLow, Color.Transparent)), shape = RoundedCornerShape(200.dp))
-            )
-            Column(Modifier.fillMaxWidth().padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))) {
+            Column(Modifier.fillMaxWidth().padding(18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Header - compact
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (initial == null) "➕ کاربر جدید" else "✏️ ویرایش ${initial.username}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(theme.lamp.primary.copy(0.12f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 18.sp) }
+                    Column {
+                        Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        if (initial != null) Text("${formatBytes(initial.usedTraffic)} مصرف • ${initial.status}", fontSize = 11.sp, color = theme.mutedColor)
+                    }
+                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(0.12f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 16.sp) }
                 }
 
-                if (initial == null) UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "3-32 کاراکتر", leadingIcon = "👤")
-                UltraPremiumField(value = limitGb, onValueChange = { limitGb = it }, label = "حجم گیگابایت", placeholder = "خالی=نامحدود", leadingIcon = "💾", keyboardType = KeyboardType.Decimal)
+                // Username if new - small
+                if (initial == null) {
+                    UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "3-32 حرف", leadingIcon = "👤")
+                }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f)) { UltraPremiumField(value = expireShamsi, onValueChange = { expireShamsi = it }, label = "تاریخ انقضا شمسی", placeholder = "1404/05/19", leadingIcon = "📅") }
-                        Box(
-                            Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(theme.lamp.primary.copy(0.14f))
-                                .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.25f)), RoundedCornerShape(14.dp))
-                                .clickable { showShamsiCalendar = true }, contentAlignment = Alignment.Center
-                        ) { Text("📅", fontSize = 18.sp) }
+                // === VOLUME SECTION - compact tile ===
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(if (theme.isDark) 0.06f else 0.44f)).border(BorderStroke(1.dp, Color.White.copy(0.18f)), RoundedCornerShape(16.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("💾", fontSize = 12.sp)
+                        Text("حجم", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Spacer(Modifier.weight(1f))
+                        Text(if (limitGb.isBlank()) "نامحدود" else "$limitGb GB", fontSize = 11.sp, color = theme.mutedColor)
                     }
-                    Text("افزودن سریع:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                        MiniGlassButton("+۳۰ روز") {
-                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
-                            expireShamsi = JalaliCalendar.isoToShamsi(JalaliCalendar.addDaysToIso(baseIso, 30))
+                    UltraPremiumField(value = limitGb, onValueChange = { limitGb = it }, label = "", placeholder = "گیگابایت (خالی=نامحدود)", leadingIcon = "💾", keyboardType = KeyboardType.Decimal)
+                    // Quick add GB chips - small, horizontal scroll
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(1.0, 5.0, 10.0, 20.0, 50.0, 100.0).forEach { gb ->
+                            Box(
+                                Modifier.height(28.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(9.dp))
+                                    .clickable { addGb(gb) }.padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("+${gb.toInt()}G", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                         }
-                        MiniGlassButton("+۶۰ روز") {
-                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
-                            expireShamsi = JalaliCalendar.isoToShamsi(JalaliCalendar.addDaysToIso(baseIso, 60))
+                        Box(Modifier.width(52.dp).height(28.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(9.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                            if (customGb.isEmpty()) Text("+GB", fontSize = 9.sp, color = theme.mutedColor)
+                            BasicTextField(value = customGb, onValueChange = { customGb = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                         }
-                        MiniGlassButton("+۹۰ روز") {
-                            val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
-                            expireShamsi = JalaliCalendar.isoToShamsi(JalaliCalendar.addDaysToIso(baseIso, 90))
-                        }
-                        Box(
-                            Modifier.width(76.dp).height(34.dp).clip(RoundedCornerShape(12.dp))
-                                .background(if (theme.isDark) Color.White.copy(0.10f) else Color.White.copy(0.60f))
-                                .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (customAddDays.isEmpty()) Text("+روز", fontSize = 11.sp, color = theme.mutedColor.copy(0.8f))
-                            BasicTextField(value = customAddDays, onValueChange = { customAddDays = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = androidx.compose.ui.text.TextStyle(color = theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
-                        }
-                        if (customAddDays.isNotEmpty()) MiniGlassButton("✓") {
-                            val d = customAddDays.toIntOrNull() ?: 0
-                            if (d > 0) {
-                                val baseIso = if (initial?.expire != null && initial.expire != "0") initial.expire else null
-                                expireShamsi = JalaliCalendar.isoToShamsi(JalaliCalendar.addDaysToIso(baseIso, d))
-                                customAddDays = ""
-                            }
-                        }
+                        if (customGb.isNotEmpty()) Box(Modifier.height(28.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary).clickable {
+                            val v = customGb.toDoubleOrNull() ?: 0.0
+                            if (v > 0) { addGb(v); customGb = "" }
+                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 11.sp) }
                     }
                 }
 
-                initial?.let { user ->
+                // === EXPIRY SECTION - same main tile, add days ===
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(if (theme.isDark) 0.06f else 0.44f)).border(BorderStroke(1.dp, Color.White.copy(0.18f)), RoundedCornerShape(16.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("📅", fontSize = 12.sp)
+                        Text("انقضا", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Spacer(Modifier.weight(1f))
+                        Box(
+                            Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.18f)), RoundedCornerShape(9.dp))
+                                .clickable { showCalendar = true }, contentAlignment = Alignment.Center
+                        ) { Text("📅", fontSize = 14.sp) }
+                    }
+                    UltraPremiumField(value = expireShamsi, onValueChange = { expireShamsi = it }, label = "", placeholder = "1404/05/19 - از تقویم انتخاب کن", leadingIcon = "⏰")
+                    // Add days in same tile - small chips
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(7, 30, 60, 90, 180).forEach { d ->
+                            Box(
+                                Modifier.height(28.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(9.dp))
+                                    .clickable { addDays(d) }.padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("+$d روز", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        }
+                        Box(Modifier.width(56.dp).height(28.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(9.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                            if (customDay.isEmpty()) Text("+روز", fontSize = 9.sp, color = theme.mutedColor)
+                            BasicTextField(value = customDay, onValueChange = { customDay = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                        }
+                        if (customDay.isNotEmpty()) Box(Modifier.height(28.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary).clickable {
+                            val v = customDay.toIntOrNull() ?: 0
+                            if (v > 0) { addDays(v); customDay = "" }
+                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 11.sp) }
+                    }
+                }
+
+                // === NOTE SECTION - visible and editable ===
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(if (theme.isDark) 0.06f else 0.44f)).border(BorderStroke(1.dp, Color.White.copy(0.18f)), RoundedCornerShape(16.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("📝", fontSize = 12.sp)
+                        Text("توضیحات", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Spacer(Modifier.weight(1f))
+                        Text("${note.length}/500", fontSize = 10.sp, color = theme.mutedColor)
+                    }
                     Box(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
-                            .background(Color.White.copy(if (theme.isDark) 0.06f else 0.45f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.22f)), RoundedCornerShape(18.dp)).padding(14.dp)
+                        Modifier.fillMaxWidth().height(72.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(12.dp)).padding(10.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
-                                        .background(when (user.status) { "active" -> com.mrm.pgmanager.ui.theme.GlassGreen.copy(0.18f); "disabled" -> Color.Gray.copy(0.15f); else -> com.mrm.pgmanager.ui.theme.GlassRed.copy(0.15f) }),
-                                    contentAlignment = Alignment.Center
-                                ) { Text(if (user.status == "active") "🟢" else "🔴", fontSize = 14.sp) }
-                                Column {
-                                    Text("${com.mrm.pgmanager.utils.formatBytes(user.usedTraffic)} مصرف • ${user.status.uppercase()}", color = theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    Text("ایجاد: ${JalaliCalendar.isoToShamsi(user.createdAt ?: "")} • ${if (user.isOnline) "آنلاین" else "آفلاین"}", color = theme.mutedColor, fontSize = 11.sp)
+                        if (note.isEmpty()) Text("توضیحات کاربر...", color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+                        BasicTextField(value = note, onValueChange = { if (it.length <= 500) note = it }, textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp), modifier = Modifier.fillMaxSize(), maxLines = 4)
+                    }
+                }
+
+                // Sub URL
+                initial?.let { user ->
+                    if (user.subUrl.isNotEmpty()) {
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(16.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("لینک اشتراک", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.08f)).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                                    Text(user.subUrl, fontSize = 11.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                            }
-                            if (user.subUrl.isNotEmpty()) {
-                                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                                    Text("لینک اشتراک:", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
-                                                .background(if (theme.isDark) Color.White.copy(0.08f) else Color.White.copy(0.70f))
-                                                .border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(12.dp))
-                                                .padding(horizontal = 10.dp, vertical = 8.dp)
-                                        ) {
-                                            Text(user.subUrl, fontSize = 11.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        MiniGlassButton("📋") {
-                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                                            android.widget.Toast.makeText(context, "کپی شد ✓", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
-                                        MiniGlassButton("📱") { showQrDialog = true }
-                                    }
+                                MiniGlassButton("📋") {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                                    android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
                                 }
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                onResetUsage?.let { GlassButton("♻️ ریست حجم", onClick = { confirmResetUsage = true }, modifier = Modifier.weight(1f)) }
-                                onResetExpiry?.let { GlassButton("⏰ ریست زمان", onClick = { confirmResetExpiry = true }, modifier = Modifier.weight(1f)) }
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                onToggle?.let { toggle -> GlassButton(text = if (user.status == "disabled") "🟢 فعال‌سازی" else "⚪ غیرفعال", onClick = toggle, modifier = Modifier.weight(1f)) }
-                                onDelete?.let { del -> GlassButton(text = "🗑 حذف", onClick = del, modifier = Modifier.weight(1f), isRed = true) }
+                                MiniGlassButton("📱") { showQr = true }
                             }
                         }
+                    }
+                }
+
+                // Actions row - small buttons
+                initial?.let { user ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(12.dp)).clickable { onToggle?.invoke() }, contentAlignment = Alignment.Center) {
+                            Text(if (user.status == "disabled") "🟢 فعال" else "⚪ غیرفعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        }
+                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(12.dp)).clickable { /* reset usage dialog */ }, contentAlignment = Alignment.Center) {
+                            GlassButton("♻️ حجم", onClick = { /* handled via parent */ }, modifier = Modifier.fillMaxSize())
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        onResetUsage?.let { Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(12.dp)).clickable { onResetUsage.invoke() }, contentAlignment = Alignment.Center) { Text("♻️ ریست حجم", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
+                        onResetExpiry?.let { Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(12.dp)).clickable { onResetExpiry.invoke() }, contentAlignment = Alignment.Center) { Text("⏰ ریست زمان", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
+                        onDelete?.let { Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(com.mrm.pgmanager.ui.theme.GlassRed.copy(0.12f)).border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.GlassRed.copy(0.22f)), RoundedCornerShape(12.dp)).clickable { onDelete.invoke() }, contentAlignment = Alignment.Center) { Text("🗑 حذف", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.mrm.pgmanager.ui.theme.GlassRed) } }
                     }
                 }
 
                 formError?.let {
-                    Box(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                            .background(com.mrm.pgmanager.ui.theme.GlassRed.copy(0.10f))
-                            .border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.GlassRed.copy(0.20f)), RoundedCornerShape(12.dp)).padding(12.dp)
-                    ) { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    MutedCancelButton("✕ انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    Spacer(Modifier.width(10.dp))
-                    PrimarySaveButton("✓ ذخیره", onClick = {
-                        val cleanLimitStr = limitGb.replace(',', '.').trim()
-                        val limit = if (cleanLimitStr.isBlank()) 0.0 else cleanLimitStr.toDoubleOrNull()
-                        if (username.length !in 3..32 && initial == null) formError = "نام کاربری باید ۳ تا ۳۲ کاراکتر باشد."
-                        else if (limit == null || limit < 0) formError = "حجم نامعتبر است."
-                        else if (expireShamsi.isNotBlank() && !Regex("^\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}$").matches(expireShamsi)) formError = "فرمت تاریخ شمسی مثل ۱۴۰۴/۰۵/۱۹"
-                        else onSave(UserEditorValues(username, limit), expireShamsi)
-                    }, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-
-    if (confirmResetUsage && initial != null) {
-        Dialog(onDismissRequest = { confirmResetUsage = false }) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(22.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("⚠️ تایید ریست حجم", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = com.mrm.pgmanager.ui.theme.GlassRed)
-                    Text("آیا مطمئن هستید که حجم مصرفی ${initial.username} به صفر بازنشانی شود؟", color = theme.inkColor, fontSize = 13.sp, lineHeight = 20.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        MutedCancelButton("انصراف", onClick = { confirmResetUsage = false }, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(10.dp))
-                        GlassButton("تایید و ریست", onClick = { confirmResetUsage = false; onResetUsage?.invoke() }, modifier = Modifier.weight(1f), isRed = true)
+                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(com.mrm.pgmanager.ui.theme.GlassRed.copy(0.08f)).border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.GlassRed.copy(0.18f)), RoundedCornerShape(10.dp)).padding(10.dp)) {
+                        Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp)
                     }
                 }
-            }
-        }
-    }
 
-    if (confirmResetExpiry && initial != null) {
-        Dialog(onDismissRequest = { confirmResetExpiry = false }) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.5.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(22.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("⏰ تایید ریست زمان", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.lamp.primary)
-                    Text("تاریخ انقضا برای ${initial.username} نامحدود شود؟", color = theme.inkColor, fontSize = 13.sp, lineHeight = 20.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        MutedCancelButton("انصراف", onClick = { confirmResetExpiry = false }, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(10.dp))
-                        GlassButton("تایید", onClick = { confirmResetExpiry = false; onResetExpiry?.invoke() }, modifier = Modifier.weight(1f))
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(42.dp))
+                    PrimarySaveButton("ذخیره", onClick = {
+                        val clean = limitGb.replace(',', '.').trim()
+                        val lim = if (clean.isBlank()) 0.0 else clean.toDoubleOrNull()
+                        if (username.length !in 3..32 && initial == null) formError = "نام کاربری ۳-۳۲ حرف"
+                        else if (lim == null || lim < 0) formError = "حجم نامعتبر"
+                        else if (expireShamsi.isNotBlank() && !Regex("^\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}$").matches(expireShamsi)) formError = "تاریخ مثل ۱۴۰۴/۰۵/۱۹"
+                        else onSave(UserEditorValues(username, lim, note), expireShamsi)
+                    }, modifier = Modifier.weight(1f).height(42.dp))
                 }
             }
         }
     }
 
-    if (showQrDialog && initial != null && initial.subUrl.isNotEmpty()) SubscriptionQrDialog(user = initial, onDismiss = { showQrDialog = false })
-    if (showShamsiCalendar) ShamsiCalendarPickerDialog(initialDateShamsi = expireShamsi, onDismiss = { showShamsiCalendar = false }, onDateSelected = { expireShamsi = it })
+    if (showQr && initial != null && initial.subUrl.isNotEmpty()) SubscriptionQrDialog(user = initial, onDismiss = { showQr = false })
+    if (showCalendar) ShamsiCalendarPickerDialog(initialDateShamsi = expireShamsi, onDismiss = { showCalendar = false }, onDateSelected = { expireShamsi = it })
 }
