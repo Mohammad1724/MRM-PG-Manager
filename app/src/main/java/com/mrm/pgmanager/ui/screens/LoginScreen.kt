@@ -9,7 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -57,45 +56,35 @@ fun LoginScreen(
                 .padding(padding)
                 .imePadding()
         ) {
-            // === AURORA BACKGROUND EXACTLY LIKE PRETTY IMAGE ===
-            // Big blurred blobs: blue, purple, green
+            // === AURORA BACKGROUND - GOLD THEME ===
             Box(
-                Modifier.size(680.dp).align(Alignment.TopStart).offset(x = (-180).dp, y = (-180).dp)
+                Modifier.size(720.dp).align(Alignment.TopStart).offset(x = (-200).dp, y = (-200).dp)
                     .background(
                         Brush.radialGradient(
-                            listOf(Color(0xFF3B82F6).copy(alpha = 0.42f), Color(0xFF8B5CF6).copy(alpha = 0.22f), Color.Transparent),
-                            radius = 420f
+                            listOf(theme.lamp.spotHigh.copy(alpha = 0.52f), theme.lamp.spotLow.copy(0.20f), Color.Transparent),
+                            radius = 460f
                         ),
-                        RoundedCornerShape(400.dp)
-                    )
-                    .blur(32.dp)
-            )
-            Box(
-                Modifier.size(620.dp).align(Alignment.BottomEnd).offset(x = 180.dp, y = 180.dp)
-                    .background(
-                        Brush.radialGradient(listOf(Color(0xFF06D6A0).copy(0.30f), Color(0xFF3B82F6).copy(0.18f), Color.Transparent)),
                         RoundedCornerShape(400.dp)
                     )
                     .blur(36.dp)
             )
             Box(
-                Modifier.size(500.dp).align(Alignment.CenterStart).offset(x = (-200).dp, y = 100.dp)
+                Modifier.size(600.dp).align(Alignment.BottomEnd).offset(x = 180.dp, y = 180.dp)
                     .background(
-                        Brush.radialGradient(listOf(Color(0xFFA855F7).copy(0.22f), Color.Transparent)),
+                        Brush.radialGradient(listOf(theme.lamp.light.copy(0.26f), Color.Transparent)),
                         RoundedCornerShape(400.dp)
                     )
                     .blur(40.dp)
             )
             Box(
-                Modifier.size(400.dp).align(Alignment.CenterEnd).offset(x = 150.dp, y = (-120).dp)
+                Modifier.size(540.dp).align(Alignment.Center).offset(x = (-40).dp, y = 80.dp)
                     .background(
-                        Brush.radialGradient(listOf(Color(0xFF22D3EE).copy(0.22f), Color.Transparent)),
-                        RoundedCornerShape(300.dp)
+                        Brush.radialGradient(listOf(Color.White.copy(alpha = if (theme.isDark) 0.04f else 0.10f), Color.Transparent)),
+                        RoundedCornerShape(400.dp)
                     )
-                    .blur(28.dp)
             )
 
-            // Top minimal bar
+            // Top bar
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).align(Alignment.TopCenter),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -113,64 +102,87 @@ fun LoginScreen(
                         Text("PASARGUARD", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     }
                 }
-                ActionIconButton(icon = { Text("🎨", fontSize = 15.sp) }, onClick = { showThemeDialog = true })
+                // Fixed theme button - larger hit area
+                Box(
+                    Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                        .background(if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(0.72f))
+                        .border(BorderStroke(1.dp, Color.White.copy(0.6f)), RoundedCornerShape(12.dp))
+                        .clickable { showThemeDialog = true },
+                    contentAlignment = Alignment.Center
+                ) { Text("🎨", fontSize = 18.sp) }
             }
 
-            // CENTERED CARD LIKE IMAGE
+            // CENTERED CONTENT
             Column(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 22.dp)
                     .padding(top = 72.dp, bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // === CARD EXACT IMAGE STYLE ===
+                // === CARD - No more ugly white rectangle, now true glass ===
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 380.dp)
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(if (theme.isDark) Color(0xFF1F1F26).copy(alpha = 0.86f) else Color.White.copy(alpha = 0.88f))
-                        .border(BorderStroke(1.2.dp, Color.White.copy(alpha = if (theme.isDark) 0.18f else 0.72f)), RoundedCornerShape(28.dp))
-                        .shadow(28.dp, RoundedCornerShape(28.dp), spotColor = theme.lamp.primary.copy(0.14f), ambientColor = Color.Black.copy(0.06f))
+                        .widthIn(max = 390.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        // FIX 3: True glass - much more transparent, not solid white
+                        .background(
+                            if (theme.isDark) Color(0xFF1E1E24).copy(alpha = 0.68f)
+                            else Color.White.copy(alpha = 0.58f)
+                        )
+                        .border(
+                            BorderStroke(1.2.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = if (theme.isDark) 0.22f else 0.88f), Color.White.copy(alpha = 0.14f)))),
+                            RoundedCornerShape(32.dp)
+                        )
+                        .shadow(24.dp, RoundedCornerShape(32.dp), spotColor = theme.lamp.primary.copy(0.10f), ambientColor = Color.Black.copy(0.04f))
                 ) {
+                    // Top highlight line
+                    Box(
+                        Modifier.fillMaxWidth().height(1.dp).align(Alignment.TopCenter)
+                            .background(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(0.72f), Color.Transparent)))
+                    )
+
                     Column(
-                        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 24.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 26.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        // Logo circle with P - like image
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // === FIX 1: Use MRM logo from drawable, not P ===
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             Box(
-                                Modifier.size(72.dp).clip(RoundedCornerShape(36.dp))
-                                    .background(Brush.linearGradient(listOf(Color(0xFF0EA5E9), Color(0xFF06B6D4), Color(0xFF22D3EE))))
-                                    .border(BorderStroke(2.dp, Color.White.copy(0.85f)), RoundedCornerShape(36.dp))
-                                    .shadow(16.dp, RoundedCornerShape(36.dp), spotColor = Color(0xFF0EA5E9).copy(0.35f)),
+                                Modifier.size(90.dp).clip(RoundedCornerShape(26.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = if (theme.isDark) 0.14f else 0.92f),
+                                                Color.White.copy(alpha = if (theme.isDark) 0.06f else 0.62f)
+                                            )
+                                        )
+                                    )
+                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.72f)), RoundedCornerShape(26.dp))
+                                    .shadow(12.dp, RoundedCornerShape(26.dp), spotColor = theme.lamp.primary.copy(0.18f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // Try logo, fallback to P
-                                val logoFallback = remember { true }
-                                if (logoFallback) {
-                                    Text("P", color = Color.White, fontWeight = FontWeight.Black, fontSize = 34.sp)
-                                } else {
-                                    AppLogo(height = 40.dp)
-                                }
+                                // Use actual MRM logo from project
+                                AppLogo(height = 56.dp)
                             }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text("پاسارگارد", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                                Text("(MRM Manager) مدیریت ریسک", fontSize = 12.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                // FIX 4: Only MRM Manager, no مدیریت ریسک
+                                Text("MRM Manager", fontSize = 13.sp, color = theme.mutedColor, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp)
                             }
                         }
 
-                        // Fields - like image: icon left, Persian placeholder right
+                        // Fields
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                             UltraPremiumField(
                                 value = url,
                                 onValueChange = { url = it },
                                 label = "آدرس پنل",
-                                placeholder = "panel.example.com",
+                                placeholder = "https://panel.example.com:443",
                                 leadingIcon = "🌐",
                                 keyboardType = KeyboardType.Uri
                             )
@@ -207,12 +219,12 @@ fun LoginScreen(
                             }
                         }
 
-                        // Button - EXACT IMAGE: gradient blue to cyan, 52dp, rounded 16
+                        // Button - uses theme primary (now GOLD)
                         Box(
-                            Modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(16.dp))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFF3B82F6), Color(0xFF06B6D4))))
-                                .border(BorderStroke(1.dp, Color.White.copy(0.7f)), RoundedCornerShape(16.dp))
-                                .shadow(14.dp, RoundedCornerShape(16.dp), spotColor = Color(0xFF3B82F6).copy(0.35f))
+                            Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp))
+                                .background(Brush.horizontalGradient(listOf(theme.lamp.primary, theme.lamp.primary.copy(0.82f))))
+                                .border(BorderStroke(1.dp, Color.White.copy(0.7f)), RoundedCornerShape(18.dp))
+                                .shadow(14.dp, RoundedCornerShape(18.dp), spotColor = theme.lamp.primary.copy(0.32f))
                                 .clickable(enabled = !loading) {
                                     if (loading) return@clickable
                                     loading = true; error = null
@@ -225,21 +237,33 @@ fun LoginScreen(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
+                            // shine top
+                            Box(
+                                Modifier.fillMaxWidth().height(20.dp).align(Alignment.TopCenter)
+                                    .background(Brush.verticalGradient(listOf(Color.White.copy(0.32f), Color.Transparent)))
+                            )
                             if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.2.dp)
-                            else Text("ورود", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                            else Text("ورود به پنل", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp)
                         }
 
-                        // Small links like image
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("فراموشی رمز عبور؟", color = Color(0xFF3B82F6), fontSize = 12.5.sp, fontWeight = FontWeight.Medium, modifier = Modifier.clickable { })
-                            Text("ایجاد حساب کاربری", color = Color(0xFF3B82F6), fontSize = 12.5.sp, fontWeight = FontWeight.Medium, modifier = Modifier.clickable { })
+                        // FIX 5: Removed forgot password and create account - not needed
+
+                        // Security note - smaller
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f))
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("🔐", fontSize = 11.sp)
+                            Text("اتصال امن • HTTPS", fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                         }
                     }
                 }
 
-                Spacer(Modifier.height(24.dp))
-
-                Text("MRM Studio • Vision OS 2025", fontSize = 10.sp, color = theme.mutedColor.copy(0.7f), letterSpacing = 0.5.sp)
+                Spacer(Modifier.height(18.dp))
+                Text("v2.1 • Gold Theme • Vision OS", fontSize = 10.sp, color = theme.mutedColor.copy(0.6f), letterSpacing = 0.5.sp)
             }
 
             if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
