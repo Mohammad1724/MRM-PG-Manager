@@ -12,11 +12,12 @@ data class PanelUser(
     val createdAt: String?,
     val subUrl: String = "",
     val onlineAt: String? = null,
-    val isOnline: Boolean = false
+    val isOnline: Boolean = false,
+    val note: String? = null
 )
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
 enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
 enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
 
-data class UserEditorValues(val username: String, val value: Double)
+data class UserEditorValues(val username: String, val value: Double, val note: String = "")
