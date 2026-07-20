@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Offset
 import androidx.compose.ui.platform.LocalContext
@@ -483,7 +484,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     // NestedScrollConnection to track scroll offset for collapsing header (works for ALL view modes)
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
-            override fun onPostScroll(consumed: Offset, available: Offset): Offset {
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                 val delta = consumed.y
                 val newOffset = (scrollOffset.value + delta).coerceIn(0f, headerHeight)
                 scrollOffset.value = newOffset
