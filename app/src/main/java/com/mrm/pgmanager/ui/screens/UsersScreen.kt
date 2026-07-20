@@ -439,7 +439,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
 
     // Collapsing header state for the 4 top stat buttons/cards
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val maxCollapsibleHeightDp = 144.dp
+    val maxCollapsibleHeightDp = 168.dp
     val headerHeight = remember(density) { with(density) { maxCollapsibleHeightDp.toPx() } }
     val scrollOffset = remember { mutableStateOf(0f) }
 
@@ -522,8 +522,9 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             }
         }
     }) { padding ->
-        val topBarPx = remember(density) { with(density) { 48.dp.toPx() } }
-        val searchBasePx = remember(density) { with(density) { (48.dp + maxCollapsibleHeightDp + 8.dp).toPx() } }
+        val topBarPx = remember(density) { with(density) { 46.dp.toPx() } }
+        val searchBasePx = remember(density) { with(density) { (46.dp + maxCollapsibleHeightDp + 6.dp).toPx() } }
+        val searchAndFilterHeightPx = remember(density) { with(density) { 146.dp.toPx() } }
 
         Box(
             Modifier
@@ -534,28 +535,45 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             // 1. Lists / Grid (Fixed outer Box size = 0 Remeasurements during scroll!)
             Box(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 when {
-                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 90.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = 342.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 90.dp)) { items(6) { SkeletonCard() } }
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = 366.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
                             com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = 342.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = 366.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                     }
                 }
             }
 
-            // 2. The 4 Stat Cards: Smoothly moves up and fades out via offset/graphicsLayer (No measure triggers!)
+            // 2. Header Surface Backdrop: Solid sheet behind top bar, stat cards, search & filter bars.
+            // Prevents any scrolling user card below from overlapping or showing through semi-transparent glass bars!
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .offset {
+                        IntOffset(0, 0)
+                    }
+                    .height(with(density) {
+                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
+                        (searchBasePx + searchAndFilterHeightPx - current).toDp()
+                    })
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .background(if (themeState.isDark) Color(0xFF141418).copy(alpha = 0.98f) else Color(0xFFFAF5EC).copy(alpha = 0.98f))
+                    .border(BorderStroke(1.2.dp, glassBorder(themeState.isDark)), RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+            )
+
+            // 3. The 4 Stat Cards: Smoothly moves up and fades out via offset/graphicsLayer (No measure triggers!)
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -572,7 +590,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed)
             }
 
-            // 3. Search Bar + Filter Bar: Slides up smoothly above the grid via offset (No measure triggers!)
+            // 4. Search Bar + Filter Bar: Slides up smoothly above the grid via offset (No measure triggers!)
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -587,7 +605,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
             }
 
-            // 4. Top Bar Header: Fixed right at the top above everything else
+            // 5. Top Bar Header: Fixed right at the top above everything else
             Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                 TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
             }
