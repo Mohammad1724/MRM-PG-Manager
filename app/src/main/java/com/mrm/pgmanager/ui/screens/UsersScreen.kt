@@ -3,10 +3,14 @@ package com.mrm.pgmanager.ui.screens
 import android.content.Context
 import androidx.compose.animation.core.*
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberNestedScrollConnection
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +18,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -26,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -432,10 +436,9 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
 
-    // Collapsing header state
+    // Collapsing header state - track scroll via NestedScrollConnection on the whole Column
     val scrollOffset = remember { mutableStateOf(0f) }
-    val headerHeight = 200f // approximate height of header in dp
-    val listState = rememberLazyListState()
+    val headerHeight = 220f // approximate height of header in dp (logo + stats cards + search + filter bar)
 
     fun load() {
         scope.launch {
@@ -457,14 +460,6 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     }
     LaunchedEffect(Unit) { load() }
 
-    // Update scrollOffset from listState for collapsing header
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.firstVisibleItemScrollOffset.toFloat() }
-            .collect { offset ->
-                scrollOffset.value = offset.coerceIn(0f, headerHeight)
-            }
-    }
-
     val processedUsers = remember(users, query, currentFilter, currentSort) {
         var list = users.filter { it.username.contains(query, ignoreCase = true) }
         list = when (currentFilter) {
@@ -484,6 +479,18 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
 
     val totalUsed = remember(users) { users.sumOf { it.usedTraffic } }
 
+    // NestedScrollConnection to track scroll offset for collapsing header (works for ALL view modes)
+    val nestedScrollConnection = rememberNestedScrollConnection(
+        onPostScroll = { consumed, available ->
+            // consumed is the amount consumed by children (the list), available is what's left
+            // We want to track the total scroll from the Column
+            val delta = consumed.y
+            val newOffset = (scrollOffset.value + delta.toFloat()).coerceIn(0f, headerHeight)
+            scrollOffset.value = newOffset
+            consumed
+        }
+    )
+
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         Box(modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -497,8 +504,15 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 .padding(padding)
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
         ) {
-            // Collapsing Stats Header
+            // Animate scrollOffset for smooth collapse/expand
+    val animatedScrollOffset by animateFloatAsState(
+        targetValue = scrollOffset.value,
+        animationSpec = tween(200, easing = FastOutSlowInEasing)
+    )
+
+    // Collapsing Stats Header
             CollapsingStatsHeader(
                 totalUsers = users.size,
                 activeUsers = users.count { it.status == "active" },
@@ -508,7 +522,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 onLogout = onLogout,
                 onOpenThemeDialog = { showThemeDialog = true },
                 loading = loading,
-                scrollOffset = scrollOffset.value,
+                scrollOffset = animatedScrollOffset,
                 headerHeight = headerHeight
             )
             Spacer(Modifier.height(8.dp))
@@ -533,11 +547,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 else -> when (viewMode) {
                     ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                     ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                    ViewMode.MICRO_LIST -> LazyColumn(
-                        state = listState,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                    ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                 }
             }
         }
