@@ -121,6 +121,35 @@ object PanelApi {
                 }
             }
         }
+
+        // Parse online status - handle both boolean "online" and "online_at" string/ISO date
+        var isOnline = user.optBoolean("online", false)
+        var onlineAtStr: String? = null
+
+        // Check online_at field - could be ISO string or timestamp
+        if (!user.isNull("online_at")) {
+            onlineAtStr = user.optString("online_at").takeIf { it != "null" && it.isNotBlank() }
+            if (onlineAtStr != null) {
+                // Try to parse as ISO date first, then as timestamp
+                val now = System.currentTimeMillis()
+                val onlineTime = try {
+                    // Try ISO format: "2024-01-15T10:30:00Z"
+                    java.time.Instant.parse(onlineAtStr.replace(" ", "T")).toEpochMilli()
+                } catch (e: Exception) {
+                    try {
+                        // Try timestamp (seconds or milliseconds)
+                        val ts = onlineAtStr.toLong()
+                        if (ts < 1e12) ts * 1000 else ts // Convert seconds to ms if needed
+                    } catch (e2: Exception) {
+                        0L
+                    }
+                }
+                if (onlineTime > 0 && now - onlineTime < 300_000) { // 5 minutes
+                    isOnline = true
+                }
+            }
+        }
+
         return PanelUser(
             id = user.optLong("id", 0L),
             username = user.getString("username"),
@@ -130,8 +159,8 @@ object PanelApi {
             expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
             createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
             subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
-            onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
-            isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300),
+            onlineAt = onlineAtStr,
+            isOnline = isOnline,
             note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
             hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 },
             groupIds = groupIds,
