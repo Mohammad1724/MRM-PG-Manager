@@ -479,18 +479,52 @@ fun UserEditorDialog(
 
                 // Sub URL compact
                 initial?.let { user ->
-                    if (user.subUrl.isNotEmpty()) {
+                    if (user.subUrl.isNotBlank()) {
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(12.dp)).padding(8.dp),
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.5.dp, Color.White.copy(0.25f)), RoundedCornerShape(12.dp)).padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(user.subUrl, fontSize = 9.5.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            MiniGlassButton("📋") {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                                android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                            MiniGlassButton("QR") { showQr = true }
+                            // Copy button - smaller icon only
+                            Box(
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.12f))
+                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("📋", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                            // QR button - smaller icon only
+                            Box(
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.12f))
+                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .clickable { showQr = true }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("📱", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                            // Share button
+                            Box(
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.12f))
+                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, user.subUrl) }
+                                        context.startActivity(Intent.createChooser(i, "اشتراک اشتراک"))
+                                    }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("🔗", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                         }
                     }
                 }
