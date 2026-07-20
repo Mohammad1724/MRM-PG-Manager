@@ -25,6 +25,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.rememberNestedScrollConnection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -115,31 +119,62 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 }
 
 @Composable
-private fun LuxuryTopStatsHeader(totalUsers: Int, activeUsers: Int, onlineUsers: Int, totalUsedTraffic: Long, onRefresh: () -> Unit, onLogout: () -> Unit, onOpenThemeDialog: () -> Unit, loading: Boolean) {
+private fun CollapsingStatsHeader(
+    totalUsers: Int,
+    activeUsers: Int,
+    onlineUsers: Int,
+    totalUsedTraffic: Long,
+    onRefresh: () -> Unit,
+    onLogout: () -> Unit,
+    onOpenThemeDialog: () -> Unit,
+    loading: Boolean,
+    scrollOffset: Float, // positive when scrolled down
+    headerHeight: Float
+) {
     val theme = LocalThemeState.current
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                AppLogo(height = 26.dp)
-                Column {
-                    Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
-                    Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
+    // Calculate progress: 0 = fully visible, 1 = fully collapsed
+    val collapseProgress = (scrollOffset / headerHeight).coerceIn(0f, 1f)
+    val alpha = 1f - collapseProgress
+    val translationY = -collapseProgress * headerHeight * 0.5f
+
+    AnimatedVisibility(
+        visible = collapseProgress < 1f,
+        enter = fadeIn() + slideInVertically { -it * 0.5f },
+        exit = fadeOut() + slideOutVertically { -it * 0.5f }
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, bottom = 6.dp)
+                .graphicsLayer {
+                    this.alpha = alpha
+                    this.translationY = translationY
+                },
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppLogo(height = 26.dp)
+                    Column {
+                        Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
+                        Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
+                    ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
+                    ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
-                ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
-                ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
-                StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
-                StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+                    StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
+                    StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -401,10 +436,13 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var qrUser by remember { mutableStateOf<PanelUser?>(null) }
     var onlineCount by remember { mutableStateOf(0) }
 
-    // FIX 4: Removed nested scroll that caused jump - header always visible now
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
+
+    // Collapsing header state
+    val scrollOffset = remember { mutableStateOf(0f) }
+    val headerHeight = 200f // approximate height of header in dp
 
     fun load() {
         scope.launch {
@@ -445,6 +483,16 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
 
     val totalUsed = remember(users) { users.sumOf { it.usedTraffic } }
 
+    // NestedScroll connection to track scroll offset for collapsing header
+    val nestedScrollConnection = rememberNestedScrollConnection(
+        onPostScroll = { consumed, available ->
+            val delta = -consumed.plus(available).y.toFloat()
+            val newOffset = (scrollOffset.value + delta).coerceIn(0f, headerHeight)
+            scrollOffset.value = newOffset
+            consumed
+        }
+    )
+
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         Box(modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -453,9 +501,26 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             }
         }
     }) { padding ->
-        Column(Modifier.padding(padding).padding(horizontal = 16.dp)) {
-            // FIX 4: Header always visible, no AnimatedVisibility jump
-            LuxuryTopStatsHeader(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed, onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
+        Column(
+            Modifier
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+        ) {
+            // Collapsing Stats Header
+            CollapsingStatsHeader(
+                totalUsers = users.size,
+                activeUsers = users.count { it.status == "active" },
+                onlineUsers = onlineCount,
+                totalUsedTraffic = totalUsed,
+                onRefresh = { load() },
+                onLogout = onLogout,
+                onOpenThemeDialog = { showThemeDialog = true },
+                loading = loading,
+                scrollOffset = scrollOffset.value,
+                headerHeight = headerHeight
+            )
             Spacer(Modifier.height(8.dp))
             GlassSearchBar(query = query, onQueryChange = { query = it })
             Spacer(Modifier.height(12.dp))
