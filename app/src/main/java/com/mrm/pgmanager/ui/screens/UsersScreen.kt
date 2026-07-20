@@ -244,7 +244,7 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
 // FIX 2: Online dot
 // FIX 3: GB / GB and days left
 @Composable
-private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -254,10 +254,19 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit, onQrClick: (Pan
     val statusColor = when (user.status) { "active" -> GlassGreen; "disabled" -> Color(0xFF8A8A8A); "expired" -> GlassRed; "limited" -> GlassAmber; "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(22.dp)).clickable(onClick = onClick)) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(22.dp)).clickable(onClick = onClick)) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    Modifier.size(18.dp).clip(RoundedCornerShape(6.dp))
+                        .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
+                        .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(6.dp))
+                        .clickable { onSelectToggle() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { Text("📝", fontSize = 8.sp) }
@@ -293,7 +302,7 @@ private fun LuxuryGridCard(user: PanelUser, onClick: () -> Unit, onQrClick: (Pan
 }
 
 @Composable
-private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -301,9 +310,18 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit, onQrClick: (P
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.width(130.dp)) {
+                Box(
+                    Modifier.size(18.dp).clip(RoundedCornerShape(6.dp))
+                        .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
+                        .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(6.dp))
+                        .clickable { onSelectToggle() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
@@ -365,7 +383,7 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit, onQrClick: (P
 }
 
 @Composable
-private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -373,8 +391,18 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit, onQrClick: (Pan
     val progressColor = when { p < 70 -> GlassGreen; p in 70..89 -> GlassAmber; else -> GlassRed }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 7.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 7.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(16.dp).clip(RoundedCornerShape(5.dp))
+                    .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
+                    .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(5.dp))
+                    .clickable { onSelectToggle() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) Text("✓", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.width(6.dp))
             Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(onlineDot))
             Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.width(88.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Column(Modifier.width(125.dp)) {
@@ -445,6 +473,8 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
+    var selectedUserIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var showBulkTemplateDialog by remember { mutableStateOf(false) }
 
     // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -569,9 +599,9 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                     }
                 }
             }
@@ -633,7 +663,61 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 Spacer(Modifier.height(8.dp))
                 FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
             }
+
+            if (selectedUserIds.isNotEmpty()) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 68.dp, start = 12.dp, end = 12.dp)
+                ) {
+                    BulkActionsBar(
+                        selectedCount = selectedUserIds.size,
+                        onClear = { selectedUserIds = emptySet() },
+                        onDelete = {
+                            val ids = selectedUserIds.toSet()
+                            selectedUserIds = emptySet()
+                            runAction { PanelApi.bulkDeleteUsers(session, ids) }
+                        },
+                        onResetUsage = {
+                            val ids = selectedUserIds.toSet()
+                            selectedUserIds = emptySet()
+                            runAction { PanelApi.bulkResetUsersUsage(session, ids) }
+                        },
+                        onDisable = {
+                            val ids = selectedUserIds.toSet()
+                            selectedUserIds = emptySet()
+                            runAction { PanelApi.bulkDisableUsers(session, ids) }
+                        },
+                        onEnable = {
+                            val ids = selectedUserIds.toSet()
+                            selectedUserIds = emptySet()
+                            runAction { PanelApi.bulkEnableUsers(session, ids) }
+                        },
+                        onApplyTemplate = {
+                            showBulkTemplateDialog = true
+                        }
+                    )
+                }
+            }
         }
+    }
+
+    if (showBulkTemplateDialog) {
+        var templates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+        LaunchedEffect(Unit) {
+            templates = PanelApi.userTemplates(session)
+        }
+        com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
+            templates = templates,
+            selectedCount = selectedUserIds.size,
+            onDismiss = { showBulkTemplateDialog = false },
+            onApply = { templateId, note ->
+                val ids = selectedUserIds.toSet()
+                selectedUserIds = emptySet()
+                showBulkTemplateDialog = false
+                runAction { PanelApi.bulkApplyTemplate(session, ids, templateId, note) }
+            }
+        )
     }
 
     if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
