@@ -135,21 +135,18 @@ private fun CollapsingStatsHeader(
     headerHeight: Float
 ) {
     val theme = LocalThemeState.current
-    // Calculate progress: 0 = fully visible, 1 = fully collapsed
-    val collapseProgress = (scrollOffset / headerHeight).coerceIn(0f, 1f)
-    val alpha = 1f - collapseProgress
-    val translationY = -collapseProgress * headerHeight * 0.5f
+    val maxStatsHeightDp = 144.dp
+    // Calculate progress: 0 = fully visible (expanded), 1 = fully collapsed
+    val collapseProgress = if (headerHeight > 0f) (scrollOffset / headerHeight).coerceIn(0f, 1f) else 0f
+    val currentStatsHeight = maxStatsHeightDp * (1f - collapseProgress)
+    val statsAlpha = (1f - collapseProgress * 1.25f).coerceIn(0f, 1f)
+    val statsTranslationY = -collapseProgress * 40f
 
-    // Animate alpha and translationY via graphicsLayer
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(top = 10.dp, bottom = 6.dp)
-            .graphicsLayer {
-                this.alpha = alpha
-                this.translationY = translationY
-            },
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(top = 10.dp, bottom = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(if (collapseProgress < 0.98f) (12f * (1f - collapseProgress)).dp else 0.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -165,14 +162,26 @@ private fun CollapsingStatsHeader(
                 ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
-                StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
-                StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
+        if (currentStatsHeight > 0.5.dp) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .height(currentStatsHeight)
+                    .clipToBounds()
+                    .graphicsLayer {
+                        this.alpha = statsAlpha
+                        this.translationY = statsTranslationY
+                    },
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+                    StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
+                    StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
+                }
             }
         }
     }
@@ -438,9 +447,11 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
 
-    // Collapsing header state
+    // Collapsing header state for the 4 top stat buttons/cards
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val maxCollapsibleHeightDp = 144.dp
+    val headerHeight = remember(density) { with(density) { maxCollapsibleHeightDp.toPx() } }
     val scrollOffset = remember { mutableStateOf(0f) }
-    val headerHeight = 220f // logo + stats + search + filter bar
 
     fun load() {
         scope.launch {
@@ -449,6 +460,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 val list = PanelApi.users(session)
                 val sysOnline = PanelApi.onlineUserCount(session)
                 users = list; onlineCount = maxOf(sysOnline, list.count { it.isOnline })
+                scrollOffset.value = 0f
             }.onFailure {
                 error = it.message; if (it.message?.contains("401") == true) onLogout()
             }
@@ -481,16 +493,33 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
 
     val totalUsed = remember(users) { users.sumOf { it.usedTraffic } }
 
-    // NestedScrollConnection - track scroll for collapsing header
-    // consumed.y is NEGATIVE when scrolling DOWN (content moves up)
-    val nestedScrollConnection = remember {
+    // NestedScrollConnection - track scroll for collapsing/expanding the 4 top stat cards smoothly
+    val nestedScrollConnection = remember(headerHeight) {
         object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (headerHeight <= 0f) return Offset.Zero
+
+                val delta = -available.y
+                val current = scrollOffset.value
+                // Collapsing header while dragging UP
+                if (delta > 0f && current < headerHeight) {
+                    val newOffset = (current + delta).coerceIn(0f, headerHeight)
+                    val consumedY = newOffset - current
+                    scrollOffset.value = newOffset
+                    return Offset(0f, -consumedY)
+                }
+                // Expanding header while dragging DOWN (EnterAlways / Quick Return)
+                else if (delta < 0f && current > 0f) {
+                    val newOffset = (current + delta).coerceIn(0f, headerHeight)
+                    val consumedY = newOffset - current
+                    scrollOffset.value = newOffset
+                    return Offset(0f, -consumedY)
+                }
+                return Offset.Zero
+            }
+
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                // consumed.y is negative when scrolling down -> we want offset to INCREASE
-                val delta = -consumed.y  // invert: down scroll = positive delta
-                val newOffset = (scrollOffset.value + delta).coerceIn(0f, headerHeight)
-                scrollOffset.value = newOffset
-                return consumed
+                return Offset.Zero
             }
         }
     }
@@ -513,7 +542,8 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             // Animate scrollOffset for smooth collapse/expand
             val animatedScrollOffset by animateFloatAsState(
                 targetValue = scrollOffset.value,
-                animationSpec = tween(200, easing = FastOutSlowInEasing)
+                animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
+                label = "headerScroll"
             )
 
             // Collapsing Stats Header
