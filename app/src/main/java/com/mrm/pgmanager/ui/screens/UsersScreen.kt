@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberNestedScrollConnection
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,10 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.nestedscroll.rememberNestedScrollConnection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -137,44 +135,39 @@ private fun CollapsingStatsHeader(
     val alpha = 1f - collapseProgress
     val translationY = -collapseProgress * headerHeight * 0.5f
 
-    AnimatedVisibility(
-        visible = collapseProgress < 1f,
-        enter = fadeIn() + slideInVertically { -it * 0.5f },
-        exit = fadeOut() + slideOutVertically { -it * 0.5f }
+    // Animate alpha and translationY via graphicsLayer
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp, bottom = 6.dp)
+            .graphicsLayer {
+                this.alpha = alpha
+                this.translationY = translationY
+            },
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp, bottom = 6.dp)
-                .graphicsLayer {
-                    this.alpha = alpha
-                    this.translationY = translationY
-                },
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppLogo(height = 26.dp)
-                    Column {
-                        Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
-                        Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
-                    ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
-                    ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppLogo(height = 26.dp)
+                Column {
+                    Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
+                    Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
-                    StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
-                    StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
+                ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
+                ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+                StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
+                StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
             }
         }
     }
@@ -486,7 +479,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     // NestedScroll connection to track scroll offset for collapsing header
     val nestedScrollConnection = rememberNestedScrollConnection(
         onPostScroll = { consumed, available ->
-            val delta = -consumed.plus(available).y.toFloat()
+            val delta = -(consumed.plus(available)).y.toFloat()
             val newOffset = (scrollOffset.value + delta).coerceIn(0f, headerHeight)
             scrollOffset.value = newOffset
             consumed
