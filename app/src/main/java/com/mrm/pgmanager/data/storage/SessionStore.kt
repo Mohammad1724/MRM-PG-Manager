@@ -28,7 +28,11 @@ class SessionStore(context: Context) {
         .putString("username", value.username)
         .apply()
 
-    fun clear() = prefs.edit().clear().apply()
+    fun clear() = prefs.edit()
+        .remove("base")
+        .remove("token")
+        .remove("username")
+        .apply()
 
     fun readTheme(): ThemeState {
         val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
@@ -41,4 +45,8 @@ class SessionStore(context: Context) {
         .putString("theme_lamp", themeState.lamp.name)
         .putBoolean("theme_dark", themeState.isDark)
         .apply()
+
+    fun readAppLock(): Boolean = prefs.getBoolean("app_lock_enabled", false)
+
+    fun saveAppLock(enabled: Boolean) = prefs.edit().putBoolean("app_lock_enabled", enabled).apply()
 }
