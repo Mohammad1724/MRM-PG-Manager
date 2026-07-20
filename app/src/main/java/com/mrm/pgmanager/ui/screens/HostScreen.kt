@@ -48,6 +48,8 @@ import com.mrm.pgmanager.ui.dialogs.HostEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
+import com.mrm.pgmanager.ui.theme.glassBg
+import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -175,7 +177,7 @@ fun HostsScreen(
                     else -> when (viewMode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedHosts) { host -> HostGridCard(host, onClick = { selectedHost = host }, onToggle = { runAction { PanelApi.modifyHost(session, host.id, hostToEditValues(host.copy(isDisabled = !host.isDisabled))) } }, onDelete = { deleteHost = host }) } }
                         ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedHosts) { host -> HostCompactRow(host, onClick = { selectedHost = host }, onToggle = { runAction { PanelApi.modifyHost(session, host.id, hostToEditValues(host.copy(isDisabled = !host.isDisabled))) } }, onDelete = { deleteHost = host }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedHosts) { host -> HostCompactRow(host, onClick = { selectedUser = null; selectedHost = host }, onToggle = { runAction { PanelApi.modifyHost(session, host.id, hostToEditValues(host.copy(isDisabled = !host.isDisabled))) } }, onDelete = { deleteHost = host }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedHosts) { host -> HostCompactRow(host, onClick = { selectedHost = host }, onToggle = { runAction { PanelApi.modifyHost(session, host.id, hostToEditValues(host.copy(isDisabled = !host.isDisabled))) } }, onDelete = { deleteHost = host }) } }
                     }
                 }
             }
