@@ -9,6 +9,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -241,6 +242,43 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 // FIX 1: Progress bar visible, thicker, 8dp, gray track 28%
+@Composable
+private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val theme = LocalThemeState.current
+    val isDark = theme.isDark
+    val bg = if (selected) theme.lamp.primary else if (isDark) Color(0xFF383842).copy(alpha = 0.92f) else Color(0xFFC8C4B8).copy(alpha = 0.92f)
+    val borderCol = if (selected) theme.lamp.primary else if (isDark) Color(0xFF8E8C98) else Color(0xFF8C877D)
+    Box(
+        modifier = modifier
+            .size(20.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(bg)
+            .border(BorderStroke(1.2.dp, borderCol), RoundedCornerShape(6.dp))
+            .clickable { onToggle() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (selected) {
+            Canvas(modifier = Modifier.size(12.dp)) {
+                val strokeWidth = 2.2.dp.toPx()
+                drawLine(
+                    color = Color.White,
+                    start = Offset(2.dp.toPx(), 6.5.dp.toPx()),
+                    end = Offset(5.dp.toPx(), 9.5.dp.toPx()),
+                    strokeWidth = strokeWidth,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+                drawLine(
+                    color = Color.White,
+                    start = Offset(5.dp.toPx(), 9.5.dp.toPx()),
+                    end = Offset(10.dp.toPx(), 3.5.dp.toPx()),
+                    strokeWidth = strokeWidth,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
+        }
+    }
+}
+
 // FIX 2: Online dot
 // FIX 3: GB / GB and days left
 @Composable
@@ -258,15 +296,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    Modifier.size(18.dp).clip(RoundedCornerShape(6.dp))
-                        .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
-                        .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(6.dp))
-                        .clickable { onSelectToggle() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (selected) Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
+                CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { Text("📝", fontSize = 8.sp) }
@@ -313,15 +343,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.width(130.dp)) {
-                Box(
-                    Modifier.size(18.dp).clip(RoundedCornerShape(6.dp))
-                        .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
-                        .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(6.dp))
-                        .clickable { onSelectToggle() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (selected) Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
+                CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
@@ -393,15 +415,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 7.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(16.dp).clip(RoundedCornerShape(5.dp))
-                    .background(if (selected) theme.lamp.primary else Color.White.copy(0.12f))
-                    .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.35f)), RoundedCornerShape(5.dp))
-                    .clickable { onSelectToggle() },
-                contentAlignment = Alignment.Center
-            ) {
-                if (selected) Text("✓", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            }
+            CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Spacer(Modifier.width(6.dp))
             Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(onlineDot))
             Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.width(88.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
