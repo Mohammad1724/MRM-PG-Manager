@@ -10,6 +10,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -289,4 +291,57 @@ fun JellyGlassActionButton(text: String, onClick: () -> Unit, modifier: Modifier
 @Composable
 fun JellyGlassInputField(value: String, onValueChange: (String) -> Unit, label: String, leadingIcon: String, modifier: Modifier = Modifier, password: Boolean = false, keyboardType: KeyboardType = KeyboardType.Text) {
     UltraPremiumField(value = value, onValueChange = onValueChange, label = label, placeholder = label, leadingIcon = leadingIcon, isPassword = password, keyboardType = keyboardType, modifier = modifier)
+}
+
+@Composable
+fun BulkActionsBar(
+    selectedCount: Int,
+    onClear: () -> Unit,
+    onDelete: () -> Unit,
+    onResetUsage: () -> Unit,
+    onDisable: () -> Unit,
+    onEnable: () -> Unit,
+    onApplyTemplate: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (theme.isDark) Color(0xFF1E1E26).copy(alpha = 0.96f) else Color(0xFFFCF9F0).copy(alpha = 0.96f))
+            .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
+            .padding(10.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("⚡ عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.12f)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
+                    Text("× لغو انتخاب", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                }
+            }
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                BulkActionChip("🟢 فعال‌سازی", GlassGreen) { onEnable() }
+                BulkActionChip("⚪ غیرفعال‌سازی", Color(0xFF7A7886)) { onDisable() }
+                BulkActionChip("♻️ ریست حجم", theme.lamp.primary) { onResetUsage() }
+                BulkActionChip("📦 اعمال تمپلت", Color(0xFF8B5CF6)) { onApplyTemplate() }
+                BulkActionChip("🗑 حذف همه", GlassRed) { onDelete() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BulkActionChip(label: String, color: Color, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .height(30.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(color.copy(alpha = 0.14f))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.24f)), RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color)
+    }
 }
