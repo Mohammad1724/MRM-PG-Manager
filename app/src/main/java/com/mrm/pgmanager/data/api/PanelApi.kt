@@ -2,6 +2,8 @@ package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.PanelUser
+import com.mrm.pgmanager.data.model.PanelHost
+import com.mrm.pgmanager.data.model.PanelHostEditValues
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -194,4 +196,112 @@ object PanelApi {
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
     private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59Z"
+
+    private fun parseHost(obj: JSONObject): PanelHost {
+        val addressList = mutableListOf<String>()
+        val addressArr = obj.optJSONArray("address")
+        if (addressArr != null) {
+            for (i in 0 until addressArr.length()) addressList.add(addressArr.optString(i))
+        }
+
+        val sniList = mutableListOf<String>()
+        val sniArr = obj.optJSONArray("sni")
+        if (sniArr != null) {
+            for (i in 0 until sniArr.length()) sniList.add(sniArr.optString(i))
+        }
+
+        val hostList = mutableListOf<String>()
+        val hostArr = obj.optJSONArray("host")
+        if (hostArr != null) {
+            for (i in 0 until hostArr.length()) hostList.add(hostArr.optString(i))
+        }
+
+        val alpnList = mutableListOf<String>()
+        val alpnArr = obj.optJSONArray("alpn")
+        if (alpnArr != null) {
+            for (i in 0 until alpnArr.length()) alpnList.add(alpnArr.optString(i))
+        }
+
+        return PanelHost(
+            id = obj.optLong("id", 0L),
+            remark = obj.optString("remark", "بدون عنوان"),
+            address = addressList,
+            inboundTag = if (obj.isNull("inbound_tag")) "" else obj.optString("inbound_tag", ""),
+            port = if (obj.isNull("port")) null else obj.optInt("port").takeIf { it > 0 },
+            sni = sniList,
+            host = hostList,
+            path = if (obj.isNull("path")) null else obj.optString("path").takeIf { it.isNotBlank() && it != "null" },
+            security = obj.optString("security", "inbound_default"),
+            fingerprint = obj.optString("fingerprint", "none"),
+            alpn = alpnList,
+            allowInsecure = obj.optBoolean("allowinsecure", false),
+            isDisabled = obj.optBoolean("is_disabled", false),
+            priority = obj.optInt("priority", 1)
+        )
+    }
+
+    suspend fun hosts(session: Session): List<PanelHost> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/hosts").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<PanelHost>()
+                val arr = org.json.JSONArray(res.body?.string() ?: "[]")
+                List(arr.length()) { i -> parseHost(arr.getJSONObject(i)) }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun inbounds(session: Session): List<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<String>()
+                val arr = org.json.JSONArray(res.body?.string() ?: "[]")
+                List(arr.length()) { i -> arr.getString(i) }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun createHost(session: Session, values: PanelHostEditValues) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("remark", values.remark)
+            put("address", org.json.JSONArray(values.address))
+            if (values.inboundTag.isNotBlank()) put("inbound_tag", values.inboundTag) else put("inbound_tag", JSONObject.NULL)
+            if (values.port != null && values.port > 0) put("port", values.port) else put("port", JSONObject.NULL)
+            put("sni", org.json.JSONArray(values.sni))
+            put("host", org.json.JSONArray(values.host))
+            if (!values.path.isNullOrBlank()) put("path", values.path) else put("path", JSONObject.NULL)
+            put("security", values.security)
+            put("fingerprint", values.fingerprint)
+            put("alpn", org.json.JSONArray(values.alpn))
+            put("allowinsecure", values.allowInsecure)
+            put("is_disabled", values.isDisabled)
+            put("priority", values.priority)
+        }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/host/").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun modifyHost(session: Session, hostId: Long, values: PanelHostEditValues) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("remark", values.remark)
+            put("address", org.json.JSONArray(values.address))
+            if (values.inboundTag.isNotBlank()) put("inbound_tag", values.inboundTag) else put("inbound_tag", JSONObject.NULL)
+            if (values.port != null && values.port > 0) put("port", values.port) else put("port", JSONObject.NULL)
+            put("sni", org.json.JSONArray(values.sni))
+            put("host", org.json.JSONArray(values.host))
+            if (!values.path.isNullOrBlank()) put("path", values.path) else put("path", JSONObject.NULL)
+            put("security", values.security)
+            put("fingerprint", values.fingerprint)
+            put("alpn", org.json.JSONArray(values.alpn))
+            put("allowinsecure", values.allowInsecure)
+            put("is_disabled", values.isDisabled)
+            put("priority", values.priority)
+        }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/host/$hostId").put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun deleteHost(session: Session, hostId: Long) = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/host/$hostId").delete().build()
+        client.newCall(req).execute().use { res -> if (!res.isSuccessful) error("Delete host failed: ${res.code}") }
+    }
 }
