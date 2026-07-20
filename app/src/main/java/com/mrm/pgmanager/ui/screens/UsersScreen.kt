@@ -189,8 +189,8 @@ private fun StatsCardsRow(
 @Composable
 private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: com.mrm.pgmanager.data.model.UserSort, onSortChange: (com.mrm.pgmanager.data.model.UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, users: List<PanelUser>) {
     val theme = LocalThemeState.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             FilterChipItem("همه", currentFilter == UserFilter.ALL, onClick = { onFilterChange(UserFilter.ALL) })
             FilterChipItem("فعال", currentFilter == UserFilter.ACTIVE, onClick = { onFilterChange(UserFilter.ACTIVE) })
             FilterChipItem("لب مرز", currentFilter == UserFilter.NEAR_LIMIT, onClick = { onFilterChange(UserFilter.NEAR_LIMIT) })
@@ -198,15 +198,15 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             FilterChipItem("غیرفعال", currentFilter == UserFilter.DISABLED, onClick = { onFilterChange(UserFilter.DISABLED) })
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("مرتب:", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("مرتب:", fontSize = 8.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                 SortPill("نام", currentSort == com.mrm.pgmanager.data.model.UserSort.NAME) { onSortChange(com.mrm.pgmanager.data.model.UserSort.NAME) }
                 SortPill("مصرف", currentSort == com.mrm.pgmanager.data.model.UserSort.USAGE) { onSortChange(com.mrm.pgmanager.data.model.UserSort.USAGE) }
                 SortPill("انقضا", currentSort == com.mrm.pgmanager.data.model.UserSort.EXPIRY) { onSortChange(com.mrm.pgmanager.data.model.UserSort.EXPIRY) }
                 SortPill("ساخت", currentSort == com.mrm.pgmanager.data.model.UserSort.CREATED) { onSortChange(com.mrm.pgmanager.data.model.UserSort.CREATED) }
             }
-            Spacer(Modifier.width(6.dp))
-            Row(Modifier.clip(RoundedCornerShape(9.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(9.dp)).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Spacer(Modifier.width(4.dp))
+            Row(Modifier.clip(RoundedCornerShape(8.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                 ViewModeIcon("⊞", viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
                 ViewModeIcon("☰", viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
                 ViewModeIcon("≡", viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
@@ -218,24 +218,24 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) theme.lamp.primary else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 5.dp)) {
-        Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 10.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
 
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 7.dp, vertical = 3.5.dp)) {
-        Text(label, color = if (selected) theme.lamp.primary else theme.mutedColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
+        Text(label, color = if (selected) theme.lamp.primary else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(7.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 7.dp, vertical = 3.5.dp), contentAlignment = Alignment.Center) {
-        Text(icon, fontSize = 11.5.sp, color = if (selected) theme.lamp.primary else theme.mutedColor, fontWeight = FontWeight.Bold)
+    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
+        Text(icon, fontSize = 10.5.sp, color = if (selected) theme.lamp.primary else theme.mutedColor, fontWeight = FontWeight.Bold)
     }
 }
 
