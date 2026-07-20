@@ -52,14 +52,16 @@ import java.util.Locale
 @Composable
 fun ThemeEditorDialog(
     themeState: com.mrm.pgmanager.ui.theme.ThemeState,
+    isAppLockEnabled: Boolean = false,
     onDismiss: () -> Unit,
-    onThemeChange: (com.mrm.pgmanager.ui.theme.ThemeState) -> Unit
+    onThemeChange: (com.mrm.pgmanager.ui.theme.ThemeState) -> Unit,
+    onAppLockChange: (Boolean) -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("🎨 تم برنامه", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
+                Text("🎨 تم و امنیت برنامه", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     ModeToggleBtn("☀️ روشن", !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = false)) }
                     ModeToggleBtn("🌙 تیره", themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = true)) }
@@ -77,6 +79,30 @@ fun ThemeEditorDialog(
                                 Text(lamp.labelFa, color = theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
                                 if (sel) Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold)
                             }
+                        }
+                    }
+                }
+                Box(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(if (isAppLockEnabled) GlassGreen.copy(0.14f) else Color.White.copy(if (theme.isDark) 0.08f else 0.60f))
+                        .border(BorderStroke(1.2.dp, if (isAppLockEnabled) GlassGreen else Color.White.copy(0.24f)), RoundedCornerShape(14.dp))
+                        .clickable { onAppLockChange(!isAppLockEnabled) }
+                        .padding(12.dp)
+                ) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
+                            Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else theme.lamp.primary.copy(0.18f)), contentAlignment = Alignment.Center) {
+                                Text("👆", fontSize = 15.sp)
+                            }
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("🔒 قفل امنیتی برنامه", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                                Text("ورود با اثر انگشت یا پین/الگوی گوشی", fontSize = 9.5.sp, color = theme.mutedColor)
+                            }
+                        }
+                        Box(
+                            Modifier.clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else Color.Gray.copy(0.20f)).padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(if (isAppLockEnabled) "فعال ✓" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
                         }
                     }
                 }
