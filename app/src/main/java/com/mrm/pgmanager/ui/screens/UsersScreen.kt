@@ -278,16 +278,46 @@ private fun LuxuryCompactRow(user: PanelUser, onClick: () -> Unit, onQrClick: (P
                 Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(daysLeftFull(user.expire), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                if (user.subUrl.isNotEmpty()) {
-                    MiniGlassButton("📋") {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    MiniGlassButton("QR") { onQrClick(user) }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (user.subUrl.isNotBlank()) {
+                    // Copy button - smaller icon only
+                    Box(
+                        modifier = Modifier
+                            .height(22.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.10f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                                android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(horizontal = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    // QR button - smaller icon only
+                    Box(
+                        modifier = Modifier
+                            .height(22.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.10f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .clickable { onQrClick(user) }
+                            .padding(horizontal = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
-                MiniGlassButton("✏") { onClick() }
+                // Edit button - smaller
+                Box(
+                    modifier = Modifier
+                        .height(22.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color.White.copy(0.10f))
+                        .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                        .clickable { onClick() }
+                        .padding(horizontal = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("✏", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
             }
         }
     }
@@ -312,16 +342,46 @@ private fun LuxuryMicroRow(user: PanelUser, onClick: () -> Unit, onQrClick: (Pan
                 Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
             Spacer(Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                if (user.subUrl.isNotEmpty()) {
-                    MiniGlassButton("📋") {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "کپی", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    MiniGlassButton("QR") { onQrClick(user) }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (user.subUrl.isNotBlank()) {
+                    // Copy button - smaller icon only
+                    Box(
+                        modifier = Modifier
+                            .height(22.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.10f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                                android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(horizontal = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    // QR button - smaller icon only
+                    Box(
+                        modifier = Modifier
+                            .height(22.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.10f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .clickable { onQrClick(user) }
+                            .padding(horizontal = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
-                MiniGlassButton("✏") { onClick() }
+                // Edit button - smaller
+                Box(
+                    modifier = Modifier
+                        .height(22.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color.White.copy(0.10f))
+                        .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                        .clickable { onClick() }
+                        .padding(horizontal = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("✏", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
             }
         }
     }
