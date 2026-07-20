@@ -329,7 +329,25 @@ fun UserEditorDialog(
                 }
 
                 if (initial == null) {
-                    CompactGlassField(value = username, onValueChange = { username = it }, placeholder = "نام کاربری 3-32", leading = "👤")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            CompactGlassField(value = username, onValueChange = { username = it }, placeholder = "نام کاربری (۳ تا ۳۲ حرف/عدد)", leading = "👤")
+                        }
+                        Box(
+                            Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
+                                .background(theme.lamp.primary.copy(alpha = 0.16f))
+                                .border(BorderStroke(1.2.dp, theme.lamp.primary.copy(alpha = 0.35f)), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+                                    val prefix = listOf("user", "vip", "sub", "net", "pro").random()
+                                    val randomStr = (1..6).map { chars.random() }.joinToString("")
+                                    username = "${prefix}_$randomStr"
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("🔄", fontSize = 16.sp)
+                        }
+                    }
                 }
 
                 if (isTemplateMode && initial == null) {
@@ -364,7 +382,32 @@ fun UserEditorDialog(
                         }
                     }
 
-                    CompactGlassField(value = note, onValueChange = { note = it }, placeholder = "یادداشت اختیاری...", leading = "📝")
+                    // Full-width horizontal Note box for template mode
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text("📝", fontSize = 12.sp)
+                                    Text("توضیحات / یادداشت (Note):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                }
+                                Text("${note.length}/500", fontSize = 9.5.sp, color = theme.mutedColor)
+                            }
+                            Box(Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(8.dp)).padding(8.dp)) {
+                                if (note.isEmpty()) Text("یادداشت اختیاری برای این کاربر...", color = theme.mutedColor.copy(0.5f), fontSize = 11.sp)
+                                BasicTextField(
+                                    value = note,
+                                    onValueChange = { if (it.length <= 500) note = it },
+                                    textStyle = TextStyle(color = theme.inkColor, fontSize = 11.5.sp),
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
                 } else {
                     // Volume - SINGLE small opaque tile
                     Box(
@@ -447,37 +490,62 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // Note + HWID (userlimit) row - compact
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(
-                            Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
-                                .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("📝", fontSize = 10.sp)
-                                    Text("${note.length}/500", fontSize = 9.sp, color = theme.mutedColor)
-                                }
-                                Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(8.dp)).padding(6.dp)) {
-                                    if (note.isEmpty()) Text("یادداشت...", color = theme.mutedColor.copy(0.5f), fontSize = 10.sp)
-                                    BasicTextField(value = note, onValueChange = { if (it.length <= 500) note = it }, textStyle = TextStyle(color = theme.inkColor, fontSize = 11.sp), modifier = Modifier.fillMaxSize())
-                                }
+                    // Horizontal compact HWID (userlimit)
+                    var hwid by remember { mutableStateOf(hwidLimit) }
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("📱", fontSize = 13.sp)
+                                Text("محدودیت همزمان (userlimit):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            }
+                            Box(
+                                Modifier.width(110.dp).height(30.dp).clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(0.05f))
+                                    .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (hwid.isEmpty()) Text("∞ (نامحدود)", fontSize = 11.sp, color = theme.mutedColor.copy(0.7f))
+                                BasicTextField(
+                                    value = hwid,
+                                    onValueChange = { val clean = it.filter { c -> c.isDigit() }; hwid = clean; hwidLimit = clean },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = TextStyle(fontSize = 12.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
-                        Box(
-                            Modifier.width(92.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
-                                .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
-                        ) {
-                            var hwid by remember { mutableStateOf(hwidLimit) }
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("userlimit", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                                Box(
-                                    Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (hwid.isEmpty()) Text("∞", fontSize = 12.sp, color = theme.mutedColor.copy(0.6f))
-                                    BasicTextField(value = hwid, onValueChange = { hwid = it.filter { c -> c.isDigit() }; hwidLimit = hwid }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
+                    }
+
+                    // Full-width horizontal Note box
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text("📝", fontSize = 12.sp)
+                                    Text("توضیحات / یادداشت (Note):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 }
+                                Text("${note.length}/500", fontSize = 9.5.sp, color = theme.mutedColor)
+                            }
+                            Box(Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(8.dp)).padding(8.dp)) {
+                                if (note.isEmpty()) Text("یادداشت اختیاری برای این کاربر...", color = theme.mutedColor.copy(0.5f), fontSize = 11.sp)
+                                BasicTextField(
+                                    value = note,
+                                    onValueChange = { if (it.length <= 500) note = it },
+                                    textStyle = TextStyle(color = theme.inkColor, fontSize = 11.5.sp),
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             }
                         }
                     }
