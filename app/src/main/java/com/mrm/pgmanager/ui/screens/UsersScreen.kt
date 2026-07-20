@@ -65,8 +65,9 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-private fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.22f)
-private fun glassBorder(isDark: Boolean) = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.32f) else Color(0xFF6B7280).copy(alpha = 0.42f)
+import com.mrm.pgmanager.ui.theme.glassBg
+import com.mrm.pgmanager.ui.theme.glassBorder
+
 // Track more gray and visible
 private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26f) else Color(0xFF6B7280).copy(alpha = 0.28f)
 
