@@ -60,6 +60,9 @@ val GlassAmber = Color(0xFFD9822B)
 val GlassRed = Color(0xFFC93B3B)
 val GlassShape = RoundedCornerShape(24.dp)
 
+fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.22f)
+fun glassBorder(isDark: Boolean) = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.32f) else Color(0xFF6B7280).copy(alpha = 0.42f)
+
 @Composable
 fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     val colors = if (themeState.isDark) {
