@@ -146,7 +146,7 @@ fun HostEditorDialog(
 
                         Text("🔏 Fingerprint:", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            listOf("none", "chrome", "firefox", "safari", "ios", `android`, "edge", "random", "randomized").forEach { fp ->
+                            listOf("none", "chrome", "firefox", "safari", "ios", "android", "edge", "random", "randomized").forEach { fp ->
                                 val sel = fingerprint == fp
                                 Box(
                                     Modifier.height(26.dp).clip(RoundedCornerShape(7.dp))
