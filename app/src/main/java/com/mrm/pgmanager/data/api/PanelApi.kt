@@ -195,7 +195,7 @@ object PanelApi {
 
     suspend fun userTemplates(session: Session): List<UserTemplateItem> = withContext(Dispatchers.IO) {
         runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/user_template/s/simple").get().build()
+            val req = requestBuilder(session, "${session.baseUrl}/api/user_templates/simple").get().build()
             client.newCall(req).execute().use { res ->
                 if (res.isSuccessful) {
                     val obj = JSONObject(res.body?.string() ?: "{}")
@@ -208,7 +208,7 @@ object PanelApi {
                     }
                 }
             }
-            val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_template/s").get().build()
+            val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
             client.newCall(reqFull).execute().use { res ->
                 if (!res.isSuccessful) return@runCatching emptyList<UserTemplateItem>()
                 val arr = org.json.JSONArray(res.body?.string() ?: "[]")
@@ -239,22 +239,22 @@ object PanelApi {
 
     suspend fun bulkDeleteUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/delete").post(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/delete").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     suspend fun bulkResetUsersUsage(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/reset").post(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/reset").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     suspend fun bulkDisableUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/disable").post(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/disable").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     suspend fun bulkEnableUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/enable").post(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/enable").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
@@ -263,7 +263,7 @@ object PanelApi {
             put("user_template_id", templateId)
             if (note.isNotBlank()) put("note", note)
         }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/apply_template").post(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/apply_template").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
