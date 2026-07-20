@@ -359,12 +359,13 @@ private fun HostGridCard(host: PanelHost, onClick: () -> Unit, onToggle: () -> U
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f, fill = false)) {
                     Text(if (host.security == "tls") "🔒" else "🔓", fontSize = 13.sp)
-                    Text(host.remark, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(host.remark, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 }
+                Spacer(Modifier.width(6.dp))
                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)).padding(horizontal = 7.dp, vertical = 3.dp)) {
-                    Text(host.inboundTag.ifEmpty { "Default" }, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary)
+                    Text(host.inboundTag.ifEmpty { "Default" }, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -414,11 +415,11 @@ private fun HostCompactRow(host: PanelHost, onClick: () -> Unit, onToggle: () ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
                 Text(if (host.security == "tls") "🔒" else "🔓", fontSize = 13.sp)
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(host.remark, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(host.remark, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.lamp.primary.copy(0.14f)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                            Text(host.inboundTag.ifEmpty { "Default" }, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary)
+                            Text(host.inboundTag.ifEmpty { "Default" }, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     Text(host.address.joinToString(", ").ifEmpty { "تمام دامنه‌ها (*)" }, fontSize = 10.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
