@@ -341,33 +341,32 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.width(130.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.weight(1.1f)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
-            Column(Modifier.width(110.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.width(6.dp))
+            Column(Modifier.weight(1.3f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(daysLeftFull(user.expire), fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                }
+                Spacer(Modifier.height(3.dp))
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp)))
                 }
-                Spacer(Modifier.height(2.dp))
-                Text(if (user.dataLimit == 0L) "∞ ${daysLeftFull(user.expire)}" else "$progressPercent% • ${daysLeftFull(user.expire)}", fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.width(8.dp))
-            Column(Modifier.weight(1f)) {
-                Text("${formatBytes(user.usedTraffic)} / ${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(daysLeftFull(user.expire), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (user.subUrl.isNotBlank()) {
-                    // Copy button - smaller icon only
                     Box(
                         modifier = Modifier
-                            .height(22.dp)
+                            .height(24.dp)
                             .clip(RoundedCornerShape(7.dp))
-                            .background(Color.White.copy(0.10f))
-                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.12f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.16f)), RoundedCornerShape(7.dp))
                             .clickable {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
@@ -375,30 +374,18 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                             }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    // QR button - smaller icon only
+                    ) { Text("📋", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     Box(
                         modifier = Modifier
-                            .height(22.dp)
+                            .height(24.dp)
                             .clip(RoundedCornerShape(7.dp))
-                            .background(Color.White.copy(0.10f))
-                            .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                            .background(Color.White.copy(0.12f))
+                            .border(BorderStroke(0.8.dp, Color.White.copy(0.16f)), RoundedCornerShape(7.dp))
                             .clickable { onQrClick(user) }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    ) { Text("📱 QR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
-                // Edit button - smaller
-                Box(
-                    modifier = Modifier
-                        .height(22.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(Color.White.copy(0.10f))
-                        .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
-                        .clickable { onClick() }
-                        .padding(horizontal = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) { Text("✏", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
             }
         }
     }
@@ -425,9 +412,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
             Spacer(Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (user.subUrl.isNotBlank()) {
-                    // Copy button - smaller icon only
                     Box(
                         modifier = Modifier
                             .height(22.dp)
@@ -442,7 +428,6 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
                     ) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    // QR button - smaller icon only
                     Box(
                         modifier = Modifier
                             .height(22.dp)
@@ -454,17 +439,6 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                         contentAlignment = Alignment.Center
                     ) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
-                // Edit button - smaller
-                Box(
-                    modifier = Modifier
-                        .height(22.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(Color.White.copy(0.10f))
-                        .border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
-                        .clickable { onClick() }
-                        .padding(horizontal = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) { Text("✏", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
             }
         }
     }
