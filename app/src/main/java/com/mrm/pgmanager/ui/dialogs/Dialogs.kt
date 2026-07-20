@@ -228,7 +228,7 @@ private fun CompactGlassField(
     }
 }
 
-// === NEW JELLY GLASS USER EDITOR - v5.0 ===
+// === NEW JELLY GLASS USER EDITOR - v5.1 with groups & userlimit ===
 @Composable
 fun UserEditorDialog(
     initial: PanelUser?,
@@ -237,7 +237,8 @@ fun UserEditorDialog(
     onToggle: (() -> Unit)?,
     onDelete: (() -> Unit)?,
     onResetUsage: (() -> Unit)?,
-    onResetExpiry: (() -> Unit)?
+    onResetExpiry: (() -> Unit)?,
+    session: com.mrm.pgmanager.data.model.Session? = null
 ) {
     val theme = LocalThemeState.current
     var username by remember { mutableStateOf(initial?.username ?: "") }
@@ -245,12 +246,20 @@ fun UserEditorDialog(
     var expireShamsi by remember { mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "") }
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwidLimit by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
+    var selectedGroupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
+    var allGroups by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
     var formError by remember { mutableStateOf<String?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var showQr by remember { mutableStateOf(false) }
     var addDayInput by remember { mutableStateOf("") }
     var addGbInput by remember { mutableStateOf("") }
     val context = LocalContext.current
+
+    LaunchedEffect(session) {
+        if (session != null) {
+            allGroups = com.mrm.pgmanager.data.api.PanelApi.groups(session)
+        }
+    }
 
     fun addGb(amount: Double) {
         val current = limitGb.toDoubleOrNull() ?: 0.0
@@ -375,9 +384,8 @@ fun UserEditorDialog(
                     }
                 }
 
-                // Note + HWID limit row
+                // Note + HWID (userlimit) row - compact
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Note compact
                     Box(
                         Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
                             .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
@@ -393,22 +401,56 @@ fun UserEditorDialog(
                             }
                         }
                     }
-                    // HWID / QR limit - new
                     Box(
                         Modifier.width(92.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
                             .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
                     ) {
                         var hwid by remember { mutableStateOf(hwidLimit) }
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📱 حد دستگاه", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Text("userlimit", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                             Box(
                                 Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (hwid.isEmpty()) Text("نامحدود", fontSize = 10.sp, color = theme.mutedColor.copy(0.6f))
-                                BasicTextField(value = hwid, onValueChange = { hwid = it.filter { c -> c.isDigit() }; hwidLimit = hwid }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
+                                if (hwid.isEmpty()) Text("∞", fontSize = 12.sp, color = theme.mutedColor.copy(0.6f))
+                                BasicTextField(value = hwid, onValueChange = { hwid = it.filter { c -> c.isDigit() }; hwidLimit = hwid }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
                             }
-                            Text("QR Limit", fontSize = 8.sp, color = theme.mutedColor)
+                        }
+                    }
+                }
+
+                // Groups selection - new
+                Box(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
+                        .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp)).padding(10.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("👥 گروه‌ها", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Spacer(Modifier.weight(1f))
+                            if (allGroups.isEmpty()) Text("در حال بارگذاری...", fontSize = 9.sp, color = theme.mutedColor)
+                            else Text("${selectedGroupIds.size} انتخاب", fontSize = 9.sp, color = theme.mutedColor)
+                        }
+                        if (allGroups.isNotEmpty()) {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                allGroups.forEach { g ->
+                                    val sel = selectedGroupIds.contains(g.id)
+                                    Box(
+                                        Modifier.height(28.dp).clip(RoundedCornerShape(9.dp))
+                                            .background(if (sel) theme.lamp.primary else Color.Black.copy(0.04f))
+                                            .border(BorderStroke(1.dp, if (sel) theme.lamp.primary else Color.White.copy(0.14f)), RoundedCornerShape(9.dp))
+                                            .clickable {
+                                                selectedGroupIds = if (sel) selectedGroupIds - g.id else selectedGroupIds + g.id
+                                            }.padding(horizontal = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) { Text(g.name, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (sel) Color.White else theme.inkColor) }
+                                }
+                            }
+                        } else {
+                            Text("گروهی یافت نشد یا دسترسی ندارید - گروه‌ها از /api/groups/simple لود میشن", fontSize = 9.5.sp, color = theme.mutedColor, lineHeight = 13.sp)
+                        }
+                        if (initial?.groupNames?.isNotEmpty() == true) {
+                            Text("فعلی: ${initial.groupNames.joinToString()}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -465,7 +507,7 @@ fun UserEditorDialog(
                         val hwidInt = hwidLimit.toIntOrNull()
                         if (username.length !in 3..32 && initial == null) formError = "نام کاربری ۳-۳۲"
                         else if (lim == null || lim < 0) formError = "حجم نامعتبر"
-                        else onSave(UserEditorValues(username, lim, note, hwidInt), expireShamsi)
+                        else onSave(UserEditorValues(username, lim, note, hwidInt, selectedGroupIds), expireShamsi)
                     }, modifier = Modifier.weight(1f).height(40.dp))
                 }
             }
