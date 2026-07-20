@@ -37,6 +37,8 @@ import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserEditorValues
 import com.mrm.pgmanager.ui.components.*
+import com.mrm.pgmanager.ui.theme.GlassGreen
+import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.formatBytes
