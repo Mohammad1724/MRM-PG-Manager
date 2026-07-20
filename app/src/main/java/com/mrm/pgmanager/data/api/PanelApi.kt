@@ -2,6 +2,7 @@ package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.PanelUser
+import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -190,6 +191,79 @@ object PanelApi {
                 if (res.isSuccessful) JSONObject(res.body?.string() ?: "{}").optInt("online_users", 0) else 0
             }
         }.getOrDefault(0)
+    }
+
+    suspend fun userTemplates(session: Session): List<UserTemplateItem> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/user_template/s/simple").get().build()
+            client.newCall(req).execute().use { res ->
+                if (res.isSuccessful) {
+                    val obj = JSONObject(res.body?.string() ?: "{}")
+                    val arr = obj.optJSONArray("templates") ?: obj.optJSONArray("items")
+                    if (arr != null) {
+                        return@runCatching List(arr.length()) { i ->
+                            val t = arr.getJSONObject(i)
+                            UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
+                        }
+                    }
+                }
+            }
+            val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_template/s").get().build()
+            client.newCall(reqFull).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<UserTemplateItem>()
+                val arr = org.json.JSONArray(res.body?.string() ?: "[]")
+                List(arr.length()) { i ->
+                    val t = arr.getJSONObject(i)
+                    UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun createUserFromTemplate(session: Session, username: String, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("username", username)
+            put("user_template_id", templateId)
+            if (note.isNotBlank()) put("note", note)
+        }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/from_template").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun modifyUserFromTemplate(session: Session, username: String, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("user_template_id", templateId)
+            if (note.isNotBlank()) put("note", note)
+        }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/from_template/${URLEncoder.encode(username, "UTF-8")}").put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun bulkDeleteUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/delete").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun bulkResetUsersUsage(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/reset").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun bulkDisableUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/disable").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun bulkEnableUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/enable").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
+        val body = JSONObject().apply {
+            put("ids", org.json.JSONArray(userIds))
+            put("user_template_id", templateId)
+            if (note.isNotBlank()) put("note", note)
+        }
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/s/bulk/apply_template").post(body.toString().toRequestBody(jsonType)).build())
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
