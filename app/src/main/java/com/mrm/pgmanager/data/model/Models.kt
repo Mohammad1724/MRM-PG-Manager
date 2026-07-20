@@ -20,6 +20,7 @@ data class PanelUser(
 )
 
 data class Group(val id: Int, val name: String)
+data class UserTemplateItem(val id: Int, val name: String)
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
 enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
