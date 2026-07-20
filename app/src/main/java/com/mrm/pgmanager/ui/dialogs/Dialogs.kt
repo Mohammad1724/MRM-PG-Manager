@@ -307,7 +307,29 @@ fun UserEditorDialog(
                         Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         if (initial != null) Text("${formatBytes(initial.usedTraffic)} • ${initial.status}", fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // QR button for existing users with subscription
+                        initial?.let { user ->
+                            if (user.subUrl.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .height(32.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(theme.lamp.primary.copy(0.14f))
+                                        .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.20f)), RoundedCornerShape(10.dp))
+                                        .clickable { showQr = true }
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text("📱", fontSize = 13.sp)
+                                        Text("QR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary)
+                                    }
+                                }
+                            }
+                        }
+                        Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
+                    }
                 }
 
                 if (initial == null) {
