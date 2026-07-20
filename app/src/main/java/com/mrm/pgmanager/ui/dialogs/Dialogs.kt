@@ -48,6 +48,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.formatBytes
 import java.util.Locale
+import java.time.LocalDate
 
 @Composable
 fun ThemeEditorDialog(
@@ -305,8 +306,12 @@ fun UserEditorDialog(
         limitGb = if (newVal == 0.0) "" else "%.2f".format(Locale.US, newVal).trimEnd('0').trimEnd('.')
     }
     fun addDays(days: Int) {
-        val baseIso = if (initial?.expire != null && initial.expire != "0" && initial.expire != "null" && initial.expire.isNotBlank()) initial.expire else null
-        val newIso = JalaliCalendar.addDaysToIso(baseIso, days)
+        val currentIso = JalaliCalendar.shamsiToIso(expireShamsi)
+        val baseDate = if (currentIso.isBlank()) LocalDate.now()
+        else runCatching { LocalDate.parse(currentIso.take(10)) }.getOrDefault(LocalDate.now()).let {
+            if (it.isBefore(LocalDate.now())) LocalDate.now() else it
+        }
+        val newIso = baseDate.plusDays(days.toLong()).toString()
         expireShamsi = JalaliCalendar.isoToShamsi(newIso)
     }
 
