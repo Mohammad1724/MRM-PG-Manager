@@ -445,7 +445,14 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
 }
 
 @Composable
-fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, onThemeChange: (ThemeState) -> Unit) {
+fun UsersScreen(
+    session: Session,
+    onLogout: () -> Unit,
+    themeState: ThemeState,
+    onThemeChange: (ThemeState) -> Unit,
+    isAppLockEnabled: Boolean = false,
+    onAppLockChange: (Boolean) -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -710,7 +717,15 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
         )
     }
 
-    if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
+    if (showThemeDialog) {
+        ThemeEditorDialog(
+            themeState = themeState,
+            isAppLockEnabled = isAppLockEnabled,
+            onDismiss = { showThemeDialog = false },
+            onThemeChange = onThemeChange,
+            onAppLockChange = onAppLockChange
+        )
+    }
     selectedUser?.let { user ->
         UserEditorDialog(initial = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
             selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
