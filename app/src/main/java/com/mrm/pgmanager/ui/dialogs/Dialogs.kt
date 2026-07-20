@@ -305,9 +305,8 @@ fun UserEditorDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        if (initial != null) Text("${formatBytes(initial.usedTraffic)} • ${initial.status}", fontSize = 10.sp, color = theme.mutedColor)
+                        if (initial != null) Text(initial.status, fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
                 }
 
                 if (initial == null) {
@@ -321,9 +320,10 @@ fun UserEditorDialog(
                         .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("💾 ${if (limitGb.isBlank()) "نامحدود" else "$limitGb GB"}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                            if (initial != null) Text(formatBytes(initial.usedTraffic), fontSize = 10.sp, color = theme.mutedColor)
+                        if (initial != null) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Text("مصرف شده: ${formatBytes(initial.usedTraffic)}", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                            }
                         }
                         CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", leading = "💾", keyboardType = KeyboardType.Decimal)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -509,19 +509,22 @@ fun UserEditorDialog(
 
                 // Bottom actions - clean 2 rows
                 initial?.let { user ->
+                    val actionBg = if (theme.isDark) Color(0xFF2C2C34) else Color(0xFFE8E4DA)
+                    val actionBorder = if (theme.isDark) Color(0xFF7E7C88) else Color(0xFF88847A)
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(if (user.status == "disabled") GlassGreen.copy(0.12f) else Color.White.copy(0.08f)).border(BorderStroke(1.dp, if (user.status == "disabled") GlassGreen.copy(0.20f) else Color.White.copy(0.12f)), RoundedCornerShape(10.dp)).clickable { onToggle?.invoke() }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(if (user.status == "disabled") GlassGreen.copy(0.18f) else actionBg).border(BorderStroke(1.2.dp, if (user.status == "disabled") GlassGreen else actionBorder), RoundedCornerShape(10.dp)).clickable { onToggle?.invoke() }, contentAlignment = Alignment.Center) {
                             Text(if (user.status == "disabled") "🟢 فعال" else "⚪ غیرفعال", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (user.status == "disabled") GlassGreen else theme.inkColor)
                         }
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.08f)).border(BorderStroke(1.dp, GlassRed.copy(0.16f)), RoundedCornerShape(10.dp)).clickable { onDelete?.invoke() }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.08f)).border(BorderStroke(1.dp, GlassRed.copy(0.24f)), RoundedCornerShape(10.dp)).clickable { onDelete?.invoke() }, contentAlignment = Alignment.Center) {
                             Text("🗑 حذف", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(9.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
                             Text("♻️ ریست حجم", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
-                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(9.dp)).clickable { onResetExpiry?.invoke() }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable { onResetExpiry?.invoke() }, contentAlignment = Alignment.Center) {
                             Text("⏰ ریست زمان", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
                     }
