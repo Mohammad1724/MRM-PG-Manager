@@ -41,6 +41,8 @@ import com.mrm.pgmanager.data.model.UserEditorValues
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
+import com.mrm.pgmanager.ui.theme.GlassAmber
+import kotlin.math.roundToInt
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.formatBytes
@@ -321,8 +323,18 @@ fun UserEditorDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (initial != null) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                Text("مصرف شده: ${formatBytes(initial.usedTraffic)}", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                            val limitBytes = if (initial.dataLimit > 0L) initial.dataLimit else (limitGb.toDoubleOrNull() ?: 0.0) * 1073741824.0
+                            val progress = if (limitBytes > 0) (initial.usedTraffic.toDouble() / limitBytes).coerceIn(0.0, 1.0).toFloat() else 0f
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Text("مصرف شده: ${formatBytes(initial.usedTraffic)}", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
+                                    Text(if (limitBytes > 0) "${(progress * 100).roundToInt()}%" else "∞", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                }
+                                Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color.Black.copy(0.08f))) {
+                                    if (progress > 0f) {
+                                        Box(Modifier.fillMaxWidth(progress.coerceAtLeast(0.04f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(if (progress >= 0.9f) GlassRed else if (progress >= 0.72f) GlassAmber else theme.lamp.primary))
+                                    }
+                                }
                             }
                         }
                         CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", leading = "💾", keyboardType = KeyboardType.Decimal)
