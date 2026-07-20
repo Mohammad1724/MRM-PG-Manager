@@ -422,15 +422,15 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
     selectedUser?.let { user ->
         UserEditorDialog(initial = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
-            selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso) }
+            selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit) }
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
             runAction { PanelApi.resetUsage(session, user.username); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
         }, onResetExpiry = {
-            runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), ""); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
+            runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
         })
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso) }
+        createUser = false; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit) }
     }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null)
     deleteUser?.let { user ->
         val theme = LocalThemeState.current
