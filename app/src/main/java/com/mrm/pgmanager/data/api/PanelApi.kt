@@ -59,15 +59,18 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "") = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
+        if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "") = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
+        if (hwidLimit != null) body.put("hwid_limit", hwidLimit) else if (hwidLimit == null) { /* keep */ }
+        // allow disabling hwid limit by sending 0? panel expects null or 0 to disable, we send 0 if user cleared
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
@@ -105,7 +108,8 @@ object PanelApi {
         subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
         onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
         isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300),
-        note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" }
+        note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
+        hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 }
     )
 
     suspend fun onlineUserCount(session: Session): Int = withContext(Dispatchers.IO) {
