@@ -21,7 +21,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -187,8 +189,46 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
     }
 }
 
-// === NEW ULTRA PROFESSIONAL USER EDITOR - v4.0 ===
-// Glassy, single tile per volume/date, day input only for date box, clean bottom buttons
+// Small compact field for dialog - fixes half number issue
+@Composable
+private fun CompactGlassField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    keyboardType: KeyboardType = KeyboardType.Number,
+    leading: String = ""
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.92f))
+            .border(BorderStroke(1.dp, Color.White.copy(0.18f)), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            if (leading.isNotEmpty()) Text(leading, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+            Box(Modifier.weight(1f)) {
+                if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.55f), fontSize = 12.sp)
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (value.isNotEmpty()) Box(
+                Modifier.size(20.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.06f)).clickable { onValueChange("") },
+                contentAlignment = Alignment.Center
+            ) { Text("×", fontSize = 12.sp, color = theme.mutedColor) }
+        }
+    }
+}
+
+// === NEW JELLY GLASS USER EDITOR - v5.0 ===
 @Composable
 fun UserEditorDialog(
     initial: PanelUser?,
@@ -204,10 +244,11 @@ fun UserEditorDialog(
     var limitGb by remember { mutableStateOf(if (initial == null || initial.dataLimit == 0L) "" else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')) }
     var expireShamsi by remember { mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "") }
     var note by remember { mutableStateOf(initial?.note ?: "") }
+    var hwidLimit by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var formError by remember { mutableStateOf<String?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var showQr by remember { mutableStateOf(false) }
-    var addDayInput by remember { mutableStateOf("") } // only days, e.g., 10 or 20
+    var addDayInput by remember { mutableStateOf("") }
     var addGbInput by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -223,140 +264,163 @@ fun UserEditorDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        // Glassy dialog background - not solid, true glass like login
-        val glassBg = if (theme.isDark) Color(0xFF1E1E24).copy(0.88f) else Color.White.copy(0.76f)
+        // Jelly glass outer - with lamp glow behind
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp))
-                .background(glassBg)
-                .border(BorderStroke(1.dp, Color.White.copy(0.22f)), RoundedCornerShape(26.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            if (theme.isDark) Color(0xFF1E1E24).copy(0.94f) else Color.White.copy(0.92f),
+                            if (theme.isDark) Color(0xFF18181E).copy(0.92f) else Color(0xFFFFF7E6).copy(0.88f)
+                        )
+                    )
+                )
+                .border(BorderStroke(1.2.dp, Color.White.copy(0.42f)), RoundedCornerShape(26.dp))
+                .shadow(24.dp, RoundedCornerShape(26.dp), spotColor = theme.lamp.primary.copy(0.18f))
         ) {
-            Column(Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Header - small
+            // Lamp glow behind
+            Box(
+                Modifier.size(280.dp).align(Alignment.TopEnd).offset(x = 60.dp, y = (-60).dp)
+                    .background(Brush.radialGradient(listOf(theme.lamp.spotHigh.copy(0.42f), theme.lamp.spotLow.copy(0.18f), Color.Transparent)), RoundedCornerShape(200.dp))
+                    .blur(16.dp)
+            )
+            // Second glow bottom start
+            Box(
+                Modifier.size(200.dp).align(Alignment.BottomStart).offset(x = (-40).dp, y = 40.dp)
+                    .background(Brush.radialGradient(listOf(theme.lamp.light.copy(0.22f), Color.Transparent)), RoundedCornerShape(200.dp))
+                    .blur(20.dp)
+            )
+
+            Column(Modifier.fillMaxWidth().padding(14.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Header small
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        if (initial != null) Text("${formatBytes(initial.usedTraffic)} • ${initial.status}", fontSize = 10.5.sp, color = theme.mutedColor)
+                        Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        if (initial != null) Text("${formatBytes(initial.usedTraffic)} • ${initial.status}", fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.12f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 14.sp) }
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
                 }
 
                 if (initial == null) {
-                    UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "3-32 حرف", leadingIcon = "👤")
+                    CompactGlassField(value = username, onValueChange = { username = it }, placeholder = "نام کاربری 3-32", leading = "👤")
                 }
 
-                // === SINGLE VOLUME TILE ===
+                // Volume - SINGLE small opaque tile
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(if (theme.isDark) 0.06f else 0.38f))
-                        .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(16.dp)).padding(10.dp)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
+                        .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("💾 حجم: ${if (limitGb.isBlank()) "نامحدود" else "$limitGb GB"}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                            if (initial != null) Text("${formatBytes(initial.usedTraffic)} مصرف", fontSize = 10.sp, color = theme.mutedColor)
+                            Text("💾 ${if (limitGb.isBlank()) "نامحدود" else "$limitGb GB"}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                            if (initial != null) Text(formatBytes(initial.usedTraffic), fontSize = 10.sp, color = theme.mutedColor)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.weight(1f)) {
-                                UltraPremiumField(value = limitGb, onValueChange = { limitGb = it }, label = "", placeholder = "GB", leadingIcon = "💾", keyboardType = KeyboardType.Decimal)
+                        CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", leading = "💾", keyboardType = KeyboardType.Decimal)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            listOf(1.0, 5.0, 10.0, 20.0, 50.0).forEach { gb ->
+                                Box(
+                                    Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(8.dp))
+                                        .clickable { addGb(gb) }.padding(horizontal = 9.dp),
+                                    contentAlignment = Alignment.Center
+                                ) { Text("+${gb.toInt()}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                             }
-                            // GB quick add - small chips inside same tile
-                            Box(Modifier.horizontalScroll(rememberScrollState())) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    listOf(1.0, 5.0, 10.0, 20.0).forEach { gb ->
-                                        Box(
-                                            Modifier.height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp))
-                                                .clickable { addGb(gb) }.padding(horizontal = 9.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) { Text("+${gb.toInt()}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                                    }
-                                }
-                            }
-                        }
-                        // Custom GB input - small
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier.width(90.dp).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            // custom GB
+                            Box(Modifier.width(64.dp).height(26.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                                 if (addGbInput.isEmpty()) Text("+GB", fontSize = 9.sp, color = theme.mutedColor)
-                                BasicTextField(value = addGbInput, onValueChange = { addGbInput = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                BasicTextField(value = addGbInput, onValueChange = { addGbInput = it.filter { c -> c.isDigit() || c == '.' } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                             }
-                            if (addGbInput.isNotEmpty()) Box(Modifier.height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary).clickable {
-                                val v = addGbInput.toDoubleOrNull() ?: 0.0
-                                if (v > 0) { addGb(v); addGbInput = "" }
-                            }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("افزودن", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
-                            Spacer(Modifier.weight(1f))
+                            if (addGbInput.isNotEmpty()) Box(Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary).clickable {
+                                val v = addGbInput.toDoubleOrNull() ?: 0.0; if (v > 0) { addGb(v); addGbInput = "" }
+                            }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 10.sp) }
                         }
                     }
                 }
 
-                // === SINGLE DATE TILE - only days input, date via calendar ===
+                // Date - SINGLE small opaque tile - only days input
                 Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(if (theme.isDark) 0.06f else 0.38f))
-                        .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(16.dp)).padding(10.dp)
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
+                        .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("📅 انقضا: ${if (expireShamsi.isBlank()) "نامحدود" else expireShamsi}", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("📅 ${if (expireShamsi.isBlank()) "نامحدود" else expireShamsi}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Box(
-                                Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.18f)), RoundedCornerShape(8.dp))
+                                Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.18f)), RoundedCornerShape(8.dp))
                                     .clickable { showCalendar = true }, contentAlignment = Alignment.Center
-                            ) { Text("📅", fontSize = 14.sp) }
+                            ) { Text("📅", fontSize = 13.sp) }
                         }
-                        // Day input only - e.g., 10 or 20, not date string
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Box(
-                                Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp),
+                                Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
-                                if (addDayInput.isEmpty()) Text("فقط عدد روز مثلا ۱۰ یا ۲۰", fontSize = 11.sp, color = theme.mutedColor.copy(0.7f))
+                                if (addDayInput.isEmpty()) Text("فقط عدد روز مثلا 10", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
                                 BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                             }
-                            Box(
-                                Modifier.height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
-                                    val d = addDayInput.toIntOrNull() ?: 0
-                                    if (d > 0) { addDays(d); addDayInput = "" }
-                                }.padding(horizontal = 14.dp),
-                                contentAlignment = Alignment.Center
-                            ) { Text("+روز", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            Box(Modifier.height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
+                                val d = addDayInput.toIntOrNull() ?: 0; if (d > 0) { addDays(d); addDayInput = "" }
+                            }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                         }
-                        // Quick chips - small
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(7, 30, 60, 90, 180, 365).forEach { d ->
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            listOf(7, 30, 60, 90, 180).forEach { d ->
                                 Box(
-                                    Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp))
-                                        .clickable { addDays(d) }.padding(horizontal = 9.dp),
+                                    Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(7.dp))
+                                        .clickable { addDays(d) }.padding(horizontal = 8.dp),
                                     contentAlignment = Alignment.Center
-                                ) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                ) { Text("+$d", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                             }
                         }
-                        Text("برای تاریخ دقیق از تقویم 📅 استفاده کن", fontSize = 9.5.sp, color = theme.mutedColor.copy(0.7f))
                     }
                 }
 
-                // Note - compact
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(if (theme.isDark) 0.05f else 0.32f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(14.dp)).padding(10.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("📝 توضیحات", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Spacer(Modifier.weight(1f))
-                            Text("${note.length}/500", fontSize = 9.sp, color = theme.mutedColor)
+                // Note + HWID limit row
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Note compact
+                    Box(
+                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("📝", fontSize = 10.sp)
+                                Text("${note.length}/500", fontSize = 9.sp, color = theme.mutedColor)
+                            }
+                            Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(8.dp)).padding(6.dp)) {
+                                if (note.isEmpty()) Text("یادداشت...", color = theme.mutedColor.copy(0.5f), fontSize = 10.sp)
+                                BasicTextField(value = note, onValueChange = { if (it.length <= 500) note = it }, textStyle = TextStyle(color = theme.inkColor, fontSize = 11.sp), modifier = Modifier.fillMaxSize())
+                            }
                         }
-                        Box(Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(10.dp)).padding(8.dp)) {
-                            if (note.isEmpty()) Text("یادداشت...", color = theme.mutedColor.copy(0.5f), fontSize = 11.sp)
-                            BasicTextField(value = note, onValueChange = { if (it.length <= 500) note = it }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize())
+                    }
+                    // HWID / QR limit - new
+                    Box(
+                        Modifier.width(92.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
+                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(12.dp)).padding(8.dp)
+                    ) {
+                        var hwid by remember { mutableStateOf(hwidLimit) }
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("📱 حد دستگاه", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Box(
+                                Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (hwid.isEmpty()) Text("نامحدود", fontSize = 10.sp, color = theme.mutedColor.copy(0.6f))
+                                BasicTextField(value = hwid, onValueChange = { hwid = it.filter { c -> c.isDigit() }; hwidLimit = hwid }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
+                            }
+                            Text("QR Limit", fontSize = 8.sp, color = theme.mutedColor)
                         }
                     }
                 }
 
-                // Sub URL - compact
+                // Sub URL compact
                 initial?.let { user ->
                     if (user.subUrl.isNotEmpty()) {
-                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.05f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(12.dp)).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(user.subUrl, fontSize = 10.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(12.dp)).padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(user.subUrl, fontSize = 9.5.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                             MiniGlassButton("📋") {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
@@ -367,41 +431,42 @@ fun UserEditorDialog(
                     }
                 }
 
-                // Bottom actions - clean, no duplicate volume button
+                // Bottom actions - clean 2 rows
                 initial?.let { user ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(if (user.status == "disabled") GlassGreen.copy(0.14f) else Color.White.copy(0.08f)).border(BorderStroke(1.dp, if (user.status == "disabled") GlassGreen.copy(0.22f) else Color.White.copy(0.12f)), RoundedCornerShape(12.dp)).clickable { onToggle?.invoke() }, contentAlignment = Alignment.Center) {
-                            Text(if (user.status == "disabled") "🟢 فعال" else "⚪ غیرفعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.status == "disabled") GlassGreen else theme.inkColor)
+                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(if (user.status == "disabled") GlassGreen.copy(0.12f) else Color.White.copy(0.08f)).border(BorderStroke(1.dp, if (user.status == "disabled") GlassGreen.copy(0.20f) else Color.White.copy(0.12f)), RoundedCornerShape(10.dp)).clickable { onToggle?.invoke() }, contentAlignment = Alignment.Center) {
+                            Text(if (user.status == "disabled") "🟢 فعال" else "⚪ غیرفعال", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (user.status == "disabled") GlassGreen else theme.inkColor)
                         }
-                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(12.dp)).background(com.mrm.pgmanager.ui.theme.GlassRed.copy(0.10f)).border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.GlassRed.copy(0.18f)), RoundedCornerShape(12.dp)).clickable { onDelete?.invoke() }, contentAlignment = Alignment.Center) {
-                            Text("🗑 حذف", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = com.mrm.pgmanager.ui.theme.GlassRed)
+                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.08f)).border(BorderStroke(1.dp, GlassRed.copy(0.16f)), RoundedCornerShape(10.dp)).clickable { onDelete?.invoke() }, contentAlignment = Alignment.Center) {
+                            Text("🗑 حذف", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(10.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
-                            Text("♻️ ریست حجم", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(9.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
+                            Text("♻️ ریست حجم", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(10.dp)).clickable { onResetExpiry?.invoke() }, contentAlignment = Alignment.Center) {
-                            Text("⏰ ریست زمان", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(0.06f)).border(BorderStroke(1.dp, Color.White.copy(0.10f)), RoundedCornerShape(9.dp)).clickable { onResetExpiry?.invoke() }, contentAlignment = Alignment.Center) {
+                            Text("⏰ ریست زمان", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
                     }
                 }
 
                 formError?.let {
-                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(com.mrm.pgmanager.ui.theme.GlassRed.copy(0.08f)).border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.GlassRed.copy(0.18f)), RoundedCornerShape(10.dp)).padding(10.dp)) {
-                        Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp)
+                    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.08f)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(10.dp)).padding(8.dp)) {
+                        Text(it, color = GlassRed, fontSize = 11.sp)
                     }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(42.dp))
+                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(40.dp))
                     PrimarySaveButton("ذخیره", onClick = {
                         val clean = limitGb.replace(',', '.').trim()
                         val lim = if (clean.isBlank()) 0.0 else clean.toDoubleOrNull()
+                        val hwidInt = hwidLimit.toIntOrNull()
                         if (username.length !in 3..32 && initial == null) formError = "نام کاربری ۳-۳۲"
                         else if (lim == null || lim < 0) formError = "حجم نامعتبر"
-                        else onSave(UserEditorValues(username, lim, note), expireShamsi)
-                    }, modifier = Modifier.weight(1f).height(42.dp))
+                        else onSave(UserEditorValues(username, lim, note, hwidInt), expireShamsi)
+                    }, modifier = Modifier.weight(1f).height(40.dp))
                 }
             }
         }
