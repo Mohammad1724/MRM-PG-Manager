@@ -30,6 +30,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -437,10 +439,15 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
 
-    // Collapsing header state for the 4 top stat buttons/cards
+    // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val maxCollapsibleHeightDp = 168.dp
-    val headerHeight = remember(density) { with(density) { maxCollapsibleHeightDp.toPx() } }
+    val statsCardsHeightPx = remember { mutableStateOf(0f) }
+    val totalHeaderHeightPx = remember { mutableStateOf(0f) }
+
+    val fallbackStatsPx = remember(density) { with(density) { 164.dp.toPx() } }
+    val headerHeight = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else fallbackStatsPx
+    val fallbackTotalDp = 356.dp
+    val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
     val scrollOffset = remember { mutableStateOf(0f) }
 
     fun load() {
@@ -522,10 +529,6 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             }
         }
     }) { padding ->
-        val topBarPx = remember(density) { with(density) { 46.dp.toPx() } }
-        val searchBasePx = remember(density) { with(density) { (46.dp + maxCollapsibleHeightDp + 6.dp).toPx() } }
-        val searchAndFilterHeightPx = remember(density) { with(density) { 146.dp.toPx() } }
-
         Box(
             Modifier
                 .padding(padding)
@@ -533,81 +536,84 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 .nestedScroll(nestedScrollConnection)
         ) {
             // 1. Lists / Grid (Fixed outer Box size = 0 Remeasurements during scroll!)
+            // We use dynamic totalHeaderDp measured accurately on screen so there is ZERO empty gap above item #1!
             Box(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                 when {
-                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 90.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = 366.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + 6.dp, bottom = 90.dp)) { items(6) { SkeletonCard() } }
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = totalHeaderDp + 6.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
                             com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = 366.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = totalHeaderDp + 6.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 366.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + 6.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + 6.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + 6.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                     }
                 }
             }
 
-            // 2. Header Surface Backdrop: Solid sheet behind top bar, stat cards, search & filter bars.
-            // Prevents any scrolling user card below from overlapping or showing through semi-transparent glass bars!
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .offset {
-                        IntOffset(0, 0)
-                    }
-                    .height(with(density) {
-                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
-                        (searchBasePx + searchAndFilterHeightPx - current).toDp()
-                    })
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(if (themeState.isDark) Color(0xFF141418).copy(alpha = 0.98f) else Color(0xFFFAF5EC).copy(alpha = 0.98f))
-                    .border(BorderStroke(1.2.dp, glassBorder(themeState.isDark)), RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-            )
-
-            // 3. The 4 Stat Cards: Smoothly moves up and fades out via offset/graphicsLayer (No measure triggers!)
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .offset {
-                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
-                        IntOffset(0, (topBarPx - current * 0.45f).roundToInt())
-                    }
-                    .graphicsLayer {
-                        val progress = if (headerHeight > 0f) (scrollOffset.value / headerHeight).coerceIn(0f, 1f) else 0f
-                        this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
-                    }
-            ) {
-                StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed)
-            }
-
-            // 4. Search Bar + Filter Bar: Slides up smoothly above the grid via offset (No measure triggers!)
+            // 2. Dynamic Header Column: Automatically arranges TopBar, StatsCards, SearchBar & FilterBar
+            // Measures exact heights so there are zero gaps, zero overlaps with TopBar, and zero showing-through of user cards!
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .offset {
-                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
-                        IntOffset(0, (searchBasePx - current).roundToInt())
+                    .onGloballyPositioned { coords ->
+                        if (scrollOffset.value == 0f && coords.size.height > 0) {
+                            if (totalHeaderHeightPx.value != coords.size.height.toFloat()) {
+                                totalHeaderHeightPx.value = coords.size.height.toFloat()
+                            }
+                        }
                     }
+                    .clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))
+                    .background(if (themeState.isDark) Color(0xFF141418).copy(alpha = 0.98f) else Color(0xFFFAF5EC).copy(alpha = 0.98f))
+                    .border(BorderStroke(1.2.dp, glassBorder(themeState.isDark)), RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp)
             ) {
+                // Top Bar: Fixed right at the top
+                TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
+
+                // The 4 Stat Cards: Smoothly collapses upwards via custom layout/placement without triggering Measure on grid!
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { coords ->
+                            if (scrollOffset.value == 0f && coords.size.height > 0) {
+                                if (statsCardsHeightPx.value != coords.size.height.toFloat()) {
+                                    statsCardsHeightPx.value = coords.size.height.toFloat()
+                                }
+                            }
+                        }
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else placeable.height.toFloat()
+                            val progress = if (maxH > 0f) (scrollOffset.value / maxH).coerceIn(0f, 1f) else 0f
+                            val currentH = (placeable.height * (1f - progress)).roundToInt().coerceAtLeast(0)
+                            layout(placeable.width, currentH) {
+                                placeable.placeRelative(0, (-progress * placeable.height * 0.38f).roundToInt())
+                            }
+                        }
+                        .graphicsLayer {
+                            val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else 1f
+                            val progress = (scrollOffset.value / maxH).coerceIn(0f, 1f)
+                            this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
+                        }
+                ) {
+                    StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed)
+                }
+
+                Spacer(Modifier.height(8.dp))
                 GlassSearchBar(query = query, onQueryChange = { query = it })
                 Spacer(Modifier.height(12.dp))
                 FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
-            }
-
-            // 5. Top Bar Header: Fixed right at the top above everything else
-            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
             }
         }
     }
