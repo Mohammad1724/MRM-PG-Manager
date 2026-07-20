@@ -53,7 +53,8 @@ import androidx.compose.ui.focus.onFocusChanged
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
     val context = LocalContext.current
     val resId = remember(context) {
-        var id = context.resources.getIdentifier("logo_mrm", "drawable", context.packageName)
+        var id = context.resources.getIdentifier("ic_launcher", "drawable", context.packageName)
+        if (id == 0) id = context.resources.getIdentifier("logo_mrm", "drawable", context.packageName)
         if (id == 0) id = context.resources.getIdentifier("file_000000003f2481f8aa2cab3dfb1ff5a1", "drawable", context.packageName)
         id
     }
