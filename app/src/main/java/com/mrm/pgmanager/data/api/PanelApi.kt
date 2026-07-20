@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.data.api
 
+import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.Dispatchers
@@ -59,18 +60,19 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList()) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
+        if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
-        if (hwidLimit != null) body.put("hwid_limit", hwidLimit) else if (hwidLimit == null) { /* keep */ }
-        // allow disabling hwid limit by sending 0? panel expects null or 0 to disable, we send 0 if user cleared
+        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
+        if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
@@ -97,20 +99,60 @@ object PanelApi {
         }
     }
 
-    private fun parseUser(user: JSONObject) = PanelUser(
-        id = user.optLong("id", 0L),
-        username = user.getString("username"),
-        status = user.optString("status", "unknown"),
-        usedTraffic = user.optLong("used_traffic", 0),
-        dataLimit = user.optLong("data_limit", 0),
-        expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
-        createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
-        subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
-        onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
-        isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300),
-        note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
-        hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 }
-    )
+    private fun parseUser(user: JSONObject): PanelUser {
+        val groupIds = mutableListOf<Int>()
+        val groupNames = mutableListOf<String>()
+        if (!user.isNull("group_ids")) {
+            val arr = user.optJSONArray("group_ids")
+            if (arr != null) for (i in 0 until arr.length()) groupIds.add(arr.optInt(i))
+        }
+        if (!user.isNull("group_names")) {
+            val arr = user.optJSONArray("group_names")
+            if (arr != null) for (i in 0 until arr.length()) groupNames.add(arr.optString(i))
+        }
+        // fallback: groups array of objects
+        if (groupIds.isEmpty() && !user.isNull("groups")) {
+            val arr = user.optJSONArray("groups")
+            if (arr != null) for (i in 0 until arr.length()) {
+                val g = arr.optJSONObject(i)
+                if (g != null) {
+                    groupIds.add(g.optInt("id"))
+                    groupNames.add(g.optString("name"))
+                }
+            }
+        }
+        return PanelUser(
+            id = user.optLong("id", 0L),
+            username = user.getString("username"),
+            status = user.optString("status", "unknown"),
+            usedTraffic = user.optLong("used_traffic", 0),
+            dataLimit = user.optLong("data_limit", 0),
+            expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
+            createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
+            subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
+            onlineAt = if (user.isNull("online_at")) null else user.optString("online_at").takeIf { it != "null" },
+            isOnline = user.optBoolean("online", false) || (user.optLong("online_at", 0L) > System.currentTimeMillis() / 1000 - 300),
+            note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
+            hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 },
+            groupIds = groupIds,
+            groupNames = groupNames
+        )
+    }
+
+    suspend fun groups(session: Session): List<Group> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/groups/simple?limit=200").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<Group>()
+                val obj = JSONObject(res.body?.string() ?: "{}")
+                val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching emptyList<Group>()
+                List(arr.length()) { i ->
+                    val g = arr.getJSONObject(i)
+                    Group(id = g.optInt("id"), name = g.optString("name"))
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
 
     suspend fun onlineUserCount(session: Session): Int = withContext(Dispatchers.IO) {
         runCatching {
