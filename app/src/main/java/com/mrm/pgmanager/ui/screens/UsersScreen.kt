@@ -54,9 +54,9 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 private fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.22f)
-private fun glassBorder(isDark: Boolean) = Color.White.copy(alpha = if (isDark) 0.12f else 0.28f)
-// FIX: Track more gray and visible - 30% gray instead of 12% white
-private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.24f) else Color(0xFF8A8A8A).copy(alpha = 0.28f)
+private fun glassBorder(isDark: Boolean) = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.32f) else Color(0xFF6B7280).copy(alpha = 0.42f)
+// Track more gray and visible
+private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26f) else Color(0xFF6B7280).copy(alpha = 0.28f)
 
 private fun daysLeftText(expire: String?): String {
     if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
