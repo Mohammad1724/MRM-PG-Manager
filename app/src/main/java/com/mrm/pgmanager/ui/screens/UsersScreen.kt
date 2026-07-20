@@ -10,7 +10,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.rememberNestedScrollConnection
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -480,16 +480,16 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     val totalUsed = remember(users) { users.sumOf { it.usedTraffic } }
 
     // NestedScrollConnection to track scroll offset for collapsing header (works for ALL view modes)
-    val nestedScrollConnection = rememberNestedScrollConnection(
-        onPostScroll = { consumed, available ->
-            // consumed is the amount consumed by children (the list), available is what's left
-            // We want to track the total scroll from the Column
-            val delta = consumed.y
-            val newOffset = (scrollOffset.value + delta.toFloat()).coerceIn(0f, headerHeight)
-            scrollOffset.value = newOffset
-            consumed
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(consumed: androidx.compose.ui.unit.Velocity, available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                val delta = consumed.y
+                val newOffset = (scrollOffset.value + delta.toFloat()).coerceIn(0f, headerHeight)
+                scrollOffset.value = newOffset
+                return consumed
+            }
         }
-    )
+    }
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         Box(modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
