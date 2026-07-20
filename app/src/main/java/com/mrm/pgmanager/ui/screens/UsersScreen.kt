@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.PanelUser
@@ -123,67 +125,54 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 }
 
 @Composable
-private fun CollapsingStatsHeader(
-    totalUsers: Int,
-    activeUsers: Int,
-    onlineUsers: Int,
-    totalUsedTraffic: Long,
+private fun TopBarHeader(
     onRefresh: () -> Unit,
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
-    loading: Boolean,
-    scrollOffset: Float, // positive when scrolled down
-    headerHeight: Float
+    loading: Boolean
 ) {
     val theme = LocalThemeState.current
-    val maxStatsHeightDp = 144.dp
-    // Calculate progress: 0 = fully visible (expanded), 1 = fully collapsed
-    val collapseProgress = if (headerHeight > 0f) (scrollOffset / headerHeight).coerceIn(0f, 1f) else 0f
-    val currentStatsHeight = maxStatsHeightDp * (1f - collapseProgress)
-    val statsAlpha = (1f - collapseProgress * 1.25f).coerceIn(0f, 1f)
-    val statsTranslationY = -collapseProgress * 40f
-
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
             .padding(top = 10.dp, bottom = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(if (collapseProgress < 0.98f) (12f * (1f - collapseProgress)).dp else 0.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                AppLogo(height = 26.dp)
-                Column {
-                    Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
-                    Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
-                ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
-                ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            AppLogo(height = 26.dp)
+            Column {
+                Text("Pasarguard", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
+                Text("MRM Manager", fontSize = 11.sp, color = theme.mutedColor)
             }
         }
-        if (currentStatsHeight > 0.5.dp) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .height(currentStatsHeight)
-                    .clipToBounds()
-                    .graphicsLayer {
-                        this.alpha = statsAlpha
-                        this.translationY = statsTranslationY
-                    },
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
-                    StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
-                    StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
-                }
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            ActionIconButton(icon = { Text("🎨", fontSize = 16.sp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(16.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 15.sp) }, onClick = onRefresh, enabled = !loading)
+            ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
+        }
+    }
+}
+
+@Composable
+private fun StatsCardsRow(
+    totalUsers: Int,
+    activeUsers: Int,
+    onlineUsers: Int,
+    totalUsedTraffic: Long
+) {
+    val theme = LocalThemeState.current
+    Column(
+        Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
+            StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
         }
     }
 }
@@ -533,57 +522,74 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
             }
         }
     }) { padding ->
-        Column(
+        val topBarPx = remember(density) { with(density) { 48.dp.toPx() } }
+        val searchBasePx = remember(density) { with(density) { (48.dp + maxCollapsibleHeightDp + 8.dp).toPx() } }
+
+        Box(
             Modifier
                 .padding(padding)
-                .padding(horizontal = 16.dp)
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
         ) {
-            // Animate scrollOffset for smooth collapse/expand
-            val animatedScrollOffset by animateFloatAsState(
-                targetValue = scrollOffset.value,
-                animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = Spring.DampingRatioNoBouncy),
-                label = "headerScroll"
-            )
+            // 1. Lists / Grid (Fixed outer Box size = 0 Remeasurements during scroll!)
+            Box(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                when {
+                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 90.dp)) { items(6) { SkeletonCard() } }
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = 342.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
+                            Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
+                            com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = 342.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
+                        }
+                    }
+                    else -> when (viewMode) {
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 342.dp, bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                    }
+                }
+            }
 
-            // Collapsing Stats Header
-            CollapsingStatsHeader(
-                totalUsers = users.size,
-                activeUsers = users.count { it.status == "active" },
-                onlineUsers = onlineCount,
-                totalUsedTraffic = totalUsed,
-                onRefresh = { load() },
-                onLogout = onLogout,
-                onOpenThemeDialog = { showThemeDialog = true },
-                loading = loading,
-                scrollOffset = animatedScrollOffset,
-                headerHeight = headerHeight
-            )
-            Spacer(Modifier.height(8.dp))
-            GlassSearchBar(query = query, onQueryChange = { query = it })
-            Spacer(Modifier.height(12.dp))
-            FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
-            Spacer(Modifier.height(14.dp))
-            when {
-                loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 90.dp)) { items(6) { SkeletonCard() } }
-                error != null -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
-                        Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                        com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
+            // 2. The 4 Stat Cards: Smoothly moves up and fades out via offset/graphicsLayer (No measure triggers!)
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .offset {
+                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
+                        IntOffset(0, (topBarPx - current * 0.45f).roundToInt())
                     }
-                }
-                processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(36.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
+                    .graphicsLayer {
+                        val progress = if (headerHeight > 0f) (scrollOffset.value / headerHeight).coerceIn(0f, 1f) else 0f
+                        this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
                     }
-                }
-                else -> when (viewMode) {
-                    ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                    ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                    ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 100.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                }
+            ) {
+                StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed)
+            }
+
+            // 3. Search Bar + Filter Bar: Slides up smoothly above the grid via offset (No measure triggers!)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .offset {
+                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
+                        IntOffset(0, (searchBasePx - current).roundToInt())
+                    }
+            ) {
+                GlassSearchBar(query = query, onQueryChange = { query = it })
+                Spacer(Modifier.height(12.dp))
+                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
+            }
+
+            // 4. Top Bar Header: Fixed right at the top above everything else
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
             }
         }
     }
