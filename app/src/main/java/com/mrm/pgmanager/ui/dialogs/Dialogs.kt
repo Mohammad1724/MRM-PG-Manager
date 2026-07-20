@@ -307,29 +307,7 @@ fun UserEditorDialog(
                         Text(if (initial == null) "کاربر جدید" else initial.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         if (initial != null) Text("${formatBytes(initial.usedTraffic)} • ${initial.status}", fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        // QR button for existing users with subscription
-                        initial?.let { user ->
-                            if (user.subUrl.isNotBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .height(32.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(theme.lamp.primary.copy(0.14f))
-                                        .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.20f)), RoundedCornerShape(10.dp))
-                                        .clickable { showQr = true }
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("📱", fontSize = 13.sp)
-                                        Text("QR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary)
-                                    }
-                                }
-                            }
-                        }
-                        Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
-                    }
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.14f)), contentAlignment = Alignment.Center) { Text(if (initial == null) "🆕" else "👤", fontSize = 13.sp) }
                 }
 
                 if (initial == null) {
@@ -481,7 +459,7 @@ fun UserEditorDialog(
                 initial?.let { user ->
                     if (user.subUrl.isNotBlank()) {
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.5.dp, Color.White.copy(0.25f)), RoundedCornerShape(12.dp)).padding(8.dp),
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.08f)).border(BorderStroke(1.5.dp, Color.White.copy(0.35f)), RoundedCornerShape(12.dp)).padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(user.subUrl, fontSize = 9.5.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -490,8 +468,8 @@ fun UserEditorDialog(
                                 modifier = Modifier
                                     .height(28.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White.copy(0.12f))
-                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.15f))
+                                    .border(BorderStroke(1.5.dp, Color.White.copy(0.55f)), RoundedCornerShape(8.dp))
                                     .clickable {
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
@@ -505,8 +483,8 @@ fun UserEditorDialog(
                                 modifier = Modifier
                                     .height(28.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White.copy(0.12f))
-                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.15f))
+                                    .border(BorderStroke(1.5.dp, Color.White.copy(0.55f)), RoundedCornerShape(8.dp))
                                     .clickable { showQr = true }
                                     .padding(horizontal = 10.dp),
                                 contentAlignment = Alignment.Center
@@ -516,8 +494,8 @@ fun UserEditorDialog(
                                 modifier = Modifier
                                     .height(28.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White.copy(0.12f))
-                                    .border(BorderStroke(1.2.dp, Color.White.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .background(Color.White.copy(0.15f))
+                                    .border(BorderStroke(1.5.dp, Color.White.copy(0.55f)), RoundedCornerShape(8.dp))
                                     .clickable {
                                         val i = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, user.subUrl) }
                                         context.startActivity(Intent.createChooser(i, "اشتراک اشتراک"))
