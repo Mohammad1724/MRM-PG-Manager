@@ -438,9 +438,9 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
 
-    // Collapsing header state - track scroll via NestedScrollConnection on the whole Column
+    // Collapsing header state
     val scrollOffset = remember { mutableStateOf(0f) }
-    val headerHeight = 220f // approximate height of header in dp (logo + stats cards + search + filter bar)
+    val headerHeight = 220f // logo + stats + search + filter bar
 
     fun load() {
         scope.launch {
@@ -481,11 +481,13 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
 
     val totalUsed = remember(users) { users.sumOf { it.usedTraffic } }
 
-    // NestedScrollConnection to track scroll offset for collapsing header (works for ALL view modes)
+    // NestedScrollConnection - track scroll for collapsing header
+    // consumed.y is NEGATIVE when scrolling DOWN (content moves up)
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                val delta = consumed.y
+                // consumed.y is negative when scrolling down -> we want offset to INCREASE
+                val delta = -consumed.y  // invert: down scroll = positive delta
                 val newOffset = (scrollOffset.value + delta).coerceIn(0f, headerHeight)
                 scrollOffset.value = newOffset
                 return consumed
@@ -509,12 +511,12 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
                 .nestedScroll(nestedScrollConnection)
         ) {
             // Animate scrollOffset for smooth collapse/expand
-    val animatedScrollOffset by animateFloatAsState(
-        targetValue = scrollOffset.value,
-        animationSpec = tween(200, easing = FastOutSlowInEasing)
-    )
+            val animatedScrollOffset by animateFloatAsState(
+                targetValue = scrollOffset.value,
+                animationSpec = tween(200, easing = FastOutSlowInEasing)
+            )
 
-    // Collapsing Stats Header
+            // Collapsing Stats Header
             CollapsingStatsHeader(
                 totalUsers = users.size,
                 activeUsers = users.count { it.status == "active" },
