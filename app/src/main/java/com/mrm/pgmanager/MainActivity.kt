@@ -3,17 +3,6 @@ package com.mrm.pgmanager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.*
-import com.mrm.pgmanager.data.storage.SessionStore
-import com.mrm.pgmanager.ui.screens.LoginScreen
-import com.mrm.pgmanager.ui.screens.UsersScreen
-import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
-
-package com.mrm.pgmanager
-
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
