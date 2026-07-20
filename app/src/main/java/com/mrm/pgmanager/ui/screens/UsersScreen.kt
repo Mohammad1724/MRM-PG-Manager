@@ -528,7 +528,7 @@ fun UsersScreen(session: Session, onLogout: () -> Unit, themeState: ThemeState, 
     }
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
-        Box(modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.padding(bottom = 66.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("+", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text("کاربر جدید", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
