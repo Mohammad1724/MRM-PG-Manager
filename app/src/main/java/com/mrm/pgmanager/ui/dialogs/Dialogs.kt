@@ -87,7 +87,7 @@ fun ConfirmActionDialog(
 fun QuickActionSheet(
     user: PanelUser,
     onDismiss: () -> Unit,
-    onRenew: (Int) -> Unit,
+    onUseTemplate: () -> Unit,
     onToggle: () -> Unit,
     onCopySub: () -> Unit,
     onQr: () -> Unit,
@@ -102,12 +102,7 @@ fun QuickActionSheet(
                     Text("⚡ ${user.username}", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(user.status, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                 }
-                Text("⏳ تمدید سریع", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(7, 30, 90).forEach { d ->
-                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(10.dp)).clickable { onRenew(d); onDismiss() }, contentAlignment = Alignment.Center) { Text("+$d روز", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
-                    }
-                }
+                QuickActionRow("📦", "استفاده از تمپلت (تمدید)", theme.lamp.primary) { onUseTemplate(); onDismiss() }
                 QuickActionRow(if (user.status == "disabled") "🟢" else "⚪", if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor) { onToggle(); onDismiss() }
                 QuickActionRow("📋", "کپی ساب‌لینک", theme.inkColor) { onCopySub(); onDismiss() }
                 QuickActionRow("📱", "نمایش QR", theme.inkColor) { onQr(); onDismiss() }
