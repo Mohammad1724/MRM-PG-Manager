@@ -28,12 +28,18 @@ object PanelApi {
         val prepared = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
         val uri = URI(prepared)
         require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
-        // مسیر (subpath) رو هم حفظ می‌کنیم تا پنل‌هایی که روی مثلاً /panel هستن هم کار کنن
-        val path = uri.rawPath?.trimEnd('/').orEmpty()
+        // مسیر رو به‌طور پیش‌فرض حذف می‌کنیم (کاربر معمولاً آدرسِ داشبورد/کامل وارد می‌کند و این از 405 جلوگیری می‌کند).
+        // فقط اگر آدرسِ کاملِ API (دارای /api) داده شده باشد، پیشوندِ قبل از /api را نگه می‌داریم (پشتیبانی از subpath).
+        val rawPath = uri.rawPath.orEmpty()
+        val basePath = when {
+            rawPath.contains("/api/") -> rawPath.substring(0, rawPath.indexOf("/api/")).trimEnd('/')
+            rawPath.endsWith("/api") -> rawPath.substring(0, rawPath.length - 4).trimEnd('/')
+            else -> ""
+        }
         return buildString {
             append(uri.scheme); append("://"); append(uri.host)
             if (uri.port != -1) append(":${uri.port}")
-            if (path.isNotEmpty()) append(path)
+            if (basePath.isNotEmpty()) append(basePath)
         }
     }
 
