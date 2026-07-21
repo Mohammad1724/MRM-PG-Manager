@@ -80,12 +80,14 @@ import com.mrm.pgmanager.ui.theme.glassBorder
 /** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
 private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit)
 
-/** تاریخِ میلادیِ انقضای جدید پس از افزودنِ «days» روز (با احتسابِ کاربرِ منقضی/نامحدود). */
-private fun renewIso(expire: String?, days: Int): String {
-    val today = java.time.LocalDate.now()
-    val base = runCatching { java.time.LocalDate.parse(expire?.take(10)) }.getOrNull()
-        ?.let { if (it.isBefore(today)) today else it } ?: today
-    return base.plusDays(days.toLong()).toString()
+/** مدتِ پلنِ کاربر (روز) از رویِ created_at تا expire.
+ *  پنل پلنِ قبلیِ کاربر را ذخیره نمی‌کند؛ این تخمین برای دورهٔ اولِ اشتراک دقیق است. */
+private fun planDurationDays(u: PanelUser): Int {
+    return runCatching {
+        val created = java.time.LocalDate.parse(u.createdAt?.take(10))
+        val expire = java.time.LocalDate.parse(u.expire?.take(10))
+        java.time.temporal.ChronoUnit.DAYS.between(created, expire).toInt()
+    }.getOrNull()?.let { if (it in 1..365) it else null } ?: 30
 }
 
 // Track more gray and visible
@@ -550,10 +552,11 @@ fun UsersScreen(
             }.onSuccess { load() }
         }
     }
-    // تمدید = ریستِ مصرف (حجمِ تازه) + تنظیمِ زمانِ تازه (دورهٔ پلن).
-    // پنل پلنِ قبلیِ کاربر را ذخیره نمی‌کند، پس مدت‌زمان را ادمین تعیین می‌کند (پیش‌فرض ۳۰ روز).
-    fun renewUser(u: PanelUser, days: Int) {
-        val iso = renewIso(u.expire, days)
+    // تمدید = ریستِ مصرف (حجمِ تازه) + شروعِ دورهٔ تازه از «همین الان».
+    // مدت‌زمان: اگر days داده شد همان؛ وگرنه از مدتِ پلنِ کاربر (created_at→expire) گرفته می‌شود.
+    fun renewUser(u: PanelUser, days: Int?) {
+        val d = days ?: planDurationDays(u)
+        val iso = java.time.LocalDate.now().plusDays(d.toLong()).toString()
         runAction {
             PanelApi.resetUsage(session, u.username)
             PanelApi.modifyUser(session, u.username, (u.dataLimit.toDouble() / 1073741824.0), iso, "", null, null)
@@ -662,9 +665,9 @@ fun UsersScreen(
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
                     }
                 }
             }
