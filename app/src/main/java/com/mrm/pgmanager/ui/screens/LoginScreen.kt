@@ -142,9 +142,9 @@ fun LoginScreen(
                             Text("🔒", fontSize = 11.sp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 7.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text("🔐 HTTPS", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            Text("🔐 HTTPS", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -176,7 +176,7 @@ fun LoginScreen(
                         .border(BorderStroke(1.5.dp, theme.lamp.primary.copy(0.4f)), RoundedCornerShape(14.dp))
                         .clickable { showThemeDialog = true }.zIndex(10f),
                     contentAlignment = Alignment.Center
-                ) { Text("⚙️", fontSize = 22.sp) }
+                ) { Text("⚙️", fontSize = 16.sp) }
             }
 
             if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME)
