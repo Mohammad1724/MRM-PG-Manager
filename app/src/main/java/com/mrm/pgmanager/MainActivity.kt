@@ -8,6 +8,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -86,6 +87,10 @@ fun MRMApp() {
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var isUnlocked by remember { mutableStateOf(false) }
 
+    // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
+    val systemDark = isSystemInDarkTheme()
+    val effectiveTheme = if (themeState.followSystem) themeState.copy(isDark = systemDark) else themeState
+
     LaunchedEffect(session, isAppLockEnabled) {
         if (session != null && isAppLockEnabled && !isUnlocked && activity != null) {
             authenticateBiometric(
@@ -100,16 +105,16 @@ fun MRMApp() {
         }
     }
 
-    LiquidGlassTheme(themeState = themeState) {
+    LiquidGlassTheme(themeState = effectiveTheme) {
         if (session == null) {
             LoginScreen(
                 onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true },
-                themeState = themeState,
+                themeState = effectiveTheme,
                 onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }
             )
         } else if (isAppLockEnabled && !isUnlocked) {
             AppLockScreen(
-                themeState = themeState,
+                themeState = effectiveTheme,
                 onUnlockClick = {
                     if (activity != null) {
                         authenticateBiometric(
@@ -127,7 +132,7 @@ fun MRMApp() {
             UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
-                themeState = themeState,
+                themeState = effectiveTheme,
                 onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
                 isAppLockEnabled = isAppLockEnabled,
                 onAppLockChange = { enabled ->
