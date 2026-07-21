@@ -74,19 +74,29 @@ private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26
 
 private fun daysLeftText(expire: String?): String {
     if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
+    // تلاش برای پارس به‌عنوان لحظهٔ زمانی (ISO با ساعت) تا مثل پنل، روز را دقیق و سازگار محاسبه کنیم
     return try {
-        val exp = LocalDate.parse(expire.take(10))
-        val now = LocalDate.now()
-        val diff = ChronoUnit.DAYS.between(now, exp)
+        val inst = java.time.Instant.parse(expire)
+        val diffSec = inst.epochSecond - java.time.Instant.now().epochSecond
         when {
-            diff < 0 -> "منقضی"
-            diff == 0L -> "امروز"
-            diff == 1L -> "۱ روز"
-            diff <= 7 -> "$diff روز"
-            diff <= 30 -> "${diff} روز"
-            else -> "${diff} روز"
+            diffSec <= 0 -> "منقضی"
+            diffSec < 86400 -> "امروز"
+            else -> "${(diffSec + 86399L) / 86400L} روز" // گردکردنِ رو‌به‌بالا = هم‌خوان با پنل
         }
-    } catch (e: Exception) { JalaliCalendar.isoToShamsi(expire).ifEmpty { "نامحدود" } }
+    } catch (e: Exception) {
+        try {
+            val exp = LocalDate.parse(expire.take(10))
+            val diff = ChronoUnit.DAYS.between(LocalDate.now(), exp)
+            when {
+                diff < 0 -> "منقضی"
+                diff == 0L -> "امروز"
+                diff == 1L -> "۱ روز"
+                diff <= 7 -> "$diff روز"
+                diff <= 30 -> "${diff} روز"
+                else -> "${diff} روز"
+            }
+        } catch (e2: Exception) { JalaliCalendar.isoToShamsi(expire).ifEmpty { "نامحدود" } }
+    }
 }
 
 private fun daysLeftFull(expire: String?): String = daysLeftText(expire)
