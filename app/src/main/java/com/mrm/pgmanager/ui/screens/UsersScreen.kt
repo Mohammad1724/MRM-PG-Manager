@@ -22,6 +22,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -459,6 +462,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersScreen(
     session: Session,
@@ -597,17 +601,25 @@ fun UsersScreen(
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
         ) {
-            // 1. Lists / Grid (Fixed outer Box size = 0 Remeasurements during scroll!)
-            // We use dynamic totalHeaderDp measured accurately on screen + lockstep offset so there is ZERO empty gap above item #1 during collapse!
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
+            // 1. Lists / Grid با قابلیتِ Pull-to-refresh
+            val scrollOffsetDp = with(density) { scrollOffset.value.toDp() }
+            val listTopPad = (totalHeaderDp - scrollOffsetDp).coerceAtLeast(0.dp) + topInsets + 4.dp
+            val ptrState = rememberPullToRefreshState()
+            PullToRefreshBox(
+                isRefreshing = loading,
+                onRefresh = { load() },
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                state = ptrState,
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        isRefreshing = loading,
+                        state = ptrState,
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = listTopPad)
+                    )
+                }
             ) {
                 // هنگام جمع‌شدنِ هدر، paddingِ بالای لیست هم‌زمان کم می‌شود تا آیتم‌ها جایِ هدر را پر کنند
                 // و لیست تا پایینِ صفحه پر بماند (بدون فاصلهٔ بیهودهٔ پایین هنگام اسکرول).
-                val scrollOffsetDp = with(density) { scrollOffset.value.toDp() }
-                val listTopPad = (totalHeaderDp - scrollOffsetDp).coerceAtLeast(0.dp) + topInsets + 4.dp
                 when {
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
