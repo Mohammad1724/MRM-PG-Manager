@@ -141,7 +141,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🔍", fontSize = 13.5.sp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (query.isEmpty()) Text("جستجو کاربر...", color = theme.mutedColor.copy(0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (query.isEmpty()) Text("جستجو کاربر...", color = theme.mutedColor.copy(0.65f), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
@@ -179,7 +179,7 @@ private fun TopBarHeader(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { Text("⚙️", fontSize = 11.sp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { Text("⚙️", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
             ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 14.sp) }, onClick = onRefresh, enabled = !loading)
             ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
         }
