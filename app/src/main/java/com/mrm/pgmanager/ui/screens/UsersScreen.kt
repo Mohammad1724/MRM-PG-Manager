@@ -312,7 +312,7 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 // FIX 3: GB / GB and days left
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -340,6 +340,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -363,7 +364,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -391,6 +392,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
             Spacer(Modifier.width(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -424,7 +426,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -445,6 +447,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             }
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -545,6 +548,15 @@ fun UsersScreen(
                     onLogout()
                 }
             }.onSuccess { load() }
+        }
+    }
+    // تمدید = ریستِ مصرف (حجمِ تازه) + تنظیمِ زمانِ تازه (دورهٔ پلن).
+    // پنل پلنِ قبلیِ کاربر را ذخیره نمی‌کند، پس مدت‌زمان را ادمین تعیین می‌کند (پیش‌فرض ۳۰ روز).
+    fun renewUser(u: PanelUser, days: Int) {
+        val iso = renewIso(u.expire, days)
+        runAction {
+            PanelApi.resetUsage(session, u.username)
+            PanelApi.modifyUser(session, u.username, (u.dataLimit.toDouble() / 1073741824.0), iso, "", null, null)
         }
     }
     LaunchedEffect(Unit) { load() }
@@ -650,9 +662,9 @@ fun UsersScreen(
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, 30) }) } }
                     }
                 }
             }
@@ -769,10 +781,7 @@ fun UsersScreen(
         QuickActionSheet(
             user = u,
             onDismiss = { quickActionUser = null },
-            onRenew = { days ->
-                val iso = renewIso(u.expire, days)
-                runAction { PanelApi.modifyUser(session, u.username, (u.dataLimit.toDouble() / 1073741824.0), iso, "", null, null) }
-            },
+            onRenew = { days -> renewUser(u, days) },
             onToggle = { runAction { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
             onCopySub = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
