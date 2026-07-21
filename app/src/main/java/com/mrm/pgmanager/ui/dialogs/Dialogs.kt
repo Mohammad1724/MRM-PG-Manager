@@ -487,10 +487,11 @@ fun UserEditorDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("💾 حجم", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                             if (initial != null) {
-                                val limitBytes = if (initial.dataLimit > 0L) initial.dataLimit.toDouble() else (limitGb.toDoubleOrNull() ?: 0.0) * 1073741824.0
-                                val progress = if (limitBytes > 0.0) (initial.usedTraffic.toDouble() / limitBytes).coerceIn(0.0, 1.0).toFloat() else 0f
+                                val limitBytes = (limitGb.toDoubleOrNull() ?: 0.0) * 1073741824.0
+                                val usedBytes = initial.usedTraffic
+                                val progress = if (limitBytes > 0.0) (usedBytes.toDouble() / limitBytes).coerceIn(0.0, 1.0).toFloat() else 0f
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text("مصرف: ${formatBytes(initial.usedTraffic)}", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    Text(if (limitBytes > 0.0) "${formatBytes(usedBytes)} از ${formatBytes(limitBytes.toLong())} مصرف شده" else "${formatBytes(usedBytes)} مصرف شده (نامحدود)", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                     Text(if (limitBytes > 0.0) "${(progress * 100).roundToInt()}%" else "∞", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                                 }
                                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color.Black.copy(0.08f))) {
