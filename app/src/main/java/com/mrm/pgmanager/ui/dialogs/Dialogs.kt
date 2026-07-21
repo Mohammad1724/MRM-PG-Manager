@@ -82,6 +82,53 @@ fun ConfirmActionDialog(
     }
 }
 
+/** منوی اکشنِ سریع (long-press روی کارت): تمدید سریع + عملیات‌های پرتکرار بدون دیالوگِ کامل. */
+@Composable
+fun QuickActionSheet(
+    user: PanelUser,
+    onDismiss: () -> Unit,
+    onRenew: (Int) -> Unit,
+    onToggle: () -> Unit,
+    onCopySub: () -> Unit,
+    onQr: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("⚡ ${user.username}", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(user.status, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                }
+                Text("⏳ تمدید سریع", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(7, 30, 90).forEach { d ->
+                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(10.dp)).clickable { onRenew(d); onDismiss() }, contentAlignment = Alignment.Center) { Text("+$d روز", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
+                    }
+                }
+                QuickActionRow(if (user.status == "disabled") "🟢" else "⚪", if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor) { onToggle(); onDismiss() }
+                QuickActionRow("📋", "کپی ساب‌لینک", theme.inkColor) { onCopySub(); onDismiss() }
+                QuickActionRow("📱", "نمایش QR", theme.inkColor) { onQr(); onDismiss() }
+                QuickActionRow("✏️", "ویرایش کامل", theme.inkColor) { onEdit(); onDismiss() }
+                QuickActionRow("🗑", "حذف کاربر", GlassRed) { onDelete(); onDismiss() }
+                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickActionRow(icon: String, label: String, color: Color, onClick: () -> Unit) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 9.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(icon, fontSize = 14.sp)
+            Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = color)
+        }
+    }
+}
+
 @Composable
 fun ThemeEditorDialog(
     themeState: com.mrm.pgmanager.ui.theme.ThemeState,
