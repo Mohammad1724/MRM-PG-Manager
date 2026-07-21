@@ -597,29 +597,29 @@ fun UsersScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp)
-                    .offset {
-                        val current = scrollOffset.value.coerceIn(0f, headerHeight)
-                        IntOffset(0, -current.roundToInt())
-                    }
             ) {
+                // هنگام جمع‌شدنِ هدر، paddingِ بالای لیست هم‌زمان کم می‌شود تا آیتم‌ها جایِ هدر را پر کنند
+                // و لیست تا پایینِ صفحه پر بماند (بدون فاصلهٔ بیهودهٔ پایین هنگام اسکرول).
+                val scrollOffsetDp = with(density) { scrollOffset.value.toDp() }
+                val listTopPad = (totalHeaderDp - scrollOffsetDp).coerceAtLeast(0.dp) + topInsets + 4.dp
                 when {
-                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = totalHeaderDp + topInsets + 4.dp).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
                             com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = totalHeaderDp + topInsets + 4.dp).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = totalHeaderDp + topInsets + 4.dp, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }) } }
                     }
                 }
             }
