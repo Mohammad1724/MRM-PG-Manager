@@ -587,7 +587,7 @@ fun UserEditorDialog(
                                     val d = addDayInput.toIntOrNull() ?: 0
                                     if (d > 0) { addDays(d); addDayInput = ""; haptic.performHapticFeedback(HapticFeedbackType.LongPress); android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show() }
                                     else android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
-                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("تایید", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                                 if (initial != null) Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(0.14f)).border(BorderStroke(1.dp, GlassAmber.copy(0.34f)), RoundedCornerShape(10.dp))
                                     .clickable { showResetExpiryConfirm = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
                             }
