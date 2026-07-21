@@ -88,16 +88,18 @@ fun ThemeEditorDialog(
     isAppLockEnabled: Boolean = false,
     onDismiss: () -> Unit,
     onThemeChange: (com.mrm.pgmanager.ui.theme.ThemeState) -> Unit,
-    onAppLockChange: (Boolean) -> Unit = {}
+    onAppLockChange: (Boolean) -> Unit = {},
+    appVersion: String = ""
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("🎨 تم و امنیت برنامه", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    ModeToggleBtn("☀️ روشن", !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = false)) }
-                    ModeToggleBtn("🌙 تیره", themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(isDark = true)) }
+                Text("⚙️ تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    ModeToggleBtn("☀️ روشن", !themeState.followSystem && !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = false)) }
+                    ModeToggleBtn("🌙 تیره", !themeState.followSystem && themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = true)) }
+                    ModeToggleBtn("🌗 خودکار", themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
@@ -138,6 +140,11 @@ fun ThemeEditorDialog(
                             Text(if (isAppLockEnabled) "فعال ✓" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
                         }
                     }
+                }
+                // درباره
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("نسخهٔ برنامه", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Text(appVersion.ifBlank { "—" }, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                 }
                 GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
