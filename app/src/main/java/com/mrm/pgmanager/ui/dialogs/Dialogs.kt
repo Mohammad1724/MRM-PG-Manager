@@ -56,9 +56,9 @@ import java.time.LocalDate
 private fun tileBorderColor(isDark: Boolean): Color =
     if (isDark) Color(0xFF606068) else Color(0xFF9C978C)
 
-/** دیالوگ کوچکِ تأییدِ عملیات (مثل ریست حجم/زمان). */
+/** دیالوگ کوچکِ تأییدِ عملیات (مثل ریست حجم/زمان و عملیات گروهی). */
 @Composable
-private fun ConfirmActionDialog(
+fun ConfirmActionDialog(
     title: String,
     message: String,
     confirmLabel: String = "تایید",
@@ -584,7 +584,7 @@ fun UserEditorDialog(
                             }
                             // دکمه‌های سریع + ورودیِ روزِ دلخواه (همگی به فیلد اضافه می‌کنند)
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                listOf(7, 30, 60, 90).forEach { d ->
+                                listOf(7, 30, 60, 90, 180).forEach { d ->
                                     Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.10f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(8.dp))
                                         .clickable {
                                             addDays(d); haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -592,7 +592,7 @@ fun UserEditorDialog(
                                         }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                                 }
                                 // ورودیِ روزِ دلخواه + تیک (مانند +GB در کاشی حجم)
-                                Box(Modifier.width(45.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF16161A) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.width(54.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF16161A) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                                     if (addDayInput.isEmpty()) Text("+روز", fontSize = 9.sp, color = theme.mutedColor)
                                     BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(4) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                                 }
