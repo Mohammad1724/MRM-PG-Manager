@@ -41,7 +41,8 @@ enum class LampColor(
 
 data class ThemeState(
     val lamp: LampColor = LampColor.GOLD,
-    val isDark: Boolean = false
+    val isDark: Boolean = false,
+    val followSystem: Boolean = false
 ) {
     val inkColor: Color get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF1C1B18)
     val mutedColor: Color get() = if (isDark) Color(0xFFA09C94) else Color(0xFF6A655B)
