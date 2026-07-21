@@ -62,6 +62,36 @@ private fun daysRemainingShamsi(shamsi: String): Long? {
     }.getOrNull()
 }
 
+/** رنگ خاکستریِ واضح برای کادرِ کاشی‌ها (تمایز بهتر در حالت روشن/تیره). */
+private fun tileBorderColor(isDark: Boolean): Color =
+    if (isDark) Color(0xFF606068) else Color(0xFF9C978C)
+
+/** دیالوگ کوچکِ تأییدِ عملیات (مثل ریست حجم/زمان). */
+@Composable
+private fun ConfirmActionDialog(
+    title: String,
+    message: String,
+    confirmLabel: String = "تایید",
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(20.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor)
+                Text(message, fontSize = 12.sp, color = theme.mutedColor)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(40.dp))
+                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
+                        Text(confirmLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ThemeEditorDialog(
     themeState: com.mrm.pgmanager.ui.theme.ThemeState,
@@ -298,6 +328,8 @@ fun UserEditorDialog(
     var formError by remember { mutableStateOf<String?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var showQr by remember { mutableStateOf(false) }
+    var showResetUsageConfirm by remember { mutableStateOf(false) }
+    var showResetExpiryConfirm by remember { mutableStateOf(false) }
     var addDayInput by remember { mutableStateOf("") }
     var addGbInput by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -426,11 +458,11 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // Full-width horizontal Note box for template mode
+                    // ── کاشی یادداشت (تمپلت) ──
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
@@ -453,127 +485,89 @@ fun UserEditorDialog(
                         }
                     }
                 } else {
-                    // Volume - SINGLE small opaque tile
+                    // ── کاشی حجم ──
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.86f))
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(10.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("💾 حجم", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                if (initial != null) Box(Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(GlassAmber.copy(0.12f)).border(BorderStroke(1.dp, GlassAmber.copy(0.30f)), RoundedCornerShape(8.dp))
+                                    .clickable { showResetUsageConfirm = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست حجم", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
+                            }
                             if (initial != null) {
                                 val limitBytes = if (initial.dataLimit > 0L) initial.dataLimit.toDouble() else (limitGb.toDoubleOrNull() ?: 0.0) * 1073741824.0
                                 val progress = if (limitBytes > 0.0) (initial.usedTraffic.toDouble() / limitBytes).coerceIn(0.0, 1.0).toFloat() else 0f
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                        Text("مصرف شده: ${formatBytes(initial.usedTraffic)}", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                        Text(if (limitBytes > 0.0) "${(progress * 100).roundToInt()}%" else "∞", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                                    }
-                                    Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color.Black.copy(0.08f))) {
-                                        if (progress > 0f) {
-                                            Box(Modifier.fillMaxWidth(progress.coerceAtLeast(0.04f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(if (progress >= 0.9f) GlassRed else if (progress >= 0.72f) GlassAmber else theme.lamp.primary))
-                                        }
-                                    }
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    Text("مصرف: ${formatBytes(initial.usedTraffic)}", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    Text(if (limitBytes > 0.0) "${(progress * 100).roundToInt()}%" else "∞", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                }
+                                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color.Black.copy(0.08f))) {
+                                    if (progress > 0f) Box(Modifier.fillMaxWidth(progress.coerceAtLeast(0.04f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(if (progress >= 0.9f) GlassRed else if (progress >= 0.72f) GlassAmber else theme.lamp.primary))
                                 }
                             }
-                            CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", leading = "💾", keyboardType = KeyboardType.Decimal)
+                            CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", keyboardType = KeyboardType.Decimal)
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(1.0, 5.0, 10.0, 20.0, 50.0).forEach { gb ->
-                                    Box(
-                                        Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(8.dp))
-                                            .clickable { addGb(gb) }.padding(horizontal = 9.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) { Text("+${gb.toInt()}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                    Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
+                                        .clickable { addGb(gb) }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("+${gb.toInt()}", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                                 }
-                                // custom GB
-                                Box(Modifier.width(64.dp).height(26.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                                    if (addGbInput.isEmpty()) Text("+GB", fontSize = 9.sp, color = theme.mutedColor)
-                                    BasicTextField(value = addGbInput, onValueChange = { addGbInput = it.filter { c -> c.isDigit() || c == '.' } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                Box(Modifier.width(56.dp).height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    if (addGbInput.isEmpty()) Text("+GB", fontSize = 8.5.sp, color = theme.mutedColor)
+                                    BasicTextField(value = addGbInput, onValueChange = { addGbInput = it.filter { c -> c.isDigit() || c == '.' } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                                 }
-                                if (addGbInput.isNotEmpty()) Box(Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary).clickable {
+                                if (addGbInput.isNotEmpty()) Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary).clickable {
                                     val v = addGbInput.toDoubleOrNull() ?: 0.0; if (v > 0) { addGb(v); addGbInput = "" }
-                                }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 10.sp) }
+                                }.padding(horizontal = 9.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 9.5.sp) }
                             }
                         }
                     }
 
-                    // Date tile - مقاوم با بازخورد فوری (Toast + لرزش + نمایش روز مانده)
+                    // ── کاشی زمان ──
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.86f))
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(10.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // نمایش بزرگِ تاریخ + روز مانده + دکمه‌های تقویم و نامحدود
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text("📅 انقضای اشتراک", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                                    Text(if (expireShamsi.isBlank()) "نامحدود" else expireShamsi, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = if (expireShamsi.isBlank()) theme.mutedColor else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // هدر: عنوان/تاریخ/روز مانده + تقویم + ریست زمان
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text("📅 زمان", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                    Text(if (expireShamsi.isBlank()) "نامحدود" else expireShamsi, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = if (expireShamsi.isBlank()) theme.mutedColor else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     val remain = daysRemainingShamsi(expireShamsi)
-                                    Text(
-                                        when {
-                                            expireShamsi.isBlank() -> "بدون محدودیت زمانی"
-                                            remain == null -> ""
-                                            remain < 0 -> "منقضی شده"
-                                            remain == 0L -> "امروز منقضی می‌شود"
-                                            else -> "${remain} روز مانده"
-                                        },
-                                        fontSize = 10.sp,
-                                        color = if (remain != null && remain in 0..3) GlassRed else theme.mutedColor,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    if (expireShamsi.isNotBlank() && remain != null) {
+                                        Text(when { remain < 0 -> "منقضی شده"; remain == 0L -> "امروز منقضی"; else -> "${remain} روز مانده" }, fontSize = 9.sp, color = if (remain in 0..3) GlassRed else theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    }
                                 }
-                                // انتخاب از تقویم شمسی
-                                Box(
-                                    Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(10.dp))
-                                        .clickable { showCalendar = true }, contentAlignment = Alignment.Center
-                                ) { Text("🗓️", fontSize = 16.sp) }
-                                // پاک کردن → نامحدود
-                                if (expireShamsi.isNotBlank()) {
-                                    Box(
-                                        Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.10f)).border(BorderStroke(1.dp, GlassRed.copy(0.24f)), RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                expireShamsi = ""
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                android.widget.Toast.makeText(context, "نامحدود شد (بدون تاریخ انقضا)", android.widget.Toast.LENGTH_SHORT).show()
-                                            }, contentAlignment = Alignment.Center
-                                    ) { Text("∞", fontSize = 16.sp, color = GlassRed, fontWeight = FontWeight.Bold) }
-                                }
+                                Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(9.dp))
+                                    .clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓️", fontSize = 12.sp) }
+                                if (initial != null) Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(GlassAmber.copy(0.12f)).border(BorderStroke(1.dp, GlassAmber.copy(0.30f)), RoundedCornerShape(9.dp))
+                                    .clickable { showResetExpiryConfirm = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست زمان", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
                             }
-                            // دکمه‌های سریع - بزرگ‌تر با Toast و لرزش
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // دکمه‌های سریع (کوچک‌تر)
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(7, 30, 60, 90, 180).forEach { d ->
-                                    Box(
-                                        Modifier.height(38.dp).clip(RoundedCornerShape(10.dp))
-                                            .background(theme.lamp.primary.copy(0.12f))
-                                            .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                addDays(d)
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                android.widget.Toast.makeText(context, "+$d روز اضافه شد → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
-                                            }.padding(horizontal = 14.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) { Text("+$d روز", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.lamp.primary) }
+                                    Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.10f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            addDays(d); haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
+                                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                                 }
                             }
                             // ورودی روز دلخواه
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(
-                                    Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (addDayInput.isEmpty()) Text("تعداد روز دلخواه (مثلا 45)", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
-                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(9.dp)).padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+                                    if (addDayInput.isEmpty()) Text("تعداد روز (مثلا 45)", fontSize = 10.5.sp, color = theme.mutedColor.copy(0.6f))
+                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                                 }
-                                Box(Modifier.height(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
+                                Box(Modifier.height(36.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary).clickable {
                                     val d = addDayInput.toIntOrNull() ?: 0
-                                    if (d > 0) {
-                                        addDays(d); addDayInput = ""
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        android.widget.Toast.makeText(context, "+$d روز اضافه شد → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
-                                    }
-                                }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text("افزودن", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                                    if (d > 0) { addDays(d); addDayInput = ""; haptic.performHapticFeedback(HapticFeedbackType.LongPress); android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show() }
+                                    else android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
+                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.Bold) }
                             }
                         }
                     }
@@ -582,13 +576,13 @@ fun UserEditorDialog(
                     var hwid by remember { mutableStateOf(hwidLimit) }
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.86f))
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("📱", fontSize = 13.sp)
+                                Text("📱", fontSize = 11.sp)
                                 Text("محدودیت همزمان (userlimit):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                             }
                             Box(
@@ -611,11 +605,11 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // Full-width horizontal Note box
+                    // ── کاشی یادداشت ──
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
@@ -638,10 +632,10 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // Groups selection - new
+                    // ── کاشی گروه‌ها ──
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.82f))
-                            .border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(14.dp)).padding(10.dp)
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(10.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -775,19 +769,6 @@ fun UserEditorDialog(
                             Text("🗑 حذف", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
-                            Text("♻️ ریست حجم", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable {
-                            expireShamsi = ""
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            android.widget.Toast.makeText(context, "زمان ریست شد (نامحدود) — حالا روز دلخواه را اضافه کن", android.widget.Toast.LENGTH_LONG).show()
-                            onResetExpiry?.invoke()
-                        }, contentAlignment = Alignment.Center) {
-                            Text("⏰ ریست زمان", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                    }
                 }
 
                 formError?.let {
@@ -819,6 +800,29 @@ fun UserEditorDialog(
 
     if (showQr && initial != null && initial.subUrl.isNotEmpty()) SubscriptionQrDialog(user = initial, onDismiss = { showQr = false })
     if (showCalendar) ShamsiCalendarPickerDialog(initialDateShamsi = expireShamsi, onDismiss = { showCalendar = false }, onDateSelected = { expireShamsi = it })
+
+    if (showResetUsageConfirm) ConfirmActionDialog(
+        title = "ریست حجم مصرف‌شده؟",
+        message = "مصرفِ این کاربر صفر می‌شود.",
+        onDismiss = { showResetUsageConfirm = false },
+        onConfirm = {
+            showResetUsageConfirm = false
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onResetUsage?.invoke()
+        }
+    )
+    if (showResetExpiryConfirm) ConfirmActionDialog(
+        title = "ریست زمان اشتراک؟",
+        message = "زمانِ این کاربر به حالت نامحدود درمی‌آید.",
+        onDismiss = { showResetExpiryConfirm = false },
+        onConfirm = {
+            showResetExpiryConfirm = false
+            expireShamsi = ""
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            android.widget.Toast.makeText(context, "زمان ریست شد (نامحدود) — حالا روز دلخواه را اضافه کن", android.widget.Toast.LENGTH_LONG).show()
+            onResetExpiry?.invoke()
+        }
+    )
 }
 
 @Composable
