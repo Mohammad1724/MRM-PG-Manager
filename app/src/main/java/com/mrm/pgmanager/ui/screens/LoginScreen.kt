@@ -135,14 +135,13 @@ fun LoginScreen(
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                                 .background(if (theme.isDark) Color.White.copy(0.05f) else Color.Black.copy(0.03f))
-                                .clickable { showThemeDialog = true }
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("🔒", fontSize = 11.sp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                Text("برای فعال‌سازی: دکمهٔ 🎨 بالا ← بخش امنیت (یا همین‌جا بزن)", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ 🎨 (بالا) ← بخش «قفل امنیتی»", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text("🔐 HTTPS", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
