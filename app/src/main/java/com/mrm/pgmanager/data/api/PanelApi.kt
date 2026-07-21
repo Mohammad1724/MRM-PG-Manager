@@ -28,9 +28,12 @@ object PanelApi {
         val prepared = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
         val uri = URI(prepared)
         require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
+        // مسیر (subpath) رو هم حفظ می‌کنیم تا پنل‌هایی که روی مثلاً /panel هستن هم کار کنن
+        val path = uri.rawPath?.trimEnd('/').orEmpty()
         return buildString {
             append(uri.scheme); append("://"); append(uri.host)
             if (uri.port != -1) append(":${uri.port}")
+            if (path.isNotEmpty()) append(path)
         }
     }
 
@@ -53,12 +56,22 @@ object PanelApi {
     }
 
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=0&limit=1000&load_sub=true").get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Request failed: ${response.code}")
-            val data = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
-            List(data.length()) { index -> parseUser(data.getJSONObject(index)) }
+        // صفححه‌بندی: تا زمانی که یک صفحه کامل (1000تایی) برنگردد ادامه می‌دهیم
+        val all = mutableListOf<PanelUser>()
+        var offset = 0
+        val limit = 1000
+        while (offset <= 50000) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=$offset&limit=$limit&load_sub=true").get().build()
+            val chunk = client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("Request failed: ${response.code}")
+                val arr = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
+                List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }
+            }
+            all.addAll(chunk)
+            if (chunk.size < limit) break
+            offset += limit
         }
+        all
     }
 
     suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList()) = withContext(Dispatchers.IO) {
