@@ -52,16 +52,6 @@ import com.mrm.pgmanager.utils.formatBytes
 import java.util.Locale
 import java.time.LocalDate
 
-/** روزهای باقی‌مانده تا انقضا بر اساس تاریخ شمسی (null = نامحدود/نامعتبر). */
-private fun daysRemainingShamsi(shamsi: String): Long? {
-    if (shamsi.isBlank()) return null
-    val iso = JalaliCalendar.shamsiToIso(shamsi)
-    if (iso.length < 8) return null
-    return runCatching {
-        java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(iso.take(10)))
-    }.getOrNull()
-}
-
 /** رنگ خاکستریِ واضح برای کادرِ کاشی‌ها (تمایز بهتر در حالت روشن/تیره). */
 private fun tileBorderColor(isDark: Boolean): Color =
     if (isDark) Color(0xFF606068) else Color(0xFF9C978C)
@@ -317,7 +307,16 @@ fun UserEditorDialog(
     val theme = LocalThemeState.current
     var username by remember { mutableStateOf(initial?.username ?: "") }
     var limitGb by remember { mutableStateOf(if (initial == null || initial.dataLimit == 0L) "" else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')) }
-    var expireShamsi by remember { mutableStateOf(if (initial?.expire != null && initial.expire != "0") JalaliCalendar.isoToShamsi(initial.expire) else "") }
+    var dayField by remember {
+        mutableStateOf(
+            runCatching {
+                if (initial?.expire != null && initial.expire != "0" && initial.expire.isNotBlank()) {
+                    val days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(initial.expire.take(10)))
+                    if (days >= 0) days.toString() else ""
+                } else ""
+            }.getOrDefault("")
+        )
+    }
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwidLimit by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var selectedGroupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
@@ -330,7 +329,6 @@ fun UserEditorDialog(
     var showQr by remember { mutableStateOf(false) }
     var showResetUsageConfirm by remember { mutableStateOf(false) }
     var showResetExpiryConfirm by remember { mutableStateOf(false) }
-    var addDayInput by remember { mutableStateOf("") }
     var addGbInput by remember { mutableStateOf("") }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -351,13 +349,8 @@ fun UserEditorDialog(
         limitGb = if (newVal == 0.0) "" else "%.2f".format(Locale.US, newVal).trimEnd('0').trimEnd('.')
     }
     fun addDays(days: Int) {
-        val currentIso = JalaliCalendar.shamsiToIso(expireShamsi)
-        val baseDate = if (currentIso.isBlank()) LocalDate.now()
-        else runCatching { LocalDate.parse(currentIso.take(10)) }.getOrDefault(LocalDate.now()).let {
-            if (it.isBefore(LocalDate.now())) LocalDate.now() else it
-        }
-        val newIso = baseDate.plusDays(days.toLong()).toString()
-        expireShamsi = JalaliCalendar.isoToShamsi(newIso)
+        val cur = dayField.toIntOrNull() ?: 0
+        dayField = (cur + days).toString()
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -548,30 +541,20 @@ fun UserEditorDialog(
                             .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 8.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            // هدر: عنوان/تاریخ/روز مانده + تقویم
+                            // هدر: عنوان + تاریخ زنده + روز مانده + تقویم
+                            val daysInt = dayField.toIntOrNull()
+                            val dateText = if (daysInt == null || daysInt < 0) "نامحدود" else JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(daysInt.toLong()).toString())
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text("📅 زمان", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                                    Text(if (expireShamsi.isBlank()) "نامحدود" else expireShamsi, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = if (expireShamsi.isBlank()) theme.mutedColor else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    val remain = daysRemainingShamsi(expireShamsi)
-                                    if (expireShamsi.isNotBlank() && remain != null) {
-                                        Text(when { remain < 0 -> "منقضی شده"; remain == 0L -> "امروز منقضی"; else -> "${remain} روز مانده" }, fontSize = 9.sp, color = if (remain in 0..3) GlassRed else theme.mutedColor, fontWeight = FontWeight.Bold)
-                                    }
+                                    Text(dateText, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = if (daysInt == null || daysInt < 0) theme.mutedColor else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    if (daysInt != null && daysInt >= 0) Text("${daysInt} روز مانده", fontSize = 9.sp, color = if (daysInt in 0..3) GlassRed else theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    else Text("بدون محدودیت زمانی", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                                 }
                                 Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(9.dp))
                                     .clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓️", fontSize = 13.sp) }
                             }
-                            // دکمه‌های سریع (کوچک‌تر)
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                listOf(7, 30, 60, 90, 180).forEach { d ->
-                                    Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.10f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            addDays(d); haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
-                                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
-                                }
-                            }
-                            // ورودی روز + ریست زمان (کنار هم)
+                            // ورودیِ زندهٔ تعداد روز + ریست زمان (کنار هم)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(
                                     Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp))
@@ -580,16 +563,26 @@ fun UserEditorDialog(
                                         .padding(horizontal = 10.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
-                                    if (addDayInput.isEmpty()) Text("تعداد روز (مثلا 45)", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
-                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                        Box(Modifier.weight(1f)) {
+                                            if (dayField.isEmpty()) Text("نامحدود (تعداد روز)", color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+                                            BasicTextField(value = dayField, onValueChange = { dayField = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                        }
+                                        Text("روز", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    }
                                 }
-                                Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
-                                    val d = addDayInput.toIntOrNull() ?: 0
-                                    if (d > 0) { addDays(d); addDayInput = ""; haptic.performHapticFeedback(HapticFeedbackType.LongPress); android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show() }
-                                    else android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
-                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("تایید", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
                                 if (initial != null) Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(0.14f)).border(BorderStroke(1.dp, GlassAmber.copy(0.34f)), RoundedCornerShape(10.dp))
                                     .clickable { showResetExpiryConfirm = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
+                            }
+                            // دکمه‌های سریع (به فیلد اضافه می‌کنند)
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                listOf(7, 30, 60, 90, 180).forEach { d ->
+                                    Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.10f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            addDays(d); haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            android.widget.Toast.makeText(context, "+$d روز → ${dayField} روز مانده", android.widget.Toast.LENGTH_SHORT).show()
+                                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
+                                }
                             }
                         }
                     }
@@ -812,7 +805,11 @@ fun UserEditorDialog(
                             val hwidInt = hwidLimit.toIntOrNull()
                             if (username.length !in 3..32 && initial == null) formError = "نام کاربری ۳-۳۲"
                             else if (lim == null || lim < 0) formError = "حجم نامعتبر"
-                            else onSave(UserEditorValues(username, lim, note, hwidInt, selectedGroupIds), expireShamsi)
+                            else {
+                                val di = dayField.toIntOrNull()
+                                val saveShamsi = if (di == null || di < 0) "" else JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(di.toLong()).toString())
+                                onSave(UserEditorValues(username, lim, note, hwidInt, selectedGroupIds), saveShamsi)
+                            }
                         }
                     }, modifier = Modifier.weight(1f).height(40.dp))
                 }
@@ -821,7 +818,19 @@ fun UserEditorDialog(
     }
 
     if (showQr && initial != null && initial.subUrl.isNotEmpty()) SubscriptionQrDialog(user = initial, onDismiss = { showQr = false })
-    if (showCalendar) ShamsiCalendarPickerDialog(initialDateShamsi = expireShamsi, onDismiss = { showCalendar = false }, onDateSelected = { expireShamsi = it })
+    if (showCalendar) ShamsiCalendarPickerDialog(
+        initialDateShamsi = run {
+            val di = dayField.toIntOrNull()
+            if (di != null && di > 0) JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(di.toLong()).toString())
+            else JalaliCalendar.todayJalali().toString()
+        },
+        onDismiss = { showCalendar = false },
+        onDateSelected = { shamsi ->
+            val iso = JalaliCalendar.shamsiToIso(shamsi)
+            val days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(iso.take(10))) }.getOrNull()
+            dayField = if (days != null && days >= 0) days.toString() else ""
+        }
+    )
 
     if (showResetUsageConfirm) ConfirmActionDialog(
         title = "ریست حجم مصرف‌شده؟",
@@ -839,9 +848,9 @@ fun UserEditorDialog(
         onDismiss = { showResetExpiryConfirm = false },
         onConfirm = {
             showResetExpiryConfirm = false
-            expireShamsi = ""
+            dayField = ""
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            android.widget.Toast.makeText(context, "زمان ریست شد (نامحدود) — حالا روز دلخواه را اضافه کن", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(context, "زمان ریست شد (نامحدود)", android.widget.Toast.LENGTH_SHORT).show()
             onResetExpiry?.invoke()
         }
     )
