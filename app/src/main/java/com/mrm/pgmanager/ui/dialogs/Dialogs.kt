@@ -489,14 +489,10 @@ fun UserEditorDialog(
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.86f))
-                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(10.dp)
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 8.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("💾 حجم", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                                if (initial != null) Box(Modifier.height(26.dp).clip(RoundedCornerShape(8.dp)).background(GlassAmber.copy(0.12f)).border(BorderStroke(1.dp, GlassAmber.copy(0.30f)), RoundedCornerShape(8.dp))
-                                    .clickable { showResetUsageConfirm = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست حجم", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("💾 حجم", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                             if (initial != null) {
                                 val limitBytes = if (initial.dataLimit > 0L) initial.dataLimit.toDouble() else (limitGb.toDoubleOrNull() ?: 0.0) * 1073741824.0
                                 val progress = if (limitBytes > 0.0) (initial.usedTraffic.toDouble() / limitBytes).coerceIn(0.0, 1.0).toFloat() else 0f
@@ -504,17 +500,37 @@ fun UserEditorDialog(
                                     Text("مصرف: ${formatBytes(initial.usedTraffic)}", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                                     Text(if (limitBytes > 0.0) "${(progress * 100).roundToInt()}%" else "∞", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                                 }
-                                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color.Black.copy(0.08f))) {
-                                    if (progress > 0f) Box(Modifier.fillMaxWidth(progress.coerceAtLeast(0.04f)).fillMaxHeight().clip(RoundedCornerShape(3.dp)).background(if (progress >= 0.9f) GlassRed else if (progress >= 0.72f) GlassAmber else theme.lamp.primary))
+                                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color.Black.copy(0.08f))) {
+                                    if (progress > 0f) Box(Modifier.fillMaxWidth(progress.coerceAtLeast(0.04f)).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(if (progress >= 0.9f) GlassRed else if (progress >= 0.72f) GlassAmber else theme.lamp.primary))
                                 }
                             }
-                            CompactGlassField(value = limitGb, onValueChange = { limitGb = it }, placeholder = "حجم GB", keyboardType = KeyboardType.Decimal)
+                            // ورودی حجم + ریست حجم (کنار هم)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp))
+                                        .background(if (theme.isDark) Color(0xFF16161A) else Color.White)
+                                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                        Box(Modifier.weight(1f)) {
+                                            if (limitGb.isEmpty()) Text("حجم (مثلا 10)", color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+                                            BasicTextField(value = limitGb, onValueChange = { limitGb = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                        }
+                                        Text("GB", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                if (initial != null) Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(0.14f)).border(BorderStroke(1.dp, GlassAmber.copy(0.34f)), RoundedCornerShape(10.dp))
+                                    .clickable { showResetUsageConfirm = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست حجم", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
+                            }
+                            // چیپ‌های GB
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(1.0, 5.0, 10.0, 20.0, 50.0).forEach { gb ->
                                     Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp))
                                         .clickable { addGb(gb) }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("+${gb.toInt()}", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                                 }
-                                Box(Modifier.width(56.dp).height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                Box(Modifier.width(54.dp).height(24.dp).clip(RoundedCornerShape(7.dp)).background(if (theme.isDark) Color(0xFF16161A) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                                     if (addGbInput.isEmpty()) Text("+GB", fontSize = 8.5.sp, color = theme.mutedColor)
                                     BasicTextField(value = addGbInput, onValueChange = { addGbInput = it.filter { c -> c.isDigit() || c == '.' } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                                 }
@@ -529,10 +545,10 @@ fun UserEditorDialog(
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.86f))
-                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(10.dp)
+                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 8.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // هدر: عنوان/تاریخ/روز مانده + تقویم + ریست زمان
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // هدر: عنوان/تاریخ/روز مانده + تقویم
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text("📅 زمان", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -542,10 +558,8 @@ fun UserEditorDialog(
                                         Text(when { remain < 0 -> "منقضی شده"; remain == 0L -> "امروز منقضی"; else -> "${remain} روز مانده" }, fontSize = 9.sp, color = if (remain in 0..3) GlassRed else theme.mutedColor, fontWeight = FontWeight.Bold)
                                     }
                                 }
-                                Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(9.dp))
-                                    .clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓️", fontSize = 12.sp) }
-                                if (initial != null) Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(GlassAmber.copy(0.12f)).border(BorderStroke(1.dp, GlassAmber.copy(0.30f)), RoundedCornerShape(9.dp))
-                                    .clickable { showResetExpiryConfirm = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست زمان", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
+                                Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(9.dp))
+                                    .clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓️", fontSize = 13.sp) }
                             }
                             // دکمه‌های سریع (کوچک‌تر)
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -557,17 +571,25 @@ fun UserEditorDialog(
                                         }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                                 }
                             }
-                            // ورودی روز دلخواه
+                            // ورودی روز + ریست زمان (کنار هم)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.14f)), RoundedCornerShape(9.dp)).padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
-                                    if (addDayInput.isEmpty()) Text("تعداد روز (مثلا 45)", fontSize = 10.5.sp, color = theme.mutedColor.copy(0.6f))
-                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                Box(
+                                    Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp))
+                                        .background(if (theme.isDark) Color(0xFF16161A) else Color.White)
+                                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (addDayInput.isEmpty()) Text("تعداد روز (مثلا 45)", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
+                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                                 }
-                                Box(Modifier.height(36.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary).clickable {
+                                Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
                                     val d = addDayInput.toIntOrNull() ?: 0
                                     if (d > 0) { addDays(d); addDayInput = ""; haptic.performHapticFeedback(HapticFeedbackType.LongPress); android.widget.Toast.makeText(context, "+$d روز → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show() }
                                     else android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
-                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.Bold) }
+                                }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                if (initial != null) Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(0.14f)).border(BorderStroke(1.dp, GlassAmber.copy(0.34f)), RoundedCornerShape(10.dp))
+                                    .clickable { showResetExpiryConfirm = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
                             }
                         }
                     }
