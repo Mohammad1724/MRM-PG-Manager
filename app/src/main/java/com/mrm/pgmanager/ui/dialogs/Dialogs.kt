@@ -779,7 +779,12 @@ fun UserEditorDialog(
                         Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable { onResetUsage?.invoke() }, contentAlignment = Alignment.Center) {
                             Text("♻️ ریست حجم", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
-                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable { onResetExpiry?.invoke() }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(9.dp)).background(actionBg).border(BorderStroke(1.2.dp, actionBorder), RoundedCornerShape(9.dp)).clickable {
+                            expireShamsi = ""
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            android.widget.Toast.makeText(context, "زمان ریست شد (نامحدود) — حالا روز دلخواه را اضافه کن", android.widget.Toast.LENGTH_LONG).show()
+                            onResetExpiry?.invoke()
+                        }, contentAlignment = Alignment.Center) {
                             Text("⏰ ریست زمان", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
                     }
