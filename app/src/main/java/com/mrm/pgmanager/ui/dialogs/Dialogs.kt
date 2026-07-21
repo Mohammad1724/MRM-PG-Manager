@@ -189,8 +189,8 @@ fun ThemeEditorDialog(
                 }
                 // درباره
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("نسخهٔ برنامه", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    Text(appVersion.ifBlank { "—" }, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
+                    Text("نسخهٔ برنامه", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Text(appVersion.ifBlank { "—" }, fontSize = 6.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                 }
                 GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
