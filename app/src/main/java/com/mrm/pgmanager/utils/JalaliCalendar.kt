@@ -73,3 +73,29 @@ object JalaliCalendar {
         return baseDate.plusDays(daysToAdd.toLong()).toString()
     }
 }
+
+private fun faNum(n: Long): String = n.toString().map { if (it in '0'..'9') ('۰' + (it - '0')) else it }.joinToString("")
+
+private fun parseOnlineMillis(raw: String?): Long? {
+    if (raw.isNullOrBlank()) return null
+    val s = raw.replace(" ", "T")
+    runCatching { return java.time.Instant.parse(s).toEpochMilli() }
+    runCatching { val ts = raw.trim().toLong(); return if (ts < 1e12) ts * 1000 else ts }
+    return null
+}
+
+/** متنِ «آخرین آنلاین» به فارسی: آنلاین / X دقیقه پیش / X ساعت پیش / X روز پیش / ... */
+fun lastSeenText(onlineAt: String?, isOnline: Boolean): String {
+    if (isOnline) return "آنلاین"
+    val millis = parseOnlineMillis(onlineAt) ?: return "آخرین آنلاین: نامشخص"
+    val diffMin = (System.currentTimeMillis() - millis) / 60000L
+    if (diffMin <= 0) return "آنلاین"
+    return when {
+        diffMin < 1 -> "هم‌اکنون"
+        diffMin < 60 -> "${faNum(diffMin)} دقیقه پیش"
+        diffMin < 1440 -> "${faNum(diffMin / 60)} ساعت پیش"
+        diffMin < 1440 * 30 -> "${faNum(diffMin / 1440)} روز پیش"
+        diffMin < 1440 * 365 -> "${faNum(diffMin / (1440 * 30))} ماه پیش"
+        else -> "${faNum(diffMin / (1440 * 365))} سال پیش"
+    }
+}
