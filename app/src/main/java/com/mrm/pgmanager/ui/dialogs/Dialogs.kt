@@ -310,10 +310,16 @@ fun UserEditorDialog(
     var dayField by remember {
         mutableStateOf(
             runCatching {
-                if (initial?.expire != null && initial.expire != "0" && initial.expire.isNotBlank()) {
-                    val days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(initial.expire.take(10)))
-                    if (days >= 0) days.toString() else ""
-                } else ""
+                val exp = initial?.expire
+                if (exp.isNullOrBlank() || exp == "0" || exp == "null") ""
+                else try {
+                    // همان منطقِ کارت: مبتنی بر لحظهٔ زمانی و گردکردنِ رو‌به‌بالا
+                    val diffSec = java.time.Instant.parse(exp).epochSecond - java.time.Instant.now().epochSecond
+                    if (diffSec <= 0) "" else "${(diffSec + 86399L) / 86400L}"
+                } catch (e: Exception) {
+                    val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(exp.take(10)))
+                    if (d >= 0) d.toString() else ""
+                }
             }.getOrDefault("")
         )
     }
