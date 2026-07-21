@@ -82,7 +82,7 @@ object PanelApi {
 
     suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList()) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
-        if (note.isNotBlank()) put("note", note)
+        if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
@@ -90,7 +90,7 @@ object PanelApi {
 
     suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
-        if (note.isNotBlank()) put("note", note)
+        if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
