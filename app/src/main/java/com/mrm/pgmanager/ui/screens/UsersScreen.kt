@@ -464,6 +464,7 @@ fun UsersScreen(
     onAppLockChange: (Boolean) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
@@ -501,14 +502,24 @@ fun UsersScreen(
                 users = list; onlineCount = maxOf(sysOnline, list.count { it.isOnline })
                 scrollOffset.value = 0f
             }.onFailure {
-                error = it.message; if (it.message?.contains("401") == true) onLogout()
+                error = it.message
+                if (it.message?.contains("401") == true) {
+                    android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
+                    onLogout()
+                }
             }
             loading = false
         }
     }
     fun runAction(action: suspend () -> Unit) {
         scope.launch {
-            runCatching { action() }.onFailure { error = it.message; if (it.message?.contains("401") == true) onLogout() }.onSuccess { load() }
+            runCatching { action() }.onFailure {
+                error = it.message
+                if (it.message?.contains("401") == true) {
+                    android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
+                    onLogout()
+                }
+            }.onSuccess { load() }
         }
     }
     LaunchedEffect(Unit) { load() }
