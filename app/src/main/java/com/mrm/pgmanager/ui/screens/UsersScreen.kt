@@ -754,7 +754,7 @@ fun UsersScreen(
         }, onResetExpiry = {
             runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
         }, onApplyTemplateToUser = { templateId, note ->
-            selectedUser = null; runAction { PanelApi.modifyUserFromTemplate(session, user.username, templateId, note) }
+            selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
         }, session = session)
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
