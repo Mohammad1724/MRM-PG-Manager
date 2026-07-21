@@ -753,11 +753,15 @@ fun UsersScreen(
             runAction { PanelApi.resetUsage(session, user.username); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
         }, onResetExpiry = {
             runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
+        }, onApplyTemplateToUser = { templateId, note ->
+            selectedUser = null; runAction { PanelApi.modifyUserFromTemplate(session, user.username, templateId, note) }
         }, session = session)
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
         createUser = false; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
-    }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null, session = session)
+    }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null, onSaveWithTemplate = { username, templateId, note ->
+        createUser = false; runAction { PanelApi.createUserFromTemplate(session, username, templateId, note) }
+    }, session = session)
     deleteUser?.let { user ->
         val theme = LocalThemeState.current
         Dialog(onDismissRequest = { deleteUser = null }) {
