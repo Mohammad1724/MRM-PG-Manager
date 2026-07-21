@@ -28,7 +28,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,6 +51,16 @@ import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.formatBytes
 import java.util.Locale
 import java.time.LocalDate
+
+/** روزهای باقی‌مانده تا انقضا بر اساس تاریخ شمسی (null = نامحدود/نامعتبر). */
+private fun daysRemainingShamsi(shamsi: String): Long? {
+    if (shamsi.isBlank()) return null
+    val iso = JalaliCalendar.shamsiToIso(shamsi)
+    if (iso.length < 8) return null
+    return runCatching {
+        java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(iso.take(10)))
+    }.getOrNull()
+}
 
 @Composable
 fun ThemeEditorDialog(
@@ -289,6 +301,7 @@ fun UserEditorDialog(
     var addDayInput by remember { mutableStateOf("") }
     var addGbInput by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
 
     LaunchedEffect(session) {
         if (session != null) {
@@ -362,7 +375,7 @@ fun UserEditorDialog(
                 if (initial == null) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f)) {
-                            CompactGlassField(value = username, onValueChange = { username = it }, placeholder = "نام کاربری (۳ تا ۳۲ حرف/عدد)", leading = "👤")
+                            CompactGlassField(value = username, onValueChange = { username = it }, placeholder = "نام کاربری (۳ تا ۳۲ حرف/عدد)", leading = "👤", keyboardType = KeyboardType.Ascii)
                         }
                         Box(
                             Modifier.size(42.dp).clip(RoundedCornerShape(12.dp))
@@ -483,40 +496,84 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // Date - SINGLE small opaque tile - only days input
+                    // Date tile - مقاوم با بازخورد فوری (Toast + لرزش + نمایش روز مانده)
                     Box(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                             .background(Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.88f))
                             .border(BorderStroke(1.dp, Color.White.copy(0.20f)), RoundedCornerShape(14.dp)).padding(10.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("📅 ${if (expireShamsi.isBlank()) "نامحدود" else expireShamsi}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Box(
-                                    Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.12f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.18f)), RoundedCornerShape(8.dp))
-                                        .clickable { showCalendar = true }, contentAlignment = Alignment.Center
-                                ) { Text("📅", fontSize = 13.sp) }
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(
-                                    Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (addDayInput.isEmpty()) Text("فقط عدد روز مثلا 10", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
-                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() } }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // نمایش بزرگِ تاریخ + روز مانده + دکمه‌های تقویم و نامحدود
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("📅 انقضای اشتراک", fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                                    Text(if (expireShamsi.isBlank()) "نامحدود" else expireShamsi, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = if (expireShamsi.isBlank()) theme.mutedColor else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    val remain = daysRemainingShamsi(expireShamsi)
+                                    Text(
+                                        when {
+                                            expireShamsi.isBlank() -> "بدون محدودیت زمانی"
+                                            remain == null -> ""
+                                            remain < 0 -> "منقضی شده"
+                                            remain == 0L -> "امروز منقضی می‌شود"
+                                            else -> "${remain} روز مانده"
+                                        },
+                                        fontSize = 10.sp,
+                                        color = if (remain != null && remain in 0..3) GlassRed else theme.mutedColor,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
-                                Box(Modifier.height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
-                                    val d = addDayInput.toIntOrNull() ?: 0; if (d > 0) { addDays(d); addDayInput = "" }
-                                }.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text("+روز", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                // انتخاب از تقویم شمسی
+                                Box(
+                                    Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.22f)), RoundedCornerShape(10.dp))
+                                        .clickable { showCalendar = true }, contentAlignment = Alignment.Center
+                                ) { Text("🗓️", fontSize = 16.sp) }
+                                // پاک کردن → نامحدود
+                                if (expireShamsi.isNotBlank()) {
+                                    Box(
+                                        Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(0.10f)).border(BorderStroke(1.dp, GlassRed.copy(0.24f)), RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                expireShamsi = ""
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                android.widget.Toast.makeText(context, "نامحدود شد (بدون تاریخ انقضا)", android.widget.Toast.LENGTH_SHORT).show()
+                                            }, contentAlignment = Alignment.Center
+                                    ) { Text("∞", fontSize = 16.sp, color = GlassRed, fontWeight = FontWeight.Bold) }
+                                }
                             }
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            // دکمه‌های سریع - بزرگ‌تر با Toast و لرزش
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf(7, 30, 60, 90, 180).forEach { d ->
                                     Box(
-                                        Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.12f)), RoundedCornerShape(7.dp))
-                                            .clickable { addDays(d) }.padding(horizontal = 8.dp),
+                                        Modifier.height(38.dp).clip(RoundedCornerShape(10.dp))
+                                            .background(theme.lamp.primary.copy(0.12f))
+                                            .border(BorderStroke(1.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                addDays(d)
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                android.widget.Toast.makeText(context, "+$d روز اضافه شد → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
+                                            }.padding(horizontal = 14.dp),
                                         contentAlignment = Alignment.Center
-                                    ) { Text("+$d", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                    ) { Text("+$d روز", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.lamp.primary) }
                                 }
+                            }
+                            // ورودی روز دلخواه
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.04f)).border(BorderStroke(1.dp, Color.White.copy(0.16f)), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (addDayInput.isEmpty()) Text("تعداد روز دلخواه (مثلا 45)", fontSize = 11.sp, color = theme.mutedColor.copy(0.6f))
+                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(5) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                }
+                                Box(Modifier.height(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary).clickable {
+                                    val d = addDayInput.toIntOrNull() ?: 0
+                                    if (d > 0) {
+                                        addDays(d); addDayInput = ""
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        android.widget.Toast.makeText(context, "+$d روز اضافه شد → ${expireShamsi.ifBlank { "نامحدود" }}", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, "ابتدا عدد روز را وارد کنید", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) { Text("افزودن", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                             }
                         }
                     }
