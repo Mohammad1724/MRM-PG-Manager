@@ -80,16 +80,6 @@ import com.mrm.pgmanager.ui.theme.glassBorder
 /** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
 private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit)
 
-/** مدتِ پلنِ کاربر (روز) از رویِ created_at تا expire.
- *  پنل پلنِ قبلیِ کاربر را ذخیره نمی‌کند؛ این تخمین برای دورهٔ اولِ اشتراک دقیق است. */
-private fun planDurationDays(u: PanelUser): Int {
-    return runCatching {
-        val created = java.time.LocalDate.parse(u.createdAt?.take(10))
-        val expire = java.time.LocalDate.parse(u.expire?.take(10))
-        java.time.temporal.ChronoUnit.DAYS.between(created, expire).toInt()
-    }.getOrNull()?.let { if (it in 1..365) it else null } ?: 30
-}
-
 // Track more gray and visible
 private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26f) else Color(0xFF6B7280).copy(alpha = 0.28f)
 
@@ -189,7 +179,7 @@ private fun TopBarHeader(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { Text("🎨", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { Text("⚙️", fontSize = 11.sp) }, onClick = onOpenThemeDialog)
             ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 14.sp) }, onClick = onRefresh, enabled = !loading)
             ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
         }
@@ -314,7 +304,7 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 // FIX 3: GB / GB and days left
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
+private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -342,7 +332,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -366,7 +355,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
+private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -394,7 +383,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
             Spacer(Modifier.width(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -428,7 +416,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, onRenew: () -> Unit = {}) {
+private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val p = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -449,7 +437,6 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             }
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.lamp.primary.copy(0.14f)).border(BorderStroke(0.8.dp, theme.lamp.primary.copy(0.30f)), RoundedCornerShape(7.dp)).clickable { onRenew() }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("⏳ تمدید", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                 if (user.subUrl.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -511,6 +498,8 @@ fun UsersScreen(
     var showBulkTemplateDialog by remember { mutableStateOf(false) }
     var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
     var quickActionUser by remember { mutableStateOf<PanelUser?>(null) }
+    var quickTemplateUser by remember { mutableStateOf<PanelUser?>(null) }
+    var quickTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
 
     // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -550,16 +539,6 @@ fun UsersScreen(
                     onLogout()
                 }
             }.onSuccess { load() }
-        }
-    }
-    // تمدید = ریستِ مصرف (حجمِ تازه) + شروعِ دورهٔ تازه از «همین الان».
-    // مدت‌زمان: اگر days داده شد همان؛ وگرنه از مدتِ پلنِ کاربر (created_at→expire) گرفته می‌شود.
-    fun renewUser(u: PanelUser, days: Int?) {
-        val d = days ?: planDurationDays(u)
-        val iso = java.time.LocalDate.now().plusDays(d.toLong()).toString()
-        runAction {
-            PanelApi.resetUsage(session, u.username)
-            PanelApi.modifyUser(session, u.username, (u.dataLimit.toDouble() / 1073741824.0), iso, "", null, null)
         }
     }
     LaunchedEffect(Unit) { load() }
@@ -665,9 +644,9 @@ fun UsersScreen(
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, onRenew = { renewUser(user, null) }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
                     }
                 }
             }
@@ -752,6 +731,20 @@ fun UsersScreen(
         }
     }
 
+    quickTemplateUser?.let { u ->
+        LaunchedEffect(u) { quickTemplates = PanelApi.userTemplates(session) }
+        com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
+            templates = quickTemplates,
+            selectedCount = 1,
+            onDismiss = { quickTemplateUser = null },
+            onApply = { templateId, note ->
+                val id = u.id
+                quickTemplateUser = null
+                runAction { PanelApi.bulkApplyTemplate(session, setOf(id), templateId, note) }
+            }
+        )
+    }
+
     if (showBulkTemplateDialog) {
         var templates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
         LaunchedEffect(Unit) {
@@ -784,7 +777,7 @@ fun UsersScreen(
         QuickActionSheet(
             user = u,
             onDismiss = { quickActionUser = null },
-            onRenew = { days -> renewUser(u, days) },
+            onUseTemplate = { quickTemplateUser = u },
             onToggle = { runAction { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
             onCopySub = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
