@@ -142,7 +142,7 @@ fun LoginScreen(
                             Text("🔒", fontSize = 11.sp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 7.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text("🔐 HTTPS", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
