@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.BuildConfig
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
@@ -743,7 +744,8 @@ fun UsersScreen(
             isAppLockEnabled = isAppLockEnabled,
             onDismiss = { showThemeDialog = false },
             onThemeChange = onThemeChange,
-            onAppLockChange = onAppLockChange
+            onAppLockChange = onAppLockChange,
+            appVersion = BuildConfig.VERSION_NAME
         )
     }
     selectedUser?.let { user ->
