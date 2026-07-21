@@ -267,7 +267,15 @@ object PanelApi {
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
-    // پایانِ روز به وقت ایران (+03:30). استفاده از Z/UTC باعث می‌شد در پنلِ با منطقهٔ زمانیِ ایران،
-    // تاریخ یک روز جلوتر ثبت شود (مثلاً ۳۰ روز می‌شد ۳۱ روز). با +03:30 هم در پنل هم در اپ یک تاریخ نشان داده می‌شود.
-    private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59+03:30"
+    // expire را برابر «اکنون + N روز» می‌فرستیم (مانند رفتار بومی مارزبان/پاسارگارد).
+    // N = تعداد روز میان «امروز» و «تاریخ هدف». این‌کار اختلافِ زمانی را دقیقاً N روز می‌کند،
+    // پس گردکردنِ کسرِ روز توسط پنل (ceil) دیگر یک روز اضافه نشان نمی‌دهد.
+    // (قبلاً پایانِ روز ارسال می‌شد و چون کسرِ مثبتِ روز وجود داشت، پنل یک روز بیشتر نشان می‌داد.)
+    private fun expireValue(date: String): Any {
+        if (date.isBlank() || date == "null" || date == "0") return 0
+        val target = runCatching { java.time.LocalDate.parse(date.take(10)) }.getOrNull()
+            ?: return "${date}T23:59:59Z"
+        val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), target).coerceAtLeast(0)
+        return java.time.Instant.now().plusSeconds(days * 86400L).toString()
+    }
 }
