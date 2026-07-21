@@ -51,6 +51,7 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserFilter
 import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.ui.components.*
+import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.dialogs.SubscriptionQrDialog
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.dialogs.UserEditorDialog
@@ -68,6 +69,9 @@ import java.time.temporal.ChronoUnit
 
 import com.mrm.pgmanager.ui.theme.glassBg
 import com.mrm.pgmanager.ui.theme.glassBorder
+
+/** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
+private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit)
 
 // Track more gray and visible
 private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26f) else Color(0xFF6B7280).copy(alpha = 0.28f)
@@ -481,6 +485,7 @@ fun UsersScreen(
     var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
     var selectedUserIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var showBulkTemplateDialog by remember { mutableStateOf(false) }
+    var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
 
     // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -691,26 +696,10 @@ fun UsersScreen(
                     BulkActionsBar(
                         selectedCount = selectedUserIds.size,
                         onClear = { selectedUserIds = emptySet() },
-                        onDelete = {
-                            val ids = selectedUserIds.toSet()
-                            selectedUserIds = emptySet()
-                            runAction { PanelApi.bulkDeleteUsers(session, ids) }
-                        },
-                        onResetUsage = {
-                            val ids = selectedUserIds.toSet()
-                            selectedUserIds = emptySet()
-                            runAction { PanelApi.bulkResetUsersUsage(session, ids) }
-                        },
-                        onDisable = {
-                            val ids = selectedUserIds.toSet()
-                            selectedUserIds = emptySet()
-                            runAction { PanelApi.bulkDisableUsers(session, ids) }
-                        },
-                        onEnable = {
-                            val ids = selectedUserIds.toSet()
-                            selectedUserIds = emptySet()
-                            runAction { PanelApi.bulkEnableUsers(session, ids) }
-                        },
+                        onDelete = { pendingBulk = PendingBulk("حذف ${selectedUserIds.size} کاربر؟", "این کاربرها برای همیشه حذف می‌شوند و غیرقابل‌بازگشت هستند.", "حذف") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkDeleteUsers(session, ids) } } },
+                        onResetUsage = { pendingBulk = PendingBulk("ریست حجم ${selectedUserIds.size} کاربر؟", "مصرفِ این کاربرها صفر می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkResetUsersUsage(session, ids) } } },
+                        onDisable = { pendingBulk = PendingBulk("غیرفعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها غیرفعال می‌شوند و اتصالشان قطع می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkDisableUsers(session, ids) } } },
+                        onEnable = { pendingBulk = PendingBulk("فعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها فعال می‌شوند.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkEnableUsers(session, ids) } } },
                         onApplyTemplate = {
                             showBulkTemplateDialog = true
                         }
@@ -735,6 +724,16 @@ fun UsersScreen(
                 showBulkTemplateDialog = false
                 runAction { PanelApi.bulkApplyTemplate(session, ids, templateId, note) }
             }
+        )
+    }
+
+    pendingBulk?.let { p ->
+        ConfirmActionDialog(
+            title = p.title,
+            message = p.message,
+            confirmLabel = p.confirmLabel,
+            onDismiss = { pendingBulk = null },
+            onConfirm = { p.action(); pendingBulk = null }
         )
     }
 
