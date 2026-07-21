@@ -330,6 +330,7 @@ fun UserEditorDialog(
     var showResetUsageConfirm by remember { mutableStateOf(false) }
     var showResetExpiryConfirm by remember { mutableStateOf(false) }
     var addGbInput by remember { mutableStateOf("") }
+    var addDayInput by remember { mutableStateOf("") }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
@@ -575,7 +576,7 @@ fun UserEditorDialog(
                                 if (initial != null) Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(0.14f)).border(BorderStroke(1.dp, GlassAmber.copy(0.34f)), RoundedCornerShape(10.dp))
                                     .clickable { showResetExpiryConfirm = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) { Text("♻️ ریست", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber) }
                             }
-                            // دکمه‌های سریع (به فیلد اضافه می‌کنند)
+                            // دکمه‌های سریع + ورودیِ روزِ دلخواه (همگی به فیلد اضافه می‌کنند)
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(7, 30, 60, 90, 180).forEach { d ->
                                     Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(0.10f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(0.26f)), RoundedCornerShape(8.dp))
@@ -584,6 +585,14 @@ fun UserEditorDialog(
                                             android.widget.Toast.makeText(context, "+$d روز → ${dayField} روز مانده", android.widget.Toast.LENGTH_SHORT).show()
                                         }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("+$d", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.lamp.primary) }
                                 }
+                                // ورودیِ روزِ دلخواه + تیک (مانند +GB در کاشی حجم)
+                                Box(Modifier.width(54.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF16161A) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    if (addDayInput.isEmpty()) Text("+روز", fontSize = 9.sp, color = theme.mutedColor)
+                                    BasicTextField(value = addDayInput, onValueChange = { addDayInput = it.filter { c -> c.isDigit() }.take(4) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = TextStyle(fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                                }
+                                if (addDayInput.isNotEmpty()) Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary).clickable {
+                                    val d = addDayInput.toIntOrNull() ?: 0; if (d > 0) { addDays(d); addDayInput = ""; haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
+                                }.padding(horizontal = 9.dp), contentAlignment = Alignment.Center) { Text("✓", color = Color.White, fontSize = 10.sp) }
                             }
                         }
                     }
