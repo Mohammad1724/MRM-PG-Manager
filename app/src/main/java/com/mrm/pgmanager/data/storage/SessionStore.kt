@@ -37,13 +37,15 @@ class SessionStore(context: Context) {
     fun readTheme(): ThemeState {
         val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
         val isDark = prefs.getBoolean("theme_dark", false)
+        val followSystem = prefs.getBoolean("theme_follow_system", false)
         val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
-        return ThemeState(lamp = lamp, isDark = isDark)
+        return ThemeState(lamp = lamp, isDark = isDark, followSystem = followSystem)
     }
 
     fun saveTheme(themeState: ThemeState) = prefs.edit()
         .putString("theme_lamp", themeState.lamp.name)
         .putBoolean("theme_dark", themeState.isDark)
+        .putBoolean("theme_follow_system", themeState.followSystem)
         .apply()
 
     fun readAppLock(): Boolean = prefs.getBoolean("app_lock_enabled", false)
