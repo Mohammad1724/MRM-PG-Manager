@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.mrm.pgmanager.BuildConfig
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppLogo
@@ -178,7 +179,7 @@ fun LoginScreen(
                 ) { Text("🎨", fontSize = 22.sp) }
             }
 
-            if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange)
+            if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME)
         }
     }
 }
