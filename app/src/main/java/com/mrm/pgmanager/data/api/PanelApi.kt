@@ -267,5 +267,7 @@ object PanelApi {
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
-    private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59Z"
+    // پایانِ روز به وقت ایران (+03:30). استفاده از Z/UTC باعث می‌شد در پنلِ با منطقهٔ زمانیِ ایران،
+    // تاریخ یک روز جلوتر ثبت شود (مثلاً ۳۰ روز می‌شد ۳۱ روز). با +03:30 هم در پنل هم در اپ یک تاریخ نشان داده می‌شود.
+    private fun expireValue(date: String): Any = if (date.isBlank() || date == "null" || date == "0") 0 else "${date}T23:59:59+03:30"
 }
