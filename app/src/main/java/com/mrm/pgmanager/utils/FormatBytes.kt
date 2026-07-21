@@ -6,6 +6,7 @@ fun formatBytes(value: Long): String {
     if (value <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val index = (kotlin.math.ln(value.toDouble()) / kotlin.math.ln(1024.0)).toInt().coerceAtMost(units.lastIndex)
-    return "${DecimalFormat("#.##").format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
+    val df = java.text.DecimalFormat("#.##", java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US))
+    return "${df.format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
 }
 
