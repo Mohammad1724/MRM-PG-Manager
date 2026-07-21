@@ -110,7 +110,19 @@ fun LoginScreen(
                                     if (loading) return@clickable
                                     loading = true; error = null
                                     scope.launch {
-                                        runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { error = "اتصال ناموفق بود." }
+                                        runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { e ->
+                                            error = when {
+                                                e.message?.contains("Credentials required", ignoreCase = true) == true -> "نام کاربری و رمز را وارد کنید."
+                                                e.message?.contains("Invalid URL", ignoreCase = true) == true -> "آدرس پنل نامعتبر است."
+                                                e.message?.contains("Cleartext", ignoreCase = true) == true || e.message?.contains("not permitted", ignoreCase = true) == true -> "این آدرس HTTP است و امن نیست؛ از HTTPS استفاده کنید."
+                                                e is java.net.UnknownHostException -> "سرور پیدا نشد. آدرس پنل را بررسی کنید."
+                                                e is java.net.SocketTimeoutException -> "پاسخی از سرور نگرفت شد (timeout)."
+                                                e.message?.contains("Login failed: 401", ignoreCase = true) == true -> "نام کاربری یا رمز اشتباه است."
+                                                e.message?.contains("Login failed: 404", ignoreCase = true) == true -> "آدرس یا مسیر پنل درست نیست (۴۰۴)."
+                                                e.message?.startsWith("Login failed") == true -> "خطای سرور: ${e.message}"
+                                                else -> "اتصال ناموفق بود: ${e.message ?: "خطای ناشناخته"}"
+                                            }
+                                        }
                                         loading = false
                                     }
                                 },
@@ -123,11 +135,16 @@ fun LoginScreen(
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                                 .background(if (theme.isDark) Color.White.copy(0.05f) else Color.Black.copy(0.03f))
+                                .clickable { showThemeDialog = true }
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🔐", fontSize = 11.sp)
-                            Text("اتصال امن • HTTPS", fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                            Text("🔒", fontSize = 11.sp)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
+                                Text("برای فعال‌سازی: دکمهٔ 🎨 بالا ← بخش امنیت (یا همین‌جا بزن)", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            }
+                            Text("🔐 HTTPS", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
