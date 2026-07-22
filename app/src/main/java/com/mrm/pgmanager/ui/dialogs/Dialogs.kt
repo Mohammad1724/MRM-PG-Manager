@@ -380,6 +380,7 @@ fun UserEditorDialog(
     var hwidLimit by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var selectedGroupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
     var allGroups by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
+    var groupsLoading by remember { mutableStateOf(true) }
     var allTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
     var templatesLoading by remember { mutableStateOf(true) }
     var templatesFailed by remember { mutableStateOf(false) }
@@ -397,7 +398,9 @@ fun UserEditorDialog(
 
     LaunchedEffect(session) {
         if (session != null) {
-            allGroups = com.mrm.pgmanager.data.api.PanelApi.groups(session)
+            groupsLoading = true
+            allGroups = runCatching { com.mrm.pgmanager.data.api.PanelApi.groups(session) }.getOrDefault(emptyList())
+            groupsLoading = false
             templatesLoading = true; templatesFailed = false
             var list: List<com.mrm.pgmanager.data.model.UserTemplateItem>? = null
             for (i in 1..3) {
@@ -738,7 +741,8 @@ fun UserEditorDialog(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("👥 گروه‌ها", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 Spacer(Modifier.weight(1f))
-                                if (allGroups.isEmpty()) Text("در حال بارگذاری...", fontSize = 9.sp, color = theme.mutedColor)
+                                if (groupsLoading) Text("در حال بارگذاری...", fontSize = 9.sp, color = theme.mutedColor)
+                                else if (allGroups.isEmpty()) Text("گروهی یافت نشد", fontSize = 9.sp, color = theme.mutedColor)
                                 else Text("${selectedGroupIds.size} انتخاب", fontSize = 9.sp, color = theme.mutedColor)
                             }
                             if (allGroups.isNotEmpty()) {
