@@ -189,8 +189,8 @@ fun ThemeEditorDialog(
                 }
                 // درباره
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("نسخهٔ برنامه", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    Text(appVersion.ifBlank { "—" }, fontSize = 6.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
+                    Text("نسخهٔ برنامه", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Text(appVersion.ifBlank { "—" }, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                 }
                 GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
@@ -381,6 +381,8 @@ fun UserEditorDialog(
     var selectedGroupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
     var allGroups by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
     var allTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+    var templatesLoading by remember { mutableStateOf(true) }
+    var templatesFailed by remember { mutableStateOf(false) }
     var isTemplateMode by remember { mutableStateOf(false) }
     var selectedTemplateId by remember { mutableStateOf<Int?>(null) }
     var formError by remember { mutableStateOf<String?>(null) }
@@ -396,10 +398,20 @@ fun UserEditorDialog(
     LaunchedEffect(session) {
         if (session != null) {
             allGroups = com.mrm.pgmanager.data.api.PanelApi.groups(session)
-            allTemplates = com.mrm.pgmanager.data.api.PanelApi.userTemplates(session)
-            if (allTemplates.isNotEmpty() && selectedTemplateId == null) {
-                selectedTemplateId = allTemplates.first().id
+            templatesLoading = true; templatesFailed = false
+            var list: List<com.mrm.pgmanager.data.model.UserTemplateItem>? = null
+            for (i in 1..3) {
+                val r = runCatching { com.mrm.pgmanager.data.api.PanelApi.userTemplates(session) }
+                if (r.isSuccess) { list = r.getOrNull(); break }
+                kotlinx.coroutines.delay(400L)
             }
+            if (list != null) {
+                allTemplates = list
+                if (allTemplates.isNotEmpty() && selectedTemplateId == null) selectedTemplateId = allTemplates.first().id
+            } else {
+                allTemplates = emptyList(); templatesFailed = true
+            }
+            templatesLoading = false
         }
     }
 
@@ -507,7 +519,7 @@ fun UserEditorDialog(
                                     }
                                 }
                             } else {
-                                Text("تمپلتی یافت نشد. تمپلت‌ها را در پنل اصلی پاسارگارد بسازید.", fontSize = 10.sp, color = theme.mutedColor)
+                                if (templatesLoading) Text("⏳ در حال بارگذاری...", fontSize = 10.sp, color = theme.mutedColor) else if (templatesFailed) Text("⚠️ خطا در بارگذاری. دوباره امتحان کنید.", fontSize = 10.sp, color = GlassRed) else Text("تمپلتی یافت نشد. تمپلت‌ها را در پنل اصلی پاسارگارد بسازید.", fontSize = 10.sp, color = theme.mutedColor)
                             }
                         }
                     }
@@ -931,7 +943,9 @@ fun BulkApplyTemplateDialog(
     templates: List<com.mrm.pgmanager.data.model.UserTemplateItem>,
     selectedCount: Int,
     onDismiss: () -> Unit,
-    onApply: (templateId: Int, note: String) -> Unit
+    onApply: (templateId: Int, note: String) -> Unit,
+    isLoading: Boolean = false,
+    loadFailed: Boolean = false
 ) {
     val theme = LocalThemeState.current
     var selectedTemplateId by remember { mutableStateOf<Int?>(templates.firstOrNull()?.id) }
@@ -946,7 +960,11 @@ fun BulkApplyTemplateDialog(
                 Text("📦 اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text("یک تمپلت آماده انتخاب کنید تا تنظیمات آن روی هر $selectedCount کاربر انتخابی اعمال شود:", color = theme.mutedColor, fontSize = 11.5.sp)
 
-                if (templates.isNotEmpty()) {
+                if (isLoading) {
+                    Text("⏳ در حال بارگذاریِ تمپلت‌ها...", fontSize = 11.sp, color = theme.mutedColor)
+                } else if (loadFailed) {
+                    Text("⚠️ خطا در بارگذاریِ تمپلت‌ها. دوباره امتحان کنید.", fontSize = 11.sp, color = GlassRed)
+                } else if (templates.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
                             val sel = selectedTemplateId == t.id
