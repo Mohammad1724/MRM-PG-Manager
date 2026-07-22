@@ -213,30 +213,30 @@ object PanelApi {
     }
 
     suspend fun userTemplates(session: Session): List<UserTemplateItem> = withContext(Dispatchers.IO) {
-        runCatching {
+        // ابتدا endpoint ساده؛ در صورتِ ناموفق‌بودن یا خالی‌بودن، fallback می‌زند.
+        val simple: List<UserTemplateItem>? = runCatching {
             val req = requestBuilder(session, "${session.baseUrl}/api/user_templates/simple").get().build()
             client.newCall(req).execute().use { res ->
-                if (res.isSuccessful) {
-                    val obj = JSONObject(res.body?.string() ?: "{}")
-                    val arr = obj.optJSONArray("templates") ?: obj.optJSONArray("items")
-                    if (arr != null) {
-                        return@runCatching List(arr.length()) { i ->
-                            val t = arr.getJSONObject(i)
-                            UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
-                        }
-                    }
-                }
-            }
-            val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
-            client.newCall(reqFull).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<UserTemplateItem>()
-                val arr = org.json.JSONArray(res.body?.string() ?: "[]")
+                if (!res.isSuccessful) return@runCatching null
+                val obj = JSONObject(res.body?.string() ?: "{}")
+                val arr = obj.optJSONArray("templates") ?: obj.optJSONArray("items") ?: return@runCatching null
                 List(arr.length()) { i ->
                     val t = arr.getJSONObject(i)
                     UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
                 }
             }
-        }.getOrDefault(emptyList())
+        }.getOrNull()
+        if (simple != null) return@withContext simple
+        // fallback: endpoint کامل — در صورتِ شکست، خطا پرتاب می‌کند (تا فراخوان‌کننده بتواند retry کند)
+        val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
+        client.newCall(reqFull).execute().use { res ->
+            if (!res.isSuccessful) error("بارگذاریِ تمپلت‌ها ناموفق بود: ${res.code}")
+            val arr = org.json.JSONArray(res.body?.string() ?: "[]")
+            List(arr.length()) { i ->
+                val t = arr.getJSONObject(i)
+                UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
+            }
+        }
     }
 
     suspend fun createUserFromTemplate(session: Session, username: String, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
