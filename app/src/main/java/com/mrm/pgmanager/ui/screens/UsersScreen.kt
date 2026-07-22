@@ -113,6 +113,15 @@ private fun daysLeftText(expire: String?): String {
 
 private fun daysLeftFull(expire: String?): String = daysLeftText(expire)
 
+/** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
+private fun cardStatusText(user: PanelUser): String = when (user.status) {
+    "disabled" -> "⚪ غیرفعال"
+    "expired" -> "🔴 منقضی"
+    "limited" -> "🟡 محدود"
+    "on_hold" -> "⏸ در انتظار"
+    else -> daysLeftText(user.expire)
+}
+
 @Composable
 private fun StatGlassCard(icon: String, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
@@ -329,7 +338,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
             }
             Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${daysLeftFull(user.expire)}", fontSize = 9.5.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
+                Text("${cardStatusText(user)}", fontSize = 9.5.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
             Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
@@ -381,7 +390,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             Column(Modifier.weight(1.3f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(daysLeftFull(user.expire), fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text(cardStatusText(user), fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                 }
                 Spacer(Modifier.height(3.dp))
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
@@ -441,7 +450,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                 Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 7.5.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
             Column(Modifier.width(125.dp)) {
-                Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${daysLeftFull(user.expire)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${cardStatusText(user)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(2.dp))
                 Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
@@ -549,6 +558,8 @@ fun UsersScreen(
                 if (it.message?.contains("401") == true) {
                     android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
                     onLogout()
+                } else {
+                    android.widget.Toast.makeText(context, "خطا: ${it.message?.take(120)}", android.widget.Toast.LENGTH_LONG).show()
                 }
             }.onSuccess { load() }
         }
