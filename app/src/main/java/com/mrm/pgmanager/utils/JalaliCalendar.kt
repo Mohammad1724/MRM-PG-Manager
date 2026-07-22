@@ -99,3 +99,19 @@ fun lastSeenText(onlineAt: String?, isOnline: Boolean): String {
         else -> "${faNum(diffMin / (1440 * 365))} سال پیش"
     }
 }
+
+/** فرمتِ کوتاهِ «آخرین آنلاین»: آنلاین / 4m / 4h / 4d / 4w / 3mo / 1y */
+fun lastSeenShort(onlineAt: String?, isOnline: Boolean): String {
+    if (isOnline) return "آنلاین"
+    val millis = parseOnlineMillis(onlineAt) ?: return ""
+    val diffMin = (System.currentTimeMillis() - millis) / 60000L
+    if (diffMin <= 0) return "آنلاین"
+    return when {
+        diffMin < 60 -> "${diffMin}m"
+        diffMin < 1440 -> "${diffMin / 60}h"
+        diffMin < 10080 -> "${diffMin / 1440}d"
+        diffMin < 43200 -> "${diffMin / 10080}w"
+        diffMin < 525600 -> "${diffMin / 43200}mo"
+        else -> "${diffMin / 525600}y"
+    }
+}
