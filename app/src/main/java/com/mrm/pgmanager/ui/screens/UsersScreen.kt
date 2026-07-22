@@ -752,7 +752,7 @@ fun UsersScreen(
                 if (r.isSuccess) { list = r.getOrNull(); break }
                 kotlinx.coroutines.delay(400L)
             }
-            if (list != null) quickTemplates = list else quickTemplatesFailed = true
+            list?.let { quickTemplates = it } ?: run { quickTemplatesFailed = true }
             quickTemplatesLoading = false
         }
         com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
@@ -781,7 +781,7 @@ fun UsersScreen(
                 if (r.isSuccess) { list = r.getOrNull(); break }
                 kotlinx.coroutines.delay(400L)
             }
-            if (list != null) templates = list else templatesFailed = true
+            list?.let { templates = it } ?: run { templatesFailed = true }
             templatesLoading = false
         }
         com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
