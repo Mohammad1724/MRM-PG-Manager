@@ -22,6 +22,7 @@ object PanelApi {
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
+        .connectionPool(okhttp3.ConnectionPool(5, 30, TimeUnit.SECONDS))
         .addInterceptor { chain ->
             // برای متدهای امن (GET/PUT/DELETE) در صورتِ خطای شبکه‌ای، تا ۳ بار retry می‌کنیم.
             // POST retry نمی‌شود (برای جلوگیری از ساختِ کاربرِ تکراری).
