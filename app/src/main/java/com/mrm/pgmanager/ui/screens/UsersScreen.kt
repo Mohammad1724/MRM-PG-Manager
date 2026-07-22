@@ -70,6 +70,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.ThemeState
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.lastSeenText
+import com.mrm.pgmanager.utils.lastSeenShort
 import com.mrm.pgmanager.utils.formatBytes
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -289,7 +290,7 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
         contentAlignment = Alignment.Center
     ) {
         if (selected) {
-            Canvas(modifier = Modifier.size(12.dp)) {
+            Canvas(modifier = Modifier.size(10.dp)) {
                 val strokeWidth = 2.2.dp.toPx()
                 drawLine(
                     color = Color.White,
@@ -331,8 +332,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
+                    Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { Text("📝", fontSize = 8.sp) }
             }
@@ -350,8 +351,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
                         android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                    }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("کپی", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                     Text(if (user.isOnline) "🟢" else "⚫", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
@@ -382,8 +383,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
+                    Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
             }
             Spacer(Modifier.width(6.dp))
@@ -413,7 +414,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                             }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📋", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    ) { Text("کپی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     Box(
                         modifier = Modifier
                             .height(24.dp)
@@ -423,7 +424,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                             .clickable { onQrClick(user) }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📱 QR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    ) { Text("QR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
             }
         }
@@ -446,8 +447,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             Spacer(Modifier.width(6.dp))
             Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(onlineDot))
             Column(modifier = Modifier.width(88.dp)) {
-                Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 7.5.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 7.sp) }
+                Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 7.5.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
             Column(Modifier.width(125.dp)) {
                 Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${cardStatusText(user)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -470,7 +471,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                             }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📋", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    ) { Text("کپی", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     Box(
                         modifier = Modifier
                             .height(22.dp)
@@ -480,7 +481,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                             .clickable { onQrClick(user) }
                             .padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("📱 QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    ) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
             }
         }
