@@ -538,8 +538,7 @@ fun UsersScreen(
             loading = true; error = null
             runCatching {
                 val list = PanelApi.users(session)
-                val sysOnline = PanelApi.onlineUserCount(session)
-                users = list; onlineCount = maxOf(sysOnline, list.count { it.isOnline })
+                users = list; onlineCount = list.count { it.isOnline }
                 scrollOffset.value = 0f
             }.onFailure {
                 error = it.message
@@ -851,9 +850,9 @@ fun UsersScreen(
         UserEditorDialog(initial = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
             selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
-            runAction { PanelApi.resetUsage(session, user.username); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
+            runAction { PanelApi.resetUsage(session, user.username) }
         }, onResetExpiry = {
-            runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null); val refreshed = PanelApi.users(session); users = refreshed; selectedUser = refreshed.find { it.username == user.username } }
+            runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null) }
         }, onApplyTemplateToUser = { templateId, note ->
             selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
         }, session = session)
