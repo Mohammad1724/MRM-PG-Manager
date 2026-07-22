@@ -21,6 +21,23 @@ object PanelApi {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .addInterceptor { chain ->
+            // برای متدهای امن (GET/PUT/DELETE) در صورتِ خطای شبکه‌ای، تا ۳ بار retry می‌کنیم.
+            // POST retry نمی‌شود (برای جلوگیری از ساختِ کاربرِ تکراری).
+            val request = chain.request()
+            if (request.method == "POST") return@addInterceptor chain.proceed(request)
+            var lastError: java.io.IOException? = null
+            for (attempt in 0 until 3) {
+                try {
+                    return@addInterceptor chain.proceed(request)
+                } catch (e: java.io.IOException) {
+                    lastError = e
+                    if (attempt < 2) Thread.sleep(400)
+                }
+            }
+            throw lastError ?: java.io.IOException("retry exhausted")
+        }
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
@@ -189,8 +206,23 @@ object PanelApi {
     }
 
     suspend fun groups(session: Session): List<Group> = withContext(Dispatchers.IO) {
-        runCatching {
+        // ابتدا endpoint ساده؛ در صورتِ ناموفق‌بودن، fallback می‌زند.
+        val simple: List<Group>? = runCatching {
             val req = requestBuilder(session, "${session.baseUrl}/api/groups/simple?limit=200").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching null
+                val obj = JSONObject(res.body?.string() ?: "{}")
+                val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching null
+                List(arr.length()) { i ->
+                    val g = arr.getJSONObject(i)
+                    Group(id = g.optInt("id"), name = g.optString("name"))
+                }
+            }
+        }.getOrNull()
+        if (simple != null) return@withContext simple
+        // fallback: endpoint کامل
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/groups").get().build()
             client.newCall(req).execute().use { res ->
                 if (!res.isSuccessful) return@runCatching emptyList<Group>()
                 val obj = JSONObject(res.body?.string() ?: "{}")
