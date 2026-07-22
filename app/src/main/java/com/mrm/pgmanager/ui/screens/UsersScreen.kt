@@ -180,7 +180,7 @@ private fun TopBarHeader(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { Text("⚙️", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { Text("🎨", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
             ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 14.sp) }, onClick = onRefresh, enabled = !loading)
             ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
         }
@@ -510,6 +510,8 @@ fun UsersScreen(
     var quickActionUser by remember { mutableStateOf<PanelUser?>(null) }
     var quickTemplateUser by remember { mutableStateOf<PanelUser?>(null) }
     var quickTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+    var quickTemplatesLoading by remember { mutableStateOf(true) }
+    var quickTemplatesFailed by remember { mutableStateOf(false) }
 
     // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -742,7 +744,17 @@ fun UsersScreen(
     }
 
     quickTemplateUser?.let { u ->
-        LaunchedEffect(u) { quickTemplates = PanelApi.userTemplates(session) }
+        LaunchedEffect(u) {
+            quickTemplatesLoading = true; quickTemplatesFailed = false
+            var list: List<com.mrm.pgmanager.data.model.UserTemplateItem>? = null
+            for (i in 1..3) {
+                val r = runCatching { PanelApi.userTemplates(session) }
+                if (r.isSuccess) { list = r.getOrNull(); break }
+                kotlinx.coroutines.delay(400L)
+            }
+            if (list != null) quickTemplates = list else quickTemplatesFailed = true
+            quickTemplatesLoading = false
+        }
         com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
             templates = quickTemplates,
             selectedCount = 1,
@@ -751,14 +763,26 @@ fun UsersScreen(
                 val id = u.id
                 quickTemplateUser = null
                 runAction { PanelApi.bulkApplyTemplate(session, setOf(id), templateId, note) }
-            }
+            },
+            isLoading = quickTemplatesLoading,
+            loadFailed = quickTemplatesFailed
         )
     }
 
     if (showBulkTemplateDialog) {
         var templates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+        var templatesLoading by remember { mutableStateOf(true) }
+        var templatesFailed by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
-            templates = PanelApi.userTemplates(session)
+            templatesLoading = true; templatesFailed = false
+            var list: List<com.mrm.pgmanager.data.model.UserTemplateItem>? = null
+            for (i in 1..3) {
+                val r = runCatching { PanelApi.userTemplates(session) }
+                if (r.isSuccess) { list = r.getOrNull(); break }
+                kotlinx.coroutines.delay(400L)
+            }
+            if (list != null) templates = list else templatesFailed = true
+            templatesLoading = false
         }
         com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
             templates = templates,
@@ -769,7 +793,9 @@ fun UsersScreen(
                 selectedUserIds = emptySet()
                 showBulkTemplateDialog = false
                 runAction { PanelApi.bulkApplyTemplate(session, ids, templateId, note) }
-            }
+            },
+            isLoading = templatesLoading,
+            loadFailed = templatesFailed
         )
     }
 
