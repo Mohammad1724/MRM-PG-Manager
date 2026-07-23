@@ -353,21 +353,15 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
 
 @Composable
 private fun OnlineBadge(user: PanelUser) {
-    val theme = LocalThemeState.current
+    // در نمای فشرده، تنها نشانگر رنگی کافی است و فضای نام کاربر را نمی‌گیرد.
     val color = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
-    Row(
+    Box(
         modifier = Modifier
-            .height(22.dp)
-            .clip(RoundedCornerShape(7.dp))
-            .background(color.copy(alpha = if (user.isOnline) 0.13f else 0.09f))
-            .border(BorderStroke(0.8.dp, color.copy(alpha = 0.24f)), RoundedCornerShape(7.dp))
-            .padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(Modifier.size(5.dp).clip(RoundedCornerShape(3.dp)).background(color))
-        Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
-    }
+            .size(9.dp)
+            .clip(RoundedCornerShape(4.5.dp))
+            .background(color)
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.55f)), RoundedCornerShape(4.5.dp))
+    )
 }
 
 @Composable
@@ -390,26 +384,41 @@ private fun UserStatusBadge(user: PanelUser) {
     ) { Text(label, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1) }
 }
 
+@Composable
+private fun RowAction(label: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(Modifier.height(23.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.55f)).border(BorderStroke(0.8.dp, glassBorder(theme.isDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+        Text(label, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+    }
+}
+
+private fun copySubscription(context: Context, user: PanelUser) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+    android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
+    val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
+    val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            // سربرگ مرتب: انتخاب، نام و آنلاین در یک سمت؛ وضعیت در انتهای مقابل.
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                OnlineBadge(user)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                CheckboxIcon(selected = selected, onToggle = onSelectToggle); OnlineBadge(user)
                 Text(user.username, modifier = Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 UserStatusBadge(user)
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", modifier = Modifier.weight(1f), fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(traffic, modifier = Modifier.weight(1f), fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("مانده: ${daysLeftText(user.expire)}", fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1)
+                if (user.subUrl.isNotBlank()) { RowAction("کپی") { copySubscription(context, user) }; RowAction("QR") { onQrClick(user) } }
             }
             Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp))) }
         }
@@ -420,13 +429,32 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 @Composable
 private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
-    // نمای کوچک عمداً فقط یک خط دارد: انتخاب ← نام ← آنلاین — وضعیت در سمت مقابل.
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 12.dp, vertical = 9.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    val context = LocalContext.current
+    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
+    val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
+    val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
+
+    // تمام اطلاعات نمای کوچک، عمداً در یک ردیف قرار دارند.
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 8.dp, vertical = 9.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
-            Text(user.username, modifier = Modifier.weight(1f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(user.username, modifier = Modifier.weight(1f, fill = false).widthIn(min = 42.dp, max = 90.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             UserStatusBadge(user)
+            // آمار بالای نوار است؛ نوار فقط چند dp پایین‌تر، در همان ستون قرار می‌گیرد.
+            Column(Modifier.width(82.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
+                }
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(4.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor))
+                }
+            }
+            if (user.subUrl.isNotBlank()) {
+                RowAction("کپی") { copySubscription(context, user) }
+                RowAction("QR") { onQrClick(user) }
+            }
         }
     }
 }
