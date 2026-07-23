@@ -451,6 +451,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor))
                 }
             }
+            // فضای باقیمانده، عملیات‌ها را تا لبهٔ انتهایی کارت می‌برد.
+            Spacer(Modifier.weight(1f))
             if (user.subUrl.isNotBlank()) {
                 RowAction("کپی") { copySubscription(context, user) }
                 RowAction("QR") { onQrClick(user) }
