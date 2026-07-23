@@ -444,6 +444,70 @@ fun UserEditorDialog(
     if (resetExpiry) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { resetExpiry = false }, onConfirm = { resetExpiry = false; onResetExpiry?.invoke() })
 }
 
+private fun detailDaysText(expire: String?): String {
+    if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
+    return runCatching {
+        val end = try { java.time.Instant.parse(expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(expire.take(10)) }
+        val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end)
+        if (d < 0) "منقضی" else "$d روز"
+    }.getOrDefault("نامحدود")
+}
+
+@Composable
+fun UserDetailsDialog(
+    user: PanelUser,
+    onDismiss: () -> Unit,
+    onSave: (UserEditorValues, String) -> Unit,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit,
+    onResetUsage: () -> Unit,
+    onResetExpiry: () -> Unit,
+    onApplyTemplate: ((Int, String) -> Unit)? = null,
+    session: com.mrm.pgmanager.data.model.Session? = null
+) {
+    val theme = LocalThemeState.current
+    val context = LocalContext.current
+    var editOpen by remember { mutableStateOf(false) }
+    var qrOpen by remember { mutableStateOf(false) }
+    var usageConfirm by remember { mutableStateOf(false) }
+    var expiryConfirm by remember { mutableStateOf(false) }
+    val traffic = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
+    val percentage = if (user.dataLimit > 0L) ((user.usedTraffic * 100f / user.dataLimit).toInt()).coerceIn(0, 100) else 0
+    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = if (theme.isDark) .08f else .64f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(18.dp)).padding(12.dp)
+    @Composable fun action(text: String, red: Boolean = false, click: () -> Unit) {
+        Box(Modifier.height(42.dp).clip(RoundedCornerShape(12.dp)).background(if (red) GlassRed.copy(.10f) else Color.White.copy(alpha = if (theme.isDark) .08f else .7f)).border(BorderStroke(1.dp, if (red) GlassRed.copy(.45f) else tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).clickable { click() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (red) GlassRed else theme.inkColor) }
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(26.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))) {
+            Column(Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) { Text("جزئیات کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
+                    Text("×", fontSize = 24.sp, color = theme.mutedColor, modifier = Modifier.clickable { onDismiss() }.padding(6.dp))
+                }
+                Row(section(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(20.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(13.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Spacer(Modifier.width(10.dp)); Column(Modifier.weight(1f)) { Text(user.username, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = theme.mutedColor) }
+                    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (user.status == "disabled") GlassRed.copy(.13f) else GlassGreen.copy(.13f)).padding(horizontal = 10.dp, vertical = 7.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.status == "disabled") GlassRed else GlassGreen) }
+                }
+                Column(section(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("وضعیت اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("حجم مصرفی" to formatBytes(user.usedTraffic), "حجم کل" to traffic, "زمان باقی‌مانده" to detailDaysText(user.expire), "محدودیت دستگاه" to (user.hwidLimit?.let { "$it دستگاه" } ?: "نامحدود")).forEach { (l,v) -> Column(Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Color.Black.copy(.035f)).padding(7.dp)) { Text(l, fontSize = 8.sp, color = theme.mutedColor); Text(v, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) } }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) { Text("مصرف ترافیک", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor); Spacer(Modifier.width(8.dp)); Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(GlassGreen)) }; Text("$percentage%", fontSize = 9.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 8.dp)) }
+                }
+                Column(section(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Text("لینک اشتراک", modifier = Modifier.weight(1f), fontSize = 11.sp, color = theme.mutedColor); action("کپی لینک") { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }; action("نمایش QR") { qrOpen = true } } }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { action("تمپلت‌ها") { editOpen = true }; Box(Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.lamp.primary).clickable { editOpen = true }, contentAlignment = Alignment.Center) { Text("تنظیمات کاربر", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) } }
+                Column(section(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("عملیات سریع", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) { action("حذف", true) { onDelete() }; action(if (user.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن") { onToggle() }; action("ریست زمان") { expiryConfirm = true }; action("ریست حجم") { usageConfirm = true } } }
+            }
+        }
+    }
+    if (editOpen) UserEditorDialog(user, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, onResetExpiry, onApplyTemplateToUser = onApplyTemplate, session = session)
+    if (qrOpen && user.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
+    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; onResetUsage() })
+    if (expiryConfirm) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { expiryConfirm = false }, onConfirm = { expiryConfirm = false; onResetExpiry() })
+}
+
 @Composable
 fun BulkApplyTemplateDialog(
     templates: List<com.mrm.pgmanager.data.model.UserTemplateItem>,
