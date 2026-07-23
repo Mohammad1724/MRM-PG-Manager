@@ -285,28 +285,12 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
             .size(14.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(bg)
-            .border(BorderStroke(1.2.dp, borderCol), RoundedCornerShape(6.dp))
+            .border(BorderStroke(1.dp, borderCol), RoundedCornerShape(4.dp))
             .clickable { onToggle() },
         contentAlignment = Alignment.Center
     ) {
         if (selected) {
-            Canvas(modifier = Modifier.size(10.dp)) {
-                val strokeWidth = 2.2.dp.toPx()
-                drawLine(
-                    color = Color.White,
-                    start = Offset(2.dp.toPx(), 6.5.dp.toPx()),
-                    end = Offset(5.dp.toPx(), 9.5.dp.toPx()),
-                    strokeWidth = strokeWidth,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-                drawLine(
-                    color = Color.White,
-                    start = Offset(5.dp.toPx(), 9.5.dp.toPx()),
-                    end = Offset(10.dp.toPx(), 3.5.dp.toPx()),
-                    strokeWidth = strokeWidth,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            }
+            Text("✓", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -328,7 +312,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(22.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
@@ -379,7 +363,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.weight(1.1f)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.weight(1.1f)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
@@ -442,7 +426,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(vertical = 7.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.Top) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Spacer(Modifier.width(6.dp))
             Box(Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(onlineDot))
