@@ -398,6 +398,23 @@ private fun copySubscription(context: Context, user: PanelUser) {
     android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
 }
 
+@Composable
+private fun LargeRowAction(label: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(Modifier.height(38.dp).clip(RoundedCornerShape(11.dp)).background(Color.White.copy(alpha = if (theme.isDark) .10f else .62f)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+    }
+}
+
+@Composable
+private fun LargeStat(label: String, value: String, valueColor: Color? = null, modifier: Modifier = Modifier) {
+    val theme = LocalThemeState.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor, maxLines = 1)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = valueColor ?: theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
@@ -406,21 +423,36 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
+    val connection = if (user.isOnline) "● آنلاین" else "● آفلاین"
+    val connectionColor = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(18.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                CheckboxIcon(selected = selected, onToggle = onSelectToggle); OnlineBadge(user)
-                Text(user.username, modifier = Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(20.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // سربرگ: در تمام کارت‌ها وضعیت و عملیات، ستون‌های ثابت و هم‌راستا دارند.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                CheckboxIcon(selected = selected, onToggle = onSelectToggle)
+                OnlineBadge(user)
+                Text(user.username, modifier = Modifier.width(190.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 UserStatusBadge(user)
+                Spacer(Modifier.weight(1f))
+                if (user.subUrl.isNotBlank()) {
+                    LargeRowAction("کپی") { copySubscription(context, user) }
+                    LargeRowAction("QR") { onQrClick(user) }
+                }
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(traffic, modifier = Modifier.weight(1f), fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("مانده: ${daysLeftText(user.expire)}", fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1)
-                if (user.subUrl.isNotBlank()) { RowAction("کپی") { copySubscription(context, user) }; RowAction("QR") { onQrClick(user) } }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(glassBorder(theme.isDark)))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                LargeStat("حجم مصرفی", formatBytes(user.usedTraffic), modifier = Modifier.weight(1f))
+                LargeStat("حجم کل", if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit), modifier = Modifier.weight(1f))
+                LargeStat("زمان باقیمانده", daysLeftText(user.expire), modifier = Modifier.weight(1f))
+                LargeStat("وضعیت اتصال", connection, connectionColor, modifier = Modifier.weight(1f))
             }
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(10.dp))) }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("مصرف ترافیک", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                Box(Modifier.weight(1f).height(9.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(6.dp)))
+                }
+            }
         }
     }
 }
