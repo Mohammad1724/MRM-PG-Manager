@@ -366,7 +366,7 @@ private fun OnlineBadge(user: PanelUser) {
 }
 
 @Composable
-private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier) {
+private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, compact: Boolean = false) {
     val theme = LocalThemeState.current
     val (label, color) = when (user.status) {
         "active" -> "فعال" to GlassGreen
@@ -377,12 +377,12 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier) {
         else -> cardStatusText(user) to theme.mutedColor
     }
     Box(
-        modifier.height(22.dp).clip(RoundedCornerShape(7.dp))
+        modifier.height(if (compact) 17.dp else 22.dp).clip(RoundedCornerShape(if (compact) 5.dp else 7.dp))
             .background(color.copy(alpha = 0.13f))
-            .border(BorderStroke(0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(7.dp))
-            .padding(horizontal = 7.dp),
+            .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(if (compact) 5.dp else 7.dp))
+            .padding(horizontal = if (compact) 3.dp else 7.dp),
         contentAlignment = Alignment.Center
-    ) { Text(label, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1) }
+    ) { Text(label, fontSize = if (compact) 7.sp else 8.5.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 @Composable
@@ -474,9 +474,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             OnlineBadge(user)
             // ستون‌های ثابت: نام، وضعیت و آمار در تمام ردیف‌ها دقیقاً هم‌راستا می‌مانند.
             Text(user.username, modifier = Modifier.width(90.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            UserStatusBadge(user, Modifier.width(46.dp).offset(x = (-4).dp))
+            UserStatusBadge(user, Modifier.width(40.dp).offset(x = (-9).dp), compact = true)
             // آمار بالای نوار است؛ نوار فقط چند dp پایین‌تر، در همان ستون قرار می‌گیرد.
-            Column(Modifier.width(82.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.width(100.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
