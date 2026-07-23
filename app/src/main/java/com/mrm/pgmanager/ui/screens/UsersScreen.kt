@@ -62,6 +62,7 @@ import com.mrm.pgmanager.ui.dialogs.QuickActionSheet
 import com.mrm.pgmanager.ui.dialogs.SubscriptionQrDialog
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.dialogs.UserEditorDialog
+import com.mrm.pgmanager.ui.dialogs.UserDetailsDialog
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -853,13 +854,13 @@ fun UsersScreen(
         )
     }
     selectedUser?.let { user ->
-        UserEditorDialog(initial = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
+        UserDetailsDialog(user = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
             selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
             runAction { PanelApi.resetUsage(session, user.username) }
         }, onResetExpiry = {
             runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null) }
-        }, onApplyTemplateToUser = { templateId, note ->
+        }, onApplyTemplate = { templateId, note ->
             selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
         }, session = session)
     }
