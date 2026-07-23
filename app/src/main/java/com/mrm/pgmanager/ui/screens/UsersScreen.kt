@@ -535,7 +535,6 @@ fun UsersScreen(
     val scrollOffset = remember { mutableStateOf(0f) }
 
     fun load() {
-        if (loading) return  // جلوگیری از رفرشِ هم‌زمان
         scope.launch {
             loading = true; error = null
             runCatching {
