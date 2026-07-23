@@ -260,7 +260,7 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
+    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
         Text(label, color = if (selected) theme.lamp.primary else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
@@ -268,7 +268,7 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
         Text(icon, fontSize = 10.5.sp, color = if (selected) theme.lamp.primary else theme.mutedColor, fontWeight = FontWeight.Bold)
     }
 }
@@ -282,8 +282,8 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
     val borderCol = if (selected) theme.lamp.primary else if (isDark) Color(0xFF8E8C98) else Color(0xFF8C877D)
     Box(
         modifier = modifier
-            .size(20.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .size(14.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(bg)
             .border(BorderStroke(1.2.dp, borderCol), RoundedCornerShape(6.dp))
             .clickable { onToggle() },
@@ -330,7 +330,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
                     Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
@@ -381,7 +381,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.weight(1.1f)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(onlineDot))
+                Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
                     Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
@@ -445,7 +445,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(6.dp).clip(RoundedCornerShape(3.dp)).background(onlineDot))
+            Box(Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(onlineDot))
             Column(modifier = Modifier.width(88.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 7.sp) }
                 Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 7.5.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
@@ -453,7 +453,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             Column(Modifier.width(125.dp)) {
                 Text("${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)} • ${cardStatusText(user)}", fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(2.dp))
-                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(4.dp)).background(trackBg(theme.isDark))) { Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor)) }
             }
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
