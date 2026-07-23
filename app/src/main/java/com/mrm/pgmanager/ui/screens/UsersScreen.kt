@@ -366,7 +366,7 @@ private fun OnlineBadge(user: PanelUser) {
 }
 
 @Composable
-private fun UserStatusBadge(user: PanelUser) {
+private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val (label, color) = when (user.status) {
         "active" -> "فعال" to GlassGreen
@@ -377,7 +377,7 @@ private fun UserStatusBadge(user: PanelUser) {
         else -> cardStatusText(user) to theme.mutedColor
     }
     Box(
-        Modifier.height(22.dp).clip(RoundedCornerShape(7.dp))
+        modifier.height(22.dp).clip(RoundedCornerShape(7.dp))
             .background(color.copy(alpha = 0.13f))
             .border(BorderStroke(0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(7.dp))
             .padding(horizontal = 7.dp),
@@ -386,9 +386,9 @@ private fun UserStatusBadge(user: PanelUser) {
 }
 
 @Composable
-private fun RowAction(label: String, onClick: () -> Unit) {
+private fun RowAction(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.height(23.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.55f)).border(BorderStroke(0.8.dp, glassBorder(theme.isDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.height(23.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.55f)).border(BorderStroke(0.8.dp, glassBorder(theme.isDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
@@ -472,8 +472,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
-            Text(user.username, modifier = Modifier.weight(1f, fill = false).widthIn(min = 42.dp, max = 90.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            UserStatusBadge(user)
+            // ستون‌های ثابت: نام، وضعیت و آمار در تمام ردیف‌ها دقیقاً هم‌راستا می‌مانند.
+            Text(user.username, modifier = Modifier.width(90.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            UserStatusBadge(user, Modifier.width(52.dp))
             // آمار بالای نوار است؛ نوار فقط چند dp پایین‌تر، در همان ستون قرار می‌گیرد.
             Column(Modifier.width(82.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -487,8 +488,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             // فضای باقیمانده، عملیات‌ها را تا لبهٔ انتهایی کارت می‌برد.
             Spacer(Modifier.weight(1f))
             if (user.subUrl.isNotBlank()) {
-                RowAction("کپی") { copySubscription(context, user) }
-                RowAction("QR") { onQrClick(user) }
+                RowAction("کپی", Modifier.width(45.dp)) { copySubscription(context, user) }
+                RowAction("QR", Modifier.width(38.dp)) { onQrClick(user) }
             }
         }
     }
