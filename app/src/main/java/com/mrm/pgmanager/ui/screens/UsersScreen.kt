@@ -541,7 +541,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
-            Column(Modifier.width(76.dp).offset(y = 7.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.width(76.dp).offset(y = 11.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 // نام با نشان آنلاین هم‌تراز است و فعالیت، زیر آن باقی می‌ماند.
                 Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
@@ -555,7 +555,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
+                Box(Modifier.fillMaxWidth().offset(y = (-5).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
