@@ -712,7 +712,8 @@ fun UsersScreen(
             PullToRefreshBox(
                 isRefreshing = loading,
                 onRefresh = { load() },
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                // ردیف‌های کاربر تمام‌عرض‌اند؛ padding افقی فقط داخل خود کارت اعمال می‌شود.
+                modifier = Modifier.fillMaxSize(),
                 state = ptrState,
                 indicator = {
                     PullToRefreshDefaults.Indicator(
