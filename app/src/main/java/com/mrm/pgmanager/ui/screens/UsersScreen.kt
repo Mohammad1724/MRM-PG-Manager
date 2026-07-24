@@ -153,7 +153,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
     val theme = LocalThemeState.current
     Box(modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("🔍", fontSize = 13.5.sp)
+            RoundedAppIcon(AppIcon.Search, tint = theme.mutedColor, size = 18.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (query.isEmpty()) Text("جستجو کاربر...", color = theme.mutedColor.copy(0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
@@ -190,9 +190,9 @@ private fun TopBarHeader(
             Text("مدیریت و نظارت بر حساب‌های کاربری", fontSize = 10.5.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { Text("🎨", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
-            ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else Text("🔄", fontSize = 14.sp) }, onClick = onRefresh, enabled = !loading)
-            ActionIconButton(icon = { ExitIcon() }, onClick = onLogout, isRed = true)
+            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Palette, tint = theme.inkColor, size = 19.dp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = onRefresh, enabled = !loading)
+            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = GlassRed, size = 19.dp) }, onClick = onLogout, isRed = true)
         }
     }
 }
