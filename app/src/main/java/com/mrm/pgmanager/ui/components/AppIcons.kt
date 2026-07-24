@@ -2,6 +2,7 @@ package com.mrm.pgmanager.ui.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Edit
@@ -31,7 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning }
+enum class AppIcon { Lock, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -44,6 +45,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Delete -> Icons.Rounded.DeleteOutline
     AppIcon.Edit -> Icons.Rounded.Edit
     AppIcon.Check -> Icons.Rounded.Check
+    AppIcon.Random -> Icons.Rounded.Casino
     AppIcon.Settings -> Icons.Rounded.Settings
     AppIcon.Palette -> Icons.Rounded.Palette
     AppIcon.Search -> Icons.Rounded.Search
