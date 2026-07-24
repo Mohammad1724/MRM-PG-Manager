@@ -312,12 +312,13 @@ private fun CompactGlassField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Number,
-    leading: String = ""
+    leading: String = "",
+    fieldHeight: androidx.compose.ui.unit.Dp = 42.dp
 ) {
     val theme = LocalThemeState.current
     Box(
         // فیلد استاندارد فرم: سطح خاکستری روشن و border خنثی، نزدیک به ورودی‌های پنل وب.
-        modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(10.dp))
+        modifier = modifier.fillMaxWidth().height(fieldHeight).clip(RoundedCornerShape(10.dp))
             .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
             .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp),
@@ -418,16 +419,18 @@ fun UserEditorDialog(
                     Text("حجم و زمان اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     // حجم کل مستقیماً قابل تعیین است؛ کادر +GB فقط مقدار افزایشی را به آن اضافه می‌کند.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم کل (GB)", Modifier.weight(1.15f), KeyboardType.Decimal, "")
-                        CompactGlassField(addGb, { addGb = it.filter { c -> c.isDigit() || c == '.' } }, "+ GB", Modifier.weight(.85f), KeyboardType.Decimal, "")
-                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم کل (GB)", Modifier.weight(1.35f), KeyboardType.Decimal, "", fieldHeight = 34.dp)
+                        CompactGlassField(addGb, { addGb = it.filter { c -> c.isDigit() || c == '.' } }, "+ GB", Modifier.weight(.65f), KeyboardType.Decimal, "", fieldHeight = 34.dp)
+                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                     // زمان کل نیز مستقل قابل ویرایش است و +روز به مقدار فعلی افزوده می‌شود.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل (روز)", Modifier.weight(1.15f), KeyboardType.Number, "")
-                        CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.85f), KeyboardType.Number, "")
-                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل (روز)", Modifier.weight(1.15f), KeyboardType.Number, "", fieldHeight = 34.dp)
+                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(.14f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓", fontSize = 13.sp) }
+                        CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.65f), KeyboardType.Number, "", fieldHeight = 34.dp)
+                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf(7, 30, 60, 90).forEach { value -> MiniGlassButton("+$value روز", Modifier.weight(1f)) { days = ((days.toIntOrNull() ?: 0) + value).toString() } } }
                 }
                 // دسترسی و یادداشت
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
