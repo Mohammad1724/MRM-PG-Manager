@@ -381,17 +381,17 @@ fun UserEditorDialog(
     fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
         .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
         .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
-        .padding(12.dp)
+        .padding(8.dp)
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp))) {
-            Column(Modifier.fillMaxWidth().padding(18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("✎", fontSize = 20.sp, color = theme.inkColor, modifier = Modifier.padding(end = 8.dp))
+                    Text("✎", fontSize = 16.sp, color = theme.inkColor, modifier = Modifier.padding(end = 6.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        if (initial != null) Text("تنظیم محدودیت، انقضا و دسترسی کاربر", fontSize = 10.sp, color = theme.mutedColor)
+                        Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        if (initial != null) Text("محدودیت، انقضا و دسترسی", fontSize = 8.sp, color = theme.mutedColor)
                     }
                     Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(if (theme.isDark) .10f else .04f)).clickable { onDismiss() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
                 }
@@ -436,11 +436,11 @@ fun UserEditorDialog(
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("دسترسی و جزئیات", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "📱")
-                        Box(Modifier.weight(.48f).height(42.dp).clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(.05f)).clickable { hwid = "" }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 11.sp, color = theme.mutedColor) }
+                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "📱", fieldHeight = 30.dp)
+                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(.05f)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    Box(Modifier.fillMaxWidth().height(96.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
+                    Box(Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
                 }
                 // گروه‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -451,11 +451,6 @@ fun UserEditorDialog(
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("تمپلت‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.lamp.primary.copy(.18f) else Color.Black.copy(.05f)).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = theme.inkColor) } } }
-                }
-                if (initial != null) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    MiniGlassButton("ریست زمان", Modifier.weight(1f)) { resetExpiry = true }; MiniGlassButton("ریست حجم", Modifier.weight(1f)) { resetUsage = true }
-                    MiniGlassButton(if (active) "غیرفعال‌کردن" else "فعال‌کردن", Modifier.weight(1f), isRed = active) { onToggle?.invoke() }
-                    MiniGlassButton("حذف", Modifier.weight(1f), isRed = true) { onDelete?.invoke() }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MutedCancelButton("انصراف", onDismiss, Modifier.weight(.35f))
