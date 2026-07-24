@@ -85,7 +85,7 @@ fun LoginScreen(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingAppIcon = AppIcon.Settings, keyboardType = KeyboardType.Uri)
+                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingAppIcon = AppIcon.Link, keyboardType = KeyboardType.Uri)
                             UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingAppIcon = AppIcon.User)
                             UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingAppIcon = AppIcon.Lock, isPassword = true, keyboardType = KeyboardType.Password)
                         }
@@ -141,9 +141,9 @@ fun LoginScreen(
                             RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 17.dp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ تنظیمات (بالا) ← بخش «قفل امنیتی»", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text("🔐 HTTPS", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            Text("HTTPS", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
