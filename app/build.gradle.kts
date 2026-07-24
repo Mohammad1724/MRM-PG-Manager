@@ -28,7 +28,7 @@ android {
             // مقادیر فقط در GitHub Actions از Secrets تزریق می‌شوند؛ هیچ کلیدی داخل repo نیست.
             val storePath = providers.gradleProperty("RELEASE_STORE_FILE").orNull
             if (storePath != null) {
-                storeFile = file(storePath)
+                storeFile = rootProject.file(storePath)
                 storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
                 keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
                 keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
