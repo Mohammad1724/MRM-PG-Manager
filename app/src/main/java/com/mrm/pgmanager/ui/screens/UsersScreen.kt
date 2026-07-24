@@ -416,43 +416,92 @@ private fun LargeStat(label: String, value: String, valueColor: Color? = null, m
     }
 }
 
+@Composable
+private fun UserCardAction(
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier = modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .background(if (theme.isDark) Color.White.copy(.09f) else Color.White.copy(.68f))
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
+    }
+}
+
+/**
+ * کارت استاندارد فهرست موبایل.
+ * هر بخشِ حساس به طول متن در ستون خودش قرار دارد؛ اکشن‌ها عرض ثابت دارند و
+ * نام کاربر فقط در فضای خودش کوتاه می‌شود، بنابراین هیچ‌وقت QR/کپی جابه‌جا یا بریده نمی‌شوند.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
-    val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val connection = if (user.isOnline) "● آنلاین" else "● آفلاین"
-    val connectionColor = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
+    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    val shownProgress = if (user.dataLimit > 0) actualProgress else .035f
+    val progressPercent = (actualProgress * 100).roundToInt()
+    val progressColor = when {
+        user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen
+        progressPercent < 90 -> GlassAmber
+        else -> GlassRed
+    }
+    val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(20.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(14.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // سربرگ: در تمام کارت‌ها وضعیت و عملیات، ستون‌های ثابت و هم‌راستا دارند.
+    Box(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) theme.lamp.primary.copy(.12f) else glassBg(theme.isDark))
+            .border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(20.dp))
+            .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
+            .padding(horizontal = 13.dp, vertical = 12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // ردیف هدر: اکشن‌ها و وضعیت عرض ثابت دارند؛ نام تنها بخش انعطاف‌پذیر است.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 OnlineBadge(user)
-                Text(user.username, modifier = Modifier.width(190.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                UserStatusBadge(user)
-                Spacer(Modifier.weight(1f))
+                Text(
+                    user.username,
+                    modifier = Modifier.weight(1f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = theme.inkColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                UserStatusBadge(user, Modifier.width(52.dp))
                 if (user.subUrl.isNotBlank()) {
-                    LargeRowAction("کپی") { copySubscription(context, user) }
-                    LargeRowAction("QR") { onQrClick(user) }
+                    UserCardAction("کپی", Modifier.width(46.dp)) { copySubscription(context, user) }
+                    UserCardAction("QR", Modifier.width(40.dp)) { onQrClick(user) }
                 }
             }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(glassBorder(theme.isDark)))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                LargeStat("حجم مصرفی", formatBytes(user.usedTraffic), modifier = Modifier.weight(1f))
-                LargeStat("حجم کل", if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit), modifier = Modifier.weight(1f))
-                LargeStat("زمان باقیمانده", daysLeftText(user.expire), modifier = Modifier.weight(1f))
-                LargeStat("وضعیت اتصال", connection, connectionColor, modifier = Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("مصرف ترافیک", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                Box(Modifier.weight(1f).height(9.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(6.dp)))
+
+            // ردیف داده‌ها: دو انتهای کارت ثابت و قابل اسکن هستند.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("مصرف ترافیک", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("اعتبار باقی‌مانده", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
+                }
+            }
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(6.dp)))
+                }
+                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
         }
     }
@@ -463,21 +512,19 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0.08f
+    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
-    // تمام اطلاعات نمای کوچک، عمداً در یک ردیف قرار دارند.
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 8.dp, vertical = 9.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(if (selected) theme.lamp.primary.copy(.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(15.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 9.dp, vertical = 9.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
-            // ستون‌های ثابت: نام، وضعیت و آمار در تمام ردیف‌ها دقیقاً هم‌راستا می‌مانند.
-            Text(user.username, modifier = Modifier.width(90.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            UserStatusBadge(user, Modifier.width(40.dp).offset(x = (-9).dp), compact = true)
-            // آمار بالای نوار است؛ نوار فقط چند dp پایین‌تر، در همان ستون قرار می‌گیرد.
-            Column(Modifier.width(100.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
+            Text(user.username, Modifier.weight(1f), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            UserStatusBadge(user, Modifier.width(42.dp), compact = true)
+            Column(Modifier.width(88.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
@@ -485,11 +532,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor))
                 }
             }
-            // فضای باقیمانده، عملیات‌ها را تا لبهٔ انتهایی کارت می‌برد.
-            Spacer(Modifier.weight(1f))
             if (user.subUrl.isNotBlank()) {
-                RowAction("کپی", Modifier.width(40.dp), 20.dp) { copySubscription(context, user) }
-                RowAction("QR", Modifier.width(34.dp), 20.dp) { onQrClick(user) }
+                RowAction("کپی", Modifier.width(36.dp), 22.dp) { copySubscription(context, user) }
+                RowAction("QR", Modifier.width(32.dp), 22.dp) { onQrClick(user) }
             }
         }
     }
