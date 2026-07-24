@@ -485,9 +485,9 @@ fun UserDetailsDialog(
 
     @Composable fun sectionTitle(text: String) = Text(text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
     @Composable fun statTile(label: String, value: String, modifier: Modifier = Modifier) {
-        Column(modifier.height(70.dp).clip(RoundedCornerShape(13.dp)).background(if (theme.isDark) Color.White.copy(.07f) else Color.Black.copy(.035f)).padding(horizontal = 11.dp, vertical = 10.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(label, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(modifier.height(54.dp).clip(RoundedCornerShape(10.dp)).background(if (theme.isDark) Color.White.copy(.07f) else Color.Black.copy(.035f)).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(label, fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
     @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, click: () -> Unit) {
@@ -507,40 +507,60 @@ fun UserDetailsDialog(
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(if (theme.isDark) .12f else .05f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor) }
                 }
 
-                Row(section(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                    Box(Modifier.size(50.dp).clip(RoundedCornerShape(25.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(15.dp).clip(RoundedCornerShape(8.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(user.username, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = theme.mutedColor)
+                // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(if (theme.isDark) Color.White.copy(.07f) else Color.White)
+                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 13.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(11.dp).clip(RoundedCornerShape(6.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(user.username, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
                     }
                     val active = user.status != "disabled"
-                    Box(Modifier.height(36.dp).width(64.dp).clip(RoundedCornerShape(11.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
+                    Box(Modifier.height(30.dp).width(56.dp).clip(RoundedCornerShape(9.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
                 }
 
-                Column(section(), verticalArrangement = Arrangement.spacedBy(11.dp)) {
-                    sectionTitle("وضعیت اشتراک")
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // بخش وضعیت اشتراک فشرده است: padding کم، کاشی‌های کوتاه و فاصله‌های حداقلی.
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
+                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("وضعیت اشتراک", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         statTile("حجم مصرفی", formatBytes(user.usedTraffic), Modifier.weight(1f))
                         statTile("حجم کل", traffic, Modifier.weight(1f))
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         statTile("زمان باقی‌مانده", detailDaysText(user.expire), Modifier.weight(1f))
                         statTile("محدودیت دستگاه", user.hwidLimit?.let { "$it دستگاه" } ?: "نامحدود", Modifier.weight(1f))
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                        Text("مصرف", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(8.dp))) }
-                        Text("$percentage%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Text("مصرف", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(5.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(5.dp))) }
+                        Text("$percentage%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
                     }
                 }
 
-                Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    sectionTitle("اشتراک")
-                    Text("لینک اشتراک آمادهٔ کپی یا نمایش QR است.", fontSize = 10.sp, color = theme.mutedColor)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        action("کپی لینک", Modifier.weight(1f)) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }
-                        action("نمایش QR", Modifier.weight(1f)) { qrOpen = true }
-                    }
+                // کارت اشتراک یک ردیف فشرده است؛ توضیح تکراری حذف شده تا فقط اکشن‌های اصلی بمانند.
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                        .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
+                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    action("کپی", Modifier.width(56.dp)) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }
+                    action("QR", Modifier.width(46.dp)) { qrOpen = true }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
