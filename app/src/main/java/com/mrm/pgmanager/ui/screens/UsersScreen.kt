@@ -525,15 +525,16 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             OnlineBadge(user)
             // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
             Text(user.username, Modifier.weight(1f), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            UserStatusBadge(user, Modifier.width(36.dp).offset(x = (-4).dp), compact = true)
-            // ستون مصرف بزرگ‌تر است؛ لبهٔ راست ثابت می‌ماند و نوار به سمت چپ کشیده می‌شود.
-            Column(Modifier.width(100.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            // در نمای کوچک، بج صرفاً نشانگر کوتاه وضعیت است تا فضا به نوار مصرف برسد.
+            UserStatusBadge(user, Modifier.width(28.dp).offset(x = (-4).dp), compact = true)
+            // ستون مصرف پهن‌تر است؛ لبهٔ راست ثابت می‌ماند و نوار به سمت چپ کشیده می‌شود.
+            Column(Modifier.width(108.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(4.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor))
+                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(5.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(5.dp)))
                 }
             }
             if (user.subUrl.isNotBlank()) {
