@@ -407,7 +407,7 @@ fun UserEditorDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (initial == null) {
                             // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
-                            CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "👤")
+                            CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "")
                             Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.16f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(.35f)), RoundedCornerShape(10.dp)).clickable { username = "user-" + (1000..9999).random() }, contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Random, tint = theme.inkColor, size = 19.dp)
                             }
@@ -445,7 +445,7 @@ fun UserEditorDialog(
                 Column(card(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "📱", fieldHeight = 30.dp)
+                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", fieldHeight = 30.dp)
                         Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(.05f)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
