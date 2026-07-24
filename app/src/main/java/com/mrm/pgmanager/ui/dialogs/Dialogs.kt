@@ -313,6 +313,7 @@ private fun CompactGlassField(
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Number,
     leading: String = "",
+    leadingAppIcon: AppIcon? = null,
     fieldHeight: androidx.compose.ui.unit.Dp = 42.dp
 ) {
     val theme = LocalThemeState.current
@@ -325,7 +326,7 @@ private fun CompactGlassField(
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            if (leading.isNotEmpty()) Text(leading, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+            if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 16.dp) else if (leading.isNotEmpty()) Text(leading, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
             Box(Modifier.weight(1f)) {
                 if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.55f), fontSize = 12.sp)
                 BasicTextField(
@@ -445,7 +446,7 @@ fun UserEditorDialog(
                 Column(card(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", fieldHeight = 30.dp)
+                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
                         Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(.05f)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
