@@ -27,6 +27,8 @@ import com.mrm.pgmanager.BuildConfig
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppLogo
+import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.UltraPremiumField
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -53,7 +55,7 @@ fun LoginScreen(
             // Aurora gold
             Box(
                 Modifier.size(720.dp).align(Alignment.TopStart).offset(x = (-200).dp, y = (-200).dp)
-                    .background(Brush.radialGradient(listOf(theme.lamp.spotHigh.copy(0.48f), Color.Transparent), radius = 460f), RoundedCornerShape(400.dp)).blur(36.dp)
+                    .background(Brush.radialGradient(listOf(theme.lamp.spotHigh.copy(if (theme.isDark) 0.30f else 0.06f), Color.Transparent), radius = 460f), RoundedCornerShape(400.dp)).blur(36.dp)
             )
             Box(
                 Modifier.size(600.dp).align(Alignment.BottomEnd).offset(x = 180.dp, y = 180.dp)
@@ -68,12 +70,9 @@ fun LoginScreen(
             ) {
                 // Card - ULTRA TRANSPARENT, no white rectangle
                 Box(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = 390.dp).clip(RoundedCornerShape(32.dp))
-                        .background(
-                            if (theme.isDark) Color(0xFF1E1E24).copy(alpha = 0.34f)
-                            else Color.White.copy(alpha = 0.18f)
-                        )
-                        .border(BorderStroke(1.dp, Color.White.copy(alpha = if (theme.isDark) 0.12f else 0.32f)), RoundedCornerShape(32.dp))
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 390.dp).clip(RoundedCornerShape(18.dp))
+                        .background(if (theme.isDark) Color(0xFF1E1E24) else Color.White)
+                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(.16f) else Color(0xFFD7D8DD)), RoundedCornerShape(18.dp))
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(22.dp)) {
                         // FIX 1: Logo without any background box - pure transparent
@@ -86,9 +85,9 @@ fun LoginScreen(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingIcon = "🌐", keyboardType = KeyboardType.Uri)
-                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingIcon = "👤")
-                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingIcon = "🔒", isPassword = true, keyboardType = KeyboardType.Password)
+                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingIcon = "", keyboardType = KeyboardType.Uri)
+                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingIcon = "")
+                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingIcon = "", isPassword = true, keyboardType = KeyboardType.Password)
                         }
 
                         if (error != null) {
@@ -97,7 +96,7 @@ fun LoginScreen(
                                     .border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(14.dp)).padding(12.dp)
                             ) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Text("⚠️", fontSize = 14.sp)
+                                    RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
                                     Text(error!!, color = GlassRed, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                                 }
                             }
@@ -129,8 +128,8 @@ fun LoginScreen(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.2.dp)
-                            else Text("ورود به پنل", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp)
+                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color(0xFF202124), strokeWidth = 2.2.dp)
+                            else Text("ورود به پنل", color = Color(0xFF202124), fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp)
                         }
 
                         Row(
@@ -139,7 +138,7 @@ fun LoginScreen(
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🔒", fontSize = 11.sp)
+                            RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 17.dp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                                 Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ ⚙️ (بالا) ← بخش «قفل امنیتی»", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
@@ -176,7 +175,7 @@ fun LoginScreen(
                         .border(BorderStroke(1.5.dp, theme.lamp.primary.copy(0.4f)), RoundedCornerShape(14.dp))
                         .clickable { showThemeDialog = true }.zIndex(10f),
                     contentAlignment = Alignment.Center
-                ) { Text("⚙️", fontSize = 16.sp) }
+                ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp) }
             }
 
             if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME)
