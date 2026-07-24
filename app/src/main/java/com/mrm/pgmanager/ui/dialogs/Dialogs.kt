@@ -473,32 +473,88 @@ fun UserDetailsDialog(
     var expiryConfirm by remember { mutableStateOf(false) }
     val traffic = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
     val percentage = if (user.dataLimit > 0L) ((user.usedTraffic * 100f / user.dataLimit).toInt()).coerceIn(0, 100) else 0
-    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = if (theme.isDark) .08f else .64f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(18.dp)).padding(12.dp)
-    @Composable fun action(text: String, red: Boolean = false, click: () -> Unit) {
-        Box(Modifier.height(42.dp).clip(RoundedCornerShape(12.dp)).background(if (red) GlassRed.copy(.10f) else Color.White.copy(alpha = if (theme.isDark) .08f else .7f)).border(BorderStroke(1.dp, if (red) GlassRed.copy(.45f) else tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).clickable { click() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (red) GlassRed else theme.inkColor) }
+    val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
+
+    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+        .background(Color.White.copy(alpha = if (theme.isDark) .075f else .58f))
+        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(20.dp)).padding(15.dp)
+
+    @Composable fun sectionTitle(text: String) = Text(text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+    @Composable fun statTile(label: String, value: String, modifier: Modifier = Modifier) {
+        Column(modifier.height(70.dp).clip(RoundedCornerShape(13.dp)).background(if (theme.isDark) Color.White.copy(.07f) else Color.Black.copy(.035f)).padding(horizontal = 11.dp, vertical = 10.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(label, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
+    @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, click: () -> Unit) {
+        val bg = when { primary -> theme.lamp.primary; destructive -> GlassRed.copy(.09f); else -> if (theme.isDark) Color.White.copy(.08f) else Color.White.copy(.68f) }
+        val color = when { primary -> Color.White; destructive -> GlassRed; else -> theme.inkColor }
+        val border = when { primary -> theme.lamp.primary; destructive -> GlassRed.copy(.45f); else -> tileBorderColor(theme.isDark) }
+        Box(modifier.height(44.dp).clip(RoundedCornerShape(13.dp)).background(bg).border(BorderStroke(1.dp, border), RoundedCornerShape(13.dp)).clickable(onClick = click), contentAlignment = Alignment.Center) {
+            Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(26.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))) {
-            Column(Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp))) {
+            Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text("جزئیات کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
-                    Text("×", fontSize = 24.sp, color = theme.mutedColor, modifier = Modifier.clickable { onDismiss() }.padding(6.dp))
+                    Text("جزئیات کاربر", Modifier.weight(1f), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(if (theme.isDark) .12f else .05f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor) }
                 }
-                Row(section(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(40.dp).clip(RoundedCornerShape(20.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(13.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
-                    Spacer(Modifier.width(10.dp)); Column(Modifier.weight(1f)) { Text(user.username, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = theme.mutedColor) }
-                    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(if (user.status == "disabled") GlassRed.copy(.13f) else GlassGreen.copy(.13f)).padding(horizontal = 10.dp, vertical = 7.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (user.status == "disabled") GlassRed else GlassGreen) }
-                }
-                Column(section(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text("وضعیت اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("حجم مصرفی" to formatBytes(user.usedTraffic), "حجم کل" to traffic, "زمان باقی‌مانده" to detailDaysText(user.expire), "محدودیت دستگاه" to (user.hwidLimit?.let { "$it دستگاه" } ?: "نامحدود")).forEach { (l,v) -> Column(Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(Color.Black.copy(.035f)).padding(7.dp)) { Text(l, fontSize = 8.sp, color = theme.mutedColor); Text(v, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) } }
+
+                Row(section(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                    Box(Modifier.size(50.dp).clip(RoundedCornerShape(25.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(15.dp).clip(RoundedCornerShape(8.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(user.username, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text("مصرف ترافیک", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor); Spacer(Modifier.width(8.dp)); Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(GlassGreen)) }; Text("$percentage%", fontSize = 9.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 8.dp)) }
+                    val active = user.status != "disabled"
+                    Box(Modifier.height(36.dp).width(64.dp).clip(RoundedCornerShape(11.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
                 }
-                Column(section(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { Text("لینک اشتراک", modifier = Modifier.weight(1f), fontSize = 11.sp, color = theme.mutedColor); action("کپی لینک") { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }; action("نمایش QR") { qrOpen = true } } }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { action("تمپلت‌ها") { editOpen = true }; Box(Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.lamp.primary).clickable { editOpen = true }, contentAlignment = Alignment.Center) { Text("تنظیمات کاربر", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) } }
-                Column(section(), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("عملیات سریع", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) { action("حذف", true) { onDelete() }; action(if (user.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن") { onToggle() }; action("ریست زمان") { expiryConfirm = true }; action("ریست حجم") { usageConfirm = true } } }
+
+                Column(section(), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                    sectionTitle("وضعیت اشتراک")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        statTile("حجم مصرفی", formatBytes(user.usedTraffic), Modifier.weight(1f))
+                        statTile("حجم کل", traffic, Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        statTile("زمان باقی‌مانده", detailDaysText(user.expire), Modifier.weight(1f))
+                        statTile("محدودیت دستگاه", user.hwidLimit?.let { "$it دستگاه" } ?: "نامحدود", Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Text("مصرف", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(8.dp))) }
+                        Text("$percentage%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                    }
+                }
+
+                Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    sectionTitle("اشتراک")
+                    Text("لینک اشتراک آمادهٔ کپی یا نمایش QR است.", fontSize = 10.sp, color = theme.mutedColor)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        action("کپی لینک", Modifier.weight(1f)) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }
+                        action("نمایش QR", Modifier.weight(1f)) { qrOpen = true }
+                    }
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    action("تمپلت‌ها", Modifier.weight(1f)) { editOpen = true }
+                    action("تنظیمات کاربر", Modifier.weight(2f), primary = true) { editOpen = true }
+                }
+
+                Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    sectionTitle("عملیات سریع")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        action("ریست حجم", Modifier.weight(1f)) { usageConfirm = true }
+                        action("ریست زمان", Modifier.weight(1f)) { expiryConfirm = true }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        action(if (user.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن", Modifier.weight(1f)) { onToggle() }
+                        action("حذف کاربر", Modifier.weight(1f), destructive = true) { onDelete() }
+                    }
+                }
             }
         }
     }
