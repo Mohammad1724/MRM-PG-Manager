@@ -541,13 +541,13 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
-            Column(Modifier.width(76.dp).offset(y = 11.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                // نام با نشان آنلاین هم‌تراز است و فعالیت، زیر آن باقی می‌ماند.
+            Column(Modifier.width(76.dp).offset(y = 14.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                // نام کمی پایین‌تر و فعالیت با فاصلهٔ فشرده‌تر دقیقاً زیر آن قرار می‌گیرد.
                 Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                Text(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
-            // بج دقیقاً بعد از ستون نام قرار می‌گیرد؛ ستون‌های مصرف و اکشن ثابت می‌مانند.
-            UserStatusBadge(user, Modifier.width(28.dp), compact = true)
+            // بج وضعیت اندکی بالاتر می‌رود تا با ستون مصرف هم‌تراز باشد.
+            UserStatusBadge(user, Modifier.width(28.dp).offset(y = (-4).dp), compact = true)
             // تنها ستون انعطاف‌پذیر ردیف است: فضای آزاد را می‌گیرد، نوار بلندتر می‌شود
             // و اکشن‌ها دقیقاً به لبهٔ راست کارت می‌چسبند.
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
