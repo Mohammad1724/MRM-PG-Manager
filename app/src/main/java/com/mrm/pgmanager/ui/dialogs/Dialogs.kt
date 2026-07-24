@@ -409,7 +409,7 @@ fun UserEditorDialog(
                             // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
                             CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "👤")
                             Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.16f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(.35f)), RoundedCornerShape(10.dp)).clickable { username = "user-" + (1000..9999).random() }, contentAlignment = Alignment.Center) {
-                                Text("🎲", fontSize = 15.sp)
+                                RoundedAppIcon(AppIcon.Random, tint = theme.inkColor, size = 19.dp)
                             }
                         } else {
                             // در حالت ویرایش، نام مانند پنل PasarGuard فقط برای مشاهده است.
