@@ -321,7 +321,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val statusColor = when (user.status) { "active" -> GlassGreen; "disabled" -> Color(0xFF8A8A8A); "expired" -> GlassRed; "limited" -> GlassAmber; "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(if (selected) theme.lamp.primary.copy(0.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(22.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
+    // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -439,10 +440,10 @@ private fun UserCardAction(
     val theme = LocalThemeState.current
     Box(
         modifier = modifier
-            .height(36.dp)
-            .clip(RoundedCornerShape(11.dp))
-            .background(if (theme.isDark) Color.White.copy(.09f) else Color.White.copy(.68f))
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp))
+            .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (theme.isDark) Color.White.copy(.09f) else Color(0xFFF2F2F4))
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -472,9 +473,9 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
     Box(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) theme.lamp.primary.copy(.12f) else glassBg(theme.isDark))
-            .border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark))
+            .border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp))
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 13.dp, vertical = 12.dp)
     ) {
