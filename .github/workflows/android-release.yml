@@ -30,6 +30,15 @@ jobs:
           echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 --decode > app/mrm-release.p12
           test -s app/mrm-release.p12
 
+      - name: Verify PKCS12 signing key
+        shell: bash
+        run: |
+          keytool -list -v \
+            -storetype PKCS12 \
+            -keystore app/mrm-release.p12 \
+            -storepass "${{ secrets.SIGNING_STORE_PASSWORD }}" \
+            -alias "${{ secrets.SIGNING_KEY_ALIAS }}"
+
       - name: Build signed release
         shell: bash
         run: |
