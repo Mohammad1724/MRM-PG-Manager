@@ -236,7 +236,7 @@ fun UltraPremiumField(
                 .border(
                     BorderStroke(
                         width = if (isFocused) 1.8.dp else 1.1.dp,
-                        color = if (isFocused) theme.lamp.primary else if (theme.isDark) Color.White.copy(0.14f) else Color.White.copy(0.85f)
+                        color = if (isFocused) theme.lamp.primary else if (theme.isDark) Color.White.copy(0.14f) else Color(0xFFD1D3D9)
                     ),
                     RoundedCornerShape(18.dp)
                 )
