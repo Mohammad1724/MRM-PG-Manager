@@ -259,15 +259,19 @@ object PanelApi {
                 }
             }
         }.getOrNull()
-        if (simple != null) return@withContext simple
-        // fallback: endpoint کامل — در صورتِ شکست، خطا پرتاب می‌کند (تا فراخوان‌کننده بتواند retry کند)
+        // برای فرم ویرایش، جزئیات حجم و مدت تمپلت لازم است؛ endpoint کامل را ترجیح می‌دهیم.
         val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
         client.newCall(reqFull).execute().use { res ->
             if (!res.isSuccessful) error("بارگذاریِ تمپلت‌ها ناموفق بود: ${res.code}")
             val arr = org.json.JSONArray(res.body?.string() ?: "[]")
             List(arr.length()) { i ->
                 val t = arr.getJSONObject(i)
-                UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
+                UserTemplateItem(
+                    id = t.optInt("id"),
+                    name = t.optString("name", "تمپلت #${t.optInt("id")}"),
+                    dataLimit = if (t.has("data_limit") && !t.isNull("data_limit")) t.optLong("data_limit") else null,
+                    expireDuration = if (t.has("expire_duration") && !t.isNull("expire_duration")) t.optLong("expire_duration") else null
+                )
             }
         }
     }
