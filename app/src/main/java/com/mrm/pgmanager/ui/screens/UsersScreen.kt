@@ -478,7 +478,9 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                UserStatusBadge(user, Modifier.width(52.dp))
+                // بج کمی جمع‌وجورتر است و با offset فیزیکی به سمت چپ می‌رود؛
+                // جای اکشن‌ها همچنان ثابت باقی می‌ماند.
+                UserStatusBadge(user, Modifier.width(46.dp).offset(x = (-5).dp))
                 if (user.subUrl.isNotBlank()) {
                     UserCardAction("کپی", Modifier.width(46.dp)) { copySubscription(context, user) }
                     UserCardAction("QR", Modifier.width(40.dp)) { onQrClick(user) }
@@ -498,8 +500,9 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(6.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(6.dp)))
+                // نوار ضخیم‌تر و با فضای درصد کمتر، طول مفید بیشتری در کارت دارد.
+                Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(8.dp)))
                 }
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
@@ -522,8 +525,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             OnlineBadge(user)
             // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
             Text(user.username, Modifier.weight(1f), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            UserStatusBadge(user, Modifier.width(42.dp), compact = true)
-            Column(Modifier.width(88.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            UserStatusBadge(user, Modifier.width(36.dp).offset(x = (-4).dp), compact = true)
+            // ستون مصرف بزرگ‌تر است؛ لبهٔ راست ثابت می‌ماند و نوار به سمت چپ کشیده می‌شود.
+            Column(Modifier.width(100.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
