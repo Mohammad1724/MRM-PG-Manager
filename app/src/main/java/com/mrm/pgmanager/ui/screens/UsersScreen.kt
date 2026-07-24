@@ -541,13 +541,13 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
-            Column(Modifier.width(76.dp).offset(y = 14.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Column(Modifier.width(76.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 // نام کمی پایین‌تر و فعالیت با فاصلهٔ فشرده‌تر دقیقاً زیر آن قرار می‌گیرد.
                 Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
-            // بج وضعیت اندکی بالاتر می‌رود تا با ستون مصرف هم‌تراز باشد.
-            UserStatusBadge(user, Modifier.width(28.dp).offset(y = (-4).dp), compact = true)
+            // بج وضعیت در جای طبیعی خودش، بلافاصله بعد از نام قرار دارد.
+            UserStatusBadge(user, Modifier.width(28.dp), compact = true)
             // تنها ستون انعطاف‌پذیر ردیف است: فضای آزاد را می‌گیرد، نوار بلندتر می‌شود
             // و اکشن‌ها دقیقاً به لبهٔ راست کارت می‌چسبند.
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -555,7 +555,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                Box(Modifier.fillMaxWidth().offset(y = (-5).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
+                // نوار مصرف کمی بالاتر قرار گرفته تا با نام و بج وضعیت تراز بصری بهتری داشته باشد.
+                Box(Modifier.fillMaxWidth().offset(y = (-8).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
