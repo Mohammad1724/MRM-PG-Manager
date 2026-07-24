@@ -35,6 +35,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -127,13 +129,13 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 @Composable
 private fun StatGlassCard(icon: String, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(0.14f)).border(BorderStroke(1.dp, accent.copy(0.18f)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) { Text(icon, fontSize = 11.sp) }
-                Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+    Box(modifier = modifier.height(72.dp).clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 11.dp)) {
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Box(Modifier.size(23.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { Text(icon, fontSize = 11.sp) }
+                Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
             }
-            Text(value, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -149,7 +151,7 @@ private fun SkeletonCard(modifier: Modifier = Modifier) {
 @Composable
 private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(13.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(13.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+    Box(modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🔍", fontSize = 13.5.sp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -183,12 +185,9 @@ private fun TopBarHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AppLogo(height = 22.dp)
-            Column {
-                Text("Pasarguard", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), color = theme.inkColor)
-                Text("MRM Manager", fontSize = 10.sp, color = theme.mutedColor)
-            }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("کاربران", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+            Text("مدیریت و نظارت بر حساب‌های کاربری", fontSize = 10.5.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             ActionIconButton(icon = { Text("🎨", fontSize = 14.sp) }, onClick = onOpenThemeDialog)
@@ -206,18 +205,13 @@ private fun StatsCardsRow(
     totalUsedTraffic: Long
 ) {
     val theme = LocalThemeState.current
-    Column(
-        Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = "👥", label = "کل", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
-            StatGlassCard(icon = "🟢", label = "فعال", value = "$activeUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            StatGlassCard(icon = "●", label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = "♙", label = "کاربران فعال", value = "$activeUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = "⚡", label = "آنلاین", value = "$onlineUsers", accent = Color(0xFF0EA89B), modifier = Modifier.weight(1f))
-            StatGlassCard(icon = "📊", label = "ترافیک", value = formatBytes(totalUsedTraffic), accent = Color(0xFFD9822B), modifier = Modifier.weight(1f))
-        }
+        StatGlassCard(icon = "♙", label = "همهٔ کاربران", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -254,7 +248,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
-        Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+        Text(label, color = if (selected) Color(0xFF202124) else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
 
@@ -291,7 +285,24 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
         contentAlignment = Alignment.Center
     ) {
         if (selected) {
-            Text("✓", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            // تیک با Canvas رسم می‌شود تا به baseline فونت وابسته نباشد و دقیقاً وسط مربع بماند.
+            Canvas(Modifier.fillMaxSize()) {
+                val stroke = Stroke(width = size.minDimension * .14f, cap = StrokeCap.Round)
+                drawLine(
+                    color = Color.White,
+                    start = Offset(size.width * .23f, size.height * .52f),
+                    end = Offset(size.width * .43f, size.height * .71f),
+                    strokeWidth = stroke.width,
+                    cap = stroke.cap
+                )
+                drawLine(
+                    color = Color.White,
+                    start = Offset(size.width * .43f, size.height * .71f),
+                    end = Offset(size.width * .78f, size.height * .30f),
+                    strokeWidth = stroke.width,
+                    cap = stroke.cap
+                )
+            }
         }
     }
 }
@@ -675,10 +686,10 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            Box(modifier = Modifier.padding(bottom = 66.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 20.dp, vertical = 13.dp), contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("+", fontSize = 14.sp, fontWeight = FontWeight.Black, color = Color.White)
-                    Text("کاربر جدید", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 13.sp)
+            Box(modifier = Modifier.padding(bottom = 66.dp).clip(RoundedCornerShape(13.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("+", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF202124))
+                    Text("کاربر جدید", fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124), fontSize = 13.sp)
                 }
             }
         }
@@ -744,12 +755,11 @@ fun UsersScreen(
                             }
                         }
                     }
-                    .clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
-                    .background(if (themeState.isDark) Color(0xFF141418).copy(alpha = 0.98f) else Color(0xFFFAF5EC).copy(alpha = 0.98f))
-                    .border(BorderStroke(1.2.dp, glassBorder(themeState.isDark)), RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))
+                    .background(if (themeState.isDark) Color(0xFF141418) else Color.White)
+                    .border(BorderStroke(1.dp, glassBorder(themeState.isDark)))
                     .padding(top = topInsets)
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 6.dp)
+                    .padding(bottom = 12.dp)
             ) {
                 // Top Bar: Fixed right at the top
                 TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
