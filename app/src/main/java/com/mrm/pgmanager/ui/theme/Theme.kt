@@ -31,7 +31,8 @@ enum class LampColor(
     val spotLow: Color,
     val emoji: String
 ) {
-    GOLD("Champagne Gold", "طلایی شامپاین", Color(0xFFC59B27), Color(0xFFF3E5AB), Color(0xBBF5D061), Color(0x44E5B84B), "✨"),
+    // رنگ پیش‌فرض مطابق accent پنل PasarGuard: زرد شفاف و خوانا، نه طلایی گرادینتی.
+    GOLD("PasarGuard Yellow", "زرد پاسارگارد", Color(0xFFF4C928), Color(0xFFFFF3BD), Color(0x55F4C928), Color(0x12F4C928), "✨"),
     MAGENTA("Royal Magenta", "سرخابی سلطنتی", Color(0xFFC8327E), Color(0xFFFAD1E6), Color(0xBBC8327E), Color(0x44E86FA8), "💖"),
     TURQUOISE("Neon Turquoise", "فیروزه‌ای نئون", Color(0xFF0EA89B), Color(0xFFB5F2EC), Color(0xBB2AD4C5), Color(0x4414A094), "🌊"),
     SKY_BLUE("Sky Blue", "آبی آسمانی", Color(0xFF1982C4), Color(0xFFBAE1FF), Color(0xBB3BA3EC), Color(0x441982C4), "💎"),
@@ -44,14 +45,15 @@ data class ThemeState(
     val isDark: Boolean = false,
     val followSystem: Boolean = false
 ) {
-    val inkColor: Color get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF1C1B18)
-    val mutedColor: Color get() = if (isDark) Color(0xFFA09C94) else Color(0xFF6A655B)
-    val cardBgColor: Color get() = if (isDark) Color(0xFF222226).copy(alpha = 0.68f) else Color.White.copy(alpha = 0.56f)
+    // پایهٔ تم روشن: سطح‌های خنثی و مرزبندی ملایم مشابه پنل وب PasarGuard.
+    val inkColor: Color get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF202124)
+    val mutedColor: Color get() = if (isDark) Color(0xFFA09C94) else Color(0xFF74757B)
+    val cardBgColor: Color get() = if (isDark) Color(0xFF222226) else Color(0xFFFFFFFF)
     val cardBorderBrush: Brush
-        get() = if (isDark) Brush.linearGradient(listOf(Color.White.copy(0.38f), Color.White.copy(0.08f)))
-        else Brush.linearGradient(listOf(Color.White.copy(0.96f), Color.White.copy(0.22f)))
-    val dialogBgColor: Color get() = if (isDark) Color(0xFF18181C).copy(alpha = 0.96f) else Color(0xFFFFFDF8).copy(alpha = 0.94f)
-    val searchBgColor: Color get() = if (isDark) Color(0xFF2C2C32).copy(alpha = 0.72f) else Color.White.copy(alpha = 0.68f)
+        get() = if (isDark) Brush.linearGradient(listOf(Color.White.copy(0.22f), Color.White.copy(0.08f)))
+        else Brush.linearGradient(listOf(Color(0xFFDCDDE1), Color(0xFFDCDDE1)))
+    val dialogBgColor: Color get() = if (isDark) Color(0xFF18181C) else Color(0xFFFFFFFF)
+    val searchBgColor: Color get() = if (isDark) Color(0xFF2C2C32) else Color(0xFFF2F2F4)
 }
 
 val LocalThemeState = compositionLocalOf { ThemeState() }
@@ -61,8 +63,10 @@ val GlassAmber = Color(0xFFD9822B)
 val GlassRed = Color(0xFFC93B3B)
 val GlassShape = RoundedCornerShape(24.dp)
 
-fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24).copy(alpha = 0.34f) else Color.White.copy(alpha = 0.22f)
-fun glassBorder(isDark: Boolean) = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.32f) else Color(0xFF6B7280).copy(alpha = 0.42f)
+// نام‌های قبلی حفظ شده‌اند تا مهاجرت صفحه‌ها مرحله‌ای باشد، اما ظاهر «glass» در تم روشن
+// اکنون همان سطح سفید و border ظریف design system جدید را تولید می‌کند.
+fun glassBg(isDark: Boolean) = if (isDark) Color(0xFF1E1E24) else Color(0xFFFFFFFF)
+fun glassBorder(isDark: Boolean) = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.32f) else Color(0xFFD7D8DD)
 
 @Composable
 fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
@@ -82,8 +86,8 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
             primary = themeState.lamp.primary,
             onPrimary = Color.White,
             secondary = themeState.lamp.light,
-            background = Color(0xFFFAF6EE),
-            surface = Color.White.copy(alpha = 0.60f),
+            background = Color(0xFFF7F7F8),
+            surface = Color.White,
             onSurface = themeState.inkColor,
             onBackground = themeState.inkColor,
             error = GlassRed
@@ -93,7 +97,7 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     val bgGradient = if (themeState.isDark)
         Brush.verticalGradient(listOf(Color(0xFF15151A), Color(0xFF0E0E12), Color(0xFF08080A)))
     else
-        Brush.verticalGradient(listOf(Color(0xFFFFFDF9), Color(0xFFFFF7E6), Color(0xFFFFF4DC)))
+        Brush.verticalGradient(listOf(Color(0xFFF7F7F8), Color(0xFFF7F7F8)))
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -111,6 +115,9 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     androidx.compose.runtime.CompositionLocalProvider(LocalThemeState provides themeState) {
         MaterialTheme(colorScheme = colors) {
             Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
+                // در تم روشن، پس‌زمینه کاملاً خنثی و بدون هاله است؛ همان زبان بصری پنل وب.
+                // هاله‌ها فعلاً فقط برای تم تیره نگه داشته شده‌اند.
+                if (themeState.isDark) {
                 Box(
                     Modifier.size(600.dp).align(Alignment.TopStart).offset(x = (-160).dp, y = (-80).dp)
                         .background(Brush.radialGradient(listOf(themeState.lamp.spotHigh, themeState.lamp.spotLow, Color.Transparent)), RoundedCornerShape(300.dp))
@@ -128,8 +135,9 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
                 )
                 Box(
                     Modifier.size(380.dp).align(Alignment.Center).offset(x = 80.dp, y = (-20).dp)
-                        .background(Brush.radialGradient(listOf(Color.White.copy(alpha = if (themeState.isDark) 0.05f else 0.20f), Color.Transparent)), RoundedCornerShape(300.dp))
+                        .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent)), RoundedCornerShape(300.dp))
                 )
+                }
                 content()
             }
         }
