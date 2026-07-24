@@ -23,6 +23,27 @@ android {
         jvmTarget = "17"
     }
 
+    signingConfigs {
+        create("release") {
+            // مقادیر فقط در GitHub Actions از Secrets تزریق می‌شوند؛ هیچ کلیدی داخل repo نیست.
+            val storePath = providers.gradleProperty("RELEASE_STORE_FILE").orNull
+            if (storePath != null) {
+                storeFile = file(storePath)
+                storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+                keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
+                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+                storeType = "PKCS12"
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     buildFeatures { compose = true; buildConfig = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
