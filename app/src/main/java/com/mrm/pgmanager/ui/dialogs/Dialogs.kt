@@ -358,7 +358,14 @@ fun UserEditorDialog(
     val theme = LocalThemeState.current
     var username by remember { mutableStateOf(initial?.username ?: "") }
     var limitGb by remember { mutableStateOf(if (initial == null || initial.dataLimit == 0L) "" else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')) }
-    var days by remember { mutableStateOf(runCatching { initial?.expire?.let { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(it.take(10))).coerceAtLeast(0).toString() } ?: "" }.getOrDefault("")) }
+    // «زمان کل» از فاصلهٔ تاریخ ساخت تا تاریخ انقضا محاسبه می‌شود؛ نه زمان باقی‌مانده تا امروز.
+    var days by remember { mutableStateOf(runCatching {
+        initial?.let { user ->
+            val expires = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
+            val created = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
+            java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(0).toString()
+        } ?: ""
+    }.getOrDefault("")) }
     // ورودی‌های افزایشی؛ مقدار نهایی حجم/زمان جدا نگه داشته می‌شود تا با +GB و +روز جمع شود.
     var addGb by remember { mutableStateOf("") }
     var addDaysInput by remember { mutableStateOf("") }
@@ -424,7 +431,7 @@ fun UserEditorDialog(
                     }
                     // زمان کل نیز مستقل قابل ویرایش است و +روز به مقدار فعلی افزوده می‌شود.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل (روز)", Modifier.weight(1.15f), KeyboardType.Number, "", fieldHeight = 34.dp)
+                        CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل", Modifier.weight(1.15f), KeyboardType.Number, "", fieldHeight = 34.dp)
                         Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(.14f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { Text("🗓", fontSize = 13.sp) }
                         CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.65f), KeyboardType.Number, "", fieldHeight = 34.dp)
                         Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
@@ -449,7 +456,12 @@ fun UserEditorDialog(
                 // تمپلت‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("تمپلت‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.lamp.primary.copy(.18f) else Color.Black.copy(.05f)).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = theme.inkColor) } } }
+                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.lamp.primary.copy(.18f) else Color.Black.copy(.05f)).clickable {
+                            selectedTemplate = t.id
+                            // انتخاب تمپلت، مقادیر واقعی آن را فوراً در فیلدهای فرم نشان می‌دهد.
+                            t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
+                            t.expireDuration?.let { days = (it / 86400L).toString() }
+                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = theme.inkColor) } } }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MutedCancelButton("انصراف", onDismiss, Modifier.weight(.35f))
