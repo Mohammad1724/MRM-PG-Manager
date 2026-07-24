@@ -273,8 +273,8 @@ private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
 private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val isDark = theme.isDark
-    val bg = if (selected) theme.lamp.primary else if (isDark) Color(0xFF383842).copy(alpha = 0.92f) else Color(0xFFC8C4B8).copy(alpha = 0.92f)
-    val borderCol = if (selected) theme.lamp.primary else if (isDark) Color(0xFF8E8C98) else Color(0xFF8C877D)
+    val bg = if (selected) theme.lamp.primary else if (isDark) Color(0xFF383842) else Color.White
+    val borderCol = if (selected) theme.lamp.primary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
         modifier = modifier
             .size(14.dp)
@@ -399,8 +399,11 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
 @Composable
 private fun RowAction(label: String, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 23.dp, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier.height(height).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.55f)).border(BorderStroke(0.8.dp, glassBorder(theme.isDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-        Text(label, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+    // اکشن‌های نمای فشرده مانند اکشن‌های جدول پنل، سبک و بدون border سنگین هستند.
+    Box(modifier.height(height).clip(RoundedCornerShape(6.dp))
+        .background(if (theme.isDark) Color.White.copy(.08f) else Color(0xFFF2F2F4))
+        .clickable(onClick = onClick).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
+        Text(label, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
 
@@ -530,8 +533,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(15.dp)).background(if (selected) theme.lamp.primary.copy(.12f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(15.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 9.dp, vertical = 9.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    // ردیف داده‌ای فشرده: سطح سفید، border ظریف و ستون‌های ثابت؛ نزدیک به جدول Users پنل.
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 10.dp, vertical = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
