@@ -3,6 +3,9 @@ package com.mrm.pgmanager.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Casino
+import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Edit
@@ -32,7 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning }
+enum class AppIcon { Lock, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -55,6 +58,9 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Note -> Icons.Rounded.NoteAlt
     AppIcon.Logout -> Icons.Rounded.Logout
     AppIcon.Warning -> Icons.Rounded.WarningAmber
+    AppIcon.LightMode -> Icons.Rounded.LightMode
+    AppIcon.DarkMode -> Icons.Rounded.DarkMode
+    AppIcon.AutoMode -> Icons.Rounded.BrightnessAuto
 }
 
 @Composable
