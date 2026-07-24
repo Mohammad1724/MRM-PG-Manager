@@ -403,9 +403,9 @@ fun UserEditorDialog(
                             CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "👤")
                         } else {
                             // در حالت ویرایش، نام مانند پنل PasarGuard فقط برای مشاهده است.
-                            Column(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(9.dp)).padding(horizontal = 10.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                                Text("نام کاربری", fontSize = 7.5.sp, color = theme.mutedColor)
-                                Text(username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            // نام در حالت ویرایش فقط نمایش داده می‌شود و عمداً بسیار کوتاه است.
+                            Box(Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+                                Text(initial.username, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                         if (initial != null) {
@@ -416,20 +416,17 @@ fun UserEditorDialog(
                 // حجم و زمان
                 Column(card(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                     Text("حجم و زمان اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    // دو کاشی هم‌اندازه: مقدار افزایشی را وارد کنید و با تیک، به مقدار فعلی کاربر اضافه کنید.
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CompactGlassField(addGb, { addGb = it.filter { c -> c.isDigit() || c == '.' } }, "+ GB", Modifier.weight(1f), KeyboardType.Decimal, "")
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                        }
-                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(1f), KeyboardType.Number, "")
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                        }
+                    // حجم کل مستقیماً قابل تعیین است؛ کادر +GB فقط مقدار افزایشی را به آن اضافه می‌کند.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم کل (GB)", Modifier.weight(1.15f), KeyboardType.Decimal, "")
+                        CompactGlassField(addGb, { addGb = it.filter { c -> c.isDigit() || c == '.' } }, "+ GB", Modifier.weight(.85f), KeyboardType.Decimal, "")
+                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("حجم فعلی: ${if (limitGb.isBlank()) "نامحدود" else "$limitGb GB"}", fontSize = 9.sp, color = theme.mutedColor)
-                        Text("اعتبار فعلی: ${if (days.isBlank()) "نامحدود" else "$days روز"}", fontSize = 9.sp, color = theme.mutedColor)
+                    // زمان کل نیز مستقل قابل ویرایش است و +روز به مقدار فعلی افزوده می‌شود.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل (روز)", Modifier.weight(1.15f), KeyboardType.Number, "")
+                        CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.85f), KeyboardType.Number, "")
+                        Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { Text("✓", fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                 }
                 // دسترسی و یادداشت
