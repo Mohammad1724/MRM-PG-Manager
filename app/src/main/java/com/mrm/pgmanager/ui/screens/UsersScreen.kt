@@ -190,7 +190,7 @@ private fun TopBarHeader(
             Text("مدیریت و نظارت بر حساب‌های کاربری", fontSize = 10.5.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Palette, tint = theme.inkColor, size = 19.dp) }, onClick = onOpenThemeDialog)
+            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = onOpenThemeDialog)
             ActionIconButton(icon = { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = onRefresh, enabled = !loading)
             ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = GlassRed, size = 19.dp) }, onClick = onLogout, isRed = true)
         }
