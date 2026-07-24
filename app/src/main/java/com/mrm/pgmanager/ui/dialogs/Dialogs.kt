@@ -406,8 +406,11 @@ fun UserEditorDialog(
                     Text("اطلاعات پایه", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (initial == null) {
-                            // فقط هنگام ساخت کاربر، نام قابل وارد کردن است.
+                            // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
                             CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "👤")
+                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.lamp.primary.copy(.16f)).border(BorderStroke(1.dp, theme.lamp.primary.copy(.35f)), RoundedCornerShape(10.dp)).clickable { username = "user-" + (1000..9999).random() }, contentAlignment = Alignment.Center) {
+                                Text("🎲", fontSize = 15.sp)
+                            }
                         } else {
                             // در حالت ویرایش، نام مانند پنل PasarGuard فقط برای مشاهده است.
                             // نام در حالت ویرایش فقط نمایش داده می‌شود و عمداً بسیار کوتاه است.
@@ -506,6 +509,10 @@ fun UserDetailsDialog(
     var qrOpen by remember { mutableStateOf(false) }
     var usageConfirm by remember { mutableStateOf(false) }
     var expiryConfirm by remember { mutableStateOf(false) }
+    var templatePickerOpen by remember { mutableStateOf(false) }
+    var availableTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+    var templatesLoading by remember { mutableStateOf(false) }
+    var templatesFailed by remember { mutableStateOf(false) }
     val traffic = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
     val percentage = if (user.dataLimit > 0L) ((user.usedTraffic * 100f / user.dataLimit).toInt()).coerceIn(0, 100) else 0
     val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
@@ -592,7 +599,7 @@ fun UserDetailsDialog(
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    action("تمپلت‌ها", Modifier.weight(1f)) { editOpen = true }
+                    action("تمپلت‌ها", Modifier.weight(1f)) { templatePickerOpen = true }
                     action("تنظیمات کاربر", Modifier.weight(2f), primary = true) { editOpen = true }
                 }
 
@@ -609,6 +616,23 @@ fun UserDetailsDialog(
                 }
             }
         }
+    }
+    if (templatePickerOpen) {
+        LaunchedEffect(Unit) {
+            templatesLoading = true; templatesFailed = false
+            val result = runCatching { session?.let { com.mrm.pgmanager.data.api.PanelApi.userTemplates(it) } ?: emptyList() }
+            availableTemplates = result.getOrDefault(emptyList())
+            templatesFailed = result.isFailure
+            templatesLoading = false
+        }
+        BulkApplyTemplateDialog(
+            templates = availableTemplates,
+            selectedCount = 1,
+            onDismiss = { templatePickerOpen = false },
+            onApply = { templateId, note -> templatePickerOpen = false; onApplyTemplate?.invoke(templateId, note) },
+            isLoading = templatesLoading,
+            loadFailed = templatesFailed
+        )
     }
     if (editOpen) UserEditorDialog(user, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, onResetExpiry, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (qrOpen && user.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
