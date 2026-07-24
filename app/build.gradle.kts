@@ -11,7 +11,7 @@ android {
         applicationId = "com.mrm.pgmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
+        versionCode = 0
         versionName = "0.3.1"
     }
     compileOptions {
