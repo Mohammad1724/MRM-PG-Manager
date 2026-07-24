@@ -141,7 +141,7 @@ fun LoginScreen(
                             RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 17.dp)
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ تنظیمات (بالا) ← بخش ", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text("برای فعال‌سازی: اول وارد پنل شوید، سپس دکمهٔ تنظیمات (بالا) ← قفل امنیتی ", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text("", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
