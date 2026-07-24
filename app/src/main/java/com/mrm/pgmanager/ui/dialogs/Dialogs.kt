@@ -316,9 +316,10 @@ private fun CompactGlassField(
 ) {
     val theme = LocalThemeState.current
     Box(
-        modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = if (theme.isDark) 0.10f else 0.92f))
-            .border(BorderStroke(1.dp, Color.White.copy(0.18f)), RoundedCornerShape(12.dp))
+        // فیلد استاندارد فرم: سطح خاکستری روشن و border خنثی، نزدیک به ورودی‌های پنل وب.
+        modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(10.dp))
+            .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
+            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -372,11 +373,14 @@ fun UserEditorDialog(
         groups = runCatching { com.mrm.pgmanager.data.api.PanelApi.groups(session) }.getOrDefault(emptyList())
         templates = runCatching { com.mrm.pgmanager.data.api.PanelApi.userTemplates(session) }.getOrDefault(emptyList())
     } }
-    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = if (theme.isDark) .08f else .72f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(18.dp)).padding(12.dp)
+    // بخش‌های فرم، کارت‌های ساده و یک‌دست‌اند؛ هر ورودی داخل همان زبان بصری پنل قرار می‌گیرد.
+    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        .background(if (theme.isDark) Color.White.copy(.08f) else Color.White)
+        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(14.dp)
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(26.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(20.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(20.dp))) {
             Column(Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text(if (initial == null) "کاربر جدید" else "تنظیمات کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); if (initial != null) Text(initial.username, fontSize = 11.sp, color = theme.mutedColor) }
