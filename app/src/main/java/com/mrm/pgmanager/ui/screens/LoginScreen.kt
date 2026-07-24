@@ -85,9 +85,9 @@ fun LoginScreen(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingIcon = "", keyboardType = KeyboardType.Uri)
-                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingIcon = "")
-                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingIcon = "", isPassword = true, keyboardType = KeyboardType.Password)
+                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingAppIcon = AppIcon.Settings, keyboardType = KeyboardType.Uri)
+                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingAppIcon = AppIcon.User)
+                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingAppIcon = AppIcon.Lock, isPassword = true, keyboardType = KeyboardType.Password)
                         }
 
                         if (error != null) {
