@@ -20,7 +20,13 @@ data class PanelUser(
 )
 
 data class Group(val id: Int, val name: String)
-data class UserTemplateItem(val id: Int, val name: String)
+data class UserTemplateItem(
+    val id: Int,
+    val name: String,
+    val dataLimit: Long? = null,
+    /** مدت انقضای تمپلت بر حسب ثانیه */
+    val expireDuration: Long? = null
+)
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
 enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
