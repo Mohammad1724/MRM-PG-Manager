@@ -36,7 +36,8 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -PRELEASE_STORE_FILE=app/mrm-release.p12 \
-            -PRELEASE_STORE_PASSWORD="${{ secrets.SIGNING_STORE_PASSWORD }}"
+            -PRELEASE_STORE_PASSWORD="${{ secrets.SIGNING_STORE_PASSWORD }}" \
+            -PRELEASE_KEY_ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}"
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
