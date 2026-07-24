@@ -373,18 +373,20 @@ fun UserEditorDialog(
         groups = runCatching { com.mrm.pgmanager.data.api.PanelApi.groups(session) }.getOrDefault(emptyList())
         templates = runCatching { com.mrm.pgmanager.data.api.PanelApi.userTemplates(session) }.getOrDefault(emptyList())
     } }
-    // بخش‌های فرم، کارت‌های ساده و یک‌دست‌اند؛ هر ورودی داخل همان زبان بصری پنل قرار می‌گیرد.
-    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-        .background(if (theme.isDark) Color.White.copy(.08f) else Color.White)
-        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp)).padding(14.dp)
+    // فرم مانند پنل وب، یک بوم ساده و پیوسته است؛ بخش‌ها با عنوان و فاصله جدا می‌شوند، نه کارت‌های تو در تو.
+    fun card() = Modifier.fillMaxWidth().padding(vertical = 3.dp)
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(20.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(20.dp))) {
-            Column(Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp))) {
+            Column(Modifier.fillMaxWidth().padding(18.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text(if (initial == null) "کاربر جدید" else "تنظیمات کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); if (initial != null) Text(initial.username, fontSize = 11.sp, color = theme.mutedColor) }
-                    Text("×", fontSize = 24.sp, color = theme.mutedColor, modifier = Modifier.clickable { onDismiss() }.padding(6.dp))
+                    Text("✎", fontSize = 20.sp, color = theme.inkColor, modifier = Modifier.padding(end = 8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        if (initial != null) Text("تنظیم محدودیت، انقضا و دسترسی کاربر", fontSize = 10.sp, color = theme.mutedColor)
+                    }
+                    Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(if (theme.isDark) .10f else .04f)).clickable { onDismiss() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
                 }
                 // اطلاعات پایه
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
