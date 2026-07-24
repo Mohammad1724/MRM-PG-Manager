@@ -26,6 +26,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
+import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -95,7 +97,7 @@ fun MRMApp() {
         if (session != null && isAppLockEnabled && !isUnlocked && activity != null) {
             authenticateBiometric(
                 activity = activity,
-                title = "🔒 ورود به پنل پاسارگارد",
+                title = "ورود به پنل پاسارگارد",
                 subtitle = "اثر انگشت یا پین/الگوی گوشی خود را اسکن کنید",
                 onSuccess = { isUnlocked = true },
                 onError = { /* stay on lock screen */ }
@@ -119,7 +121,7 @@ fun MRMApp() {
                     if (activity != null) {
                         authenticateBiometric(
                             activity = activity,
-                            title = "🔒 ورود به پنل پاسارگارد",
+                            title = "ورود به پنل پاسارگارد",
                             subtitle = "اثر انگشت یا پین/الگوی گوشی خود را اسکن کنید",
                             onSuccess = { isUnlocked = true },
                             onError = { Toast.makeText(context, "تایید هویت ناموفق بود", Toast.LENGTH_SHORT).show() }
@@ -139,7 +141,7 @@ fun MRMApp() {
                     if (enabled && activity != null) {
                         authenticateBiometric(
                             activity = activity,
-                            title = "🔒 تایید فعال‌سازی قفل",
+                            title = "تایید فعال‌سازی قفل",
                             subtitle = "برای فعال‌سازی قفل برنامه، اثر انگشت خود را تایید کنید",
                             onSuccess = {
                                 store.saveAppLock(true)
@@ -172,13 +174,13 @@ fun AppLockScreen(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(if (themeState.isDark) Color(0xFF1C1C24).copy(alpha = 0.94f) else Color.White.copy(alpha = 0.92f)).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(32.dp)).padding(32.dp)
         ) {
             Box(Modifier.size(76.dp).clip(RoundedCornerShape(24.dp)).background(themeState.lamp.primary.copy(alpha = 0.18f)).border(BorderStroke(1.2.dp, themeState.lamp.primary), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
-                Text("🔒", fontSize = 38.sp)
+                RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("پنل پاسارگارد قفل است", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text("برای دسترسی به کاربران، هویت خود را تایید کنید", fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
             }
-            PrimarySaveButton("👆 ورود با اثر انگشت / رمز گوشی", onClick = onUnlockClick, modifier = Modifier.fillMaxWidth().height(52.dp))
+            PrimarySaveButton("ورود با اثر انگشت / رمز گوشی", onClick = onUnlockClick, modifier = Modifier.fillMaxWidth().height(52.dp))
             TextButton(onClick = onLogout) {
                 Text("خروج از حساب کاربری", color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
