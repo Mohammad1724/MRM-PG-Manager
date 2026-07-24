@@ -540,9 +540,12 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
-            // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
-            Text(user.username, Modifier.width(76.dp), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // بج دقیقاً بعد از نام است؛ عرض نام محدود شده تا ستون مصرف و اکشن‌ها ثابت بمانند.
+            // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
+            Column(Modifier.width(76.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+            }
+            // بج دقیقاً بعد از ستون نام قرار می‌گیرد؛ ستون‌های مصرف و اکشن ثابت می‌مانند.
             UserStatusBadge(user, Modifier.width(28.dp), compact = true)
             // ستون مصرف پهن‌تر است؛ لبهٔ راست ثابت می‌ماند و نوار به سمت چپ کشیده می‌شود.
             Column(Modifier.width(108.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -550,7 +553,6 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
