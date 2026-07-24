@@ -31,7 +31,7 @@ android {
                 storeFile = rootProject.file(storePath)
                 storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
                 keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
-                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+                keyPassword = storePassword
                 storeType = "PKCS12"
             }
         }
