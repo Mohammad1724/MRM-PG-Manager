@@ -215,7 +215,8 @@ fun UltraPremiumField(
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
-    leadingIcon: String,
+    leadingIcon: String = "",
+    leadingAppIcon: AppIcon? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false,
     modifier: Modifier = Modifier
@@ -250,7 +251,7 @@ fun UltraPremiumField(
                         .background(if (isFocused) theme.lamp.primary.copy(0.16f) else if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.04f))
                         .border(BorderStroke(1.dp, if (isFocused) theme.lamp.primary.copy(0.22f) else Color.Transparent), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
-                ) { Text(leadingIcon, fontSize = 17.sp) }
+                ) { if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 18.dp) else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 17.sp) }
 
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.58f), fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
@@ -317,24 +318,24 @@ fun BulkActionsBar(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("⚡ عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 17.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
                 Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.12f)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
                     Text("× لغو انتخاب", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                 }
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                BulkActionChip("🟢 فعال‌سازی", GlassGreen) { onEnable() }
-                BulkActionChip("⚪ غیرفعال‌سازی", Color(0xFF7A7886)) { onDisable() }
-                BulkActionChip("♻️ ریست حجم", theme.lamp.primary) { onResetUsage() }
-                BulkActionChip("📦 اعمال تمپلت", Color(0xFF8B5CF6)) { onApplyTemplate() }
-                BulkActionChip("🗑 حذف همه", GlassRed) { onDelete() }
+                BulkActionChip("فعال‌سازی", AppIcon.Check, GlassGreen) { onEnable() }
+                BulkActionChip("غیرفعال‌سازی", AppIcon.User, Color(0xFF7A7886)) { onDisable() }
+                BulkActionChip("ریست حجم", AppIcon.Reset, theme.lamp.primary) { onResetUsage() }
+                BulkActionChip("اعمال تمپلت", AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
+                BulkActionChip("حذف همه", AppIcon.Delete, GlassRed) { onDelete() }
             }
         }
     }
 }
 
 @Composable
-private fun BulkActionChip(label: String, color: Color, onClick: () -> Unit) {
+private fun BulkActionChip(label: String, icon: AppIcon, color: Color, onClick: () -> Unit) {
     Box(
         Modifier
             .height(30.dp)
@@ -345,6 +346,6 @@ private fun BulkActionChip(label: String, color: Color, onClick: () -> Unit) {
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = color, size = 15.dp); Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color) }
     }
 }
