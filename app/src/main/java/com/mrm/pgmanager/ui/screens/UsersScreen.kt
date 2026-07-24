@@ -486,16 +486,16 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 OnlineBadge(user)
                 Text(
                     user.username,
-                    modifier = Modifier.weight(1f),
+                    // عرض ثابت، بج وضعیت را بدون فاصلهٔ کش‌دار دقیقاً کنار نام نگه می‌دارد.
+                    modifier = Modifier.width(125.dp),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = theme.inkColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                // بج کمی جمع‌وجورتر است و با offset فیزیکی به سمت چپ می‌رود؛
-                // جای اکشن‌ها همچنان ثابت باقی می‌ماند.
-                UserStatusBadge(user, Modifier.width(46.dp).offset(x = (-5).dp))
+                // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
+                UserStatusBadge(user, Modifier.width(42.dp))
                 if (user.subUrl.isNotBlank()) {
                     UserCardAction("کپی", Modifier.width(46.dp)) { copySubscription(context, user) }
                     UserCardAction("QR", Modifier.width(40.dp)) { onQrClick(user) }
@@ -511,13 +511,14 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("اعتبار باقی‌مانده", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     Text(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
+                    Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // نوار ضخیم‌تر و با فضای درصد کمتر، طول مفید بیشتری در کارت دارد.
-                Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(8.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(8.dp)))
+                // نوار کم‌ضخامت‌تر تا در نمای لیستی بزرگ، فرم جدول‌مانند و سبک بماند.
+                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(5.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(5.dp)))
                 }
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
@@ -540,17 +541,18 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // فقط نام flexible است؛ باقی ستون‌ها عرض تضمین‌شده دارند.
-            Text(user.username, Modifier.weight(1f), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // در نمای کوچک، بج صرفاً نشانگر کوتاه وضعیت است تا فضا به نوار مصرف برسد.
-            UserStatusBadge(user, Modifier.width(28.dp).offset(x = (-4).dp), compact = true)
+            Text(user.username, Modifier.width(76.dp), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // بج دقیقاً بعد از نام است؛ عرض نام محدود شده تا ستون مصرف و اکشن‌ها ثابت بمانند.
+            UserStatusBadge(user, Modifier.width(28.dp), compact = true)
             // ستون مصرف پهن‌تر است؛ لبهٔ راست ثابت می‌ماند و نوار به سمت چپ کشیده می‌شود.
             Column(Modifier.width(108.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                Box(Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(5.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(5.dp)))
+                Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
+                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
             if (user.subUrl.isNotBlank()) {
