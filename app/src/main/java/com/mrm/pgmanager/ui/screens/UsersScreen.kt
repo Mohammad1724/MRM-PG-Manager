@@ -933,8 +933,21 @@ fun UsersScreen(
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
             runAction { PanelApi.resetUsage(session, user.username) }
         }, onResetExpiry = {
-            runAction { PanelApi.modifyUser(session, user.username, (user.dataLimit.toDouble() / 1073741824.0), "", "", null, null) }
-        }, onApplyTemplate = { templateId, note ->
+            runAction {
+                // ریست زمان نباید اشتراک را نامحدود کند: مدت اولیه از createdAt تا expire
+                // خوانده می‌شود و یک تاریخ انقضای تازه از امروز ساخته می‌شود.
+                val totalDays = runCatching {
+                    val expires = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.expire?.take(10) ?: "") }
+                    val created = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.createdAt?.take(10) ?: "") }
+                    java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1)
+                }.getOrDefault(0)
+                val newExpire = if (totalDays > 0) java.time.LocalDate.now().plusDays(totalDays).toString() else ""
+                PanelApi.modifyUser(
+                    session, user.username, user.dataLimit.toDouble() / 1073741824.0,
+                    newExpire, user.note ?: "", user.hwidLimit, user.groupIds
+                )
+            }
+        },  onApplyTemplate = { templateId, note ->
             selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
         }, session = session)
     }
