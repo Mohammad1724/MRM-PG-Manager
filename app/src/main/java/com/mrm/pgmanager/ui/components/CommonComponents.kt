@@ -131,7 +131,7 @@ fun GlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
     }
     val activeColor = if (isRed) GlassRed else theme.lamp.primary
-    val borderColor = if (isPressed && enabled) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
+    val borderColor = if (isPressed && enabled) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
         modifier = modifier.height(46.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
             .clip(RoundedCornerShape(16.dp)).background(baseBg)
@@ -157,7 +157,7 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
     }
     val activeColor = if (isRed) GlassRed else theme.lamp.primary
-    val borderColor = if (isPressed) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else Brush.linearGradient(listOf(Color.White.copy(0.95f), theme.lamp.primary.copy(0.45f), Color.White.copy(0.35f)))
+    val borderColor = if (isPressed) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
         modifier = modifier.height(26.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
             .clip(RoundedCornerShape(8.dp)).background(baseBg)
@@ -178,14 +178,14 @@ fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.94f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "saveScale")
     Box(
         modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.horizontalGradient(if (isPressed) listOf(theme.lamp.primary, Color(0xFFF5D061)) else listOf(theme.lamp.primary, theme.lamp.primary.copy(0.82f))))
-            .border(BorderStroke(if (isPressed) 1.8.dp else 1.2.dp, Color.White.copy(0.85f)), RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(13.dp))
+            .background(theme.lamp.primary)
+            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.lamp.primary.copy(if (isPressed) .75f else 1f)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+        Text(text = text, color = Color(0xFF202124), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
     }
 }
 
