@@ -101,17 +101,17 @@ fun QuickActionSheet(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("⚡ ${user.username}", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(user.status, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     }
                     Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 9.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor)
                 }
-                QuickActionRow("📦", "استفاده از تمپلت (تمدید)", theme.lamp.primary) { onUseTemplate(); onDismiss() }
-                QuickActionRow(if (user.status == "disabled") "🟢" else "⚪", if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor) { onToggle(); onDismiss() }
-                QuickActionRow("📋", "کپی ساب‌لینک", theme.inkColor) { onCopySub(); onDismiss() }
-                QuickActionRow("📱", "نمایش QR", theme.inkColor) { onQr(); onDismiss() }
-                QuickActionRow("✏️", "ویرایش کامل", theme.inkColor) { onEdit(); onDismiss() }
-                QuickActionRow("🗑", "حذف کاربر", GlassRed) { onDelete(); onDismiss() }
+                QuickActionRow("", "استفاده از تمپلت (تمدید)", theme.lamp.primary) { onUseTemplate(); onDismiss() }
+                QuickActionRow(if (user.status == "disabled") "" else "", if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor) { onToggle(); onDismiss() }
+                QuickActionRow("", "کپی ساب‌لینک", theme.inkColor) { onCopySub(); onDismiss() }
+                QuickActionRow("", "نمایش QR", theme.inkColor) { onQr(); onDismiss() }
+                QuickActionRow("", "ویرایش کامل", theme.inkColor) { onEdit(); onDismiss() }
+                QuickActionRow("", "حذف کاربر", GlassRed) { onDelete(); onDismiss() }
                 GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
@@ -141,11 +141,11 @@ fun ThemeEditorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("⚙️ تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp); Text("تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    ModeToggleBtn("☀️ روشن", !themeState.followSystem && !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = false)) }
-                    ModeToggleBtn("🌙 تیره", !themeState.followSystem && themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = true)) }
-                    ModeToggleBtn("🌗 خودکار", themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
+                    ModeToggleBtn("روشن", AppIcon.LightMode, !themeState.followSystem && !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = false)) }
+                    ModeToggleBtn("تیره", AppIcon.DarkMode, !themeState.followSystem && themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = true)) }
+                    ModeToggleBtn("خودکار", AppIcon.AutoMode, themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
@@ -156,9 +156,9 @@ fun ThemeEditorDialog(
                                 .clickable { onThemeChange(themeState.copy(lamp = lamp)) }.padding(12.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(lamp.primary), contentAlignment = Alignment.Center) { Text(lamp.emoji, fontSize = 13.sp) }
+                                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(lamp.primary), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Palette, tint = Color.White, size = 16.dp) }
                                 Text(lamp.labelFa, color = theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
-                                if (sel) Text("✓", color = lamp.primary, fontWeight = FontWeight.Bold)
+                                if (sel) Text("انتخاب", color = lamp.primary, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -173,17 +173,17 @@ fun ThemeEditorDialog(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
                             Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else theme.lamp.primary.copy(0.18f)), contentAlignment = Alignment.Center) {
-                                Text("👆", fontSize = 15.sp)
+                                RoundedAppIcon(AppIcon.Lock, tint = if (isAppLockEnabled) Color.White else theme.inkColor, size = 16.dp)
                             }
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("🔒 قفل امنیتی برنامه", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                                Text("قفل امنیتی برنامه", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                                 Text("ورود با اثر انگشت یا پین/الگوی گوشی", fontSize = 9.5.sp, color = theme.mutedColor)
                             }
                         }
                         Box(
                             Modifier.clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else Color.Gray.copy(0.20f)).padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            Text(if (isAppLockEnabled) "فعال ✓" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
+                            Text(if (isAppLockEnabled) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
                         }
                     }
                 }
@@ -199,7 +199,7 @@ fun ThemeEditorDialog(
 }
 
 @Composable
-fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun ModeToggleBtn(label: String, icon: AppIcon, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(
         modifier = modifier.clip(RoundedCornerShape(14.dp))
@@ -207,7 +207,7 @@ fun ModeToggleBtn(label: String, selected: Boolean, modifier: Modifier = Modifie
             .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.22f)), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick).padding(vertical = 11.dp),
         contentAlignment = Alignment.Center
-    ) { Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+    ) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = if (selected) Color.White else theme.inkColor, size = 15.dp); Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 11.sp, fontWeight = FontWeight.Bold) } }
 }
 
 @Composable
@@ -279,7 +279,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("📅 تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
                     TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.lamp.primary) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -659,13 +659,13 @@ fun BulkApplyTemplateDialog(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), GlassShape).padding(22.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("📦 اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Text("اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text("یک تمپلت آماده انتخاب کنید تا تنظیمات آن روی هر $selectedCount کاربر انتخابی اعمال شود:", color = theme.mutedColor, fontSize = 11.5.sp)
 
                 if (isLoading) {
                     Text("⏳ در حال بارگذاریِ تمپلت‌ها...", fontSize = 11.sp, color = theme.mutedColor)
                 } else if (loadFailed) {
-                    Text("⚠️ خطا در بارگذاریِ تمپلت‌ها. دوباره امتحان کنید.", fontSize = 11.sp, color = GlassRed)
+                    Text("خطا در بارگذاریِ تمپلت‌ها. دوباره امتحان کنید.", fontSize = 11.sp, color = GlassRed)
                 } else if (templates.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
@@ -679,7 +679,7 @@ fun BulkApplyTemplateDialog(
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) Color.White else theme.inkColor)
-                                    if (sel) Text("✓ انتخاب شد", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    if (sel) Text("انتخاب شد", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -688,7 +688,7 @@ fun BulkApplyTemplateDialog(
                     Text("تمپلتی در پنل یافت نشد.", fontSize = 11.sp, color = GlassRed)
                 }
 
-                CompactGlassField(value = note, onValueChange = { note = it }, placeholder = "یادداشت اختیاری...", leading = "📝")
+                CompactGlassField(value = note, onValueChange = { note = it }, placeholder = "یادداشت اختیاری...", leading = "")
 
                 formError?.let { Text(it, color = GlassRed, fontSize = 11.sp) }
 
