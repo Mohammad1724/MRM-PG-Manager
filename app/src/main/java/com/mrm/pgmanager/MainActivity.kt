@@ -217,7 +217,7 @@ fun MRMApp() {
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary.copy(.78f) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary.copy(.78f) else if (effectiveTheme.isDark) Color(0xFF25252D) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
                                 Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor)
                             }
                         }
