@@ -170,7 +170,7 @@ fun MRMApp() {
         } else {
             Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
                 Box(Modifier.fillMaxSize()) {
-                    if (selectedTab == 0) DashboardScreen(session!!, monitoringSettings.refreshIntervalSeconds, monitoringSettings.autoRefreshEnabled, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
+                    if (selectedTab == 0) DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
