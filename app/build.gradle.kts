@@ -11,8 +11,8 @@ android {
         applicationId = "com.mrm.pgmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.3.1"
+        versionCode = 2
+        versionName = "0.2.3"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -28,10 +28,10 @@ android {
             // مقادیر فقط در GitHub Actions از Secrets تزریق می‌شوند؛ هیچ کلیدی داخل repo نیست.
             val storePath = providers.gradleProperty("RELEASE_STORE_FILE").orNull
             if (storePath != null) {
-                storeFile = rootProject.file(storePath)
+                storeFile = file(storePath)
                 storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
                 keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
-                keyPassword = storePassword
+                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
                 storeType = "PKCS12"
             }
         }
@@ -53,6 +53,7 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.activity:activity-compose:1.9.1")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
