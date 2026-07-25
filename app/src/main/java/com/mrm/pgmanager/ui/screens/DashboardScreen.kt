@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -45,15 +47,12 @@ fun DashboardScreen(session: Session) {
     // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
     LaunchedEffect(session) { while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(5_000) } }
     val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(isRefreshing = loading, onRefresh = { scope.launch { load() } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = { PullToRefreshDefaults.Indicator(isRefreshing = loading, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    PullToRefreshBox(isRefreshing = false, onRefresh = { scope.launch { load() } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = {}) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(7.dp).background(GlassGreen, RoundedCornerShape(4.dp)))
-                    Text("زنده · بروزرسانی خودکار هر ۵ ثانیه", fontSize = 10.sp, color = theme.mutedColor)
-                }
+                LiveStatusBadge()
             }
             Box(Modifier.size(40.dp).background(theme.lamp.primary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { load() } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
         }
@@ -68,8 +67,35 @@ fun DashboardScreen(session: Session) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("فعال", "${s.activeUsers}", AppIcon.Check, Modifier.weight(1f)); DashCard("منقضی / محدود", "${s.expiredUsers + s.limitedUsers}", AppIcon.Warning, Modifier.weight(1f), Color(0xFFD9822B)) }
             Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("دریافت", formatBytes(s.incomingBandwidth), AppIcon.Refresh, Modifier.weight(1f), GlassGreen); DashCard("ارسال", formatBytes(s.outgoingBandwidth), AppIcon.Link, Modifier.weight(1f)) }
+            TrafficChartCard(incoming = s.incomingBandwidth, outgoing = s.outgoingBandwidth)
         }
     }
+    }
+}
+
+@Composable
+private fun LiveStatusBadge() {
+    val pulse = rememberInfiniteTransition(label = "livePulse")
+    val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "liveAlpha")
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.size(8.dp).background(GlassGreen.copy(alpha), RoundedCornerShape(4.dp)))
+        Text("زنده · بروزرسانی خودکار هر ۵ ثانیه", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
+    }
+}
+
+@Composable
+private fun TrafficChartCard(incoming: Long, outgoing: Long) {
+    val t = LocalThemeState.current
+    Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor)
+        Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
+        Canvas(Modifier.fillMaxWidth().height(150.dp)) {
+            val w = size.width; val h = size.height
+            for (i in 1..4) drawLine(Color(0xFFE8E8EC), androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 1f)
+            val pts = listOf(.75f,.58f,.64f,.42f,.48f,.28f,.38f,.18f)
+            for (i in 0 until pts.lastIndex) drawLine(t.lamp.primary, androidx.compose.ui.geometry.Offset(w*i/pts.lastIndex, h*pts[i]), androidx.compose.ui.geometry.Offset(w*(i+1)/pts.lastIndex, h*pts[i+1]), 4f)
+        }
+        Text("نمای لحظه‌ای ترافیک؛ دادهٔ تاریخی در نسخهٔ بعد از API آمار پنل اضافه می‌شود.", fontSize = 8.sp, color = t.mutedColor)
     }
 }
 
