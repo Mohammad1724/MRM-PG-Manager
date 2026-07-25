@@ -171,6 +171,7 @@ fun MRMApp() {
             }
         }
     }
+}
 
 @Composable
 fun AppLockScreen(
