@@ -83,7 +83,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
 LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(40.dp).background(Color.White, RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
+                Box(Modifier.size(40.dp).background(if (theme.isDark) Color(0xFF25252D) else Color.White, RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
                 Box(Modifier.size(40.dp).background(theme.lamp.primary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.lamp.primary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
                 Box(Modifier.size(40.dp).background(Color(0xFFC93B3B).copy(.10f), RoundedCornerShape(11.dp)).clickable { onLogout() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }
             }
@@ -118,12 +118,12 @@ private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
 @Composable
 private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoing: Long) {
     val t = LocalThemeState.current
-    Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().background(if (t.isDark) Color(0xFF202128) else Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor)
         Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
         Canvas(Modifier.fillMaxWidth().height(150.dp)) {
             val w = size.width; val h = size.height
-            for (i in 1..4) drawLine(Color(0xFFE8E8EC), androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 1f)
+            for (i in 1..4) drawLine(if (t.isDark) Color.White.copy(.12f) else Color(0xFFE8E8EC), androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 1f)
             val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
             if (points.size > 1) for (i in 0 until points.lastIndex) {
                 val y1 = h - (points[i].totalTraffic.toFloat() / max * h)
@@ -137,7 +137,7 @@ private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoin
 
 @Composable private fun DashCard(label: String, value: String, icon: AppIcon, modifier: Modifier, accent: Color? = null) {
     val t = LocalThemeState.current; val c = accent ?: t.lamp.primary
-    Column(modifier.height(92.dp).background(Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+    Column(modifier.height(92.dp).background(if (t.isDark) Color(0xFF202128) else Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(icon, tint = c, size = 16.dp); Text(label, fontSize = 10.sp, color = t.mutedColor) }
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor, maxLines = 1)
     }
