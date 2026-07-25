@@ -79,7 +79,7 @@ private fun LiveStatusBadge() {
     val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "liveAlpha")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         Box(Modifier.size(8.dp).background(GlassGreen.copy(alpha), RoundedCornerShape(4.dp)))
-        Text("زنده · بروزرسانی خودکار هر ۵ ثانیه", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
+        Text("Live", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
     }
 }
 
