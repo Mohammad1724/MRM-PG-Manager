@@ -101,6 +101,7 @@ fun MRMApp() {
     var session by remember { mutableStateOf(store.read()) }
     var themeState by remember { mutableStateOf(store.readTheme()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
+    var monitoringSettings by remember { mutableStateOf(store.readMonitoringSettings()) }
     var isUnlocked by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
@@ -166,7 +167,7 @@ fun MRMApp() {
         } else {
             Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
                 Box(Modifier.fillMaxSize()) {
-                    if (selectedTab == 0) DashboardScreen(session!!, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
+                    if (selectedTab == 0) DashboardScreen(session!!, monitoringSettings.refreshIntervalSeconds, monitoringSettings.autoRefreshEnabled, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
@@ -207,7 +208,7 @@ fun MRMApp() {
                         }
                     }
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, appVersion = BuildConfig.VERSION_NAME)
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME)
             }
         }
     }
