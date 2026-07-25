@@ -67,12 +67,13 @@ class SessionStore(context: Context) {
         nearExpiryDays = prefs.getInt("notify_expiry_days", 1),
         notifySystemHealth = prefs.getBoolean("notify_system", true),
         cpuThreshold = prefs.getInt("notify_cpu", 85), ramThreshold = prefs.getInt("notify_ram", 85), diskThreshold = prefs.getInt("notify_disk", 90),
-        notifyPanelOffline = prefs.getBoolean("notify_panel_offline", true)
+        notifyPanelOffline = prefs.getBoolean("notify_panel_offline", true),
+        notifyNodeOffline = prefs.getBoolean("notify_node_offline", true)
     )
 
     fun saveMonitoringSettings(v: MonitoringSettings) = prefs.edit()
         .putBoolean("monitor_auto", v.autoRefreshEnabled).putInt("monitor_interval", v.refreshIntervalSeconds.coerceIn(5, 3600)).putBoolean("monitor_always", v.refreshWhileAppOpen)
         .putBoolean("notify_enabled", v.notificationsEnabled).putBoolean("notify_actions", v.notifyUserActions).putBoolean("notify_limited", v.notifyLimited).putBoolean("notify_expired", v.notifyExpired)
         .putBoolean("notify_near_limit", v.notifyNearLimit).putInt("notify_limit_percent", v.nearLimitPercent).putBoolean("notify_near_expiry", v.notifyNearExpiry).putInt("notify_expiry_days", v.nearExpiryDays)
-        .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).apply()
+        .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).putBoolean("notify_node_offline", v.notifyNodeOffline).apply()
 }
