@@ -177,7 +177,7 @@ fun ThemeEditorDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) { Text("فعال", Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = monitoringSettings.autoRefreshEnabled, onCheckedChange = { onMonitoringChange(monitoringSettings.copy(autoRefreshEnabled = it)) }) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("فاصله", fontSize = 10.sp, color = theme.mutedColor)
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) { BasicTextField(seconds, { value -> seconds = value.filter(Char::isDigit); value.toIntOrNull()?.coerceIn(5, 3600)?.let { onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it)) } }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxWidth()) }
+                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF303038) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) { BasicTextField(seconds, { value -> seconds = value.filter(Char::isDigit); value.toIntOrNull()?.coerceIn(5, 3600)?.let { onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it)) } }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxWidth()) }
                         Text("ثانیه", fontSize = 10.sp, color = theme.mutedColor)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -202,7 +202,7 @@ fun ThemeEditorDialog(
                         var input by remember(value) { mutableStateOf(value.toString()) }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(label, Modifier.weight(1f), fontSize = 9.sp, color = theme.mutedColor)
-                            Box(Modifier.width(54.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
+                            Box(Modifier.width(54.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(if (theme.isDark) Color(0xFF303038) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
                                 BasicTextField(input, { text -> input = text.filter(Char::isDigit); input.toIntOrNull()?.coerceIn(1, 100)?.let(onValue) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
                             }
                             Text("٪", fontSize = 9.sp, color = theme.mutedColor)
