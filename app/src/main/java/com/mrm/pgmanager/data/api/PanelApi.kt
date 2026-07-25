@@ -5,6 +5,7 @@ import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.SystemStats
+import com.mrm.pgmanager.data.model.TrafficPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -92,6 +93,21 @@ object PanelApi {
                 expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
                 incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
             )
+        }
+    }
+
+    suspend fun trafficUsage(session: Session): List<TrafficPoint> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/users/usage?period=day").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Traffic usage failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val stats = root.optJSONObject("stats") ?: return@use emptyList()
+            val totals = linkedMapOf<String, Long>()
+            stats.keys().forEach { key ->
+                val arr = stats.optJSONArray(key) ?: return@forEach
+                for (i in 0 until arr.length()) { val p = arr.optJSONObject(i) ?: continue; val time = p.optString("period_start"); totals[time] = (totals[time] ?: 0L) + p.optLong("total_traffic") }
+            }
+            totals.entries.sortedBy { it.key }.map { TrafficPoint(it.key, it.value) }
         }
     }
 
