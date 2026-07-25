@@ -27,6 +27,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.formatBytes
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 
 @Composable
 fun DashboardScreen(session: Session) {
@@ -35,12 +36,13 @@ fun DashboardScreen(session: Session) {
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    fun load() = scope.launch { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; loading = false }
-    LaunchedEffect(Unit) { load() }
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; loading = false }
+    // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
+    LaunchedEffect(session) { while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(5_000) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) { Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor); Text("وضعیت سیستم، ترافیک و کاربران", fontSize = 11.sp, color = theme.mutedColor) }
-            Box(Modifier.size(40.dp).background(theme.lamp.primary.copy(.16f), RoundedCornerShape(11.dp)).clickable { load() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
+            Box(Modifier.size(40.dp).background(theme.lamp.primary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { load() } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
         }
         if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.lamp.primary) }
         error?.let { Text(it, color = Color(0xFFC93B3B), fontSize = 12.sp) }
