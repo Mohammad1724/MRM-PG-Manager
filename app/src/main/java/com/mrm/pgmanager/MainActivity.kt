@@ -30,6 +30,7 @@ import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
+import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
 import com.mrm.pgmanager.ui.theme.ThemeState
@@ -88,6 +89,7 @@ fun MRMApp() {
     var themeState by remember { mutableStateOf(store.readTheme()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var isUnlocked by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) }
 
     // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
     val systemDark = isSystemInDarkTheme()
@@ -131,7 +133,13 @@ fun MRMApp() {
                 onLogout = { store.clear(); session = null; isUnlocked = false }
             )
         } else {
-            UsersScreen(
+            Column(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
+                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(10.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor) }
+                    }
+                }
+                if (selectedTab == 0) DashboardScreen(session!!) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
@@ -157,6 +165,8 @@ fun MRMApp() {
                     }
                 }
             )
+                }
+            }
         }
     }
 }
