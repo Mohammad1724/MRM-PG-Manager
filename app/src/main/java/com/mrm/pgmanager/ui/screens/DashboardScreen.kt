@@ -48,6 +48,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     var ramAlerted by remember { mutableStateOf(false) }
     var diskAlerted by remember { mutableStateOf(false) }
     var panelOfflineAlerted by remember { mutableStateOf(false) }
+    var lastNodeStates by remember { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var manualRefreshing by remember { mutableStateOf(false) }
@@ -62,7 +63,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
         if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
     }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e -> error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e -> error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
+        runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+            if (settings.notificationsEnabled && settings.notifyPanelOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
+                val previous = lastNodeStates[id]
+                if (previous == true && !online) NotificationHelper.post(context, 4100 + id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود شماره $id در دسترس نیست")
+                if (previous == false && online) NotificationHelper.post(context, 4200 + id, NotificationHelper.CHANNEL_SYSTEM, "نود دوباره آنلاین شد", "نود شماره $id دوباره در دسترس است")
+            }
+            lastNodeStates = states
+        }; loading = false }
     // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
     LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) { if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
     val pullState = rememberPullToRefreshState()
