@@ -177,12 +177,16 @@ fun ThemeEditorDialog(
                     @Composable fun notificationToggle(label: String, checked: Boolean, update: (Boolean) -> com.mrm.pgmanager.data.model.MonitoringSettings) { Row(verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = checked, onCheckedChange = { onMonitoringChange(update(it)) }) } }
                     notificationToggle("فعال‌سازی اعلان‌ها", monitoringSettings.notificationsEnabled) { monitoringSettings.copy(notificationsEnabled = it) }
                     notificationToggle("رویدادهای کاربران", monitoringSettings.notifyUserActions) { monitoringSettings.copy(notifyUserActions = it) }
-                    notificationToggle("کاربر محدود یا منقضی", monitoringSettings.notifyLimited || monitoringSettings.notifyExpired) { monitoringSettings.copy(notifyLimited = it, notifyExpired = it) }
+                    notificationToggle("کاربر Limited", monitoringSettings.notifyLimited) { monitoringSettings.copy(notifyLimited = it) }
+                    notificationToggle("کاربر Expired", monitoringSettings.notifyExpired) { monitoringSettings.copy(notifyExpired = it) }
+                    notificationToggle("نزدیک Limit", monitoringSettings.notifyNearLimit) { monitoringSettings.copy(notifyNearLimit = it) }
+                    notificationToggle("نزدیک انقضا", monitoringSettings.notifyNearExpiry) { monitoringSettings.copy(notifyNearExpiry = it) }
                     notificationToggle("هشدار سلامت سیستم", monitoringSettings.notifySystemHealth) { monitoringSettings.copy(notifySystemHealth = it) }
                     notificationToggle("قطع اتصال پنل", monitoringSettings.notifyPanelOffline) { monitoringSettings.copy(notifyPanelOffline = it) }
                     @Composable fun numberSetting(label: String, value: Int, onValue: (Int) -> Unit) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { Text(label, Modifier.weight(1f), fontSize = 9.sp, color = theme.mutedColor); Box(Modifier.width(54.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) { BasicTextField(value.toString(), { it.toIntOrNull()?.coerceIn(1, 100)?.let(onValue) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth()) }; Text("٪", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     numberSetting("آستانه نزدیک Limit", monitoringSettings.nearLimitPercent) { onMonitoringChange(monitoringSettings.copy(nearLimitPercent = it)) }
+                    numberSetting("هشدار انقضا (روز)", monitoringSettings.nearExpiryDays) { onMonitoringChange(monitoringSettings.copy(nearExpiryDays = it)) }
                     numberSetting("آستانه CPU", monitoringSettings.cpuThreshold) { onMonitoringChange(monitoringSettings.copy(cpuThreshold = it)) }
                     numberSetting("آستانه RAM", monitoringSettings.ramThreshold) { onMonitoringChange(monitoringSettings.copy(ramThreshold = it)) }
                     numberSetting("آستانه Disk", monitoringSettings.diskThreshold) { onMonitoringChange(monitoringSettings.copy(diskThreshold = it)) }
