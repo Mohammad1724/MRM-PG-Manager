@@ -38,7 +38,7 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, onSettings: () -> Unit, onLogout: () -> Unit) {
+fun DashboardScreen(session: Session, refreshSeconds: Int, autoRefreshEnabled: Boolean, onSettings: () -> Unit, onLogout: () -> Unit) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
     var stats by remember { mutableStateOf<SystemStats?>(null) }
@@ -48,14 +48,14 @@ fun DashboardScreen(session: Session, onSettings: () -> Unit, onLogout: () -> Un
     var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
     suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
     // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
-    LaunchedEffect(session) { while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(5_000) } }
+    LaunchedEffect(session, refreshSeconds, autoRefreshEnabled) { if (autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(refreshSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                LiveStatusBadge()
+LiveStatusBadge(autoRefreshEnabled, refreshSeconds)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(40.dp).background(Color.White, RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
@@ -81,12 +81,12 @@ fun DashboardScreen(session: Session, onSettings: () -> Unit, onLogout: () -> Un
 }
 
 @Composable
-private fun LiveStatusBadge() {
+private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
     val pulse = rememberInfiniteTransition(label = "livePulse")
     val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "liveAlpha")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         Box(Modifier.size(8.dp).background(GlassGreen.copy(alpha), RoundedCornerShape(4.dp)))
-        Text("زنده · بروزرسانی خودکار هر ۵ ثانیه", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
+        Text(if (enabled) "زنده · بروزرسانی هر $seconds ثانیه" else "بروزرسانی خودکار خاموش", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
     }
 }
 
