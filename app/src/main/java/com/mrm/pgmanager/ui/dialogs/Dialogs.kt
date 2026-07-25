@@ -510,7 +510,7 @@ fun UserDetailsDialog(
     onToggle: () -> Unit,
     onDelete: () -> Unit,
     onResetUsage: () -> Unit,
-    onResetExpiry: () -> Unit,
+    onResetExpiry: (Int) -> Unit,
     onApplyTemplate: ((Int, String) -> Unit)? = null,
     session: com.mrm.pgmanager.data.model.Session? = null
 ) {
@@ -667,7 +667,7 @@ fun UserDetailsDialog(
     if (editOpen) UserEditorDialog(user, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, onResetExpiry, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0); onResetUsage() })
-    if (expiryConfirm) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { expiryConfirm = false }, onConfirm = { expiryConfirm = false; val total = runCatching { java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(currentUser.createdAt?.take(10)), java.time.LocalDate.parse(currentUser.expire?.take(10))).coerceAtLeast(1) }.getOrDefault(0); if (total > 0) currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(total).toString()); onResetExpiry() })
+    if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(days.toLong()).toString()); onResetExpiry(days) })
 }
 
 @Composable
