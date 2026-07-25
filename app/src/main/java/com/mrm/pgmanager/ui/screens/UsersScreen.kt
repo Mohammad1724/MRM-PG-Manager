@@ -119,9 +119,9 @@ private fun daysLeftFull(expire: String?): String = daysLeftText(expire)
 
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
 private fun cardStatusText(user: PanelUser): String = when (user.status) {
-    "disabled" -> "⚪ غیرفعال"
-    "expired" -> "🔴 منقضی"
-    "limited" -> "🟡 محدود"
+    "disabled" -> "غیرفعال"
+    "expired" -> "منقضی"
+    "limited" -> "محدود"
     "on_hold" -> "⏸ در انتظار"
     else -> daysLeftText(user.expire)
 }
@@ -332,7 +332,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
                     Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
-                if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { Text("📝", fontSize = 8.sp) }
+                if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = Color(0xFF3B82F6), size = 11.dp) }
             }
             Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -352,7 +352,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                    Text(if (user.isOnline) "🟢" else "⚫", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
+                    Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
                 }
                 if (user.groupNames.isNotEmpty()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
@@ -737,14 +737,14 @@ fun UsersScreen(
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("⚠️ خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
+                            Text("خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                            com.mrm.pgmanager.ui.components.GlassButton("🔄 تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
+                            com.mrm.pgmanager.ui.components.GlassButton("تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                     processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("🔍", fontSize = 36.sp); Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
+                            Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
                     }
                     else -> when (viewMode) {
@@ -913,6 +913,18 @@ fun UsersScreen(
             },
             onQr = { qrUser = u },
             onEdit = { selectedUser = u },
+            onResetUsage = { runAction { PanelApi.resetUsage(session, u.username) } },
+            onResetExpiry = {
+                runAction {
+                    val totalDays = runCatching {
+                        val expires = try { java.time.Instant.parse(u.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.expire?.take(10) ?: "") }
+                        val created = try { java.time.Instant.parse(u.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.createdAt?.take(10) ?: "") }
+                        ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1)
+                    }.getOrDefault(0)
+                    val newExpire = if (totalDays > 0) LocalDate.now().plusDays(totalDays).toString() else ""
+                    PanelApi.modifyUser(session, u.username, u.dataLimit.toDouble() / 1073741824.0, newExpire, u.note ?: "", u.hwidLimit, u.groupIds)
+                }
+            },
             onDelete = { deleteUser = u }
         )
     }
