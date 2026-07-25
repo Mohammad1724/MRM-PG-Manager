@@ -38,6 +38,8 @@ data class SystemStats(
     val outgoingBandwidth: Long = 0
 )
 
+data class TrafficPoint(val timestamp: String, val totalTraffic: Long)
+
 data class Group(val id: Int, val name: String)
 data class UserTemplateItem(
     val id: Int,
