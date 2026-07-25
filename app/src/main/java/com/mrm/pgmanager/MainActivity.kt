@@ -180,9 +180,9 @@ fun MRMApp() {
                 }
                 AnimatedVisibility(visible = showQuickTabs, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf("داشبورد" to AppIcon.Settings, "کاربران" to AppIcon.Users).forEachIndexed { index, (label, icon) ->
-                            Box(Modifier.size(52.dp).clip(RoundedCornerShape(26.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(26.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
-                                RoundedAppIcon(icon, contentDescription = label, tint = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor, size = 22.dp)
+                        listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
+                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor)
                             }
                         }
                     }
