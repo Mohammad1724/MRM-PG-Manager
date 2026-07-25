@@ -591,6 +591,8 @@ fun UsersScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var qrUser by remember { mutableStateOf<PanelUser?>(null) }
     var onlineCount by remember { mutableStateOf(0) }
+    // آخرین وضعیت دیده‌شده برای جلوگیری از اعلان تکراری در هر refresh.
+    var lastUserStates by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
 
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
@@ -621,6 +623,30 @@ fun UsersScreen(
             runCatching {
                 val list = PanelApi.users(session)
                 users = list; onlineCount = list.count { it.isOnline }
+                val settings = com.mrm.pgmanager.data.storage.SessionStore(context).readMonitoringSettings()
+                val nextStates = list.associate { u ->
+                    val usage = if (u.dataLimit > 0) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
+                    val nearExpiry = daysLeftText(u.expire).let { it == "امروز" || it == "۱ روز" || it == "1 روز" }
+                    u.id to "${u.status}|$usage|$nearExpiry"
+                }
+                // اولین دریافت فقط baseline است؛ اعلان‌ها از تغییرات بعدی صادر می‌شوند.
+                if (lastUserStates.isNotEmpty() && settings.notificationsEnabled) {
+                    list.forEach { u ->
+                        val previous = lastUserStates[u.id] ?: return@forEach
+                        val current = nextStates[u.id] ?: return@forEach
+                        if (previous == current) return@forEach
+                        fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text)
+                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), "کاربر محدود شد", "${u.username} به سقف حجم رسیده است")
+                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), "اشتراک منقضی شد", "اشتراک ${u.username} منقضی شده است")
+                        val usage = if (u.dataLimit > 0) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
+                        val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
+                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), "هشدار مصرف", "${u.username} به $usage٪ مصرف حجم رسیده است")
+                        val nearExpiry = current.substringAfterLast("|").toBoolean()
+                        val wasNearExpiry = previous.substringAfterLast("|").toBoolean()
+                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), "هشدار انقضا", "اشتراک ${u.username} نزدیک به انقضا است")
+                    }
+                }
+                lastUserStates = nextStates
                 scrollOffset.value = 0f
             }.onFailure {
                 error = it.message
