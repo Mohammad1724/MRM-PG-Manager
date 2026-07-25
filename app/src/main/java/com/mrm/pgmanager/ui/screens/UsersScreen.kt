@@ -698,11 +698,8 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            Box(modifier = Modifier.padding(bottom = 66.dp).clip(RoundedCornerShape(13.dp)).background(themeState.lamp.primary).clickable { createUser = true }.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("+", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF202124))
-                    Text("کاربر جدید", fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124), fontSize = 13.sp)
-                }
+            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }, contentAlignment = Alignment.Center) {
+                Text("+", fontSize = 27.sp, fontWeight = FontWeight.Medium, color = Color(0xFF202124))
             }
         }
     }) { padding ->
