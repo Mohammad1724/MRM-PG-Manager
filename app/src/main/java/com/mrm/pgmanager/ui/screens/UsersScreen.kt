@@ -247,7 +247,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
+    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary.copy(.72f) else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
         Text(label, color = if (selected) Color(0xFF202124) else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
@@ -698,7 +698,7 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary).clickable { createUser = true }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary.copy(.78f)).clickable { createUser = true }, contentAlignment = Alignment.Center) {
                 Text("+", fontSize = 27.sp, fontWeight = FontWeight.Medium, color = Color(0xFF202124))
             }
         }
@@ -941,20 +941,10 @@ fun UsersScreen(
             selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
             runAction { PanelApi.resetUsage(session, user.username) }
-        }, onResetExpiry = {
+        }, onResetExpiry = { days ->
             runAction {
-                // ریست زمان نباید اشتراک را نامحدود کند: مدت اولیه از createdAt تا expire
-                // خوانده می‌شود و یک تاریخ انقضای تازه از امروز ساخته می‌شود.
-                val totalDays = runCatching {
-                    val expires = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.expire?.take(10) ?: "") }
-                    val created = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.createdAt?.take(10) ?: "") }
-                    java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1)
-                }.getOrDefault(0)
-                val newExpire = if (totalDays > 0) java.time.LocalDate.now().plusDays(totalDays).toString() else ""
-                PanelApi.modifyUser(
-                    session, user.username, user.dataLimit.toDouble() / 1073741824.0,
-                    newExpire, user.note ?: "", user.hwidLimit, user.groupIds
-                )
+                val newExpire = java.time.LocalDate.now().plusDays(days.toLong()).toString()
+                PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
             }
         },  onApplyTemplate = { templateId, note ->
             selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
