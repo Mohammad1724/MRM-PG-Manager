@@ -174,7 +174,7 @@ fun ThemeEditorDialog(
                 }
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("اعلان‌ها", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    fun notificationToggle(label: String, checked: Boolean, update: (Boolean) -> com.mrm.pgmanager.data.model.MonitoringSettings) = Row(verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = checked, onCheckedChange = { onMonitoringChange(update(it)) }) }
+                    @Composable fun notificationToggle(label: String, checked: Boolean, update: (Boolean) -> com.mrm.pgmanager.data.model.MonitoringSettings) { Row(verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = checked, onCheckedChange = { onMonitoringChange(update(it)) }) } }
                     notificationToggle("فعال‌سازی اعلان‌ها", monitoringSettings.notificationsEnabled) { monitoringSettings.copy(notificationsEnabled = it) }
                     notificationToggle("رویدادهای کاربران", monitoringSettings.notifyUserActions) { monitoringSettings.copy(notifyUserActions = it) }
                     notificationToggle("کاربر محدود یا منقضی", monitoringSettings.notifyLimited || monitoringSettings.notifyExpired) { monitoringSettings.copy(notifyLimited = it, notifyExpired = it) }
@@ -687,7 +687,7 @@ fun UserDetailsDialog(
             loadFailed = templatesFailed
         )
     }
-    if (editOpen) UserEditorDialog(user, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, onResetExpiry, onApplyTemplateToUser = onApplyTemplate, session = session)
+    if (editOpen) UserEditorDialog(currentUser, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, { expiryConfirm = true }, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0); onResetUsage() })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(days.toLong()).toString()); onResetExpiry(days) })
