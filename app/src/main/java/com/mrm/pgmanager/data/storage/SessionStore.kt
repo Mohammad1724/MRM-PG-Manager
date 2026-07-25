@@ -76,4 +76,11 @@ class SessionStore(context: Context) {
         .putBoolean("notify_enabled", v.notificationsEnabled).putBoolean("notify_actions", v.notifyUserActions).putBoolean("notify_limited", v.notifyLimited).putBoolean("notify_expired", v.notifyExpired)
         .putBoolean("notify_near_limit", v.notifyNearLimit).putInt("notify_limit_percent", v.nearLimitPercent).putBoolean("notify_near_expiry", v.notifyNearExpiry).putInt("notify_expiry_days", v.nearExpiryDays)
         .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).putBoolean("notify_node_offline", v.notifyNodeOffline).apply()
+
+    fun readNotificationStates(): Map<Long, String> = runCatching {
+        val obj = org.json.JSONObject(prefs.getString("notification_user_states", "{}") ?: "{}")
+        obj.keys().asSequence().associate { it.toLong() to obj.getString(it) }
+    }.getOrDefault(emptyMap())
+
+    fun saveNotificationStates(states: Map<Long, String>) = prefs.edit().putString("notification_user_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
 }
