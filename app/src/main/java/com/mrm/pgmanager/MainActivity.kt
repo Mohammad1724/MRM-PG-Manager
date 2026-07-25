@@ -3,6 +3,7 @@ package com.mrm.pgmanager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.BorderStroke
@@ -10,6 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -91,6 +96,16 @@ fun MRMApp() {
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var isUnlocked by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var showQuickTabs by remember { mutableStateOf(true) }
+    val tabScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -2f) showQuickTabs = false
+                else if (available.y > 2f) showQuickTabs = true
+                return Offset.Zero
+            }
+        }
+    }
 
     // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
     val systemDark = isSystemInDarkTheme()
@@ -134,8 +149,8 @@ fun MRMApp() {
                 onLogout = { store.clear(); session = null; isUnlocked = false }
             )
         } else {
-            Box(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxSize().padding(bottom = 58.dp)) {
+            Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
+                Box(Modifier.fillMaxSize()) {
                     if (selectedTab == 0) DashboardScreen(session!!) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
@@ -163,9 +178,13 @@ fun MRMApp() {
                 }
             )
                 }
-                Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.White).border(BorderStroke(1.dp, Color(0xFFD7D8DD))).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor) }
+                AnimatedVisibility(visible = showQuickTabs, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf("داشبورد" to AppIcon.Settings, "کاربران" to AppIcon.Users).forEachIndexed { index, (label, icon) ->
+                            Box(Modifier.size(52.dp).clip(RoundedCornerShape(26.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(26.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                                RoundedAppIcon(icon, contentDescription = label, tint = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor, size = 22.dp)
+                            }
+                        }
                     }
                 }
             }
