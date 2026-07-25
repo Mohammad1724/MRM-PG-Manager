@@ -845,10 +845,10 @@ fun UsersScreen(
                     BulkActionsBar(
                         selectedCount = selectedUserIds.size,
                         onClear = { selectedUserIds = emptySet() },
-                        onDelete = { pendingBulk = PendingBulk("حذف ${selectedUserIds.size} کاربر؟", "این کاربرها برای همیشه حذف می‌شوند و غیرقابل‌بازگشت هستند.", "حذف") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkDeleteUsers(session, ids) } } },
-                        onResetUsage = { pendingBulk = PendingBulk("ریست حجم ${selectedUserIds.size} کاربر؟", "مصرفِ این کاربرها صفر می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkResetUsersUsage(session, ids) } } },
-                        onDisable = { pendingBulk = PendingBulk("غیرفعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها غیرفعال می‌شوند و اتصالشان قطع می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkDisableUsers(session, ids) } } },
-                        onEnable = { pendingBulk = PendingBulk("فعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها فعال می‌شوند.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction { PanelApi.bulkEnableUsers(session, ids) } } },
+                        onDelete = { pendingBulk = PendingBulk("حذف ${selectedUserIds.size} کاربر؟", "این کاربرها برای همیشه حذف می‌شوند و غیرقابل‌بازگشت هستند.", "حذف") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "حذف گروهی" to "${ids.size} کاربر حذف شدند") { PanelApi.bulkDeleteUsers(session, ids) } } },
+                        onResetUsage = { pendingBulk = PendingBulk("ریست حجم ${selectedUserIds.size} کاربر؟", "مصرفِ این کاربرها صفر می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "ریست حجم گروهی" to "مصرف ${ids.size} کاربر صفر شد") { PanelApi.bulkResetUsersUsage(session, ids) } } },
+                        onDisable = { pendingBulk = PendingBulk("غیرفعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها غیرفعال می‌شوند و اتصالشان قطع می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "غیرفعال‌سازی گروهی" to "${ids.size} کاربر غیرفعال شدند") { PanelApi.bulkDisableUsers(session, ids) } } },
+                        onEnable = { pendingBulk = PendingBulk("فعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها فعال می‌شوند.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "فعال‌سازی گروهی" to "${ids.size} کاربر فعال شدند") { PanelApi.bulkEnableUsers(session, ids) } } },
                         onApplyTemplate = {
                             showBulkTemplateDialog = true
                         }
