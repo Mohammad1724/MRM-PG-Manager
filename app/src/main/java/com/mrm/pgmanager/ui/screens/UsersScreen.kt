@@ -75,6 +75,7 @@ import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.lastSeenText
 import com.mrm.pgmanager.utils.lastSeenShort
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.NotificationHelper
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -631,7 +632,7 @@ fun UsersScreen(
             loading = false
         }
     }
-    fun runAction(action: suspend () -> Unit) {
+    fun runAction(action: suspend () -> Unit, notification: Pair<String, String>? = null) {
         scope.launch {
             runCatching { action() }.onFailure {
                 error = it.message
@@ -641,7 +642,7 @@ fun UsersScreen(
                 } else {
                     android.widget.Toast.makeText(context, "خطا: ${it.message?.take(120)}", android.widget.Toast.LENGTH_LONG).show()
                 }
-            }.onSuccess { load() }
+            }.onSuccess { notification?.let { (title, message) -> val settings = com.mrm.pgmanager.data.storage.SessionStore(context).readMonitoringSettings(); if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message) }; load() }
         }
     }
     LaunchedEffect(Unit) { load() }
@@ -902,7 +903,7 @@ fun UsersScreen(
             user = u,
             onDismiss = { quickActionUser = null },
             onUseTemplate = { quickTemplateUser = u },
-            onToggle = { runAction { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
+            onToggle = { runAction({ PanelApi.setDisabled(session, u.username, u.status != "disabled") }, notification = "وضعیت کاربر" to "وضعیت ${u.username} تغییر کرد") },
             onCopySub = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", u.subUrl))
@@ -910,7 +911,7 @@ fun UsersScreen(
             },
             onQr = { qrUser = u },
             onEdit = { selectedUser = u },
-            onResetUsage = { runAction { PanelApi.resetUsage(session, u.username) } },
+            onResetUsage = { runAction({ PanelApi.resetUsage(session, u.username) }, notification = "ریست حجم" to "مصرف ${u.username} صفر شد") },
             onResetExpiry = {
                 runAction {
                     val totalDays = runCatching {
@@ -940,7 +941,7 @@ fun UsersScreen(
         UserDetailsDialog(user = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
             selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
         }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
-            runAction { PanelApi.resetUsage(session, user.username) }
+            runAction({ PanelApi.resetUsage(session, user.username) }, notification = "ریست حجم" to "مصرف ${user.username} صفر شد")
         }, onResetExpiry = { days ->
             runAction {
                 val newExpire = java.time.LocalDate.now().plusDays(days.toLong()).toString()
@@ -951,9 +952,9 @@ fun UsersScreen(
         }, session = session)
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
+        createUser = false; runAction({ val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }, notification = "کاربر جدید" to "${limitGb.username} ساخته شد")
     }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null, onSaveWithTemplate = { username, templateId, note ->
-        createUser = false; runAction { PanelApi.createUserFromTemplate(session, username, templateId, note) }
+        createUser = false; runAction({ PanelApi.createUserFromTemplate(session, username, templateId, note) }, notification = "کاربر جدید" to "$username از تمپلت ساخته شد")
     }, session = session)
     deleteUser?.let { user ->
         val theme = LocalThemeState.current
@@ -965,7 +966,7 @@ fun UsersScreen(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         com.mrm.pgmanager.ui.components.GlassButton("انصراف", onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(10.dp))
-                        com.mrm.pgmanager.ui.components.GlassButton("حذف", onClick = { deleteUser = null; runAction { PanelApi.deleteUser(session, user.username) } }, modifier = Modifier.weight(1f), isRed = true)
+                        com.mrm.pgmanager.ui.components.GlassButton("حذف", onClick = { deleteUser = null; runAction({ PanelApi.deleteUser(session, user.username) }, notification = "حذف کاربر" to "${user.username} حذف شد") }, modifier = Modifier.weight(1f), isRed = true)
                     }
                 }
             }
