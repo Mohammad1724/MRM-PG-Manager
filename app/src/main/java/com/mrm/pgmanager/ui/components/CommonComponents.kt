@@ -179,8 +179,8 @@ fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     Box(
         modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(13.dp))
-            .background(theme.lamp.primary)
-            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.lamp.primary.copy(if (isPressed) .75f else 1f)), RoundedCornerShape(13.dp))
+            .background(theme.lamp.primary.copy(alpha = .78f))
+            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.lamp.primary.copy(if (isPressed) .72f else .60f)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
