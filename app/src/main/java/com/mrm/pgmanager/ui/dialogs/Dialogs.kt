@@ -516,6 +516,7 @@ fun UserDetailsDialog(
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
+    var currentUser by remember(user) { mutableStateOf(user) }
     var editOpen by remember { mutableStateOf(false) }
     var qrOpen by remember { mutableStateOf(false) }
     var usageConfirm by remember { mutableStateOf(false) }
@@ -524,8 +525,8 @@ fun UserDetailsDialog(
     var availableTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
     var templatesLoading by remember { mutableStateOf(false) }
     var templatesFailed by remember { mutableStateOf(false) }
-    val traffic = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
-    val percentage = if (user.dataLimit > 0L) ((user.usedTraffic * 100f / user.dataLimit).toInt()).coerceIn(0, 100) else 0
+    val traffic = if (currentUser.dataLimit == 0L) "نامحدود" else formatBytes(currentUser.dataLimit)
+    val percentage = if (currentUser.dataLimit > 0L) ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
     val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
 
     fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
@@ -565,17 +566,17 @@ fun UserDetailsDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(RoundedCornerShape(5.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(RoundedCornerShape(5.dp)).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        Text(user.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1)
+                        Text(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1)
                     }
-                    val active = user.status != "disabled"
+                    val active = currentUser.status != "disabled"
                     Box(Modifier.height(26.dp).width(50.dp).clip(RoundedCornerShape(8.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
                 }
 
                 // توضیحات/یادداشت کاربر مستقیماً در پنجرهٔ جزئیات قابل مشاهده است.
-                if (!user.note.isNullOrBlank()) {
+                if (!currentUser.note.isNullOrBlank()) {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                             .background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF6F6F8))
@@ -587,7 +588,7 @@ fun UserDetailsDialog(
                         RoundedAppIcon(AppIcon.Note, tint = theme.mutedColor, size = 16.dp)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                             Text("توضیحات", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                            Text(user.note.orEmpty(), fontSize = 11.sp, color = theme.inkColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                            Text(currentUser.note.orEmpty(), fontSize = 11.sp, color = theme.inkColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -602,9 +603,9 @@ fun UserDetailsDialog(
                 ) {
                     Text("وضعیت اشتراک", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        statTile("مصرف‌شده", formatBytes(user.usedTraffic), Modifier.weight(1f))
+                        statTile("مصرف‌شده", formatBytes(currentUser.usedTraffic), Modifier.weight(1f))
                         statTile("حجم کل", traffic, Modifier.weight(1f))
-                        statTile("زمان باقی‌مانده", detailDaysText(user.expire), Modifier.weight(1f))
+                        statTile("زمان باقی‌مانده", detailDaysText(currentUser.expire), Modifier.weight(1f))
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("مصرف", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
@@ -623,7 +624,7 @@ fun UserDetailsDialog(
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    action("کپی", Modifier.width(48.dp), height = 26.dp) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl)) }
+                    action("کپی", Modifier.width(48.dp), height = 26.dp) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", currentUser.subUrl)) }
                     action("QR", Modifier.width(38.dp), height = 26.dp) { qrOpen = true }
                 }
 
@@ -639,7 +640,7 @@ fun UserDetailsDialog(
                         action("ریست زمان", Modifier.weight(1f)) { expiryConfirm = true }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        action(if (user.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن", Modifier.weight(1f)) { onToggle() }
+                        action(if (currentUser.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن", Modifier.weight(1f)) { onToggle() }
                         action("حذف کاربر", Modifier.weight(1f), destructive = true) { onDelete() }
                     }
                 }
@@ -664,9 +665,9 @@ fun UserDetailsDialog(
         )
     }
     if (editOpen) UserEditorDialog(user, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, onResetExpiry, onApplyTemplateToUser = onApplyTemplate, session = session)
-    if (qrOpen && user.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
-    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; onResetUsage() })
-    if (expiryConfirm) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { expiryConfirm = false }, onConfirm = { expiryConfirm = false; onResetExpiry() })
+    if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
+    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0); onResetUsage() })
+    if (expiryConfirm) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { expiryConfirm = false }, onConfirm = { expiryConfirm = false; val total = runCatching { java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(currentUser.createdAt?.take(10)), java.time.LocalDate.parse(currentUser.expire?.take(10))).coerceAtLeast(1) }.getOrDefault(0); if (total > 0) currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(total).toString()); onResetExpiry() })
 }
 
 @Composable
