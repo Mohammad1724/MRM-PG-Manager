@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.AppIcon
@@ -113,7 +115,14 @@ fun MRMApp() {
     val systemDark = isSystemInDarkTheme()
     val effectiveTheme = if (themeState.followSystem) themeState.copy(isDark = systemDark) else themeState
 
-    LaunchedEffect(session, isAppLockEnabled) {
+    // پس از خروج اپ از foreground، در بازگشت دوباره قفل را نمایش بده.
+    DisposableEffect(activity, isAppLockEnabled) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START && isAppLockEnabled && session != null) isUnlocked = false }
+        activity?.lifecycle?.addObserver(observer)
+        onDispose { activity?.lifecycle?.removeObserver(observer) }
+    }
+
+    LaunchedEffect(session, isAppLockEnabled, isUnlocked) {
         if (session != null && isAppLockEnabled && !isUnlocked && activity != null) {
             authenticateBiometric(
                 activity = activity,
@@ -183,7 +192,7 @@ fun MRMApp() {
                 AnimatedVisibility(visible = showQuickTabs, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary.copy(.78f) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
                                 Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor)
                             }
                         }
