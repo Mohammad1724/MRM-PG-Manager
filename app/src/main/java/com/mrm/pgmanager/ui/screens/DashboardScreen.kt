@@ -27,6 +27,8 @@ import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
+import com.mrm.pgmanager.data.model.MonitoringSettings
+import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.theme.GlassGreen
@@ -38,24 +40,37 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, refreshSeconds: Int, autoRefreshEnabled: Boolean, onSettings: () -> Unit, onLogout: () -> Unit) {
+fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: () -> Unit, onLogout: () -> Unit) {
     val theme = LocalThemeState.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    var cpuAlerted by remember { mutableStateOf(false) }
+    var ramAlerted by remember { mutableStateOf(false) }
+    var diskAlerted by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
+    fun evaluateHealth(s: SystemStats) {
+        if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
+        fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message)
+        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(s.cpuUsage)}٪ رسیده است"); cpuAlerted = true } else cpuAlerted = false
+        val ram = if (s.memTotal > 0) (s.memUsed * 100 / s.memTotal).toInt() else 0
+        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است"); ramAlerted = true } else ramAlerted = false
+        val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
+        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
+    }
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; evaluateHealth(it) }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
     // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
-    LaunchedEffect(session, refreshSeconds, autoRefreshEnabled) { if (autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(refreshSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
+    LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) { if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-LiveStatusBadge(autoRefreshEnabled, refreshSeconds)
+LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(40.dp).background(Color.White, RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
