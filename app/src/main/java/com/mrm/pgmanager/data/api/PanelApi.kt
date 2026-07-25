@@ -4,6 +4,7 @@ import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.SystemStats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -76,6 +77,21 @@ object PanelApi {
             if (!response.isSuccessful) error("Login failed: ${response.code}")
             val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
             Session(base, token, username)
+        }
+    }
+
+    suspend fun systemStats(session: Session): SystemStats = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/system").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("System stats failed: ${response.code}")
+            val o = JSONObject(response.body?.string() ?: "{}")
+            SystemStats(
+                uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
+                diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
+                totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
+                expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
+                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
+            )
         }
     }
 
