@@ -18,5 +18,6 @@ data class MonitoringSettings(
     val cpuThreshold: Int = 85,
     val ramThreshold: Int = 85,
     val diskThreshold: Int = 90,
-    val notifyPanelOffline: Boolean = true
+    val notifyPanelOffline: Boolean = true,
+    val notifyNodeOffline: Boolean = true
 )
