@@ -4,6 +4,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.BorderStroke
@@ -189,7 +193,12 @@ fun MRMApp() {
                 }
             )
                 }
-                AnimatedVisibility(visible = showQuickTabs, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)) {
+                AnimatedVisibility(
+                    visible = showQuickTabs,
+                    enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(animationSpec = androidx.compose.animation.core.tween(220)) { it / 2 },
+                    exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + slideOutVertically(animationSpec = androidx.compose.animation.core.tween(180)) { it / 2 },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
+                ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
                             Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary.copy(.78f) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
