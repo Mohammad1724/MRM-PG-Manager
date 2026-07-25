@@ -134,13 +134,9 @@ fun MRMApp() {
                 onLogout = { store.clear(); session = null; isUnlocked = false }
             )
         } else {
-            Column(Modifier.fillMaxSize()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(10.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor) }
-                    }
-                }
-                if (selectedTab == 0) DashboardScreen(session!!) else UsersScreen(
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize().padding(bottom = 58.dp)) {
+                    if (selectedTab == 0) DashboardScreen(session!!) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
@@ -166,6 +162,11 @@ fun MRMApp() {
                     }
                 }
             )
+                }
+                Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.White).border(BorderStroke(1.dp, Color(0xFFD7D8DD))).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
+                        Box(Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor) }
+                    }
                 }
             }
         }
