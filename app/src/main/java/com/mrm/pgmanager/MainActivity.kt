@@ -38,7 +38,12 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.work.MonitoringWorker
+import java.util.concurrent.TimeUnit
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
@@ -141,6 +146,13 @@ fun MRMApp() {
             )
         } else if (!isAppLockEnabled) {
             isUnlocked = true
+        }
+    }
+
+    LaunchedEffect(session) {
+        if (session != null) {
+            val request = PeriodicWorkRequestBuilder<MonitoringWorker>(15, TimeUnit.MINUTES).build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork("mrm_background_monitoring", ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }
 
