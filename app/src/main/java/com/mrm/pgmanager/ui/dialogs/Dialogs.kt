@@ -150,15 +150,27 @@ fun ThemeEditorDialog(
     appVersion: String = ""
 ) {
     val theme = LocalThemeState.current
+    var section by remember { mutableStateOf("ظاهر") }
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp); Text("تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor) }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("ظاهر", "بروزرسانی", "اعلان‌ها", "امنیت").forEach { label ->
+                        val selected = section == label
+                        Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (selected) theme.lamp.primary.copy(.72f) else Color.Black.copy(.04f)).clickable { section = label }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+                            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.inkColor)
+                        }
+                    }
+                }
+                if (section == "ظاهر") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     ModeToggleBtn("روشن", AppIcon.LightMode, !themeState.followSystem && !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = false)) }
                     ModeToggleBtn("تیره", AppIcon.DarkMode, !themeState.followSystem && themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = true)) }
                     ModeToggleBtn("خودکار", AppIcon.AutoMode, themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
                 }
+                }
+                if (section == "بروزرسانی") {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("بروزرسانی خودکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     var seconds by remember(monitoringSettings.refreshIntervalSeconds) { mutableStateOf(monitoringSettings.refreshIntervalSeconds.toString()) }
@@ -172,6 +184,8 @@ fun ThemeEditorDialog(
                         listOf(false to "فقط داشبورد", true to "همیشه در اپ").forEach { (always, label) -> Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(8.dp)).background(if (monitoringSettings.refreshWhileAppOpen == always) theme.lamp.primary.copy(.18f) else Color.Transparent).clickable { onMonitoringChange(monitoringSettings.copy(refreshWhileAppOpen = always)) }, contentAlignment = Alignment.Center) { Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
                     }
                 }
+                }
+                if (section == "اعلان‌ها") {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("اعلان‌ها", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     @Composable fun notificationToggle(label: String, checked: Boolean, update: (Boolean) -> com.mrm.pgmanager.data.model.MonitoringSettings) { Row(verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = checked, onCheckedChange = { onMonitoringChange(update(it)) }) } }
@@ -200,6 +214,8 @@ fun ThemeEditorDialog(
                     numberSetting("آستانه RAM", monitoringSettings.ramThreshold) { onMonitoringChange(monitoringSettings.copy(ramThreshold = it)) }
                     numberSetting("آستانه Disk", monitoringSettings.diskThreshold) { onMonitoringChange(monitoringSettings.copy(diskThreshold = it)) }
                 }
+                }
+                if (section == "ظاهر") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
                         val sel = themeState.lamp == lamp
@@ -216,6 +232,8 @@ fun ThemeEditorDialog(
                         }
                     }
                 }
+                }
+                if (section == "امنیت") {
                 Box(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
                         .background(if (isAppLockEnabled) GlassGreen.copy(0.14f) else Color.White.copy(if (theme.isDark) 0.08f else 0.60f))
@@ -239,6 +257,7 @@ fun ThemeEditorDialog(
                             Text(if (isAppLockEnabled) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
                         }
                     }
+                }
                 }
                 // درباره
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
