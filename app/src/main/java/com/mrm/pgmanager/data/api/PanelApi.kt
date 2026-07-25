@@ -96,6 +96,16 @@ object PanelApi {
         }
     }
 
+    /** null بودن مقدار هر node در API یعنی نود در دسترس نیست. */
+    suspend fun nodeOnlineStates(session: Session): Map<Int, Boolean> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/nodes/realtime_stats").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Node stats failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            root.keys().asSequence().associate { key -> (key.toIntOrNull() ?: -1) to !root.isNull(key) }.filterKeys { it > 0 }
+        }
+    }
+
     suspend fun trafficUsage(session: Session): List<TrafficPoint> = withContext(Dispatchers.IO) {
         val request = requestBuilder(session, "${session.baseUrl}/api/users/usage?period=day").get().build()
         client.newCall(request).execute().use { response ->
