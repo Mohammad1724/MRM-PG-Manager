@@ -19,6 +19,25 @@ data class PanelUser(
     val groupNames: List<String> = emptyList()
 )
 
+data class SystemStats(
+    val uptimeSeconds: Long = 0,
+    val memTotal: Long = 0,
+    val memUsed: Long = 0,
+    val diskTotal: Long = 0,
+    val diskUsed: Long = 0,
+    val cpuCores: Int = 0,
+    val cpuUsage: Float = 0f,
+    val totalUsers: Int = 0,
+    val onlineUsers: Int = 0,
+    val activeUsers: Int = 0,
+    val expiredUsers: Int = 0,
+    val limitedUsers: Int = 0,
+    val disabledUsers: Int = 0,
+    val onHoldUsers: Int = 0,
+    val incomingBandwidth: Long = 0,
+    val outgoingBandwidth: Long = 0
+)
+
 data class Group(val id: Int, val name: String)
 data class UserTemplateItem(
     val id: Int,
