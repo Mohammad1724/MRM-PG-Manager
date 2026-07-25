@@ -179,6 +179,12 @@ fun ThemeEditorDialog(
                     notificationToggle("رویدادهای کاربران", monitoringSettings.notifyUserActions) { monitoringSettings.copy(notifyUserActions = it) }
                     notificationToggle("کاربر محدود یا منقضی", monitoringSettings.notifyLimited || monitoringSettings.notifyExpired) { monitoringSettings.copy(notifyLimited = it, notifyExpired = it) }
                     notificationToggle("هشدار سلامت سیستم", monitoringSettings.notifySystemHealth) { monitoringSettings.copy(notifySystemHealth = it) }
+                    @Composable fun numberSetting(label: String, value: Int, onValue: (Int) -> Unit) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { Text(label, Modifier.weight(1f), fontSize = 9.sp, color = theme.mutedColor); Box(Modifier.width(54.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) { BasicTextField(value.toString(), { it.toIntOrNull()?.coerceIn(1, 100)?.let(onValue) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth()) }; Text("٪", fontSize = 9.sp, color = theme.mutedColor) }
+                    }
+                    numberSetting("آستانه نزدیک Limit", monitoringSettings.nearLimitPercent) { onMonitoringChange(monitoringSettings.copy(nearLimitPercent = it)) }
+                    numberSetting("آستانه CPU", monitoringSettings.cpuThreshold) { onMonitoringChange(monitoringSettings.copy(cpuThreshold = it)) }
+                    numberSetting("آستانه RAM", monitoringSettings.ramThreshold) { onMonitoringChange(monitoringSettings.copy(ramThreshold = it)) }
+                    numberSetting("آستانه Disk", monitoringSettings.diskThreshold) { onMonitoringChange(monitoringSettings.copy(diskThreshold = it)) }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
