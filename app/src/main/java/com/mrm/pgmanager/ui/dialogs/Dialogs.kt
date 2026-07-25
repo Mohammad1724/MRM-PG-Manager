@@ -93,37 +93,47 @@ fun QuickActionSheet(
     onCopySub: () -> Unit,
     onQr: () -> Unit,
     onEdit: () -> Unit,
+    onResetUsage: () -> Unit,
+    onResetExpiry: () -> Unit,
     onDelete: () -> Unit
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(16.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column(Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(user.status, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    }
-                    Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 9.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor)
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(18.dp)).padding(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) { Text(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 9.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor) }
+                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(.14f)).padding(horizontal = 7.dp, vertical = 4.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
-                QuickActionRow("", "استفاده از تمپلت (تمدید)", theme.lamp.primary) { onUseTemplate(); onDismiss() }
-                QuickActionRow(if (user.status == "disabled") "" else "", if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor) { onToggle(); onDismiss() }
-                QuickActionRow("", "کپی ساب‌لینک", theme.inkColor) { onCopySub(); onDismiss() }
-                QuickActionRow("", "نمایش QR", theme.inkColor) { onQr(); onDismiss() }
-                QuickActionRow("", "ویرایش کامل", theme.inkColor) { onEdit(); onDismiss() }
-                QuickActionRow("", "حذف کاربر", GlassRed) { onDelete(); onDismiss() }
-                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.Template, "تمپلت", theme.lamp.primary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
+                    QuickActionRow(AppIcon.Edit, "ویرایش", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.Reset, "ریست حجم", theme.lamp.primary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                    QuickActionRow(AppIcon.Calendar, "ریست زمان", theme.lamp.primary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.Copy, "کپی لینک", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
+                    QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                    QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun QuickActionRow(icon: String, label: String, color: Color, onClick: () -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 9.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(icon, fontSize = 14.sp)
-            Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = color)
+private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.22f)), RoundedCornerShape(10.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RoundedAppIcon(icon, tint = color, size = 16.dp)
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
         }
     }
 }
