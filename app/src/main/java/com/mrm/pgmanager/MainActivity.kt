@@ -37,6 +37,7 @@ import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
+import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
 import com.mrm.pgmanager.ui.theme.ThemeState
@@ -97,6 +98,7 @@ fun MRMApp() {
     var isUnlocked by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
+    var showDashboardSettings by remember { mutableStateOf(false) }
     val tabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -151,7 +153,7 @@ fun MRMApp() {
         } else {
             Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
                 Box(Modifier.fillMaxSize()) {
-                    if (selectedTab == 0) DashboardScreen(session!!) else UsersScreen(
+                    if (selectedTab == 0) DashboardScreen(session!!, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
@@ -187,6 +189,7 @@ fun MRMApp() {
                         }
                     }
                 }
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, appVersion = BuildConfig.VERSION_NAME)
             }
         }
     }
