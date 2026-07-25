@@ -65,7 +65,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     }
     suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e -> error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
-            if (settings.notificationsEnabled && settings.notifyPanelOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
+            if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val previous = lastNodeStates[id]
                 if (previous == true && !online) NotificationHelper.post(context, 4100 + id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود شماره $id در دسترس نیست")
                 if (previous == false && online) NotificationHelper.post(context, 4200 + id, NotificationHelper.CHANNEL_SYSTEM, "نود دوباره آنلاین شد", "نود شماره $id دوباره در دسترس است")
