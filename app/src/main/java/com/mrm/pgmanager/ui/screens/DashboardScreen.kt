@@ -47,6 +47,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     var cpuAlerted by remember { mutableStateOf(false) }
     var ramAlerted by remember { mutableStateOf(false) }
     var diskAlerted by remember { mutableStateOf(false) }
+    var panelOfflineAlerted by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var manualRefreshing by remember { mutableStateOf(false) }
@@ -61,7 +62,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
         if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
     }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; evaluateHealth(it) }.onFailure { error = it.message ?: "خطا در دریافت آمار" }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e -> error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }; loading = false }
     // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
     LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) { if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
     val pullState = rememberPullToRefreshState()
