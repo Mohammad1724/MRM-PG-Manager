@@ -369,7 +369,8 @@ fun ThemeEditorDialog(
     var section by remember { mutableStateOf("ظاهر") }
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-    val sections = listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "امنیت")
+    // در صفحهٔ ورود (بدون نشست) فقط تنظیمات ظاهری معنا دارد؛ بقیهٔ تب‌ها پنهان می‌مانند.
+    val sections = remember(session) { if (session == null) listOf("ظاهر") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "امنیت") }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -398,22 +399,24 @@ fun ThemeEditorDialog(
                         contentAlignment = Alignment.Center
                     ) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
                 }
-                // تب بخش‌ها به‌صورت سگمنت یکدست
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
-                        .background(theme.searchBgColor)
-                        .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(13.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    sections.forEach { label ->
-                        val selected = section == label
-                        Box(
-                            Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) theme.lamp.primary.copy(.78f) else Color.Transparent)
-                                .clickable { section = label },
-                            contentAlignment = Alignment.Center
-                        ) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1) }
+                // تب بخش‌ها به‌صورت سگمنت یکدست (اگر فقط یک بخش باشد، مخفی می‌ماند)
+                if (sections.size > 1) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
+                            .background(theme.searchBgColor)
+                            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(13.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        sections.forEach { label ->
+                            val selected = section == label
+                            Box(
+                                Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp))
+                                    .background(if (selected) theme.lamp.primary.copy(.78f) else Color.Transparent)
+                                    .clickable { section = label },
+                                contentAlignment = Alignment.Center
+                            ) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1) }
+                        }
                     }
                 }
                 // محتوای بخش‌ها (اسکرول فقط همین ناحیه؛ فوتر همیشه دیده می‌شود)
