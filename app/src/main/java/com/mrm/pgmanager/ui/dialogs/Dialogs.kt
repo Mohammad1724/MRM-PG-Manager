@@ -38,15 +38,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.PanelUser
+import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserEditorValues
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassShape
+import com.mrm.pgmanager.ui.theme.LampColor
+import com.mrm.pgmanager.ui.theme.ThemeState
+import com.mrm.pgmanager.ui.theme.glassBorder
 import kotlin.math.roundToInt
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import kotlinx.coroutines.launch
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.lastSeenText
 import com.mrm.pgmanager.utils.formatBytes
@@ -138,148 +144,458 @@ private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier:
     }
 }
 
+// === پنجرهٔ تنظیمات v2 — بازطراحی کامل بر پایهٔ design system اصلی برنامه ===
+// ساختار: هدر + تب‌های سگمنت‌شده + کارت‌های استانداردِ هم‌سبک با کارت‌های داشبورد.
+
+/** ردیف سوئیچ استاندارد تنظیمات: عنوان + توضیح اختیاری + Switch. */
 @Composable
-fun ThemeEditorDialog(
-    themeState: com.mrm.pgmanager.ui.theme.ThemeState,
-    isAppLockEnabled: Boolean = false,
-    onDismiss: () -> Unit,
-    onThemeChange: (com.mrm.pgmanager.ui.theme.ThemeState) -> Unit,
-    onAppLockChange: (Boolean) -> Unit = {},
-    monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
-    onMonitoringChange: (com.mrm.pgmanager.data.model.MonitoringSettings) -> Unit = {},
-    appVersion: String = ""
+private fun SettingsSwitchRow(
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit
 ) {
     val theme = LocalThemeState.current
-    var section by remember { mutableStateOf("ظاهر") }
-    Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp)).padding(20.dp)) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp); Text("تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor) }
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("ظاهر", "پایش", "اعلان‌ها", "امنیت").forEach { label ->
-                        val selected = section == label
-                        Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (selected) theme.lamp.primary.copy(.72f) else Color.Black.copy(.04f)).clickable { section = label }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-                            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.inkColor)
-                        }
-                    }
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled) { onChange(!checked) }
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
+            if (subtitle != null) Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+        }
+        Switch(checked = checked, onCheckedChange = { if (enabled) onChange(it) }, enabled = enabled)
+    }
+}
+
+/** استپر عددی (− / +) به‌جای فیلدهای متنی کوچک؛ سریع و بدون خطای تایپ. */
+@Composable
+private fun SettingsStepper(
+    label: String,
+    value: Int,
+    unit: String,
+    range: IntRange,
+    step: Int = 1,
+    enabled: Boolean = true,
+    onChange: (Int) -> Unit
+) {
+    val theme = LocalThemeState.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
+        Box(
+            Modifier.size(30.dp).clip(RoundedCornerShape(9.dp))
+                .background(if (enabled) theme.lamp.primary.copy(.18f) else theme.searchBgColor)
+                .clickable(enabled = enabled) { onChange((value - step).coerceIn(range)) },
+            contentAlignment = Alignment.Center
+        ) { Text("−", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+        Box(
+            Modifier.width(66.dp).height(30.dp).clip(RoundedCornerShape(9.dp))
+                .background(theme.searchBgColor)
+                .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(9.dp)),
+            contentAlignment = Alignment.Center
+        ) { Text("$value $unit", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        Box(
+            Modifier.size(30.dp).clip(RoundedCornerShape(9.dp))
+                .background(if (enabled) theme.lamp.primary.copy(.18f) else theme.searchBgColor)
+                .clickable(enabled = enabled) { onChange((value + step).coerceIn(range)) },
+            contentAlignment = Alignment.Center
+        ) { Text("+", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+    }
+}
+
+/** کنترل سگمنت‌شدهٔ هم‌سبک با تب‌های شناور پایین برنامه (accent + متن تیره روی گزینهٔ فعال). */
+@Composable
+private fun SegmentedControl(
+    options: List<String>,
+    selectedIndex: Int,
+    icons: List<AppIcon> = emptyList(),
+    onSelect: (Int) -> Unit
+) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(13.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        options.forEachIndexed { index, label ->
+            val selected = index == selectedIndex
+            Box(
+                Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) theme.lamp.primary.copy(.78f) else Color.Transparent)
+                    .clickable { onSelect(index) },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) Color(0xFF202124) else theme.mutedColor, size = 14.dp)
+                    Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (section == "ظاهر") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    ModeToggleBtn("روشن", AppIcon.LightMode, !themeState.followSystem && !themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = false)) }
-                    ModeToggleBtn("تیره", AppIcon.DarkMode, !themeState.followSystem && themeState.isDark, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = false, isDark = true)) }
-                    ModeToggleBtn("خودکار", AppIcon.AutoMode, themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
-                }
-                }
-                if (section == "پایش") {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("پایش خودکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    var seconds by remember(monitoringSettings.refreshIntervalSeconds) { mutableStateOf(monitoringSettings.refreshIntervalSeconds.toString()) }
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text("فعال", Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = monitoringSettings.autoRefreshEnabled, onCheckedChange = { onMonitoringChange(monitoringSettings.copy(autoRefreshEnabled = it)) }) }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("فاصله پایش", fontSize = 10.sp, color = theme.mutedColor)
-                        Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF303038) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) { BasicTextField(seconds, { value -> seconds = value.filter(Char::isDigit); value.toIntOrNull()?.coerceIn(5, 3600)?.let { onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it)) } }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxWidth()) }
-                        Text("ثانیه", fontSize = 10.sp, color = theme.mutedColor)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(false to "فقط داشبورد", true to "همیشه در اپ").forEach { (always, label) -> Box(Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(8.dp)).background(if (monitoringSettings.refreshWhileAppOpen == always) theme.lamp.primary.copy(.18f) else Color.Transparent).clickable { onMonitoringChange(monitoringSettings.copy(refreshWhileAppOpen = always)) }, contentAlignment = Alignment.Center) { Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
-                    }
-                }
-                }
-                if (section == "اعلان‌ها") {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("اعلان‌ها", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    @Composable fun notificationToggle(label: String, checked: Boolean, update: (Boolean) -> com.mrm.pgmanager.data.model.MonitoringSettings) { Row(verticalAlignment = Alignment.CenterVertically) { Text(label, Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = checked, onCheckedChange = { onMonitoringChange(update(it)) }) } }
-                    notificationToggle("فعال‌سازی اعلان‌ها", monitoringSettings.notificationsEnabled) { monitoringSettings.copy(notificationsEnabled = it) }
-                    notificationToggle("اعلان عملیات مدیریت کاربران", monitoringSettings.notifyUserActions) { monitoringSettings.copy(notifyUserActions = it) }
-                    notificationToggle("کاربر Limited", monitoringSettings.notifyLimited) { monitoringSettings.copy(notifyLimited = it) }
-                    notificationToggle("کاربر Expired", monitoringSettings.notifyExpired) { monitoringSettings.copy(notifyExpired = it) }
-                    notificationToggle("نزدیک Limit", monitoringSettings.notifyNearLimit) { monitoringSettings.copy(notifyNearLimit = it) }
-                    notificationToggle("نزدیک انقضا", monitoringSettings.notifyNearExpiry) { monitoringSettings.copy(notifyNearExpiry = it) }
-                    notificationToggle("هشدار سلامت سیستم", monitoringSettings.notifySystemHealth) { monitoringSettings.copy(notifySystemHealth = it) }
-                    notificationToggle("قطع اتصال پنل", monitoringSettings.notifyPanelOffline) { monitoringSettings.copy(notifyPanelOffline = it) }
-                    notificationToggle("قطع اتصال نود", monitoringSettings.notifyNodeOffline) { monitoringSettings.copy(notifyNodeOffline = it) }
-                    @Composable fun numberSetting(label: String, value: Int, onValue: (Int) -> Unit) {
-                        var input by remember(value) { mutableStateOf(value.toString()) }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(label, Modifier.weight(1f), fontSize = 9.sp, color = theme.mutedColor)
-                            Box(Modifier.width(54.dp).height(30.dp).clip(RoundedCornerShape(7.dp)).background(if (theme.isDark) Color(0xFF303038) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
-                                BasicTextField(input, { text -> input = text.filter(Char::isDigit); input.toIntOrNull()?.coerceIn(1, 100)?.let(onValue) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center), modifier = Modifier.fillMaxWidth())
-                            }
-                            Text("٪", fontSize = 9.sp, color = theme.mutedColor)
-                        }
-                    }
-                    numberSetting("آستانه نزدیک Limit", monitoringSettings.nearLimitPercent) { onMonitoringChange(monitoringSettings.copy(nearLimitPercent = it)) }
-                    numberSetting("هشدار انقضا (روز)", monitoringSettings.nearExpiryDays) { onMonitoringChange(monitoringSettings.copy(nearExpiryDays = it)) }
-                    numberSetting("آستانه CPU", monitoringSettings.cpuThreshold) { onMonitoringChange(monitoringSettings.copy(cpuThreshold = it)) }
-                    numberSetting("آستانه RAM", monitoringSettings.ramThreshold) { onMonitoringChange(monitoringSettings.copy(ramThreshold = it)) }
-                    numberSetting("آستانه Disk", monitoringSettings.diskThreshold) { onMonitoringChange(monitoringSettings.copy(diskThreshold = it)) }
-                }
-                }
-                if (section == "ظاهر") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    com.mrm.pgmanager.ui.theme.LampColor.values().forEach { lamp ->
-                        val sel = themeState.lamp == lamp
-                        Box(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (sel) lamp.primary.copy(0.14f) else Color.Transparent)
-                                .border(BorderStroke(1.dp, if (sel) lamp.primary else Color.White.copy(0.16f)), RoundedCornerShape(14.dp))
-                                .clickable { onThemeChange(themeState.copy(lamp = lamp)) }.padding(12.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(lamp.primary), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Palette, tint = Color.White, size = 16.dp) }
-                                Text(lamp.labelFa, color = theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.weight(1f))
-                                if (sel) Text("انتخاب", color = lamp.primary, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-                }
-                if (section == "امنیت") {
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                        .background(if (isAppLockEnabled) GlassGreen.copy(0.14f) else Color.White.copy(if (theme.isDark) 0.08f else 0.60f))
-                        .border(BorderStroke(1.2.dp, if (isAppLockEnabled) GlassGreen else Color.White.copy(0.24f)), RoundedCornerShape(14.dp))
-                        .clickable { onAppLockChange(!isAppLockEnabled) }
-                        .padding(12.dp)
-                ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                            Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else theme.lamp.primary.copy(0.18f)), contentAlignment = Alignment.Center) {
-                                RoundedAppIcon(AppIcon.Lock, tint = if (isAppLockEnabled) Color.White else theme.inkColor, size = 16.dp)
-                            }
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("قفل امنیتی برنامه", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                                Text("ورود با اثر انگشت یا پین/الگوی گوشی", fontSize = 9.5.sp, color = theme.mutedColor)
-                            }
-                        }
-                        Box(
-                            Modifier.clip(RoundedCornerShape(8.dp)).background(if (isAppLockEnabled) GlassGreen else Color.Gray.copy(0.20f)).padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(if (isAppLockEnabled) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) Color.White else theme.inkColor)
-                        }
-                    }
-                }
-                }
-                // درباره
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("نسخهٔ برنامه", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                    Text(appVersion.ifBlank { "—" }, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
-                }
-                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
 }
 
+/** کارت استاندارد هر بخش تنظیمات؛ همان surface خنثی + border ظریفِ کارت‌های داشبورد. */
 @Composable
-fun ModeToggleBtn(label: String, icon: AppIcon, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun SettingsCard(
+    title: String,
+    icon: AppIcon,
+    accent: Color? = null,
+    content: @Composable () -> Unit
+) {
     val theme = LocalThemeState.current
-    Box(
-        modifier = modifier.clip(RoundedCornerShape(14.dp))
-            .background(if (selected) theme.lamp.primary else Color.White.copy(if (theme.isDark) 0.08f else 0.42f))
-            .border(BorderStroke(1.dp, if (selected) theme.lamp.primary else Color.White.copy(0.22f)), RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick).padding(vertical = 11.dp),
-        contentAlignment = Alignment.Center
-    ) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = if (selected) Color.White else theme.inkColor, size = 15.dp); Text(label, color = if (selected) Color.White else theme.inkColor, fontSize = 11.sp, fontWeight = FontWeight.Bold) } }
+    val ac = accent ?: theme.lamp.primary
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(if (theme.isDark) Color(0xFF202128) else Color.White)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(18.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(ac.copy(.16f)), contentAlignment = Alignment.Center) {
+                RoundedAppIcon(icon, tint = theme.inkColor, size = 15.dp)
+            }
+            Text(title, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+        }
+        content()
+    }
+}
+
+/** ردیف اکشن رنگی با آیکون (خروج از حساب، بازنشانی و ...). */
+@Composable
+private fun SettingsActionRow(
+    title: String,
+    subtitle: String? = null,
+    icon: AppIcon,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(.10f))
+            .border(BorderStroke(1.dp, accent.copy(.26f)), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(accent.copy(.16f)), contentAlignment = Alignment.Center) {
+            RoundedAppIcon(icon, tint = accent, size = 16.dp)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+            if (subtitle != null) Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+        }
+    }
+}
+
+/** ردیف اطلاعات فقط‌خواندنی با قابلیت کپی (آدرس پنل / نام کاربری). */
+@Composable
+private fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
+    val theme = LocalThemeState.current
+    val context = LocalContext.current
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(label, fontSize = 8.5.sp, color = theme.mutedColor)
+            Text(value, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (copyable) {
+            Box(
+                Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.lamp.primary.copy(.16f))
+                    .clickable {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
+                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                contentAlignment = Alignment.Center
+            ) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 13.dp) }
+        }
+    }
+}
+
+/** آیتم انتخاب رنگ اکسنت با پیش‌نمایش گرادیانی و تیک هنگام انتخاب. */
+@Composable
+private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Row(
+        modifier.clip(RoundedCornerShape(12.dp))
+            .background(if (selected) lamp.primary.copy(.12f) else Color.Transparent)
+            .border(BorderStroke(if (selected) 1.4.dp else 1.dp, if (selected) lamp.primary.copy(.7f) else glassBorder(theme.isDark)), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            Modifier.size(30.dp).clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(lamp.primary, lamp.light)))
+                .border(BorderStroke(1.dp, lamp.primary.copy(.5f)), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 16.dp) }
+        Text(lamp.labelFa, fontSize = 10.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+fun ThemeEditorDialog(
+    themeState: ThemeState,
+    isAppLockEnabled: Boolean = false,
+    onDismiss: () -> Unit,
+    onThemeChange: (ThemeState) -> Unit,
+    onAppLockChange: (Boolean) -> Unit = {},
+    monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
+    onMonitoringChange: (com.mrm.pgmanager.data.model.MonitoringSettings) -> Unit = {},
+    appVersion: String = "",
+    session: Session? = null,
+    onLogout: (() -> Unit)? = null
+) {
+    val theme = LocalThemeState.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var section by remember { mutableStateOf("ظاهر") }
+    var testing by remember { mutableStateOf(false) }
+    var testResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    val sections = listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "امنیت")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(26.dp))
+                .background(theme.dialogBgColor)
+                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))
+                .padding(16.dp)
+        ) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                // هدر: آیکون اکسنت + عنوان + دکمهٔ بستن
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        Modifier.size(40.dp).clip(RoundedCornerShape(13.dp))
+                            .background(theme.lamp.primary.copy(.16f))
+                            .border(BorderStroke(1.dp, theme.lamp.primary.copy(.32f)), RoundedCornerShape(13.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 20.dp) }
+                    Column(Modifier.weight(1f)) {
+                        Text("تنظیمات", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        Text("شخصی‌سازی، پایش و امنیت حساب مدیر", fontSize = 10.sp, color = theme.mutedColor)
+                    }
+                    Box(
+                        Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+                            .background(if (theme.isDark) Color.White.copy(.08f) else Color.Black.copy(.05f))
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
+                }
+                // تب بخش‌ها به‌صورت سگمنت یکدست
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
+                        .background(theme.searchBgColor)
+                        .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(13.dp))
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    sections.forEach { label ->
+                        val selected = section == label
+                        Box(
+                            Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) theme.lamp.primary.copy(.78f) else Color.Transparent)
+                                .clickable { section = label },
+                            contentAlignment = Alignment.Center
+                        ) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1) }
+                    }
+                }
+                // محتوای بخش‌ها (اسکرول فقط همین ناحیه؛ فوتر همیشه دیده می‌شود)
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(11.dp)
+                ) {
+                    when (section) {
+                        "ظاهر" -> {
+                            SettingsCard("حالت نمایش", AppIcon.Palette) {
+                                SegmentedControl(
+                                    options = listOf("روشن", "تیره", "خودکار"),
+                                    selectedIndex = if (themeState.followSystem) 2 else if (themeState.isDark) 1 else 0,
+                                    onSelect = { index ->
+                                        when (index) {
+                                            0 -> onThemeChange(themeState.copy(followSystem = false, isDark = false))
+                                            1 -> onThemeChange(themeState.copy(followSystem = false, isDark = true))
+                                            else -> onThemeChange(themeState.copy(followSystem = true))
+                                        }
+                                    },
+                                    icons = listOf(AppIcon.LightMode, AppIcon.DarkMode, AppIcon.AutoMode)
+                                )
+                                Text("در حالت «خودکار» برنامه از حالت روشن/تیرهٔ سیستم پیروی می‌کند.", fontSize = 9.5.sp, color = theme.mutedColor)
+                            }
+                            SettingsCard("رنگ اصلی برنامه", AppIcon.Palette) {
+                                LampColor.values().toList().chunked(2).forEach { rowItems ->
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        rowItems.forEach { lamp ->
+                                            val selected = themeState.lamp == lamp
+                                            LampColorItem(lamp = lamp, selected = selected, modifier = Modifier.weight(1f)) { onThemeChange(themeState.copy(lamp = lamp)) }
+                                        }
+                                        if (rowItems.size < 2) Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                        "پایش" -> {
+                            SettingsCard("پایش خودکار", AppIcon.Tune) {
+                                SettingsSwitchRow(
+                                    "بروزرسانی خودکار داشبورد",
+                                    "دریافت مجدد آمار سیستم و کاربران به‌صورت دوره‌ای",
+                                    monitoringSettings.autoRefreshEnabled
+                                ) { onMonitoringChange(monitoringSettings.copy(autoRefreshEnabled = it)) }
+                                SettingsStepper("فاصلهٔ پایش", monitoringSettings.refreshIntervalSeconds, "ثانیه", 5..3600, step = 5, enabled = monitoringSettings.autoRefreshEnabled) {
+                                    onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it))
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("محدودهٔ اجرای پایش", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                    SegmentedControl(
+                                        options = listOf("فقط داشبورد", "کل برنامه"),
+                                        selectedIndex = if (monitoringSettings.refreshWhileAppOpen) 1 else 0
+                                    ) { index -> onMonitoringChange(monitoringSettings.copy(refreshWhileAppOpen = index == 1)) }
+                                }
+                            }
+                            SettingsCard("بازنشانی", AppIcon.Reset, accent = GlassAmber) {
+                                SettingsActionRow(
+                                    "بازنشانی به پیش‌فرض",
+                                    "همهٔ تنظیمات پایش و اعلان‌ها به حالت اولیه برمی‌گردد",
+                                    AppIcon.Reset,
+                                    GlassAmber
+                                ) { onMonitoringChange(com.mrm.pgmanager.data.model.MonitoringSettings()) }
+                            }
+                        }
+                        "اعلان‌ها" -> {
+                            val master = monitoringSettings.notificationsEnabled
+                            SettingsCard("کلی", AppIcon.Bell) {
+                                SettingsSwitchRow("فعال‌سازی اعلان‌ها", "کلید اصلیٔ همهٔ هشدارهای برنامه", master) { onMonitoringChange(monitoringSettings.copy(notificationsEnabled = it)) }
+                                SettingsSwitchRow("اعلان عملیات کاربران", "ساخت، ویرایش، ریست و حذف کاربر", monitoringSettings.notifyUserActions, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyUserActions = it)) }
+                            }
+                            SettingsCard("هشدارهای اشتراک", AppIcon.Users) {
+                                SettingsSwitchRow("کاربر Limited شد", checked = monitoringSettings.notifyLimited, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyLimited = it)) }
+                                SettingsSwitchRow("اشتراک Expired شد", checked = monitoringSettings.notifyExpired, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyExpired = it)) }
+                                SettingsSwitchRow("نزدیک به سقف حجم", checked = monitoringSettings.notifyNearLimit, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyNearLimit = it)) }
+                                SettingsStepper("آستانهٔ نزدیک به سقف", monitoringSettings.nearLimitPercent, "٪", 10..100, step = 5, enabled = master && monitoringSettings.notifyNearLimit) { onMonitoringChange(monitoringSettings.copy(nearLimitPercent = it)) }
+                                SettingsSwitchRow("نزدیک به انقضا", checked = monitoringSettings.notifyNearExpiry, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyNearExpiry = it)) }
+                                SettingsStepper("هشدار انقضا از", monitoringSettings.nearExpiryDays, "روز قبل", 1..30, enabled = master && monitoringSettings.notifyNearExpiry) { onMonitoringChange(monitoringSettings.copy(nearExpiryDays = it)) }
+                            }
+                            SettingsCard("سلامت سیستم و اتصال", AppIcon.Warning, accent = GlassRed) {
+                                val healthEnabled = master && monitoringSettings.notifySystemHealth
+                                SettingsSwitchRow("هشدار سلامت سیستم", "مصرف غیرعادی CPU، RAM یا Disk پنل", monitoringSettings.notifySystemHealth, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifySystemHealth = it)) }
+                                SettingsStepper("آستانهٔ CPU", monitoringSettings.cpuThreshold, "٪", 50..100, step = 5, enabled = healthEnabled) { onMonitoringChange(monitoringSettings.copy(cpuThreshold = it)) }
+                                SettingsStepper("آستانهٔ RAM", monitoringSettings.ramThreshold, "٪", 50..100, step = 5, enabled = healthEnabled) { onMonitoringChange(monitoringSettings.copy(ramThreshold = it)) }
+                                SettingsStepper("آستانهٔ Disk", monitoringSettings.diskThreshold, "٪", 50..100, step = 5, enabled = healthEnabled) { onMonitoringChange(monitoringSettings.copy(diskThreshold = it)) }
+                                SettingsSwitchRow("قطع اتصال پنل", checked = monitoringSettings.notifyPanelOffline, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyPanelOffline = it)) }
+                                SettingsSwitchRow("قطع اتصال نود", checked = monitoringSettings.notifyNodeOffline, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyNodeOffline = it)) }
+                            }
+                        }
+                        "اتصال" -> {
+                            if (session == null) {
+                                SettingsCard("اتصال به پنل", AppIcon.Wifi) {
+                                    Text("برای مشاهدهٔ اطلاعات اتصال و تست آن، ابتدا وارد حساب کاربری شوید.", fontSize = 10.5.sp, color = theme.mutedColor)
+                                }
+                            } else {
+                                SettingsCard("سرور فعلی", AppIcon.Wifi) {
+                                    SettingsInfoRow("آدرس پنل", session.baseUrl, copyable = true)
+                                    SettingsInfoRow("کاربر مدیر", session.username)
+                                }
+                                SettingsCard("تست اتصال", AppIcon.CheckCircle, accent = GlassGreen) {
+                                    Text("برقراری ارتباط با پنل و دریافت آمار سیستم، برای اطمینان از سلامت دسترسی.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                    PrimarySaveButton(
+                                        text = if (testing) "در حال بررسی اتصال..." else "تست اتصال به پنل",
+                                        enabled = !testing,
+                                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                                        onClick = {
+                                            scope.launch {
+                                                testing = true
+                                                val result = runCatching { PanelApi.systemStats(session) }
+                                                testResult = result.fold(
+                                                    onSuccess = { s -> true to "اتصال برقرار است · آپ‌تایم ${s.uptimeSeconds / 86400} روز و ${(s.uptimeSeconds % 86400) / 3600} ساعت" },
+                                                    onFailure = { e -> false to ("خطا در اتصال: " + (e.message ?: "پنل در دسترس نیست")) }
+                                                )
+                                                testing = false
+                                            }
+                                        }
+                                    )
+                                    testResult?.let { (ok, message) ->
+                                        val color = if (ok) GlassGreen else GlassRed
+                                        Row(
+                                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                                .background(color.copy(.10f))
+                                                .border(BorderStroke(1.dp, color.copy(.30f)), RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 10.dp, vertical = 9.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            RoundedAppIcon(if (ok) AppIcon.CheckCircle else AppIcon.Warning, tint = color, size = 17.dp)
+                                            Text(message, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        "امنیت" -> {
+                            SettingsCard("قفل برنامه", AppIcon.Lock, accent = GlassGreen) {
+                                SettingsSwitchRow(
+                                    "قفل امنیتی برنامه",
+                                    "ورود با اثر انگشت یا پین/الگوی گوشی هنگام بازکردن اپ",
+                                    isAppLockEnabled
+                                ) { onAppLockChange(it) }
+                                Text(
+                                    if (isAppLockEnabled) "قفل فعال است؛ هنگام هر بار ورود، هویت شما تأیید می‌شود."
+                                    else "با فعال‌سازی، هر بار ورود به برنامه نیازمند تأیید هویت خواهد بود.",
+                                    fontSize = 9.5.sp, color = theme.mutedColor
+                                )
+                            }
+                            if (onLogout != null) {
+                                SettingsCard("حساب کاربری", AppIcon.Logout, accent = GlassRed) {
+                                    SettingsActionRow(
+                                        "خروج از حساب کاربری",
+                                        "پاک‌شدن نشست فعلی و بازگشت به صفحهٔ ورود",
+                                        AppIcon.Logout,
+                                        GlassRed
+                                    ) { onLogout() }
+                                }
+                            }
+                        }
+                    }
+                }
+                // فوتر «درباره» + دکمهٔ بستن
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AppLogo(height = 17.dp)
+                        Text("MRM PG Manager", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(
+                            Modifier.clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor)
+                                .clickable { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/Mohammad1724/MRM-PG-Manager"))) } }
+                                .padding(horizontal = 7.dp, vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                RoundedAppIcon(AppIcon.OpenNew, tint = theme.mutedColor, size = 11.dp)
+                                Text("گیت‌هاب", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                            }
+                        }
+                        Text("نسخهٔ ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                    }
+                }
+                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(44.dp))
+            }
+        }
+    }
 }
 
 @Composable
