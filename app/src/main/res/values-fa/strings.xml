@@ -17,4 +17,5 @@
     <string name="unlimited">نامحدود</string>
     <string name="manage_panel">مدیریت پنل پاسارگارد</string>
     <string name="status">وضعیت</string>
+    <string name="widget_description">وضعیت پنل در یک نگاه: کاربران آنلاین و مصرف CPU پنل پاسارگارد</string>
 </resources>
