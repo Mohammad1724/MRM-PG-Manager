@@ -14,5 +14,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".widget.PanelWidgetProvider"
+            android:exported="true"
+            android:label="وضعیت پنل">
+            <intent-filter>
+                <!-- اکشن بروزرسانی دستی با PendingIntentِ explicit تحویل داده می‌شود و نیازی به فیلتر ندارد. -->
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/panel_widget_info" />
+        </receiver>
     </application>
 </manifest>
