@@ -89,7 +89,7 @@ fun ConfirmActionDialog(
                 Text(message, fontSize = 12.sp, color = theme.mutedColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(40.dp))
-                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(GlassRed).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
                         Text(confirmLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -145,7 +145,8 @@ fun QuickActionSheet(
 
 @Composable
 private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.22f)), RoundedCornerShape(10.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (مرز یک‌چهارم رنگ).
+    Box(modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), RoundedCornerShape(10.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             RoundedAppIcon(icon, tint = color, size = 16.dp)
             Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
@@ -445,7 +446,7 @@ fun ThemeEditorDialog(
                     }
                     Box(
                         Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
-                            .background(if (theme.isDark) Color.White.copy(.08f) else Color.Black.copy(.05f))
+                            .background(theme.searchBgColor)
                             .clickable(onClick = onDismiss),
                         contentAlignment = Alignment.Center
                     ) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
@@ -871,15 +872,17 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                     TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.accentPrimary) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(onClick = { if (m > 1) m-- else { m = 12; y-- } }, modifier = Modifier.size(32.dp), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.accentPrimary.copy(0.14f))) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
-                    Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(0.08f)).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Button(onClick = { if (m < 12) m++ else { m = 1; y++ } }, modifier = Modifier.size(32.dp), contentPadding = PaddingValues(0.dp), colors = ButtonDefaults.buttonColors(containerColor = theme.accentPrimary.copy(0.14f))) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
+                    // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
+                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
+                    Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                 }
                 LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
                     items((1..daysInMonth).toList()) { day ->
                         val sel = day == d
-                        Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentPrimary else Color.White.copy(0.08f)).clickable { d = day }, contentAlignment = Alignment.Center) {
-                            Text("$day", color = if (sel) Color.White else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                        // روز انتخاب‌شده = کپسول اکسنت ۷۸٪ و متن تیره؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
+                        Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                            Text("$day", color = if (sel) Color(0xFF202124) else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
                 }
@@ -990,7 +993,7 @@ fun UserEditorDialog(
                     Column(Modifier.weight(1f)) {
                         Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     }
-                    Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(if (theme.isDark) .10f else .04f)).clickable { onDismiss() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
+                    Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).clickable { onDismiss() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
                 }
                 // اطلاعات پایه
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -999,7 +1002,7 @@ fun UserEditorDialog(
                         if (initial == null) {
                             // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
                             CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "")
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.16f)).border(BorderStroke(1.dp, theme.accentPrimary.copy(.35f)), RoundedCornerShape(10.dp)).clickable { username = store.readUsernamePattern().randomName() }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.18f)).clickable { username = store.readUsernamePattern().randomName() }, contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Random, tint = theme.inkColor, size = 19.dp)
                             }
                         } else {
@@ -1026,7 +1029,7 @@ fun UserEditorDialog(
                     // زمان کل نیز مستقل قابل ویرایش است و +روز به مقدار فعلی افزوده می‌شود.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل", Modifier.weight(1.15f), KeyboardType.Number, "", fieldHeight = 34.dp)
-                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.14f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Calendar, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.18f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Calendar, tint = theme.inkColor, size = 18.dp) }
                         CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.65f), KeyboardType.Number, "", fieldHeight = 34.dp)
                         Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 18.dp) }
                     }
@@ -1037,7 +1040,7 @@ fun UserEditorDialog(
                     Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
-                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(.05f)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
+                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
@@ -1045,17 +1048,17 @@ fun UserEditorDialog(
                 // گروه‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("گروه‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (groups.isEmpty()) Text("گروهی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { groups.forEach { g -> val picked = groupIds.contains(g.id); Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.18f) else Color.Black.copy(.05f)).clickable { groupIds = if (picked) groupIds - g.id else groupIds + g.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { if (picked) RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 12.dp); Text(g.name, fontSize = 10.sp, color = theme.inkColor) } } } }
+                    if (groups.isEmpty()) Text("گروهی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { groups.forEach { g -> val picked = groupIds.contains(g.id); Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { groupIds = if (picked) groupIds - g.id else groupIds + g.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { if (picked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 12.dp); Text(g.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } } }
                 }
                 // تمپلت‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("تمپلت‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.18f) else Color.Black.copy(.05f)).clickable {
+                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable {
                             selectedTemplate = t.id
                             // انتخاب تمپلت، مقادیر واقعی آن را فوراً در فیلدهای فرم نشان می‌دهد.
                             t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
                             t.expireDuration?.let { days = (it / 86400L).toString() }
-                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = theme.inkColor) } } }
+                        }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MutedCancelButton("انصراف", onDismiss, Modifier.weight(.35f))
@@ -1120,11 +1123,20 @@ fun UserDetailsDialog(
             Text(value, modifier = Modifier.offset(y = (-2).dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+    // دکمهٔ اکشن دیالوگ جزئیات: primary = کپسول اکسنت ۷۸٪ + متن تیره (بدون مرز)، neutral = کاشی خاکستری، destructive = قرمز کم‌رنگ.
     @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, height: androidx.compose.ui.unit.Dp = 44.dp, click: () -> Unit) {
-        val bg = when { primary -> theme.accentPrimary; destructive -> GlassRed.copy(.09f); else -> if (theme.isDark) Color.White.copy(.08f) else Color.White.copy(.68f) }
-        val color = when { primary -> Color.White; destructive -> GlassRed; else -> theme.inkColor }
-        val border = when { primary -> theme.accentPrimary; destructive -> GlassRed.copy(.45f); else -> tileBorderColor(theme.isDark) }
-        Box(modifier.height(height).clip(RoundedCornerShape(10.dp)).background(bg).border(BorderStroke(1.dp, border), RoundedCornerShape(10.dp)).clickable(onClick = click), contentAlignment = Alignment.Center) {
+        val bg = when { primary -> theme.accentPrimary.copy(.78f); destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
+        val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
+        // حالت primary مرز نامرئی دارد (اکسنت با آلفای صفر) تا فقط پس‌زمینهٔ توپُر دیده شود؛ چیدمان ثابت می‌ماند.
+        var borderColor = glassBorder(theme.isDark, theme.amoledDark)
+        if (destructive) borderColor = GlassRed.copy(.30f)
+        if (primary) borderColor = theme.accentPrimary.copy(0f)
+        Box(
+            modifier.height(height).clip(RoundedCornerShape(10.dp)).background(bg)
+                .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(10.dp))
+                .clickable(onClick = click),
+            contentAlignment = Alignment.Center
+        ) {
             Text(text, fontSize = if (height <= 30.dp) 9.sp else 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
         }
     }
@@ -1134,7 +1146,7 @@ fun UserDetailsDialog(
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("جزئیات کاربر", Modifier.weight(1f), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(if (theme.isDark) .12f else .05f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor) }
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor) }
                 }
 
                 // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
@@ -1283,16 +1295,17 @@ fun BulkApplyTemplateDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
                             val sel = selectedTemplateId == t.id
+                            // ردیف انتخاب تمپلت: انتخاب‌شده = کپسول اکسنت ۷۸٪ + متن تیره، بقیه = کاشی خاکستری.
                             Box(
                                 Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(10.dp))
-                                    .background(if (sel) theme.accentPrimary else Color.Black.copy(0.04f))
-                                    .border(BorderStroke(1.dp, if (sel) theme.accentPrimary else Color.White.copy(0.16f)), RoundedCornerShape(10.dp))
+                                    .background(if (sel) theme.accentPrimary.copy(.78f) else theme.searchBgColor)
+                                    .border(BorderStroke(1.dp, if (sel) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp))
                                     .clickable { selectedTemplateId = t.id }.padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) Color.White else theme.inkColor)
-                                    if (sel) Text("انتخاب شد", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) Color(0xFF202124) else theme.inkColor)
+                                    if (sel) Text("انتخاب شد", fontSize = 10.sp, color = Color(0xFF202124), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
