@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +30,7 @@ import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -106,10 +106,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
+            // دکمه‌های هدر: همان کاشی‌های خاکستریِ خنثیِ پنجرهٔ تنظیمات (خروج = حالت خطر).
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(40.dp).background(theme.chromeBgColor.copy(alpha = 0.95f), RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
-                Box(Modifier.size(40.dp).background(theme.accentPrimary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
-                Box(Modifier.size(40.dp).background(Color(0xFFC93B3B).copy(.10f), RoundedCornerShape(11.dp)).clickable { onLogout() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp)
+                ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp)
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp)
             }
         }
         if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
