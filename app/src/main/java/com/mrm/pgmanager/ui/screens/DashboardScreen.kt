@@ -63,7 +63,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
         if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
     }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e -> error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e ->
+        if (e.message?.contains("401") == true) {
+            // نشست منقضی شده؛ مانند صفحهٔ کاربران، کاربر به صفحهٔ ورود برمی‌گردد.
+            android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
+            onLogout()
+        } else {
+            error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true }
+        } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val previous = lastNodeStates[id]
@@ -92,13 +99,13 @@ LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
         error?.let { Text(it, color = Color(0xFFC93B3B), fontSize = 12.sp) }
         stats?.let { s ->
             Text("سیستم", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("CPU", "${"%.1f".format(s.cpuUsage)}%", AppIcon.Settings, Modifier.weight(1f)); DashCard("RAM", "${formatBytes(s.memUsed)} / ${formatBytes(s.memTotal)}", AppIcon.Template, Modifier.weight(1f)) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("Disk", "${formatBytes(s.diskUsed)} / ${formatBytes(s.diskTotal)}", AppIcon.Template, Modifier.weight(1f)); DashCard("Uptime", "${s.uptimeSeconds / 86400} روز", AppIcon.Calendar, Modifier.weight(1f)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("CPU", "${"%.1f".format(s.cpuUsage)}%", AppIcon.Gauge, Modifier.weight(1f)); DashCard("RAM", "${formatBytes(s.memUsed)} / ${formatBytes(s.memTotal)}", AppIcon.Memory, Modifier.weight(1f)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("Disk", "${formatBytes(s.diskUsed)} / ${formatBytes(s.diskTotal)}", AppIcon.Storage, Modifier.weight(1f)); DashCard("Uptime", "${s.uptimeSeconds / 86400} روز", AppIcon.Timer, Modifier.weight(1f)) }
             Text("کاربران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("کل کاربران", "${s.totalUsers}", AppIcon.Users, Modifier.weight(1f)); DashCard("آنلاین", "${s.onlineUsers}", AppIcon.User, Modifier.weight(1f), GlassGreen) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("فعال", "${s.activeUsers}", AppIcon.Check, Modifier.weight(1f)); DashCard("منقضی / محدود", "${s.expiredUsers + s.limitedUsers}", AppIcon.Warning, Modifier.weight(1f), Color(0xFFD9822B)) }
             Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("دریافت", formatBytes(s.incomingBandwidth), AppIcon.Refresh, Modifier.weight(1f), GlassGreen); DashCard("ارسال", formatBytes(s.outgoingBandwidth), AppIcon.Link, Modifier.weight(1f)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("دریافت", formatBytes(s.incomingBandwidth), AppIcon.Download, Modifier.weight(1f), GlassGreen); DashCard("ارسال", formatBytes(s.outgoingBandwidth), AppIcon.Upload, Modifier.weight(1f)) }
             TrafficChartCard(points = trafficPoints, incoming = s.incomingBandwidth, outgoing = s.outgoingBandwidth)
         }
     }
