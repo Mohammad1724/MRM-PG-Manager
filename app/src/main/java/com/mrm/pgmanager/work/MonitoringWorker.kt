@@ -51,6 +51,28 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 store.saveNodeStates(states)
             }
 
+            // === بدهکاران: قطع خودکار پس از X ساعت ===
+            if (settings.debtorAutoDisableEnabled) {
+                val debtors = store.readDebtors().values.filter { it.baseUrl == session.baseUrl }
+                debtors.forEach { d ->
+                    if (d.autoDisabled) return@forEach
+                    if (!d.isOverdue(settings.debtorAutoDisableAfterHours)) return@forEach
+                    // کاربر را در لیست پیدا کن
+                    val pu = users.find { it.username == d.username } ?: return@forEach
+                    if (pu.status == "disabled") {
+                        // اگر دستی غیرفعال شده، فقط فلگ را بزن
+                        store.setDebtor(d.copy(autoDisabled = true))
+                        return@forEach
+                    }
+                    runCatching { PanelApi.setDisabled(session, d.username, true) }.onSuccess {
+                        store.setDebtor(d.copy(autoDisabled = true))
+                        if (settings.notificationsEnabled && settings.notifyDebtorOverdue) {
+                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, "قطع خودکار بدهکار", "${d.username} پس از ${settings.debtorAutoDisableAfterHours} ساعت بدهکاری قطع شد (${d.amount} ${d.currency})")
+                        }
+                    }
+                }
+            }
+
             // هشدار سلامت سیستم با latch: تا وقتی شرط برقرار است فقط یک‌بار هشدار می‌دهیم؛
             // با برطرف‌شدن شرط، latch آزاد می‌شود تا هشدار بعدی دوباره صادر شود.
             if (settings.notifySystemHealth) {
