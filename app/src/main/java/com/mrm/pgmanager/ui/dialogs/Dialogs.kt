@@ -110,7 +110,9 @@ fun QuickActionSheet(
     onEdit: () -> Unit,
     onResetUsage: () -> Unit,
     onResetExpiry: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onDebtor: (() -> Unit)? = null,
+    isDebtor: Boolean = false
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
@@ -135,7 +137,12 @@ fun QuickActionSheet(
                     QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) "تسویه بدهی" else "بدهکار", GlassRed, Modifier.weight(1f)) {
+                        if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
+                    }
                     QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                 }
             }
@@ -600,6 +607,11 @@ fun ThemeEditorDialog(
                                 SettingsSwitchRow("نزدیک به انقضا", checked = monitoringSettings.notifyNearExpiry, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyNearExpiry = it)) }
                                 SettingsStepper("هشدار انقضا از", monitoringSettings.nearExpiryDays, "روز قبل", 1..30, enabled = master && monitoringSettings.notifyNearExpiry) { onMonitoringChange(monitoringSettings.copy(nearExpiryDays = it)) }
                             }
+                            SettingsCard("بدهکاران", AppIcon.Warning, accent = GlassRed) {
+                                SettingsSwitchRow("اعلان ثبت بدهکار", checked = monitoringSettings.notifyDebtor, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyDebtor = it)) }
+                                SettingsSwitchRow("اعلان قطع خودکار بدهکار", checked = monitoringSettings.notifyDebtorOverdue, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyDebtorOverdue = it)) }
+                                Text("وقتی کاربری به عنوان بدهکار ثبت می‌شود یا پس از مهلت به صورت خودکار قطع می‌شود، اعلان دریافت می‌کنی.", fontSize = 9.sp, color = theme.mutedColor)
+                            }
                             SettingsCard("سلامت سیستم و اتصال", AppIcon.Warning, accent = GlassRed) {
                                 val healthEnabled = master && monitoringSettings.notifySystemHealth
                                 SettingsSwitchRow("هشدار سلامت سیستم", "مصرف غیرعادی CPU، RAM یا Disk پنل", monitoringSettings.notifySystemHealth, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifySystemHealth = it)) }
@@ -720,6 +732,32 @@ fun ThemeEditorDialog(
                                 if (pattern.sequential) SettingsStepper("شروع شمارش از", pattern.sequentialStart, "عدد", 1..999000) { savePattern(pattern.copy(sequentialStart = it)) }
                                 else SettingsStepper("تعداد ارقام", pattern.randomDigits, "رقم", 3..6) { savePattern(pattern.copy(randomDigits = it)) }
                                 Text("نمونه: ${if (pattern.sequential) pattern.sequentialName(0) else pattern.randomName()}", fontSize = 9.5.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold)
+                            }
+                            SettingsCard("بدهکاران - قطع خودکار", AppIcon.Warning, accent = GlassRed) {
+                                Text("وقتی کاربری به عنوان بدهکار ثبت شد، پس از مدت تعیین‌شده به صورت خودکار غیرفعال می‌شود. با تسویه بدهی، دوباره فعال می‌گردد.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                SettingsSwitchRow(
+                                    "قطع خودکار بدهکار",
+                                    "فعال‌سازی قطع خودکار پس از بدهکار شدن",
+                                    monitoringSettings.debtorAutoDisableEnabled
+                                ) { onMonitoringChange(monitoringSettings.copy(debtorAutoDisableEnabled = it)) }
+                                SettingsStepper(
+                                    "مهلت قطع پس از بدهکاری",
+                                    monitoringSettings.debtorAutoDisableAfterHours,
+                                    "ساعت",
+                                    1..720,
+                                    step = 1,
+                                    enabled = monitoringSettings.debtorAutoDisableEnabled
+                                ) { onMonitoringChange(monitoringSettings.copy(debtorAutoDisableAfterHours = it)) }
+                                if (monitoringSettings.debtorAutoDisableEnabled) {
+                                    Text("مثال: اگر 24 ساعت تنظیم کنی، کاربر بدهکار بعد 24 ساعت قطع می‌شود. با تسویه از دیالوگ بدهکار، خودکار وصل می‌شود.", fontSize = 8.5.sp, color = theme.mutedColor)
+                                }
+                                // نمایش تعداد بدهکاران فعلی این پنل
+                                run {
+                                    val debtorCount = store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
+                                    if (debtorCount > 0) {
+                                        Text("در حال حاضر $debtorCount کاربر بدهکار در این پنل ثبت شده است.", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                                    }
+                                }
                             }
                             SettingsCard("ساخت گروهی", AppIcon.Users, accent = GlassGreen) {
                                 SettingsActionRow(
@@ -1095,7 +1133,10 @@ fun UserDetailsDialog(
     onResetUsage: () -> Unit,
     onResetExpiry: (Int) -> Unit,
     onApplyTemplate: ((Int, String) -> Unit)? = null,
-    session: com.mrm.pgmanager.data.model.Session? = null
+    session: com.mrm.pgmanager.data.model.Session? = null,
+    debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null,
+    onMarkDebtor: (() -> Unit)? = null,
+    onClearDebt: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -1218,6 +1259,36 @@ fun UserDetailsDialog(
                     Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     action("کپی", Modifier.width(48.dp), height = 26.dp) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", currentUser.subUrl)) }
                     action("QR", Modifier.width(38.dp), height = 26.dp) { qrOpen = true }
+                }
+
+                // بدهکار
+                if (debtorInfo != null) {
+                    Column(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .background(GlassRed.copy(0.10f))
+                            .border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(12.dp))
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
+                            Text("بدهکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed)
+                            Spacer(Modifier.weight(1f))
+                            Text("${debtorInfo.amount} ${debtorInfo.currency}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        }
+                        Text("از ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(debtorInfo.markedAt))} - ${debtorInfo.notes.ifBlank { "بدون یادداشت" }}", fontSize = 10.sp, color = theme.mutedColor)
+                        if (debtorInfo.autoDisabled) {
+                            Text("⚠️ به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            action("تسویه بدهی ✅", Modifier.weight(1f), primary = true) { onClearDebt?.invoke() }
+                            action("ویرایش بدهی", Modifier.weight(1f)) { onMarkDebtor?.invoke() }
+                        }
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth()) {
+                        SettingsActionRow("ثبت بدهکار", "این کاربر بدهکار است و مبلغ بدهی را ثبت کن", AppIcon.Warning, GlassRed) { onMarkDebtor?.invoke() }
+                    }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
