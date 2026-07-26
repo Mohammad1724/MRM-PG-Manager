@@ -5,6 +5,10 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.MonitoringSettings
+import com.mrm.pgmanager.data.model.PanelUser
+import com.mrm.pgmanager.data.model.SystemStats
+import com.mrm.pgmanager.data.model.UsernamePattern
+import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
 
@@ -17,41 +21,113 @@ class SessionStore(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
+    // مهاجرت خودکار: اگر نشستِ قدیمیِ تک‌حسابه وجود دارد ولی لیست حساب‌ها خالی است، آن را به لیست منتقل می‌کنیم.
+    init {
+        if (readAccounts().isEmpty()) {
+            val base = prefs.getString("base", null)
+            val token = prefs.getString("token", null)
+            if (!base.isNullOrBlank() && !token.isNullOrBlank()) {
+                saveAccounts(listOf(Session(base, token, prefs.getString("username", "") ?: "")))
+            }
+        }
+    }
+
     fun read(): Session? {
         val base = prefs.getString("base", null) ?: return null
         val token = prefs.getString("token", null) ?: return null
         return Session(base, token, prefs.getString("username", "") ?: "")
     }
 
-    fun save(value: Session) = prefs.edit()
+    /** ورود جدید: حساب در لیست ذخیره/به‌روز می‌شود و به‌عنوان حساب فعال تنظیم می‌گردد. */
+    fun save(value: Session) {
+        val others = readAccounts().filterNot { it.baseUrl == value.baseUrl && it.username == value.username }
+        saveAccounts(others + value)
+        setActive(value)
+    }
+
+    /** کلیدهای نشستِ فعال را بدون تغییر لیست حساب‌ها به حسابِ انتخاب‌شده سوئیچ می‌کند. */
+    fun setActive(value: Session) = prefs.edit()
         .putString("base", value.baseUrl)
         .putString("token", value.token)
         .putString("username", value.username)
         .apply()
 
-    fun clear() = prefs.edit()
-        .remove("base")
-        .remove("token")
-        .remove("username")
-        .apply()
+    /** خروج کامل: نشستِ فعال و حسابِ متناظر از لیست حذف می‌شود (حساب‌های دیگر باقی می‌مانند). */
+    fun clear() {
+        val active = read()
+        if (active != null) saveAccounts(readAccounts().filterNot { it.baseUrl == active.baseUrl && it.username == active.username })
+        prefs.edit().remove("base").remove("token").remove("username").apply()
+    }
 
+    // === حساب‌های چندگانه (چند پنل هم‌زمان) ===
+    fun readAccounts(): List<Session> = runCatching {
+        val arr = org.json.JSONArray(prefs.getString("accounts", "[]") ?: "[]")
+        (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            val base = o.optString("base"); val token = o.optString("token")
+            if (base.isBlank() || token.isBlank()) null else Session(base, token, o.optString("username"))
+        }
+    }.getOrDefault(emptyList())
+
+    fun saveAccounts(list: List<Session>) {
+        val arr = org.json.JSONArray()
+        list.forEach { arr.put(org.json.JSONObject().put("base", it.baseUrl).put("token", it.token).put("username", it.username)) }
+        prefs.edit().putString("accounts", arr.toString()).apply()
+    }
+
+    /** حذف یک حساب از لیست (اگر حسابِ فعال باشد حذف نمی‌شود؛ جلوی آن در UI گرفته شده). */
+    fun removeAccount(baseUrl: String, username: String) {
+        saveAccounts(readAccounts().filterNot { it.baseUrl == baseUrl && it.username == username })
+    }
+
+    // === تم ===
     fun readTheme(): ThemeState {
         val lampName = prefs.getString("theme_lamp", LampColor.GOLD.name) ?: LampColor.GOLD.name
         val isDark = prefs.getBoolean("theme_dark", false)
         val followSystem = prefs.getBoolean("theme_follow_system", false)
+        val amoled = prefs.getBoolean("theme_amoled", false)
+        val custom = prefs.getLong("theme_custom", -1L).takeIf { it >= 0L }
         val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
-        return ThemeState(lamp = lamp, isDark = isDark, followSystem = followSystem)
+        return ThemeState(lamp = lamp, customColor = custom?.let { androidx.compose.ui.graphics.Color(it) }, isDark = isDark, followSystem = followSystem, amoledDark = amoled)
     }
 
     fun saveTheme(themeState: ThemeState) = prefs.edit()
         .putString("theme_lamp", themeState.lamp.name)
         .putBoolean("theme_dark", themeState.isDark)
         .putBoolean("theme_follow_system", themeState.followSystem)
+        .putBoolean("theme_amoled", themeState.amoledDark)
+        .putLong("theme_custom", themeState.customColor?.value?.toLong() ?: -1L)
         .apply()
 
+    // === قفل برنامه ===
     fun readAppLock(): Boolean = prefs.getBoolean("app_lock_enabled", false)
 
     fun saveAppLock(enabled: Boolean) = prefs.edit().putBoolean("app_lock_enabled", enabled).apply()
+
+    /** مهلت قفل خودکار بر حسب ثانیه؛ 0 یعنی بلافاصله پس از خروج از برنامه. */
+    fun readAppLockTimeoutSecs(): Int = prefs.getInt("app_lock_timeout", 0).coerceIn(0, 3600)
+
+    fun saveAppLockTimeoutSecs(value: Int) = prefs.edit().putInt("app_lock_timeout", value.coerceIn(0, 3600)).apply()
+
+    // === حالت نمایش فهرست کاربران ===
+    fun readViewMode(): ViewMode = runCatching { ViewMode.valueOf(prefs.getString("view_mode", ViewMode.MICRO_LIST.name) ?: ViewMode.MICRO_LIST.name) }.getOrDefault(ViewMode.MICRO_LIST)
+
+    fun saveViewMode(mode: ViewMode) = prefs.edit().putString("view_mode", mode.name).apply()
+
+    // === الگوی نام کاربری ===
+    fun readUsernamePattern() = UsernamePattern(
+        prefix = prefs.getString("uname_prefix", "user")?.ifBlank { "user" } ?: "user",
+        randomDigits = prefs.getInt("uname_digits", 4).coerceIn(3, 6),
+        sequentialStart = prefs.getInt("uname_start", 1).coerceIn(1, 999998),
+        sequential = prefs.getBoolean("uname_sequential", false)
+    )
+
+    fun saveUsernamePattern(p: UsernamePattern) = prefs.edit()
+        .putString("uname_prefix", p.prefix.ifBlank { "user" })
+        .putInt("uname_digits", p.randomDigits.coerceIn(3, 6))
+        .putInt("uname_start", p.sequentialStart.coerceIn(1, 999998))
+        .putBoolean("uname_sequential", p.sequential)
+        .apply()
 
     fun readMonitoringSettings() = MonitoringSettings(
         autoRefreshEnabled = prefs.getBoolean("monitor_auto", true),
@@ -68,14 +144,18 @@ class SessionStore(context: Context) {
         notifySystemHealth = prefs.getBoolean("notify_system", true),
         cpuThreshold = prefs.getInt("notify_cpu", 85), ramThreshold = prefs.getInt("notify_ram", 85), diskThreshold = prefs.getInt("notify_disk", 90),
         notifyPanelOffline = prefs.getBoolean("notify_panel_offline", true),
-        notifyNodeOffline = prefs.getBoolean("notify_node_offline", true)
+        notifyNodeOffline = prefs.getBoolean("notify_node_offline", true),
+        offlineCacheEnabled = prefs.getBoolean("offline_cache", true),
+        notifyCapacity = prefs.getBoolean("notify_capacity", false),
+        capacityOnlineLimit = prefs.getInt("capacity_online", 500)
     )
 
     fun saveMonitoringSettings(v: MonitoringSettings) = prefs.edit()
         .putBoolean("monitor_auto", v.autoRefreshEnabled).putInt("monitor_interval", v.refreshIntervalSeconds.coerceIn(5, 3600)).putBoolean("monitor_always", v.refreshWhileAppOpen)
         .putBoolean("notify_enabled", v.notificationsEnabled).putBoolean("notify_actions", v.notifyUserActions).putBoolean("notify_limited", v.notifyLimited).putBoolean("notify_expired", v.notifyExpired)
         .putBoolean("notify_near_limit", v.notifyNearLimit).putInt("notify_limit_percent", v.nearLimitPercent).putBoolean("notify_near_expiry", v.notifyNearExpiry).putInt("notify_expiry_days", v.nearExpiryDays)
-        .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).putBoolean("notify_node_offline", v.notifyNodeOffline).apply()
+        .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).putBoolean("notify_node_offline", v.notifyNodeOffline)
+        .putBoolean("offline_cache", v.offlineCacheEnabled).putBoolean("notify_capacity", v.notifyCapacity).putInt("capacity_online", v.capacityOnlineLimit).apply()
 
     fun readNotificationStates(): Map<Long, String> = runCatching {
         val obj = org.json.JSONObject(prefs.getString("notification_user_states", "{}") ?: "{}")
@@ -95,4 +175,69 @@ class SessionStore(context: Context) {
     }.getOrDefault(emptyMap())
 
     fun saveNodeStates(states: Map<Int, Boolean>) = prefs.edit().putString("node_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
+
+    // === کش آفلاین: آخرین داده‌های موفق دریافتی ===
+    fun saveUsersCache(users: List<PanelUser>) {
+        val arr = org.json.JSONArray()
+        users.take(400).forEach { u ->
+            arr.put(org.json.JSONObject().apply {
+                put("id", u.id); put("username", u.username); put("status", u.status)
+                put("used_traffic", u.usedTraffic); put("data_limit", u.dataLimit)
+                put("expire", u.expire ?: ""); put("created_at", u.createdAt ?: "")
+                put("sub_url", u.subUrl); put("online_at", u.onlineAt ?: ""); put("note", u.note ?: "")
+                if (u.hwidLimit != null) put("hwid_limit", u.hwidLimit)
+                put("group_ids", org.json.JSONArray(u.groupIds)); put("group_names", org.json.JSONArray(u.groupNames))
+            })
+        }
+        prefs.edit().putString("users_cache", arr.toString()).putLong("users_cache_ts", System.currentTimeMillis()).apply()
+    }
+
+    /** زوج (لیست کاربران، زمان کش)؛ null یعنی کش در دسترس نیست. isOnline همیشه false بازیابی می‌شود. */
+    fun readUsersCache(): Pair<List<PanelUser>, Long>? {
+        val raw = prefs.getString("users_cache", null) ?: return null
+        val ts = prefs.getLong("users_cache_ts", 0L)
+        if (ts <= 0L) return null
+        val list = runCatching {
+            val arr = org.json.JSONArray(raw)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                PanelUser(
+                    id = o.optLong("id"), username = o.optString("username"), status = o.optString("status"),
+                    usedTraffic = o.optLong("used_traffic"), dataLimit = o.optLong("data_limit"),
+                    expire = o.optString("expire").ifBlank { null }, createdAt = o.optString("created_at").ifBlank { null },
+                    subUrl = o.optString("sub_url"), onlineAt = o.optString("online_at").ifBlank { null }, isOnline = false,
+                    note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit")) o.optInt("hwid_limit") else null,
+                    groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
+                    groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
+                )
+            }
+        }.getOrDefault(emptyList())
+        return if (list.isEmpty()) null else list to ts
+    }
+
+    fun saveStatsCache(s: SystemStats) {
+        prefs.edit().putString("stats_cache", org.json.JSONObject().apply {
+            put("uptime_seconds", s.uptimeSeconds); put("mem_total", s.memTotal); put("mem_used", s.memUsed)
+            put("disk_total", s.diskTotal); put("disk_used", s.diskUsed); put("cpu_cores", s.cpuCores); put("cpu_usage", s.cpuUsage.toDouble())
+            put("total_users", s.totalUsers); put("online_users", s.onlineUsers); put("active_users", s.activeUsers)
+            put("expired_users", s.expiredUsers); put("limited_users", s.limitedUsers); put("disabled_users", s.disabledUsers); put("on_hold_users", s.onHoldUsers)
+            put("incoming_bandwidth", s.incomingBandwidth); put("outgoing_bandwidth", s.outgoingBandwidth)
+        }.toString()).putLong("stats_cache_ts", System.currentTimeMillis()).apply()
+    }
+
+    fun readStatsCache(): Pair<SystemStats, Long>? {
+        val raw = prefs.getString("stats_cache", null) ?: return null
+        val ts = prefs.getLong("stats_cache_ts", 0L)
+        if (ts <= 0L) return null
+        return runCatching {
+            val o = org.json.JSONObject(raw)
+            SystemStats(
+                uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
+                diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
+                totalUsers = o.optInt("total_users"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
+                expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
+                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
+            ) to ts
+        }.getOrNull()
+    }
 }
