@@ -117,7 +117,8 @@ private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
     val pulse = rememberInfiniteTransition(label = "livePulse")
     val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "liveAlpha")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        Box(Modifier.size(8.dp).background(GlassGreen.copy(alpha), RoundedCornerShape(4.dp)))
+        // با خاموش‌بودن رفرش خودکار، نقطهٔ وضعیت خاکستریِ ثابت می‌شود (تضادی با متن «خاموش» نداشته باشد).
+        Box(Modifier.size(8.dp).background(if (enabled) GlassGreen.copy(alpha) else Color.Gray, RoundedCornerShape(4.dp)))
         Text(if (enabled) "زنده · بروزرسانی هر $seconds ثانیه" else "بروزرسانی خودکار خاموش", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
     }
 }
