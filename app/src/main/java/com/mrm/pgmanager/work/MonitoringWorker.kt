@@ -18,8 +18,11 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // اتصال برقرار شد؛ latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
             store.saveAlertFlag("panel_offline", false)
             store.saveAlertFlag("auth_expired", false)
+            // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود.
+            store.saveStatsCache(stats)
             val oldStates = store.readNotificationStates()
             val users = PanelApi.users(session)
+            store.saveUsersCache(users)
             val newStates = users.associate { user ->
                 val usage = if (user.dataLimit > 0) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
                 val nearExpiry = runCatching { val date = java.time.LocalDate.parse(user.expire?.take(10) ?: ""); java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), date).coerceAtLeast(0) <= settings.nearExpiryDays }.getOrDefault(false)
@@ -62,6 +65,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 healthAlert("cpu", 5101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(stats.cpuUsage)}٪ رسیده است", stats.cpuUsage >= settings.cpuThreshold)
                 healthAlert("ram", 5102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است", ram >= settings.ramThreshold)
                 healthAlert("disk", 5103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است", disk >= settings.diskThreshold)
+                // هشدار ظرفیت آنلاین: ترکیب با کلید خودِ ظرفیت؛ با غیرفعال‌کردن گزینه latch هم خودکار ریست می‌شود.
+                healthAlert("capacity", 5106, "هشدار ظرفیت", "کاربران آنلاین هم‌زمان به ${stats.onlineUsers} رسید (حد مجاز: ${settings.capacityOnlineLimit})", settings.notifyCapacity && stats.onlineUsers >= settings.capacityOnlineLimit)
             }
             Result.success()
         }.getOrElse { e ->
