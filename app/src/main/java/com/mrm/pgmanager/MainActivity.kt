@@ -187,6 +187,8 @@ fun MRMApp() {
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
                 onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
+                monitoringSettings = monitoringSettings,
+                onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
                 isAppLockEnabled = isAppLockEnabled,
                 onAppLockChange = { enabled ->
                     if (enabled && activity != null) {
@@ -223,7 +225,7 @@ fun MRMApp() {
                         }
                     }
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME)
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false })
             }
         }
     }
