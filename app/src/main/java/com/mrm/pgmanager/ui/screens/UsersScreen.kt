@@ -123,17 +123,17 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
     "disabled" -> "غیرفعال"
     "expired" -> "منقضی"
     "limited" -> "محدود"
-    "on_hold" -> "⏸ در انتظار"
+    "on_hold" -> "در انتظار"
     else -> daysLeftText(user.expire)
 }
 
 @Composable
-private fun StatGlassCard(icon: String, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     Box(modifier = modifier.height(72.dp).clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 11.dp)) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                Box(Modifier.size(23.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { Text(icon, fontSize = 11.sp) }
+                Box(Modifier.size(23.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { RoundedAppIcon(icon, tint = accent, size = 12.dp) }
                 Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
             }
             Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -209,10 +209,10 @@ private fun StatsCardsRow(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = "●", label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            StatGlassCard(icon = "♙", label = "کاربران فعال", value = "$activeUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.User, label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Check, label = "کاربران فعال", value = "$activeUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
         }
-        StatGlassCard(icon = "♙", label = "همهٔ کاربران", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.fillMaxWidth())
+        StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -237,9 +237,9 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             }
             Spacer(Modifier.width(4.dp))
             Row(Modifier.clip(RoundedCornerShape(8.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                ViewModeIcon("⊞", viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
-                ViewModeIcon("☰", viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
-                ViewModeIcon("≡", viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+                ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
+                ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+                ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
             }
         }
     }
@@ -262,10 +262,10 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ViewModeIcon(icon: String, selected: Boolean, onClick: () -> Unit) {
+private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
-        Text(icon, fontSize = 10.5.sp, color = if (selected) theme.lamp.primary else theme.mutedColor, fontWeight = FontWeight.Bold)
+        RoundedAppIcon(icon, tint = if (selected) theme.lamp.primary else theme.mutedColor, size = 13.dp)
     }
 }
 
@@ -330,7 +330,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Text(when (user.status) { "active" -> "🟢"; "disabled" -> "⚪"; "expired" -> "🔴"; "limited" -> "🟡"; "on_hold" -> "🟣"; else -> "⚫" }, fontSize = 8.sp) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor)) }
                     Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = Color(0xFF3B82F6), size = 11.dp) }
@@ -619,9 +619,11 @@ fun UsersScreen(
     val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
     val scrollOffset = remember { mutableStateOf(0f) }
 
-    fun load() {
+    fun load(resetHeader: Boolean = true, silent: Boolean = false) {
         scope.launch {
-            loading = true; error = null
+            // رفرش خودکار بی‌صداست: اسکلت‌لودینگ و چرخهٔ Pull-to-refresh فقط برای رفرش دستی/اولیه است.
+            if (!silent) loading = true
+            error = null
             runCatching {
                 val list = PanelApi.users(session)
                 users = list; onlineCount = list.count { it.isOnline }
@@ -653,7 +655,8 @@ fun UsersScreen(
                     }
                 }
                 lastUserStates = nextStates
-                scrollOffset.value = 0f
+                // در رفرش خودکارِ پس‌زمینه، هدرِ جمع‌شده کاربر دست‌نخورده می‌ماند.
+                if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
                 error = it.message
                 if (it.message?.contains("401") == true) {
@@ -678,13 +681,22 @@ fun UsersScreen(
         }
     }
     LaunchedEffect(Unit) { load() }
+    // پایش دوره‌ای «کل برنامه»: فقط وقتی کاربر این محدوده را در تنظیمات فعال کرده باشد.
+    LaunchedEffect(session, monitoringSettings.autoRefreshEnabled, monitoringSettings.refreshWhileAppOpen, monitoringSettings.refreshIntervalSeconds) {
+        if (monitoringSettings.autoRefreshEnabled && monitoringSettings.refreshWhileAppOpen) {
+            while (kotlinx.coroutines.currentCoroutineContext().isActive) {
+                kotlinx.coroutines.delay(monitoringSettings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L)
+                load(resetHeader = false, silent = true)
+            }
+        }
+    }
 
-    val processedUsers = remember(users, query, currentFilter, currentSort) {
+    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent) {
         var list = users.filter { it.username.contains(query, ignoreCase = true) }
         list = when (currentFilter) {
             UserFilter.ALL -> list
             UserFilter.ACTIVE -> list.filter { it.status == "active" }
-            UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 0.72 }
+            UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
             UserFilter.EXPIRED -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 1.0 || it.status == "expired" || it.status == "limited" }
             UserFilter.DISABLED -> list.filter { it.status == "disabled" }
         }
