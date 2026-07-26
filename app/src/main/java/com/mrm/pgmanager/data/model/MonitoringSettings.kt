@@ -19,5 +19,10 @@ data class MonitoringSettings(
     val ramThreshold: Int = 85,
     val diskThreshold: Int = 90,
     val notifyPanelOffline: Boolean = true,
-    val notifyNodeOffline: Boolean = true
+    val notifyNodeOffline: Boolean = true,
+    /** هنگام قطع اتصال، آخرین داده‌های دریافت‌شده با برچسب «آفلاین» نمایش داده می‌شود. */
+    val offlineCacheEnabled: Boolean = true,
+    /** هشدار زمانی که کاربران آنلاین هم‌زمان از حد مجاز عبور کند. */
+    val notifyCapacity: Boolean = false,
+    val capacityOnlineLimit: Int = 500
 )
