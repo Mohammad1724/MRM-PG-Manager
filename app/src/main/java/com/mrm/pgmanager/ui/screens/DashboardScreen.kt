@@ -32,6 +32,7 @@ import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.theme.GlassGreen
+import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.formatBytes
@@ -48,7 +49,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     var ramAlerted by remember { mutableStateOf(false) }
     var diskAlerted by remember { mutableStateOf(false) }
     var panelOfflineAlerted by remember { mutableStateOf(false) }
+    var capacityAlerted by remember { mutableStateOf(false) }
     var lastNodeStates by remember { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
+    val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
+    var offlineAt by remember { mutableStateOf<Long?>(null) }
+    var lastWidgetUpdateAt by remember { mutableStateOf(0L) }
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var manualRefreshing by remember { mutableStateOf(false) }
@@ -62,14 +67,26 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است"); ramAlerted = true } else ramAlerted = false
         val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
         if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
+        // هشدار ظرفیت: عبور تعداد کاربران آنلاین هم‌زمان از حد تعیین‌شده (با latch تا رفع شرط).
+        if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
+            if (!capacityAlerted) alert(3105, "هشدار ظرفیت", "کاربران آنلاین هم‌زمان به ${s.onlineUsers} رسید (حد مجاز: ${settings.capacityOnlineLimit})")
+            capacityAlerted = true
+        } else capacityAlerted = false
     }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; evaluateHealth(it) }.onFailure { e ->
+    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null; store.saveStatsCache(it)
+        // ویجت حداکثر هر ۳۰ ثانیه به‌روز شود؛ در هر چرخهٔ رفرش نه (جلوگیری از بار اضافی).
+        if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
+        evaluateHealth(it) }.onFailure { e ->
         if (e.message?.contains("401") == true) {
             // نشست منقضی شده؛ مانند صفحهٔ کاربران، کاربر به صفحهٔ ورود برمی‌گردد.
             android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
             onLogout()
         } else {
-            error = e.message ?: "خطا در دریافت آمار"; if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true }
+            if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true }
+            // کش آفلاین: اگر دادهٔ قبلی داریم، همان نمایش داده می‌شود و خطا به بنر آفلاین تبدیل می‌شود.
+            val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
+            if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
+            else error = e.message ?: "خطا در دریافت آمار"
         } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
@@ -90,13 +107,19 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
 LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(40.dp).background(if (theme.isDark) Color(0xFF25252D) else Color.White, RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
-                Box(Modifier.size(40.dp).background(theme.lamp.primary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.lamp.primary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
+                Box(Modifier.size(40.dp).background(theme.chromeBgColor.copy(alpha = 0.95f), RoundedCornerShape(11.dp)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(11.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }
+                Box(Modifier.size(40.dp).background(theme.accentPrimary.copy(.16f), RoundedCornerShape(11.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }
                 Box(Modifier.size(40.dp).background(Color(0xFFC93B3B).copy(.10f), RoundedCornerShape(11.dp)).clickable { onLogout() }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }
             }
         }
-        if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.lamp.primary) }
+        if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
         error?.let { Text(it, color = Color(0xFFC93B3B), fontSize = 12.sp) }
+        offlineAt?.let { cachedAt ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
+                Text("حالت آفلاین — نمایش آخرین آمار دریافتی (${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))})", color = GlassAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         stats?.let { s ->
             Text("سیستم", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("CPU", "${"%.1f".format(s.cpuUsage)}%", AppIcon.Gauge, Modifier.weight(1f)); DashCard("RAM", "${formatBytes(s.memUsed)} / ${formatBytes(s.memTotal)}", AppIcon.Memory, Modifier.weight(1f)) }
@@ -126,7 +149,7 @@ private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
 @Composable
 private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoing: Long) {
     val t = LocalThemeState.current
-    Column(Modifier.fillMaxWidth().background(if (t.isDark) Color(0xFF202128) else Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().background(t.cardSurfaceColor, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor)
         Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
         Canvas(Modifier.fillMaxWidth().height(150.dp)) {
@@ -136,7 +159,7 @@ private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoin
             if (points.size > 1) for (i in 0 until points.lastIndex) {
                 val y1 = h - (points[i].totalTraffic.toFloat() / max * h)
                 val y2 = h - (points[i + 1].totalTraffic.toFloat() / max * h)
-                drawLine(t.lamp.primary, androidx.compose.ui.geometry.Offset(w*i/(points.size-1), y1), androidx.compose.ui.geometry.Offset(w*(i+1)/(points.size-1), y2), 4f)
+                drawLine(t.accentPrimary, androidx.compose.ui.geometry.Offset(w*i/(points.size-1), y1), androidx.compose.ui.geometry.Offset(w*(i+1)/(points.size-1), y2), 4f)
             }
         }
         Text(if (points.isEmpty()) "دادهٔ تاریخی ترافیک از پنل دریافت نشد." else "${points.size} نقطهٔ واقعی از آمار ترافیک پنل", fontSize = 8.sp, color = t.mutedColor)
@@ -144,8 +167,8 @@ private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoin
 }
 
 @Composable private fun DashCard(label: String, value: String, icon: AppIcon, modifier: Modifier, accent: Color? = null) {
-    val t = LocalThemeState.current; val c = accent ?: t.lamp.primary
-    Column(modifier.height(92.dp).background(if (t.isDark) Color(0xFF202128) else Color.White, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+    val t = LocalThemeState.current; val c = accent ?: t.accentPrimary
+    Column(modifier.height(92.dp).background(t.cardSurfaceColor, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(icon, tint = c, size = 16.dp); Text(label, fontSize = 10.sp, color = t.mutedColor) }
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor, maxLines = 1)
     }
