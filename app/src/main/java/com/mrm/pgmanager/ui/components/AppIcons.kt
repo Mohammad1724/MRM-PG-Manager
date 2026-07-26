@@ -4,11 +4,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewHeadline
+import androidx.compose.material.icons.rounded.ViewList
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Check
@@ -42,7 +51,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew }
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -75,6 +84,15 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Wifi -> Icons.Rounded.Wifi
     AppIcon.CheckCircle -> Icons.Rounded.CheckCircle
     AppIcon.OpenNew -> Icons.Rounded.OpenInNew
+    AppIcon.GridView -> Icons.Rounded.GridView
+    AppIcon.ListRows -> Icons.Rounded.ViewList
+    AppIcon.DenseList -> Icons.Rounded.ViewHeadline
+    AppIcon.Gauge -> Icons.Rounded.Speed
+    AppIcon.Memory -> Icons.Rounded.Memory
+    AppIcon.Storage -> Icons.Rounded.Storage
+    AppIcon.Timer -> Icons.Rounded.Timer
+    AppIcon.Download -> Icons.Rounded.FileDownload
+    AppIcon.Upload -> Icons.Rounded.FileUpload
 }
 
 @Composable
