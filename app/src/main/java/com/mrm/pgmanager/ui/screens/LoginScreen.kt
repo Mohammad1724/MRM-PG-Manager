@@ -39,7 +39,9 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     onLoggedIn: (Session) -> Unit,
     themeState: ThemeState,
-    onThemeChange: (ThemeState) -> Unit
+    onThemeChange: (ThemeState) -> Unit,
+    /** اگر غیر null باشد دکمهٔ «بازگشت» نمایش داده می‌شود (حالت افزودن حساب دوم). */
+    onBack: (() -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
     var url by remember { mutableStateOf("") }
@@ -55,11 +57,11 @@ fun LoginScreen(
             // Aurora gold
             Box(
                 Modifier.size(720.dp).align(Alignment.TopStart).offset(x = (-200).dp, y = (-200).dp)
-                    .background(Brush.radialGradient(listOf(theme.lamp.spotHigh.copy(if (theme.isDark) 0.30f else 0.06f), Color.Transparent), radius = 460f), RoundedCornerShape(400.dp)).blur(36.dp)
+                    .background(Brush.radialGradient(listOf(theme.accentSpotHigh.copy(if (theme.isDark) 0.30f else 0.06f), Color.Transparent), radius = 460f), RoundedCornerShape(400.dp)).blur(36.dp)
             )
             Box(
                 Modifier.size(600.dp).align(Alignment.BottomEnd).offset(x = 180.dp, y = 180.dp)
-                    .background(Brush.radialGradient(listOf(theme.lamp.light.copy(0.22f), Color.Transparent)), RoundedCornerShape(400.dp)).blur(40.dp)
+                    .background(Brush.radialGradient(listOf(theme.accentLight.copy(0.22f), Color.Transparent)), RoundedCornerShape(400.dp)).blur(40.dp)
             )
 
             // Content
@@ -71,7 +73,7 @@ fun LoginScreen(
                 // Card - ULTRA TRANSPARENT, no white rectangle
                 Box(
                     modifier = Modifier.fillMaxWidth().widthIn(max = 390.dp).clip(RoundedCornerShape(18.dp))
-                        .background(if (theme.isDark) Color(0xFF1E1E24) else Color.White)
+                        .background(if (theme.isDark) theme.dialogBgColor else Color.White)
                         .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(.16f) else Color(0xFFD7D8DD)), RoundedCornerShape(18.dp))
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -105,7 +107,7 @@ fun LoginScreen(
                         // FIX: Button flat, no gradient with alpha, pure solid - no inner rectangle
                         Box(
                             Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp))
-                                .background(theme.lamp.primary)
+                                .background(theme.accentPrimary)
                                 .clickable(enabled = !loading) {
                                     if (loading) return@clickable
                                     loading = true; error = null
@@ -146,6 +148,10 @@ fun LoginScreen(
                         }
                     }
                 }
+                if (onBack != null) {
+                    Spacer(Modifier.height(10.dp))
+                    androidx.compose.material3.TextButton(onClick = onBack) { Text("بازگشت", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                }
                 Spacer(Modifier.height(18.dp))
             }
 
@@ -158,7 +164,7 @@ fun LoginScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.zIndex(10f)) {
                     Box(
                         Modifier.size(36.dp).clip(RoundedCornerShape(11.dp))
-                            .background(Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.light)))
+                            .background(Brush.linearGradient(listOf(theme.accentPrimary, theme.accentLight)))
                             .border(BorderStroke(1.dp, Color.White.copy(0.7f)), RoundedCornerShape(11.dp)),
                         contentAlignment = Alignment.Center
                     ) { Text("M", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp) }
@@ -171,7 +177,7 @@ fun LoginScreen(
                 Box(
                     Modifier.size(52.dp).clip(RoundedCornerShape(14.dp))
                         .background(Color.White.copy(alpha = if (theme.isDark) 0.18f else 0.9f))
-                        .border(BorderStroke(1.5.dp, theme.lamp.primary.copy(0.4f)), RoundedCornerShape(14.dp))
+                        .border(BorderStroke(1.5.dp, theme.accentPrimary.copy(0.4f)), RoundedCornerShape(14.dp))
                         .clickable { showThemeDialog = true }.zIndex(10f),
                     contentAlignment = Alignment.Center
                 ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp) }
