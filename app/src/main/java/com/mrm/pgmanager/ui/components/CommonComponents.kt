@@ -70,7 +70,7 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
         Box(
             modifier = modifier.height(height).widthIn(max = height * 2.8f)
                 .clip(RoundedCornerShape(height / 3.2f))
-                .background(Brush.linearGradient(listOf(theme.lamp.primary, theme.lamp.light)))
+                .background(Brush.linearGradient(listOf(theme.accentPrimary, theme.accentLight)))
                 .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)), RoundedCornerShape(height / 3.2f))
                 .padding(horizontal = 10.dp),
             contentAlignment = Alignment.Center
@@ -86,8 +86,8 @@ fun PasswordEyeIcon(visible: Boolean) {
     Canvas(modifier = Modifier.size(20.dp)) {
         val w = size.width; val h = size.height
         drawOval(color = theme.inkColor, topLeft = Offset(1f, h * 0.22f), size = Size(w - 2f, h * 0.56f), style = Stroke(width = 2.2f))
-        drawCircle(color = if (visible) theme.lamp.primary else theme.inkColor, radius = if (visible) w * 0.20f else w * 0.14f, center = Offset(w * 0.5f, h * 0.5f))
-        if (!visible) drawLine(color = theme.lamp.primary, start = Offset(w * 0.10f, h * 0.90f), end = Offset(w * 0.90f, h * 0.10f), strokeWidth = 2.8f)
+        drawCircle(color = if (visible) theme.accentPrimary else theme.inkColor, radius = if (visible) w * 0.20f else w * 0.14f, center = Offset(w * 0.5f, h * 0.5f))
+        if (!visible) drawLine(color = theme.accentPrimary, start = Offset(w * 0.10f, h * 0.90f), end = Offset(w * 0.90f, h * 0.10f), strokeWidth = 2.8f)
     }
 }
 
@@ -130,7 +130,7 @@ fun GlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
     }
-    val activeColor = if (isRed) GlassRed else theme.lamp.primary
+    val activeColor = if (isRed) GlassRed else theme.accentPrimary
     val borderColor = if (isPressed && enabled) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
         modifier = modifier.height(46.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
@@ -156,7 +156,7 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
     } else {
         if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
     }
-    val activeColor = if (isRed) GlassRed else theme.lamp.primary
+    val activeColor = if (isRed) GlassRed else theme.accentPrimary
     val borderColor = if (isPressed) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
         modifier = modifier.height(26.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
@@ -179,8 +179,8 @@ fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     Box(
         modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
             .clip(RoundedCornerShape(13.dp))
-            .background(theme.lamp.primary.copy(alpha = .78f))
-            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.lamp.primary.copy(if (isPressed) .72f else .60f)), RoundedCornerShape(13.dp))
+            .background(theme.accentPrimary.copy(alpha = .78f))
+            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.accentPrimary.copy(if (isPressed) .72f else .60f)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -232,11 +232,11 @@ fun UltraPremiumField(
                 .fillMaxWidth()
                 .height(58.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .background(if (theme.isDark) Color(0xFF1E1E24).copy(alpha = 0.92f) else Color.White.copy(alpha = 0.88f))
+                .background(if (theme.isDark) theme.cardSurfaceColor.copy(alpha = 0.92f) else Color.White.copy(alpha = 0.88f))
                 .border(
                     BorderStroke(
                         width = if (isFocused) 1.8.dp else 1.1.dp,
-                        color = if (isFocused) theme.lamp.primary else if (theme.isDark) Color.White.copy(0.14f) else Color(0xFFD1D3D9)
+                        color = if (isFocused) theme.accentPrimary else if (theme.isDark) Color.White.copy(0.14f) else Color(0xFFD1D3D9)
                     ),
                     RoundedCornerShape(18.dp)
                 )
@@ -248,8 +248,8 @@ fun UltraPremiumField(
             ) {
                 Box(
                     Modifier.size(40.dp).clip(RoundedCornerShape(12.dp))
-                        .background(if (isFocused) theme.lamp.primary.copy(0.16f) else if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.04f))
-                        .border(BorderStroke(1.dp, if (isFocused) theme.lamp.primary.copy(0.22f) else Color.Transparent), RoundedCornerShape(12.dp)),
+                        .background(if (isFocused) theme.accentPrimary.copy(0.16f) else if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.04f))
+                        .border(BorderStroke(1.dp, if (isFocused) theme.accentPrimary.copy(0.22f) else Color.Transparent), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) { if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 18.dp) else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 17.sp) }
 
@@ -305,29 +305,37 @@ fun BulkActionsBar(
     onResetUsage: () -> Unit,
     onDisable: () -> Unit,
     onEnable: () -> Unit,
-    onApplyTemplate: () -> Unit
+    onApplyTemplate: () -> Unit,
+    onSelectAll: () -> Unit = {},
+    onExport: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     Box(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(if (theme.isDark) Color(0xFF1E1E26).copy(alpha = 0.96f) else Color(0xFFFCF9F0).copy(alpha = 0.96f))
+            .background(if (theme.isDark) theme.dialogBgColor.copy(alpha = 0.96f) else Color(0xFFFCF9F0).copy(alpha = 0.96f))
             .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
             .padding(10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 17.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
-                Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.12f)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
-                    Text("× لغو انتخاب", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(0.14f)).clickable { onSelectAll() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
+                        Text("انتخاب همه", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.12f)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
+                        Text("× لغو", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 BulkActionChip("فعال‌سازی", AppIcon.Check, GlassGreen) { onEnable() }
                 BulkActionChip("غیرفعال‌سازی", AppIcon.User, Color(0xFF7A7886)) { onDisable() }
-                BulkActionChip("ریست حجم", AppIcon.Reset, theme.lamp.primary) { onResetUsage() }
+                BulkActionChip("ریست حجم", AppIcon.Reset, theme.accentPrimary) { onResetUsage() }
                 BulkActionChip("اعمال تمپلت", AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
+                BulkActionChip("خروجی", AppIcon.Download, GlassGreen) { onExport() }
                 BulkActionChip("حذف همه", AppIcon.Delete, GlassRed) { onDelete() }
             }
         }
