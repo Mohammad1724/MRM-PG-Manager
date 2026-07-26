@@ -20,6 +20,8 @@ object NotificationHelper {
     }
 
     fun post(context: Context, id: Int, channel: String, title: String, message: String) {
+        // بدون مجوز اعلان (ردشده در اندروید ۱۳+) هیچ اقدامی نمی‌کنیم تا برنامه کرش نکند.
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         ensureChannels(context)
         val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_launcher)
