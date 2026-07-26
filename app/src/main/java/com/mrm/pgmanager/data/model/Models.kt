@@ -49,9 +49,31 @@ data class UserTemplateItem(
     val expireDuration: Long? = null
 )
 
-enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED }
+enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED, DEBTOR }
 enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
 enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
+
+data class DebtorInfo(
+    val username: String,
+    val baseUrl: String,
+    val amount: Long,
+    val currency: String = "تومان",
+    val markedAt: Long,
+    val notes: String = "",
+    val autoDisabled: Boolean = false,
+    val userId: Long = 0L
+) {
+    fun isOverdue(afterHours: Int): Boolean {
+        if (afterHours <= 0) return false
+        val deadline = markedAt + afterHours * 3600_000L
+        return System.currentTimeMillis() > deadline
+    }
+    fun overdueHours(afterHours: Int): Int {
+        if (!isOverdue(afterHours)) return 0
+        val diff = System.currentTimeMillis() - (markedAt + afterHours * 3600_000L)
+        return (diff / 3600_000L).toInt()
+    }
+}
 
 /** الگوی ساخت نام کاربری خودکار؛ هم برای دکمهٔ تصادفی فرم و هم برای ساخت گروهی. */
 data class UsernamePattern(
