@@ -83,4 +83,16 @@ class SessionStore(context: Context) {
     }.getOrDefault(emptyMap())
 
     fun saveNotificationStates(states: Map<Long, String>) = prefs.edit().putString("notification_user_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
+
+    /** فلگ‌های latch اعلان‌ها (برای جلوگیری از اسپمِ هشدارهای مکرر در Worker). */
+    fun readAlertFlag(key: String): Boolean = prefs.getBoolean("alert_$key", false)
+    fun saveAlertFlag(key: String, value: Boolean) = prefs.edit().putBoolean("alert_$key", value).apply()
+
+    /** آخرین وضعیت آنلاین/آفلاین نودها برای تشخیص تغییر در پس‌زمینه. */
+    fun readNodeStates(): Map<Int, Boolean> = runCatching {
+        val obj = org.json.JSONObject(prefs.getString("node_states", "{}") ?: "{}")
+        obj.keys().asSequence().associate { it.toInt() to obj.getBoolean(it) }
+    }.getOrDefault(emptyMap())
+
+    fun saveNodeStates(states: Map<Int, Boolean>) = prefs.edit().putString("node_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
 }
