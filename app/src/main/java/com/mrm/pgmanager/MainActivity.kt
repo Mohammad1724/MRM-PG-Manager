@@ -180,6 +180,26 @@ fun MRMApp() {
                 onLogout = { store.clear(); session = null; isUnlocked = false }
             )
         } else {
+            // فعال‌سازی قفل از هر دو مسیر (تنظیمات داشبورد / کاربران) با تأیید بیومتریک انجام می‌شود.
+            val handleAppLockChange: (Boolean) -> Unit = { enabled ->
+                if (enabled && activity != null) {
+                    authenticateBiometric(
+                        activity = activity,
+                        title = "تایید فعال‌سازی قفل",
+                        subtitle = "برای فعال‌سازی قفل برنامه، اثر انگشت خود را تایید کنید",
+                        onSuccess = {
+                            store.saveAppLock(true)
+                            isAppLockEnabled = true
+                        },
+                        onError = {
+                            Toast.makeText(context, "فعال‌سازی قفل لغو یا ناموفق بود", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                } else {
+                    store.saveAppLock(false)
+                    isAppLockEnabled = false
+                }
+            }
             Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
                 Box(Modifier.fillMaxSize()) {
                     if (selectedTab == 0) DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
@@ -190,25 +210,7 @@ fun MRMApp() {
                 monitoringSettings = monitoringSettings,
                 onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
                 isAppLockEnabled = isAppLockEnabled,
-                onAppLockChange = { enabled ->
-                    if (enabled && activity != null) {
-                        authenticateBiometric(
-                            activity = activity,
-                            title = "تایید فعال‌سازی قفل",
-                            subtitle = "برای فعال‌سازی قفل برنامه، اثر انگشت خود را تایید کنید",
-                            onSuccess = {
-                                store.saveAppLock(true)
-                                isAppLockEnabled = true
-                            },
-                            onError = {
-                                Toast.makeText(context, "فعال‌سازی قفل لغو یا ناموفق بود", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    } else {
-                        store.saveAppLock(false)
-                        isAppLockEnabled = false
-                    }
-                }
+                onAppLockChange = handleAppLockChange
             )
                 }
                 AnimatedVisibility(
@@ -225,7 +227,7 @@ fun MRMApp() {
                         }
                     }
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = { enabled -> store.saveAppLock(enabled); isAppLockEnabled = enabled }, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false })
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false })
             }
         }
     }
