@@ -3,7 +3,6 @@ package com.mrm.pgmanager.ui.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -28,7 +27,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -47,6 +45,7 @@ import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.glassBorder
 import androidx.compose.ui.focus.onFocusChanged
 
 @Composable
@@ -102,17 +101,21 @@ fun ExitIcon() {
     }
 }
 
+// === دکمه‌های یکدست برنامه — همان زبان بصری پنجرهٔ تنظیمات ===
+// سه حالت: primary (کپسول توپُر اکسنت ۷۸٪ + متن تیره)، neutral (کاشی خاکستری searchBg + مرز ظریف)،
+// danger (کاشی قرمز کم‌رنگ + مرز و متن قرمز). انیمیشن فشاری در همه حفظ شده است.
+
 @Composable
-fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false) {
+fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false, size: Dp = 42.dp) {
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.88f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "iconScale")
     Box(
-        modifier = modifier.size(42.dp).graphicsLayer(scaleX = scale, scaleY = scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (isRed) Color(0xFFFFF2F2).copy(alpha = if (theme.isDark) 0.18f else 0.85f) else if (theme.isDark) Color.White.copy(0.12f) else Color.White.copy(alpha = 0.72f))
-            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, if (isRed) Color(0xFFF2BABA) else if (theme.isDark) Color.White.copy(0.26f) else Color.White.copy(0.9f)), RoundedCornerShape(14.dp))
+        modifier = modifier.size(size).graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
+            .clip(RoundedCornerShape(size / 3f))
+            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
+            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { icon() }
@@ -123,23 +126,15 @@ fun GlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val glowAlpha by animateFloatAsState(targetValue = if (isPressed && enabled) 0.65f else 0.18f, animationSpec = tween(140), label = "btnGlow")
     val boxScale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.93f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "btnScale")
-    val baseBg = if (isRed) {
-        if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
-    } else {
-        if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
-    }
-    val activeColor = if (isRed) GlassRed else theme.accentPrimary
-    val borderColor = if (isPressed && enabled) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
-        modifier = modifier.height(46.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
-            .clip(RoundedCornerShape(16.dp)).background(baseBg)
-            .border(BorderStroke(if (isPressed && enabled) 1.6.dp else 1.2.dp, borderColor), RoundedCornerShape(16.dp))
+        modifier = modifier.height(46.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale, alpha = if (enabled) 1f else 0.55f)
+            .clip(RoundedCornerShape(13.dp))
+            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
+            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(activeColor.copy(alpha = glowAlpha), activeColor.copy(alpha = glowAlpha * 0.35f), Color.Transparent))))
         Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -149,23 +144,15 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val glowAlpha by animateFloatAsState(targetValue = if (isPressed) 0.65f else 0.18f, animationSpec = tween(140), label = "miniGlow")
     val boxScale by animateFloatAsState(targetValue = if (isPressed) 0.91f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "miniScale")
-    val baseBg = if (isRed) {
-        if (theme.isDark) Color(0xFF3D1E1E).copy(alpha = 0.88f) else Color(0xFFFFF0F0).copy(alpha = 0.92f)
-    } else {
-        if (theme.isDark) Color(0xFF2A2A32).copy(alpha = 0.88f) else Color.White.copy(alpha = 0.86f)
-    }
-    val activeColor = if (isRed) GlassRed else theme.accentPrimary
-    val borderColor = if (isPressed) SolidColor(activeColor) else if (isRed) SolidColor(GlassRed.copy(alpha = 0.65f)) else SolidColor(if (theme.isDark) Color.White.copy(.20f) else Color(0xFFD7D8DD))
     Box(
         modifier = modifier.height(26.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
-            .clip(RoundedCornerShape(8.dp)).background(baseBg)
-            .border(BorderStroke(if (isPressed) 1.2.dp else 0.8.dp, borderColor), RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
+            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(activeColor.copy(alpha = glowAlpha), activeColor.copy(alpha = glowAlpha * 0.3f), Color.Transparent))))
         Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 7.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -176,11 +163,11 @@ fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.94f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "saveScale")
+    // دکمهٔ اصلی: دقیقاً همان کپسول توپُرِ آیتمِ انتخاب‌شدهٔ تنظیمات (بدون مرز).
     Box(
-        modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
+        modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
             .clip(RoundedCornerShape(13.dp))
             .background(theme.accentPrimary.copy(alpha = .78f))
-            .border(BorderStroke(if (isPressed) 1.6.dp else 1.dp, theme.accentPrimary.copy(if (isPressed) .72f else .60f)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -195,11 +182,12 @@ fun MutedCancelButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(targetValue = if (isPressed) 0.94f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "cancelScale")
+    // دکمهٔ خنثی: همان کاشی خاکستریِ آیتم‌های غیرفعالِ سگمنت تنظیمات.
     Box(
         modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.06f))
-            .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(0.18f) else Color.Black.copy(0.12f)), RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(13.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -267,16 +255,17 @@ fun UltraPremiumField(
                 }
 
                 if (isPassword) {
+                    // دکمهٔ «چشم»: مخفی/نمایش رمز عبور فعال باقی می‌ماند؛ ظاهرش کاشی خاکستریِ خنثیِ design system است.
                     Box(
                         Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
-                            .background(if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.05f))
+                            .background(theme.searchBgColor)
                             .clickable { passwordVisible = !passwordVisible },
                         contentAlignment = Alignment.Center
                     ) { PasswordEyeIcon(visible = passwordVisible) }
                 } else if (value.isNotEmpty()) {
                     Box(
                         Modifier.size(28.dp).clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(if (theme.isDark) 0.14f else 0.70f))
+                            .background(theme.searchBgColor)
                             .clickable { onValueChange("") },
                         contentAlignment = Alignment.Center
                     ) { Text("×", color = theme.mutedColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
@@ -314,7 +303,7 @@ fun BulkActionsBar(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(if (theme.isDark) theme.dialogBgColor.copy(alpha = 0.96f) else Color(0xFFFCF9F0).copy(alpha = 0.96f))
+            .background(if (theme.isDark) theme.dialogBgColor.copy(alpha = 0.96f) else theme.cardSurfaceColor.copy(alpha = 0.96f))
             .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
             .padding(10.dp)
     ) {
@@ -322,10 +311,10 @@ fun BulkActionsBar(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 17.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(0.14f)).clickable { onSelectAll() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
+                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { onSelectAll() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
                         Text("انتخاب همه", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.12f)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
+                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.10f)).border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(8.dp)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
                         Text("× لغو", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                     }
                 }
@@ -344,12 +333,13 @@ fun BulkActionsBar(
 
 @Composable
 private fun BulkActionChip(label: String, icon: AppIcon, color: Color, onClick: () -> Unit) {
+    // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (bg یک دهم + مرز یک چهارم).
     Box(
         Modifier
             .height(30.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(color.copy(alpha = 0.14f))
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.24f)), RoundedCornerShape(9.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = 0.10f))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.26f)), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
