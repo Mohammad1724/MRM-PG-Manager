@@ -15,6 +15,9 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
         if (!settings.notificationsEnabled) return Result.success()
         return runCatching {
             val stats = PanelApi.systemStats(session)
+            // اتصال برقرار شد → latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
+            store.saveAlertFlag("panel_offline", false)
+            store.saveAlertFlag("auth_expired", false)
             val oldStates = store.readNotificationStates()
             val users = PanelApi.users(session)
             val newStates = users.associate { user ->
@@ -33,17 +36,54 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 if (settings.notifyNearExpiry && now.substringAfterLast("|").toBoolean() && !old.substringAfterLast("|").toBoolean()) notify("near_expiry", "هشدار انقضا", "اشتراک ${user.username} نزدیک به انقضا است")
             }
             store.saveNotificationStates(newStates)
+
+            // وضعیت نودها: تغییر آنلاین/آفلاین در پس‌زمینه هم هشدار می‌دهد (baseline ذخیره می‌شود).
+            runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+                val oldNodes = store.readNodeStates()
+                if (settings.notifyNodeOffline && oldNodes.isNotEmpty()) states.forEach { (id, online) ->
+                    val prev = oldNodes[id]
+                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود شماره $id در دسترس نیست")
+                    if (prev == false && online) NotificationHelper.post(applicationContext, 6200 + id, NotificationHelper.CHANNEL_SYSTEM, "نود دوباره آنلاین شد", "نود شماره $id دوباره در دسترس است")
+                }
+                store.saveNodeStates(states)
+            }
+
+            // هشدار سلامت سیستم با latch: تا وقتی شرط برقرار است فقط یک‌بار هشدار می‌دهیم؛
+            // با برطرف‌شدن شرط، latch آزاد می‌شود تا هشدار بعدی دوباره صادر شود.
             if (settings.notifySystemHealth) {
-                if (stats.cpuUsage >= settings.cpuThreshold) NotificationHelper.post(applicationContext, 5101, NotificationHelper.CHANNEL_SYSTEM, "هشدار CPU", "مصرف CPU به ${"%.1f".format(stats.cpuUsage)}٪ رسیده است")
+                fun healthAlert(key: String, id: Int, title: String, body: String, condition: Boolean) {
+                    if (condition && !store.readAlertFlag(key)) {
+                        NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body)
+                    }
+                    store.saveAlertFlag(key, condition)
+                }
                 val ram = if (stats.memTotal > 0) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
-                if (ram >= settings.ramThreshold) NotificationHelper.post(applicationContext, 5102, NotificationHelper.CHANNEL_SYSTEM, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است")
                 val disk = if (stats.diskTotal > 0) (stats.diskUsed * 100 / stats.diskTotal).toInt() else 0
-                if (disk >= settings.diskThreshold) NotificationHelper.post(applicationContext, 5103, NotificationHelper.CHANNEL_SYSTEM, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است")
+                healthAlert("cpu", 5101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(stats.cpuUsage)}٪ رسیده است", stats.cpuUsage >= settings.cpuThreshold)
+                healthAlert("ram", 5102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است", ram >= settings.ramThreshold)
+                healthAlert("disk", 5103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است", disk >= settings.diskThreshold)
             }
             Result.success()
-        }.getOrElse {
-            if (settings.notifyPanelOffline) NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "بررسی دوره‌ای نتوانست به پنل PasarGuard متصل شود")
-            Result.retry()
+        }.getOrElse { e ->
+            val msg = e.message.orEmpty()
+            when {
+                // توکن منقضی شده: اسپم نمی‌کنیم؛ فقط یک‌بار اطلاع و توقف retry.
+                msg.contains("401") -> {
+                    if (!store.readAlertFlag("auth_expired")) {
+                        NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, "نشست منقضی شد", "برای ادامهٔ پایش، برنامه را باز کنید و دوباره وارد شوید")
+                        store.saveAlertFlag("auth_expired", true)
+                    }
+                    Result.success()
+                }
+                else -> {
+                    // آفلاین‌بودن پنل هم با latch اطلاع داده می‌شود، نه هر ۱۵ دقیقه.
+                    if (settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) {
+                        NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "بررسی دوره‌ای نتوانست به پنل PasarGuard متصل شود")
+                        store.saveAlertFlag("panel_offline", true)
+                    }
+                    Result.retry()
+                }
+            }
         }
     }
 }
