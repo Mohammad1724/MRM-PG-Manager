@@ -576,6 +576,8 @@ fun UsersScreen(
     onLogout: () -> Unit,
     themeState: ThemeState,
     onThemeChange: (ThemeState) -> Unit,
+    monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
+    onMonitoringChange: (com.mrm.pgmanager.data.model.MonitoringSettings) -> Unit = {},
     isAppLockEnabled: Boolean = false,
     onAppLockChange: (Boolean) -> Unit = {}
 ) {
@@ -964,7 +966,11 @@ fun UsersScreen(
             onDismiss = { showThemeDialog = false },
             onThemeChange = onThemeChange,
             onAppLockChange = onAppLockChange,
-            appVersion = BuildConfig.VERSION_NAME
+            monitoringSettings = monitoringSettings,
+            onMonitoringChange = onMonitoringChange,
+            appVersion = BuildConfig.VERSION_NAME,
+            session = session,
+            onLogout = { onLogout(); showThemeDialog = false }
         )
     }
     selectedUser?.let { user ->
