@@ -156,7 +156,7 @@ fun ThemeEditorDialog(
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp); Text("تنظیمات", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = theme.inkColor) }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("ظاهر", "بروزرسانی", "اعلان‌ها", "امنیت").forEach { label ->
+                    listOf("ظاهر", "پایش", "اعلان‌ها", "امنیت").forEach { label ->
                         val selected = section == label
                         Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (selected) theme.lamp.primary.copy(.72f) else Color.Black.copy(.04f)).clickable { section = label }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                             Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.inkColor)
@@ -170,13 +170,13 @@ fun ThemeEditorDialog(
                     ModeToggleBtn("خودکار", AppIcon.AutoMode, themeState.followSystem, Modifier.weight(1f)) { onThemeChange(themeState.copy(followSystem = true)) }
                 }
                 }
-                if (section == "بروزرسانی") {
+                if (section == "پایش") {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF7F7F8)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("بروزرسانی خودکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text("پایش خودکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     var seconds by remember(monitoringSettings.refreshIntervalSeconds) { mutableStateOf(monitoringSettings.refreshIntervalSeconds.toString()) }
                     Row(verticalAlignment = Alignment.CenterVertically) { Text("فعال", Modifier.weight(1f), fontSize = 10.sp, color = theme.mutedColor); Switch(checked = monitoringSettings.autoRefreshEnabled, onCheckedChange = { onMonitoringChange(monitoringSettings.copy(autoRefreshEnabled = it)) }) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("فاصله", fontSize = 10.sp, color = theme.mutedColor)
+                        Text("فاصله پایش", fontSize = 10.sp, color = theme.mutedColor)
                         Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(8.dp)).background(if (theme.isDark) Color(0xFF303038) else Color.White).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) { BasicTextField(seconds, { value -> seconds = value.filter(Char::isDigit); value.toIntOrNull()?.coerceIn(5, 3600)?.let { onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it)) } }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxWidth()) }
                         Text("ثانیه", fontSize = 10.sp, color = theme.mutedColor)
                     }
