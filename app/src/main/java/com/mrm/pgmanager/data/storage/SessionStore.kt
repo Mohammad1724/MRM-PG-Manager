@@ -147,7 +147,12 @@ class SessionStore(context: Context) {
         notifyNodeOffline = prefs.getBoolean("notify_node_offline", true),
         offlineCacheEnabled = prefs.getBoolean("offline_cache", true),
         notifyCapacity = prefs.getBoolean("notify_capacity", false),
-        capacityOnlineLimit = prefs.getInt("capacity_online", 500)
+        capacityOnlineLimit = prefs.getInt("capacity_online", 500),
+        debtorAutoDisableEnabled = prefs.getBoolean("debtor_auto_disable", false),
+        debtorAutoDisableAfterHours = prefs.getInt("debtor_auto_hours", 24).coerceIn(1, 720),
+        notifyDebtor = prefs.getBoolean("notify_debtor", true),
+        notifyDebtorOverdue = prefs.getBoolean("notify_debtor_overdue", true),
+        debtorCurrency = prefs.getString("debtor_currency", "تومان") ?: "تومان"
     )
 
     fun saveMonitoringSettings(v: MonitoringSettings) = prefs.edit()
@@ -155,7 +160,11 @@ class SessionStore(context: Context) {
         .putBoolean("notify_enabled", v.notificationsEnabled).putBoolean("notify_actions", v.notifyUserActions).putBoolean("notify_limited", v.notifyLimited).putBoolean("notify_expired", v.notifyExpired)
         .putBoolean("notify_near_limit", v.notifyNearLimit).putInt("notify_limit_percent", v.nearLimitPercent).putBoolean("notify_near_expiry", v.notifyNearExpiry).putInt("notify_expiry_days", v.nearExpiryDays)
         .putBoolean("notify_system", v.notifySystemHealth).putInt("notify_cpu", v.cpuThreshold).putInt("notify_ram", v.ramThreshold).putInt("notify_disk", v.diskThreshold).putBoolean("notify_panel_offline", v.notifyPanelOffline).putBoolean("notify_node_offline", v.notifyNodeOffline)
-        .putBoolean("offline_cache", v.offlineCacheEnabled).putBoolean("notify_capacity", v.notifyCapacity).putInt("capacity_online", v.capacityOnlineLimit).apply()
+        .putBoolean("offline_cache", v.offlineCacheEnabled).putBoolean("notify_capacity", v.notifyCapacity).putInt("capacity_online", v.capacityOnlineLimit)
+        .putBoolean("debtor_auto_disable", v.debtorAutoDisableEnabled).putInt("debtor_auto_hours", v.debtorAutoDisableAfterHours.coerceIn(1,720))
+        .putBoolean("notify_debtor", v.notifyDebtor).putBoolean("notify_debtor_overdue", v.notifyDebtorOverdue)
+        .putString("debtor_currency", v.debtorCurrency)
+        .apply()
 
     fun readNotificationStates(): Map<Long, String> = runCatching {
         val obj = org.json.JSONObject(prefs.getString("notification_user_states", "{}") ?: "{}")
@@ -239,5 +248,69 @@ class SessionStore(context: Context) {
                 incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
             ) to ts
         }.getOrNull()
+    }
+
+    // === بدهکاران ===
+    fun debtorKey(baseUrl: String, username: String): String = "$baseUrl|$username"
+
+    fun readDebtors(): Map<String, com.mrm.pgmanager.data.model.DebtorInfo> = runCatching {
+        val raw = prefs.getString("debtors", "[]") ?: "[]"
+        val arr = org.json.JSONArray(raw)
+        val map = mutableMapOf<String, com.mrm.pgmanager.data.model.DebtorInfo>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val username = o.optString("username"); if (username.isBlank()) continue
+            val baseUrl = o.optString("baseUrl").ifBlank { o.optString("base_url") }
+            if (baseUrl.isBlank()) continue
+            val info = com.mrm.pgmanager.data.model.DebtorInfo(
+                username = username,
+                baseUrl = baseUrl,
+                amount = o.optLong("amount", 0L),
+                currency = o.optString("currency", "تومان").ifBlank { "تومان" },
+                markedAt = o.optLong("markedAt", o.optLong("marked_at", System.currentTimeMillis())),
+                notes = o.optString("notes", o.optString("note", "")),
+                autoDisabled = o.optBoolean("autoDisabled", o.optBoolean("auto_disabled", false)),
+                userId = o.optLong("userId", o.optLong("user_id", 0L))
+            )
+            map[debtorKey(baseUrl, username)] = info
+        }
+        map
+    }.getOrDefault(emptyMap())
+
+    fun saveDebtors(map: Map<String, com.mrm.pgmanager.data.model.DebtorInfo>) {
+        val arr = org.json.JSONArray()
+        map.values.forEach { d ->
+            arr.put(org.json.JSONObject().apply {
+                put("username", d.username)
+                put("baseUrl", d.baseUrl)
+                put("amount", d.amount)
+                put("currency", d.currency)
+                put("markedAt", d.markedAt)
+                put("notes", d.notes)
+                put("autoDisabled", d.autoDisabled)
+                put("userId", d.userId)
+            })
+        }
+        prefs.edit().putString("debtors", arr.toString()).apply()
+    }
+
+    fun getDebtor(baseUrl: String, username: String): com.mrm.pgmanager.data.model.DebtorInfo? {
+        return readDebtors()[debtorKey(baseUrl, username)]
+    }
+
+    fun setDebtor(info: com.mrm.pgmanager.data.model.DebtorInfo) {
+        val map = readDebtors().toMutableMap()
+        map[debtorKey(info.baseUrl, info.username)] = info
+        saveDebtors(map)
+    }
+
+    fun removeDebtor(baseUrl: String, username: String) {
+        val map = readDebtors().toMutableMap()
+        map.remove(debtorKey(baseUrl, username))
+        saveDebtors(map)
+    }
+
+    fun readDebtorsForBase(baseUrl: String): List<com.mrm.pgmanager.data.model.DebtorInfo> {
+        return readDebtors().values.filter { it.baseUrl == baseUrl }
     }
 }
