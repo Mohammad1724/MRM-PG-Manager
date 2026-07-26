@@ -28,6 +28,7 @@ import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppLogo
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.UltraPremiumField
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
@@ -104,10 +105,10 @@ fun LoginScreen(
                             }
                         }
 
-                        // FIX: Button flat, no gradient with alpha, pure solid - no inner rectangle
+                        // دکمهٔ اصلی ورود: همان کپسول توپُرِ اکسنتِ design system (بدون گرادیان).
                         Box(
                             Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp))
-                                .background(theme.accentPrimary)
+                                .background(theme.accentPrimary.copy(alpha = .78f))
                                 .clickable(enabled = !loading) {
                                     if (loading) return@clickable
                                     loading = true; error = null
@@ -173,14 +174,13 @@ fun LoginScreen(
                         Text("PASARGUARD", fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     }
                 }
-                // Extra big clickable area
-                Box(
-                    Modifier.size(52.dp).clip(RoundedCornerShape(14.dp))
-                        .background(Color.White.copy(alpha = if (theme.isDark) 0.18f else 0.9f))
-                        .border(BorderStroke(1.5.dp, theme.accentPrimary.copy(0.4f)), RoundedCornerShape(14.dp))
-                        .clickable { showThemeDialog = true }.zIndex(10f),
-                    contentAlignment = Alignment.Center
-                ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp) }
+                // دکمهٔ تنظیمات ورود: همان کاشی خاکستریِ خنثیِ یکدستِ کل برنامه.
+                ActionIconButton(
+                    icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp) },
+                    onClick = { showThemeDialog = true },
+                    size = 52.dp,
+                    modifier = Modifier.zIndex(10f)
+                )
             }
 
             if (showThemeDialog) ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME)
