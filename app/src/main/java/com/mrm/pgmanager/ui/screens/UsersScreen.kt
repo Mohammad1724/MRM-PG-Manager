@@ -77,6 +77,7 @@ import com.mrm.pgmanager.utils.lastSeenShort
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.NotificationHelper
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
