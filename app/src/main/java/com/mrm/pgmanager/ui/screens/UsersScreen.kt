@@ -121,6 +121,29 @@ private fun daysLeftText(expire: String?): String {
 
 private fun daysLeftFull(expire: String?): String = daysLeftText(expire)
 
+private fun formatDebtorAmount(amount: Long): String {
+    return when {
+        amount >= 1_000_000_000L -> "${amount/1_000_000_000L}B"
+        amount >= 1_000_000L -> "${amount/1_000_000L}M"
+        amount >= 1_000L -> "${amount/1_000L}k"
+        else -> "$amount"
+    }
+}
+
+@Composable
+private fun DebtorBadge(debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo, compact: Boolean = false) {
+    val amountText = if (debtorInfo.amount>0) " ${formatDebtorAmount(debtorInfo.amount)} ${debtorInfo.currency}" else ""
+    Box(
+        Modifier.height(if (compact) 17.dp else 20.dp).clip(RoundedCornerShape(if (compact) 5.dp else 6.dp))
+            .background(GlassRed.copy(0.13f))
+            .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(if (compact) 5.dp else 6.dp))
+            .padding(horizontal = if (compact) 4.dp else 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("بدهکار$amountText", fontSize = if (compact) 6.5.sp else 8.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
 private fun cardStatusText(user: PanelUser): String = when (user.status) {
     "disabled" -> "غیرفعال"
@@ -206,7 +229,8 @@ private fun StatsCardsRow(
     totalUsers: Int,
     activeUsers: Int,
     onlineUsers: Int,
-    totalUsedTraffic: Long
+    totalUsedTraffic: Long,
+    debtorCount: Int = 0
 ) {
     val theme = LocalThemeState.current
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -215,12 +239,17 @@ private fun StatsCardsRow(
             StatGlassCard(icon = AppIcon.User, label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
             StatGlassCard(icon = AppIcon.Check, label = "کاربران فعال", value = "$activeUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
         }
-        StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
+            if (debtorCount > 0) {
+                StatGlassCard(icon = AppIcon.Warning, label = "بدهکار", value = "$debtorCount", accent = GlassRed, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 
 @Composable
-private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: com.mrm.pgmanager.data.model.UserSort, onSortChange: (com.mrm.pgmanager.data.model.UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, users: List<PanelUser>) {
+private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: com.mrm.pgmanager.data.model.UserSort, onSortChange: (com.mrm.pgmanager.data.model.UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, users: List<PanelUser>, debtorCount: Int = 0) {
     val theme = LocalThemeState.current
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -229,6 +258,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             FilterChipItem("لب مرز", currentFilter == UserFilter.NEAR_LIMIT, onClick = { onFilterChange(UserFilter.NEAR_LIMIT) })
             FilterChipItem("منقضی", currentFilter == UserFilter.EXPIRED, onClick = { onFilterChange(UserFilter.EXPIRED) })
             FilterChipItem("غیرفعال", currentFilter == UserFilter.DISABLED, onClick = { onFilterChange(UserFilter.DISABLED) })
+            FilterChipItem(if (debtorCount > 0) "بدهکار ($debtorCount)" else "بدهکار", currentFilter == UserFilter.DEBTOR, onClick = { onFilterChange(UserFilter.DEBTOR) })
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -314,17 +344,17 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 }
 
 // FIX 2: Online dot
-// FIX 3: GB / GB and days left
+// FIX 3: GB / GB and days left + Debtor badge
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f)
-    val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val statusColor = when (user.status) { "active" -> GlassGreen; "disabled" -> Color(0xFF8A8A8A); "expired" -> GlassRed; "limited" -> GlassAmber; "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
+    val progressColor = when { debtorInfo != null -> GlassRed; user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
+    val statusColor = when { debtorInfo != null -> GlassRed; user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
@@ -349,6 +379,11 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                debtorInfo?.let { d ->
+                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(GlassRed.copy(0.14f)).border(BorderStroke(0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                        Text("بدهکار ${if (d.amount>0) formatDebtorAmount(d.amount) else ""}", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1)
+                    }
+                }
                 if (user.subUrl.isNotBlank()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -460,19 +495,18 @@ private fun UserCardAction(
 }
 
 /**
- * کارت استاندارد فهرست موبایل.
- * هر بخشِ حساس به طول متن در ستون خودش قرار دارد؛ اکشن‌ها عرض ثابت دارند و
- * نام کاربر فقط در فضای خودش کوتاه می‌شود، بنابراین هیچ‌وقت QR/کپی جابه‌جا یا بریده نمی‌شوند.
+ * کارت استاندارد فهرست موبایل - با پشتیبانی بدهکار.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val shownProgress = if (user.dataLimit > 0) actualProgress else .035f
     val progressPercent = (actualProgress * 100).roundToInt()
     val progressColor = when {
+        debtorInfo != null -> GlassRed
         user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen
         progressPercent < 90 -> GlassAmber
         else -> GlassRed
@@ -495,7 +529,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 Text(
                     user.username,
                     // عرض ثابت، بج وضعیت را بدون فاصلهٔ کش‌دار دقیقاً کنار نام نگه می‌دارد.
-                    modifier = Modifier.width(125.dp),
+                    modifier = Modifier.width(100.dp),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = theme.inkColor,
@@ -504,9 +538,17 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 )
                 // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
                 UserStatusBadge(user, Modifier.width(42.dp))
+                debtorInfo?.let { DebtorBadge(it) }
                 if (user.subUrl.isNotBlank()) {
                     UserCardAction("کپی", Modifier.width(46.dp)) { copySubscription(context, user) }
                     UserCardAction("QR", Modifier.width(40.dp)) { onQrClick(user) }
+                }
+            }
+            debtorInfo?.let { d ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(6.dp)).background(GlassRed.copy(0.12f)).border(BorderStroke(0.8.dp, GlassRed.copy(0.28f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                        Text("بدهکار: ${formatDebtorAmount(d.amount)} ${d.currency} - ${java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(d.markedAt))}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1)
+                    }
                 }
             }
 
@@ -536,11 +578,11 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}) {
+private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
-    val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
+    val progressColor = when { debtorInfo != null -> GlassRed; user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
     // ردیف داده‌ای فشرده: سطح سفید، border ظریف و ستون‌های ثابت؛ نزدیک به جدول Users پنل.
@@ -549,21 +591,19 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
-            Column(Modifier.width(76.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                // نام کمی پایین‌تر و فعالیت با فاصلهٔ فشرده‌تر دقیقاً زیر آن قرار می‌گیرد.
+            Column(Modifier.width(60.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 6.8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
             // بج وضعیت در جای طبیعی خودش، بلافاصله بعد از نام قرار دارد.
             UserStatusBadge(user, Modifier.width(28.dp), compact = true)
+            debtorInfo?.let { DebtorBadge(it, compact = true) }
             // تنها ستون انعطاف‌پذیر ردیف است: فضای آزاد را می‌گیرد، نوار بلندتر می‌شود
-            // و اکشن‌ها دقیقاً به لبهٔ راست کارت می‌چسبند.
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(traffic, fontSize = 7.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                     Text(daysLeftText(user.expire), fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1)
                 }
-                // نوار مصرف کمی بالاتر قرار گرفته تا با نام و بج وضعیت تراز بصری بهتری داشته باشد.
                 Box(Modifier.fillMaxWidth().offset(y = (-8).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
@@ -571,6 +611,76 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             if (user.subUrl.isNotBlank()) {
                 RowAction("کپی", Modifier.width(36.dp), 22.dp) { copySubscription(context, user) }
                 RowAction("QR", Modifier.width(32.dp), 22.dp) { onQrClick(user) }
+            }
+        }
+    }
+}
+
+@Composable
+fun DebtorEditDialog(
+    user: PanelUser,
+    existing: com.mrm.pgmanager.data.model.DebtorInfo?,
+    currency: String = "تومان",
+    onDismiss: () -> Unit,
+    onSave: (amount: Long, notes: String) -> Unit,
+    onClear: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
+    var notes by remember { mutableStateOf(existing?.notes ?: "") }
+    val amountLong = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    Dialog(onDismissRequest = onDismiss) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (existing != null) "ویرایش بدهی ${user.username}" else "ثبت بدهکار برای ${user.username}", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                if (existing != null) {
+                    Text("ثبت شده: ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))}", fontSize = 10.sp, color = theme.mutedColor)
+                }
+                // فیلد مبلغ
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = amountText,
+                            onValueChange = { amountText = it.filter { c -> c.isDigit() } },
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                            textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f),
+                            decorationBox = { inner ->
+                                if (amountText.isEmpty()) Text("مبلغ بدهی (مثلاً 50000)", color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+                                inner()
+                            }
+                        )
+                    }
+                }
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = notes,
+                        onValueChange = { notes = it.take(200) },
+                        singleLine = false,
+                        textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { inner ->
+                            if (notes.isEmpty()) Text("یادداشت بدهی (اختیاری)", color = theme.mutedColor.copy(0.6f), fontSize = 11.sp)
+                            inner()
+                        }
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.mrm.pgmanager.ui.components.MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(42.dp))
+                    if (existing != null) {
+                        com.mrm.pgmanager.ui.components.GlassButton("تسویه ✅", onClick = { onClear() }, modifier = Modifier.weight(1f).height(42.dp))
+                    } else {
+                        Box(Modifier.weight(1f))
+                    }
+                }
+                com.mrm.pgmanager.ui.components.PrimarySaveButton(
+                    text = if (existing != null) "ذخیره تغییرات" else "ثبت بدهکار",
+                    enabled = amountLong >= 0,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    onClick = { onSave(amountLong, notes) }
+                )
             }
         }
     }
@@ -626,6 +736,17 @@ fun UsersScreen(
     var quickTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
     var quickTemplatesLoading by remember { mutableStateOf(true) }
     var quickTemplatesFailed by remember { mutableStateOf(false) }
+
+    // === بدهکاران ===
+    var debtors by remember { mutableStateOf<Map<String, com.mrm.pgmanager.data.model.DebtorInfo>>(store.readDebtors()) }
+    var debtorDialogUser by remember { mutableStateOf<PanelUser?>(null) }
+    var debtorEditAmount by remember { mutableStateOf("") }
+    var debtorEditNotes by remember { mutableStateOf("") }
+
+    fun reloadDebtors() { debtors = store.readDebtors() }
+    val debtorsForCurrentPanel = remember(debtors, session.baseUrl) { debtors.values.filter { it.baseUrl == session.baseUrl } }
+    val debtorByUsername = remember(debtorsForCurrentPanel) { debtorsForCurrentPanel.associateBy { it.username } }
+    val debtorCount = debtorsForCurrentPanel.size
 
     // Collapsing header state for the 4 top stat buttons/cards (Dynamic measurement = exact alignment & zero gaps)
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -748,7 +869,7 @@ fun UsersScreen(
         }
     }
 
-    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent) {
+    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent, debtorByUsername) {
         var list = users.filter { it.username.contains(query, ignoreCase = true) }
         list = when (currentFilter) {
             UserFilter.ALL -> list
@@ -756,6 +877,7 @@ fun UsersScreen(
             UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
             UserFilter.EXPIRED -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 1.0 || it.status == "expired" || it.status == "limited" }
             UserFilter.DISABLED -> list.filter { it.status == "disabled" }
+            UserFilter.DEBTOR -> list.filter { debtorByUsername.containsKey(it.username) }
         }
         when (currentSort) {
             com.mrm.pgmanager.data.model.UserSort.NAME -> list.sortedBy { it.username.lowercase() }
@@ -847,9 +969,21 @@ fun UsersScreen(
                         }
                     }
                     else -> when (viewMode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(processedUsers) { user -> LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }) } }
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                            items(processedUsers) { user ->
+                                LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                            }
+                        }
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                            items(processedUsers) { user ->
+                                LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                            }
+                        }
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                            items(processedUsers) { user ->
+                                LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                            }
+                        }
                     }
                 }
             }
@@ -902,13 +1036,13 @@ fun UsersScreen(
                             this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
                         }
                 ) {
-                    StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed)
+                    StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, totalUsedTraffic = totalUsed, debtorCount = debtorCount)
                 }
 
                 Spacer(Modifier.height(6.dp))
                 GlassSearchBar(query = query, onQueryChange = { query = it })
                 Spacer(Modifier.height(8.dp))
-                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it; store.saveViewMode(it) }, users = users)
+                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it; store.saveViewMode(it) }, users = users, debtorCount = debtorCount)
                 // بنر حالت آفلاین: فقط وقتی داده‌ها از کش محلی نمایش داده می‌شوند.
                 offlineAt?.let { cachedAt ->
                     Row(
@@ -1013,6 +1147,7 @@ fun UsersScreen(
     }
 
     quickActionUser?.let { u ->
+        val isDebtor = debtorByUsername.containsKey(u.username)
         QuickActionSheet(
             user = u,
             onDismiss = { quickActionUser = null },
@@ -1037,7 +1172,9 @@ fun UsersScreen(
                     PanelApi.modifyUser(session, u.username, u.dataLimit.toDouble() / 1073741824.0, newExpire, u.note ?: "", u.hwidLimit, u.groupIds)
                 }
             },
-            onDelete = { deleteUser = u }
+            onDelete = { deleteUser = u },
+            onDebtor = { debtorDialogUser = u },
+            isDebtor = isDebtor
         )
     }
 
@@ -1060,18 +1197,44 @@ fun UsersScreen(
         )
     }
     selectedUser?.let { user ->
-        UserDetailsDialog(user = user, onDismiss = { selectedUser = null }, onSave = { limitGb, expireShamsi ->
-            selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
-        }, onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } }, onDelete = { deleteUser = user; selectedUser = null }, onResetUsage = {
-            runAction(notification = "ریست حجم" to "مصرف ${user.username} صفر شد") { PanelApi.resetUsage(session, user.username) }
-        }, onResetExpiry = { days ->
-            runAction {
-                val newExpire = java.time.LocalDate.now().plusDays(days.toLong()).toString()
-                PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+        val dInfo = debtorByUsername[user.username]
+        UserDetailsDialog(
+            user = user,
+            onDismiss = { selectedUser = null },
+            onSave = { limitGb, expireShamsi ->
+                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
+            },
+            onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
+            onDelete = { deleteUser = user; selectedUser = null },
+            onResetUsage = {
+                runAction(notification = "ریست حجم" to "مصرف ${user.username} صفر شد") { PanelApi.resetUsage(session, user.username) }
+            },
+            onResetExpiry = { days ->
+                runAction {
+                    val newExpire = java.time.LocalDate.now().plusDays(days.toLong()).toString()
+                    PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+                }
+            },
+            onApplyTemplate = { templateId, note ->
+                selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
+            },
+            session = session,
+            debtorInfo = dInfo,
+            onMarkDebtor = { selectedUser = null; debtorDialogUser = user },
+            onClearDebt = {
+                // تسویه از داخل جزئیات
+                val wasAutoDisabled = dInfo?.autoDisabled ?: false
+                store.removeDebtor(session.baseUrl, user.username)
+                reloadDebtors()
+                selectedUser = null
+                android.widget.Toast.makeText(context, "بدهی تسویه شد", android.widget.Toast.LENGTH_SHORT).show()
+                if (wasAutoDisabled) {
+                    scope.launch {
+                        runCatching { PanelApi.setDisabled(session, user.username, false) }.onSuccess { load() }
+                    }
+                }
             }
-        },  onApplyTemplate = { templateId, note ->
-            selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
-        }, session = session)
+        )
     }
     // منوی ساخت: تکی یا گروهی
     if (createMenuOpen) {
@@ -1122,5 +1285,86 @@ fun UsersScreen(
     }
     qrUser?.let { user ->
         SubscriptionQrDialog(user = user, onDismiss = { qrUser = null })
+    }
+    debtorDialogUser?.let { u ->
+        val existing = debtorByUsername[u.username]
+        DebtorEditDialog(
+            user = u,
+            existing = existing,
+            currency = monitoringSettings.debtorCurrency,
+            onDismiss = { debtorDialogUser = null },
+            onSave = { amount, notes ->
+                val info = com.mrm.pgmanager.data.model.DebtorInfo(
+                    username = u.username,
+                    baseUrl = session.baseUrl,
+                    amount = amount,
+                    currency = monitoringSettings.debtorCurrency,
+                    markedAt = existing?.markedAt ?: System.currentTimeMillis(),
+                    notes = notes,
+                    autoDisabled = existing?.autoDisabled ?: false,
+                    userId = u.id
+                )
+                store.setDebtor(info)
+                reloadDebtors()
+                debtorDialogUser = null
+                android.widget.Toast.makeText(context, if (existing==null) "بدهکار ثبت شد" else "بدهی بروزرسانی شد", android.widget.Toast.LENGTH_SHORT).show()
+                // اگر قطع خودکار فعال است و زمان گذشته، فوراً چک کن
+                if (monitoringSettings.debtorAutoDisableEnabled) {
+                    val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
+                    if (over && u.status != "disabled") {
+                        scope.launch {
+                            runCatching { PanelApi.setDisabled(session, u.username, true) }.onSuccess {
+                                val updated = info.copy(autoDisabled = true)
+                                store.setDebtor(updated)
+                                reloadDebtors()
+                                android.widget.Toast.makeText(context, "کاربر بدهکار به صورت خودکار قطع شد", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            },
+            onClear = {
+                // تسویه: حذف بدهی و فعال‌سازی اگر قبلاً خودکار قطع شده
+                val wasAutoDisabled = debtorByUsername[u.username]?.autoDisabled ?: false
+                store.removeDebtor(session.baseUrl, u.username)
+                reloadDebtors()
+                debtorDialogUser = null
+                android.widget.Toast.makeText(context, "بدهی تسویه شد", android.widget.Toast.LENGTH_SHORT).show()
+                if (wasAutoDisabled) {
+                    scope.launch {
+                        runCatching { PanelApi.setDisabled(session, u.username, false) }.onSuccess {
+                            load()
+                            android.widget.Toast.makeText(context, "کاربر فعال شد", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        )
+    }
+    // بررسی خودکار بدهکاران برای قطع پس از X ساعت - هر بار که users لود می‌شود یا هر 60 ثانیه
+    LaunchedEffect(users, monitoringSettings.debtorAutoDisableEnabled, monitoringSettings.debtorAutoDisableAfterHours) {
+        if (!monitoringSettings.debtorAutoDisableEnabled) return@LaunchedEffect
+        // فقط اگر لیست کاربران موجود است
+        if (users.isEmpty()) return@LaunchedEffect
+        debtorsForCurrentPanel.forEach { d ->
+            if (!d.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)) return@forEach
+            if (d.autoDisabled) return@forEach
+            val pu = users.find { it.username == d.username } ?: return@forEach
+            if (pu.status == "disabled") {
+                // اگر قبلاً دستی غیرفعال شده، فقط فلگ را بزن
+                val updated = d.copy(autoDisabled = true)
+                store.setDebtor(updated)
+                reloadDebtors()
+                return@forEach
+            }
+            runCatching { PanelApi.setDisabled(session, d.username, true) }.onSuccess {
+                val updated = d.copy(autoDisabled = true)
+                store.setDebtor(updated)
+                reloadDebtors()
+                if (monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtorOverdue) {
+                    NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, "قطع خودکار بدهکار", "${d.username} پس از ${monitoringSettings.debtorAutoDisableAfterHours} ساعت بدهکاری قطع شد (${d.amount} ${d.currency})")
+                }
+            }
+        }
     }
 }
