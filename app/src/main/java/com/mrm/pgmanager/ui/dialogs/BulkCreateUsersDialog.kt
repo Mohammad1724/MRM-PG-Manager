@@ -125,7 +125,7 @@ fun BulkCreateUsersDialog(
                         Text("ساخت گروهی کاربر", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         Text("تولید چند کاربر هم‌زمان با نام یکدست", fontSize = 9.5.sp, color = theme.mutedColor)
                     }
-                    if (!running) Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(if (theme.isDark) Color.White.copy(.08f) else Color.Black.copy(.05f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 19.sp, color = theme.mutedColor) }
+                    if (!running) Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 19.sp, color = theme.mutedColor) }
                 }
 
                 if (!running && !done) {
@@ -161,7 +161,7 @@ fun BulkCreateUsersDialog(
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
-                                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.80f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                         Text(t.name, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (picked) Color(0xFF202124) else theme.inkColor, maxLines = 1)
                                     }
                                 }
