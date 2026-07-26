@@ -143,7 +143,6 @@ fun LoginScreen(
                                 Text("قفل اثرانگشت / پین برنامه", fontSize = 10.5.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
                                 Text("بعد از ورود به پنل: تنظیمات، تب «امنیت»، گزینهٔ «قفل امنیتی برنامه»", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text("", fontSize = 6.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
