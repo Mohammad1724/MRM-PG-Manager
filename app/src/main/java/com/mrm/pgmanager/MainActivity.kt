@@ -252,16 +252,25 @@ fun MRMApp() {
                 onAddAccount = { addingAccount = true }
             )
                 }
+                // تب‌بار پایین: دقیقاً همان کپسول سگمنت‌شدهٔ تب‌های تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
+                // منطق مخفی/پیداشدن هنگام اسکرول (AnimatedVisibility) بدون تغییر باقی مانده است.
                 AnimatedVisibility(
                     visible = showQuickTabs,
                     enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(animationSpec = androidx.compose.animation.core.tween(220)) { it / 2 },
                     exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + slideOutVertically(animationSpec = androidx.compose.animation.core.tween(180)) { it / 2 },
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        Modifier.clip(RoundedCornerShape(15.dp))
+                            .background(effectiveTheme.searchBgColor)
+                            .border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), RoundedCornerShape(15.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.accentPrimary.copy(.78f) else if (effectiveTheme.isDark) effectiveTheme.chromeBgColor.copy(alpha = 0.92f) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
-                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor)
+                            val selected = selectedTab == index
+                            Box(Modifier.width(90.dp).height(36.dp).clip(RoundedCornerShape(11.dp)).background(if (selected) effectiveTheme.accentPrimary.copy(.78f) else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else effectiveTheme.mutedColor)
                             }
                         }
                     }
