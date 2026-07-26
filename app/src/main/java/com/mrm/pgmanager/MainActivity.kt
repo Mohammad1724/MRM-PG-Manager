@@ -122,6 +122,11 @@ fun MRMApp() {
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var monitoringSettings by remember { mutableStateOf(store.readMonitoringSettings()) }
     var isUnlocked by remember { mutableStateOf(false) }
+    // مهلت قفل خودکار (ثانیه)؛ 0 یعنی قفل فوری هنگام خروج از برنامه.
+    var appLockTimeout by remember { mutableStateOf(store.readAppLockTimeoutSecs()) }
+    var lastStoppedAt by remember { mutableStateOf(0L) }
+    // حالت «افزودن حساب»: صفحهٔ ورود بدون پاک‌کردن نشست فعلی نمایش داده می‌شود.
+    var addingAccount by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
     var showDashboardSettings by remember { mutableStateOf(false) }
@@ -139,9 +144,19 @@ fun MRMApp() {
     val systemDark = isSystemInDarkTheme()
     val effectiveTheme = if (themeState.followSystem) themeState.copy(isDark = systemDark) else themeState
 
-    // پس از خروج اپ از foreground، در بازگشت دوباره قفل را نمایش بده.
-    DisposableEffect(activity, isAppLockEnabled) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START && isAppLockEnabled && session != null) isUnlocked = false }
+    // پس از خروج اپ از foreground، در بازگشت «با رعایت مهلت» دوباره قفل را نمایش بده.
+    // مهلت 0 = قفل فوری (رفتار قبلی)؛ در غیر این صورت فقط اگر از آخرین خروج بیشتر از مهلت گذشته باشد.
+    DisposableEffect(activity, isAppLockEnabled, session, appLockTimeout) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> if (isAppLockEnabled) lastStoppedAt = System.currentTimeMillis()
+                Lifecycle.Event.ON_START -> if (isAppLockEnabled && session != null) {
+                    val elapsedIfStopped = if (lastStoppedAt > 0L) System.currentTimeMillis() - lastStoppedAt else Long.MAX_VALUE
+                    if (appLockTimeout <= 0 || elapsedIfStopped > appLockTimeout * 1000L) isUnlocked = false
+                }
+                else -> {}
+            }
+        }
         activity?.lifecycle?.addObserver(observer)
         onDispose { activity?.lifecycle?.removeObserver(observer) }
     }
@@ -168,11 +183,20 @@ fun MRMApp() {
     }
 
     LiquidGlassTheme(themeState = effectiveTheme) {
-        if (session == null) {
+        // سوئیچ حساب: نشست فعال بدون دست‌خوردن لیست حساب‌ها عوض می‌شود.
+        val switchAccount: (com.mrm.pgmanager.data.model.Session) -> Unit = { acc ->
+            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false
+        }
+        if (session == null || addingAccount) {
             LoginScreen(
-                onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true },
+                onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
                 themeState = effectiveTheme,
-                onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }
+                onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
+                onBack = when {
+                    addingAccount && session != null -> { { addingAccount = false } }
+                    session == null && store.readAccounts().isNotEmpty() -> { { val acc = store.readAccounts().first(); store.setActive(acc); session = acc } }
+                    else -> null
+                }
             )
         } else if (isAppLockEnabled && !isUnlocked) {
             AppLockScreen(
@@ -221,7 +245,11 @@ fun MRMApp() {
                 monitoringSettings = monitoringSettings,
                 onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
                 isAppLockEnabled = isAppLockEnabled,
-                onAppLockChange = handleAppLockChange
+                onAppLockChange = handleAppLockChange,
+                appLockTimeout = appLockTimeout,
+                onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
+                onSwitchAccount = switchAccount,
+                onAddAccount = { addingAccount = true }
             )
                 }
                 AnimatedVisibility(
@@ -232,13 +260,13 @@ fun MRMApp() {
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
-                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.lamp.primary.copy(.78f) else if (effectiveTheme.isDark) Color(0xFF25252D) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.width(104.dp).height(42.dp).clip(RoundedCornerShape(13.dp)).background(if (selectedTab == index) effectiveTheme.accentPrimary.copy(.78f) else if (effectiveTheme.isDark) effectiveTheme.chromeBgColor.copy(alpha = 0.92f) else Color.White).border(BorderStroke(1.dp, effectiveTheme.cardBorderBrush), RoundedCornerShape(13.dp)).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
                                 Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selectedTab == index) Color(0xFF202124) else effectiveTheme.inkColor)
                             }
                         }
                     }
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false })
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false })
             }
         }
     }
@@ -254,9 +282,9 @@ fun AppLockScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(22.dp),
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(if (themeState.isDark) Color(0xFF1C1C24).copy(alpha = 0.94f) else Color.White.copy(alpha = 0.92f)).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(32.dp)).padding(32.dp)
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(if (themeState.isDark) themeState.dialogBgColor.copy(alpha = 0.94f) else Color.White.copy(alpha = 0.92f)).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(32.dp)).padding(32.dp)
         ) {
-            Box(Modifier.size(76.dp).clip(RoundedCornerShape(24.dp)).background(themeState.lamp.primary.copy(alpha = 0.18f)).border(BorderStroke(1.2.dp, themeState.lamp.primary), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(76.dp).clip(RoundedCornerShape(24.dp)).background(themeState.accentPrimary.copy(alpha = 0.18f)).border(BorderStroke(1.2.dp, themeState.accentPrimary), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
