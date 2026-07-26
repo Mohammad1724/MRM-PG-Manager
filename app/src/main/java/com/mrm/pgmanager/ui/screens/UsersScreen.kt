@@ -239,7 +239,8 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
                 SortPill("ساخت", currentSort == com.mrm.pgmanager.data.model.UserSort.CREATED) { onSortChange(com.mrm.pgmanager.data.model.UserSort.CREATED) }
             }
             Spacer(Modifier.width(4.dp))
-            Row(Modifier.clip(RoundedCornerShape(8.dp)).background(glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            // کلاستر حالت نمایش: همان کپسول سگمنت‌شدهٔ تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
+            Row(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).padding(2.5.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
                 ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
                 ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
@@ -251,7 +252,8 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.accentPrimary.copy(.72f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
+    // چیپ فیلتر: هم‌سبک با سگمنت تنظیمات — فعال = کپسول اکسنت ۷۸٪ با متن تیره، غیرفعال = کاشی خاکستری.
+    Box(modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (selected) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable(onClick = onClick).padding(horizontal = 9.dp, vertical = 4.5.dp)) {
         Text(label, color = if (selected) Color(0xFF202124) else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
@@ -259,16 +261,16 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.accentPrimary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
-        Text(label, color = if (selected) theme.accentPrimary else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
+        Text(label, color = if (selected) Color(0xFF202124) else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.accentPrimary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) theme.accentPrimary else theme.mutedColor, size = 13.dp)
+    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 7.dp, vertical = 3.dp), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = if (selected) Color(0xFF202124) else theme.mutedColor, size = 13.dp)
     }
 }
 
@@ -348,12 +350,12 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (user.subUrl.isNotBlank()) {
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable {
+                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
                         android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
                     }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("کپی", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color.White.copy(0.10f)).border(BorderStroke(0.8.dp, Color.White.copy(0.14f)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                     Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
@@ -404,9 +406,10 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
 @Composable
 private fun RowAction(label: String, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 23.dp, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    // اکشن‌های نمای فشرده مانند اکشن‌های جدول پنل، سبک و بدون border سنگین هستند.
+    // اکشن‌های نمای فشرده: کاشی خاکستریِ خنثیِ design system، سبک و بدون border سنگین.
     Box(modifier.height(height).clip(RoundedCornerShape(6.dp))
-        .background(if (theme.isDark) Color.White.copy(.08f) else Color(0xFFF2F2F4))
+        .background(theme.searchBgColor)
+        .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(6.dp))
         .clickable(onClick = onClick).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
@@ -421,7 +424,7 @@ private fun copySubscription(context: Context, user: PanelUser) {
 @Composable
 private fun LargeRowAction(label: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.height(38.dp).clip(RoundedCornerShape(11.dp)).background(Color.White.copy(alpha = if (theme.isDark) .10f else .62f)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(11.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
@@ -442,11 +445,12 @@ private fun UserCardAction(
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
+    // دکمه‌های کارت کاربر: همان کاشی خاکستریِ خنثیِ پنجرهٔ تنظیمات.
     Box(
         modifier = modifier
             .height(34.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (theme.isDark) Color.White.copy(.09f) else Color(0xFFF2F2F4))
+            .background(theme.searchBgColor)
             .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
