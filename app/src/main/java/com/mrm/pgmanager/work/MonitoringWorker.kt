@@ -15,7 +15,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
         if (!settings.notificationsEnabled) return Result.success()
         return runCatching {
             val stats = PanelApi.systemStats(session)
-            // اتصال برقرار شد → latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
+            // اتصال برقرار شد؛ latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
             store.saveAlertFlag("panel_offline", false)
             store.saveAlertFlag("auth_expired", false)
             val oldStates = store.readNotificationStates()
