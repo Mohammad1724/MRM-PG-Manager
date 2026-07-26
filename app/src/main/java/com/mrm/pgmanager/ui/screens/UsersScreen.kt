@@ -59,8 +59,10 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserFilter
 import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.ui.components.*
+import com.mrm.pgmanager.ui.dialogs.BulkCreateUsersDialog
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.dialogs.QuickActionSheet
+import com.mrm.pgmanager.ui.dialogs.SettingsActionRow
 import com.mrm.pgmanager.ui.dialogs.SubscriptionQrDialog
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.dialogs.UserEditorDialog
@@ -131,7 +133,7 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 @Composable
 private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.height(72.dp).clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 11.dp)) {
+    Box(modifier = modifier.height(72.dp).clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 11.dp)) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 Box(Modifier.size(23.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { RoundedAppIcon(icon, tint = accent, size = 12.dp) }
@@ -147,13 +149,13 @@ private fun SkeletonCard(modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmer")
     val alpha by infinite.animateFloat(initialValue = 0.18f, targetValue = 0.42f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
-    Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(glassBg(theme.isDark).copy(alpha = alpha)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(20.dp)).height(120.dp))
+    Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(glassBg(theme.isDark, theme.amoledDark).copy(alpha = alpha)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(20.dp)).height(120.dp))
 }
 
 @Composable
 private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+    Box(modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RoundedAppIcon(AppIcon.Search, tint = theme.mutedColor, size = 18.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -211,9 +213,9 @@ private fun StatsCardsRow(
         // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             StatGlassCard(icon = AppIcon.User, label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            StatGlassCard(icon = AppIcon.Check, label = "کاربران فعال", value = "$activeUsers", accent = theme.lamp.primary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Check, label = "کاربران فعال", value = "$activeUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
         }
-        StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.lamp.primary, modifier = Modifier.fillMaxWidth())
+        StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -237,7 +239,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
                 SortPill("ساخت", currentSort == com.mrm.pgmanager.data.model.UserSort.CREATED) { onSortChange(com.mrm.pgmanager.data.model.UserSort.CREATED) }
             }
             Spacer(Modifier.width(4.dp))
-            Row(Modifier.clip(RoundedCornerShape(8.dp)).background(glassBg(theme.isDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            Row(Modifier.clip(RoundedCornerShape(8.dp)).background(glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).padding(1.5.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                 ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
                 ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
                 ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
@@ -249,7 +251,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.lamp.primary.copy(.72f) else glassBg(theme.isDark)).border(BorderStroke(1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
+    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.accentPrimary.copy(.72f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
         Text(label, color = if (selected) Color(0xFF202124) else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
     }
 }
@@ -257,16 +259,16 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
-        Text(label, color = if (selected) theme.lamp.primary else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.accentPrimary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
+        Text(label, color = if (selected) theme.accentPrimary else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.lamp.primary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) theme.lamp.primary else theme.mutedColor, size = 13.dp)
+    Box(modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(if (selected) theme.accentPrimary.copy(0.16f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = if (selected) theme.accentPrimary else theme.mutedColor, size = 13.dp)
     }
 }
 
@@ -275,8 +277,8 @@ private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) 
 private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val isDark = theme.isDark
-    val bg = if (selected) theme.lamp.primary else if (isDark) Color(0xFF383842) else Color.White
-    val borderCol = if (selected) theme.lamp.primary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
+    val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
+    val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
         modifier = modifier
             .size(14.dp)
@@ -324,7 +326,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
+    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -419,7 +421,7 @@ private fun copySubscription(context: Context, user: PanelUser) {
 @Composable
 private fun LargeRowAction(label: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.height(38.dp).clip(RoundedCornerShape(11.dp)).background(Color.White.copy(alpha = if (theme.isDark) .10f else .62f)).border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(11.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(38.dp).clip(RoundedCornerShape(11.dp)).background(Color.White.copy(alpha = if (theme.isDark) .10f else .62f)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(11.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
@@ -445,7 +447,7 @@ private fun UserCardAction(
             .height(34.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(if (theme.isDark) Color.White.copy(.09f) else Color(0xFFF2F2F4))
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark)), RoundedCornerShape(8.dp))
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -476,8 +478,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     Box(
         Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark))
-            .border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(14.dp))
+            .background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark))
+            .border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 13.dp, vertical = 12.dp)
     ) {
@@ -538,7 +540,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
     // ردیف داده‌ای فشرده: سطح سفید، border ظریف و ستون‌های ثابت؛ نزدیک به جدول Users پنل.
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) theme.lamp.primary.copy(.10f) else glassBg(theme.isDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.lamp.primary else glassBorder(theme.isDark)), RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 10.dp, vertical = 10.dp)) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 10.dp, vertical = 10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
@@ -580,14 +582,21 @@ fun UsersScreen(
     monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
     onMonitoringChange: (com.mrm.pgmanager.data.model.MonitoringSettings) -> Unit = {},
     isAppLockEnabled: Boolean = false,
-    onAppLockChange: (Boolean) -> Unit = {}
+    onAppLockChange: (Boolean) -> Unit = {},
+    appLockTimeout: Int = 0,
+    onLockTimeoutChange: (Int) -> Unit = {},
+    onSwitchAccount: (Session) -> Unit = {},
+    onAddAccount: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
     var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
     var query by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    // مهر زمانی کش آفلاین؛ وقتی null نیست یعنی داده‌ها از حافظهٔ محلی نمایش داده می‌شوند.
+    var offlineAt by remember { mutableStateOf<Long?>(null) }
     var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
@@ -599,7 +608,12 @@ fun UsersScreen(
 
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     var currentSort by remember { mutableStateOf(com.mrm.pgmanager.data.model.UserSort.CREATED) }
-    var viewMode by remember { mutableStateOf(ViewMode.MICRO_LIST) }
+    // حالت نمایش (Grid/List) با آخرین انتخاب کاربر پایدار می‌ماند.
+    var viewMode by remember { mutableStateOf(store.readViewMode()) }
+    var createMenuOpen by remember { mutableStateOf(false) }
+    var bulkCreateOpen by remember { mutableStateOf(false) }
+    var exportChooserOpen by remember { mutableStateOf(false) }
+    var exportPending by remember { mutableStateOf<Pair<String, List<PanelUser>>?>(null) }
     var selectedUserIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var showBulkTemplateDialog by remember { mutableStateOf(false) }
     var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
@@ -628,7 +642,10 @@ fun UsersScreen(
             runCatching {
                 val list = PanelApi.users(session)
                 users = list; onlineCount = list.count { it.isOnline }
-                val settings = com.mrm.pgmanager.data.storage.SessionStore(context).readMonitoringSettings()
+                // کش آفلاین: آخرین واکشی موفق ذخیره می‌شود تا هنگام قطعی پنل نمایش بماند.
+                store.saveUsersCache(list)
+                offlineAt = null
+                val settings = store.readMonitoringSettings()
                 val nextStates = list.associate { u ->
                     val usage = if (u.dataLimit > 0) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                     val remainingDays = runCatching {
@@ -662,10 +679,19 @@ fun UsersScreen(
                 if (it.message?.contains("401") == true) {
                     android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
                     onLogout()
-                } else if (!silent) {
-                    // خطای رفرش خودکارِ پس‌زمینه بی‌صدا می‌ماند تا لیستِ فعلی کاربر نپرد؛
-                    // فقط رفرش دستی/اولیه است که صفحهٔ خطا نشان می‌دهد.
-                    error = it.message
+                } else {
+                    // کش آفلاین: اگر اتصال قطع است و دادهٔ قبلی داریم، همان را با بنر «آفلاین» نشان می‌دهیم.
+                    val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
+                    if (cache != null) {
+                        users = cache.first
+                        onlineCount = 0
+                        offlineAt = cache.second
+                        error = null
+                    } else if (!silent) {
+                        // خطای رفرش خودکارِ پس‌زمینه بی‌صدا می‌ماند تا لیستِ فعلی کاربر نپرد؛
+                        // فقط رفرش دستی/اولیه است که صفحهٔ خطا نشان می‌دهد.
+                        error = it.message
+                    }
                 }
             }
             loading = false
@@ -681,8 +707,31 @@ fun UsersScreen(
                 } else {
                     android.widget.Toast.makeText(context, "خطا: ${it.message?.take(120)}", android.widget.Toast.LENGTH_LONG).show()
                 }
-            }.onSuccess { notification?.let { (title, message) -> val settings = com.mrm.pgmanager.data.storage.SessionStore(context).readMonitoringSettings(); if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message) }; load() }
+            }.onSuccess { notification?.let { (title, message) -> val settings = store.readMonitoringSettings(); if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message) }; load() }
         }
+    }
+    // خروجی گرفتن از کاربران انتخاب‌شده (SAF: کاربر محل ذخیره را خودش انتخاب می‌کند).
+    fun exportFileName(format: String) = "mrm-users-selected-" + java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date()) + ".$format"
+    fun writeExport(uri: android.net.Uri?) {
+        val payload = exportPending; exportPending = null
+        if (uri == null || payload == null) return
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val ok = runCatching {
+                val out = context.contentResolver.openOutputStream(uri) ?: error("no stream")
+                out.use { it.write(if (payload.first == "json") com.mrm.pgmanager.utils.usersToJson(payload.second).toByteArray(Charsets.UTF_8) else com.mrm.pgmanager.utils.usersToCsv(payload.second).toByteArray(Charsets.UTF_8)) }
+            }.isSuccess
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(context, if (ok) "فایل با موفقیت ذخیره شد" else "خطا در ذخیرهٔ فایل", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    val exportCsvLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")) { writeExport(it) }
+    val exportJsonLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { writeExport(it) }
+    fun beginExport(format: String) {
+        val chosen = users.filter { selectedUserIds.contains(it.id) }
+        if (chosen.isEmpty()) { android.widget.Toast.makeText(context, "ابتدا کاربرها را انتخاب کن", android.widget.Toast.LENGTH_SHORT).show(); return }
+        exportPending = format to chosen
+        if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
     LaunchedEffect(Unit) { load() }
     // پایش دوره‌ای «کل برنامه»: فقط وقتی کاربر این محدوده را در تنظیمات فعال کرده باشد.
@@ -747,7 +796,7 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.lamp.primary.copy(.78f)).clickable { createUser = true }, contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.accentPrimary.copy(.78f)).clickable { createMenuOpen = true }, contentAlignment = Alignment.Center) {
                 Text("+", fontSize = 27.sp, fontWeight = FontWeight.Medium, color = Color(0xFF202124))
             }
         }
@@ -781,14 +830,14 @@ fun UsersScreen(
                 // و لیست تا پایینِ صفحه پر بماند (بدون فاصلهٔ بیهودهٔ پایین هنگام اسکرول).
                 when {
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(glassBg(themeState.isDark, themeState.amoledDark)).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
                             com.mrm.pgmanager.ui.components.GlassButton("تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(24.dp)).background(glassBg(themeState.isDark, themeState.amoledDark)).border(BorderStroke(1.dp, glassBorder(themeState.isDark, themeState.amoledDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
@@ -814,8 +863,8 @@ fun UsersScreen(
                             }
                         }
                     }
-                    .background(if (themeState.isDark) Color(0xFF141418) else Color.White)
-                    .border(BorderStroke(1.dp, glassBorder(themeState.isDark)))
+                    .background(themeState.chromeBgColor)
+                    .border(BorderStroke(1.dp, glassBorder(themeState.isDark, themeState.amoledDark)))
                     .padding(top = topInsets)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
@@ -855,7 +904,18 @@ fun UsersScreen(
                 Spacer(Modifier.height(6.dp))
                 GlassSearchBar(query = query, onQueryChange = { query = it })
                 Spacer(Modifier.height(8.dp))
-                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it }, users = users)
+                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it; store.saveViewMode(it) }, users = users)
+                // بنر حالت آفلاین: فقط وقتی داده‌ها از کش محلی نمایش داده می‌شوند.
+                offlineAt?.let { cachedAt ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(.12f)).border(BorderStroke(1.dp, GlassAmber.copy(.30f)), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
+                        Text("حالت آفلاین — آخرین دادهٔ دریافتی: ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
+                    }
+                }
             }
 
             if (selectedUserIds.isNotEmpty()) {
@@ -867,6 +927,8 @@ fun UsersScreen(
                     BulkActionsBar(
                         selectedCount = selectedUserIds.size,
                         onClear = { selectedUserIds = emptySet() },
+                        onSelectAll = { selectedUserIds = processedUsers.map { it.id }.toSet() },
+                        onExport = { exportChooserOpen = true },
                         onDelete = { pendingBulk = PendingBulk("حذف ${selectedUserIds.size} کاربر؟", "این کاربرها برای همیشه حذف می‌شوند و غیرقابل‌بازگشت هستند.", "حذف") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "حذف گروهی" to "${ids.size} کاربر حذف شدند") { PanelApi.bulkDeleteUsers(session, ids) } } },
                         onResetUsage = { pendingBulk = PendingBulk("ریست حجم ${selectedUserIds.size} کاربر؟", "مصرفِ این کاربرها صفر می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "ریست حجم گروهی" to "مصرف ${ids.size} کاربر صفر شد") { PanelApi.bulkResetUsersUsage(session, ids) } } },
                         onDisable = { pendingBulk = PendingBulk("غیرفعال‌سازی ${selectedUserIds.size} کاربر؟", "این کاربرها غیرفعال می‌شوند و اتصالشان قطع می‌شود.", "تایید") { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); runAction(notification = "غیرفعال‌سازی گروهی" to "${ids.size} کاربر غیرفعال شدند") { PanelApi.bulkDisableUsers(session, ids) } } },
@@ -986,7 +1048,11 @@ fun UsersScreen(
             onMonitoringChange = onMonitoringChange,
             appVersion = BuildConfig.VERSION_NAME,
             session = session,
-            onLogout = { onLogout(); showThemeDialog = false }
+            onLogout = { onLogout(); showThemeDialog = false },
+            appLockTimeout = appLockTimeout,
+            onLockTimeoutChange = onLockTimeoutChange,
+            onSwitchAccount = { acc -> showThemeDialog = false; onSwitchAccount(acc) },
+            onAddAccount = { showThemeDialog = false; onAddAccount() }
         )
     }
     selectedUser?.let { user ->
@@ -1002,6 +1068,32 @@ fun UsersScreen(
         },  onApplyTemplate = { templateId, note ->
             selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
         }, session = session)
+    }
+    // منوی ساخت: تکی یا گروهی
+    if (createMenuOpen) {
+        Dialog(onDismissRequest = { createMenuOpen = false }) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(themeState.dialogBgColor).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(22.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("ساخت کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                SettingsActionRow("ساخت تکی", "یک کاربر جدید با فرم کامل", AppIcon.UserAdd, themeState.accentPrimary) { createMenuOpen = false; createUser = true }
+                SettingsActionRow("ساخت گروهی", "چند کاربر هم‌زمان با الگوی نام، از تمپلت یا دستی", AppIcon.Users, GlassGreen) { createMenuOpen = false; bulkCreateOpen = true }
+                com.mrm.pgmanager.ui.components.MutedCancelButton("انصراف", onClick = { createMenuOpen = false }, modifier = Modifier.fillMaxWidth().height(38.dp))
+            }
+        }
+    }
+    if (bulkCreateOpen) {
+        BulkCreateUsersDialog(session = session, onDismiss = { bulkCreateOpen = false }, onFinished = { n -> bulkCreateOpen = false; if (n > 0) load(resetHeader = false, silent = true) })
+    }
+    // انتخاب فرمت خروجیِ کاربران انتخاب‌شده
+    if (exportChooserOpen) {
+        Dialog(onDismissRequest = { exportChooserOpen = false }) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(themeState.dialogBgColor).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(22.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("خروجی ${selectedUserIds.size} کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                Text("فرمت فایل را انتخاب کن؛ سپس محل ذخیره‌سازی پرسیده می‌شود.", fontSize = 10.sp, color = themeState.mutedColor)
+                SettingsActionRow("خروجی CSV", "مناسب اکسل و گزارش‌گیری", AppIcon.Download, GlassGreen) { exportChooserOpen = false; beginExport("csv") }
+                SettingsActionRow("خروجی JSON", "مناسب برنامه‌نویسی و بکاپ", AppIcon.Download, themeState.accentPrimary) { exportChooserOpen = false; beginExport("json") }
+                com.mrm.pgmanager.ui.components.MutedCancelButton("انصراف", onClick = { exportChooserOpen = false }, modifier = Modifier.fillMaxWidth().height(38.dp))
+            }
+        }
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
         createUser = false; runAction(notification = "کاربر جدید" to "${limitGb.username} ساخته شد") { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
