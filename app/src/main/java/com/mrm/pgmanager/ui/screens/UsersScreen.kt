@@ -659,10 +659,13 @@ fun UsersScreen(
                 // در رفرش خودکارِ پس‌زمینه، هدرِ جمع‌شده کاربر دست‌نخورده می‌ماند.
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
-                error = it.message
                 if (it.message?.contains("401") == true) {
                     android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
                     onLogout()
+                } else if (!silent) {
+                    // خطای رفرش خودکارِ پس‌زمینه بی‌صدا می‌ماند تا لیستِ فعلی کاربر نپرد؛
+                    // فقط رفرش دستی/اولیه است که صفحهٔ خطا نشان می‌دهد.
+                    error = it.message
                 }
             }
             loading = false
