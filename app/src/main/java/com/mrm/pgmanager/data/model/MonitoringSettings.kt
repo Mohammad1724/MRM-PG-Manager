@@ -24,5 +24,11 @@ data class MonitoringSettings(
     val offlineCacheEnabled: Boolean = true,
     /** هشدار زمانی که کاربران آنلاین هم‌زمان از حد مجاز عبور کند. */
     val notifyCapacity: Boolean = false,
-    val capacityOnlineLimit: Int = 500
+    val capacityOnlineLimit: Int = 500,
+    /** بدهکاران */
+    val debtorAutoDisableEnabled: Boolean = false,
+    val debtorAutoDisableAfterHours: Int = 24,
+    val notifyDebtor: Boolean = true,
+    val notifyDebtorOverdue: Boolean = true,
+    val debtorCurrency: String = "تومان"
 )
