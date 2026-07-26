@@ -17,4 +17,5 @@
     <string name="unlimited">Unlimited</string>
     <string name="manage_panel">Manage your PasarGuard panel</string>
     <string name="status">Status</string>
+    <string name="widget_description">Panel status at a glance: online users and CPU usage of your PasarGuard panel</string>
 </resources>
