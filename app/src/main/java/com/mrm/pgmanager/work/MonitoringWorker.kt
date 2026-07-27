@@ -20,6 +20,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             store.saveAlertFlag("auth_expired", false)
             // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود.
             store.saveStatsCache(stats)
+            // بروزرسانی ویجت پس از کش جدید
+            com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(applicationContext)
             val oldStates = store.readNotificationStates()
             val users = PanelApi.users(session)
             store.saveUsersCache(users)
