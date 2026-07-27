@@ -533,9 +533,8 @@ fun ThemeEditorDialog(
     ) { uri: Uri? ->
         uri?.let {
             runCatching {
-                context.contentResolver.openInputStream(it)?.use { ins ->
-                    com.mrm.pgmanager.utils.BackupManager.inspect(ins)
-                }
+                val ins = context.contentResolver.openInputStream(it) ?: throw Exception("باز کردن فایل ممکن نشد")
+                ins.use { s -> com.mrm.pgmanager.utils.BackupManager.inspect(s) }
             }.onSuccess { info ->
                 restorePreview = info
                 restoreUri = it
