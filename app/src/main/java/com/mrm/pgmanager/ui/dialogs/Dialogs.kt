@@ -1246,6 +1246,7 @@ fun UserEditorDialog(
     if (resetExpiry) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { resetExpiry = false }, onConfirm = { resetExpiry = false; onResetExpiry?.invoke() })
 }
 
+@Composable
 private fun detailDaysText(expire: String?): String {
     if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
     return runCatching {
@@ -1253,6 +1254,103 @@ private fun detailDaysText(expire: String?): String {
         val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end)
         if (d < 0) "منقضی" else "$d روز"
     }.getOrDefault("نامحدود")
+}
+
+/** دکمهٔ آیکون گرد برای کارت اشتراک و بخش‌های مشابه */
+@Composable
+private fun IconActionBtn(icon: AppIcon, contentDesc: String, theme: com.mrm.pgmanager.ui.theme.ThemeState, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(8.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(icon, tint = theme.inkColor, size = 16.dp)
+    }
+}
+
+/** منوی کشویی کپسولی برای اکشن‌ها (بدهکار/فاکتور) - هماهنگ با design system */
+@Composable
+private fun CapsuleActionMenu(
+    label: String,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    actions: @Composable ColumnScope.() -> Unit
+) {
+    val theme = LocalThemeState.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // دکمه سربرگ کشویی
+        Box(
+            Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp))
+                .background(GlassRed.copy(0.10f))
+                .border(BorderStroke(1.2.dp, GlassRed.copy(0.30f)), RoundedCornerShape(14.dp))
+                .clickable { onToggleExpand() }
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
+                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed, modifier = Modifier.weight(1f))
+                // فلش بالا/پایین
+                RoundedAppIcon(
+                    if (expanded) AppIcon.Prev else AppIcon.Next,
+                    tint = GlassRed, size = 16.dp,
+                    modifier = Modifier.graphicsLayer { rotationZ = if (expanded) -90f else 90f }
+                )
+            }
+        }
+        // محتوای کشویی با انیمیشن
+        androidx.compose.animation.AnimatedVisibility(
+            visible = expanded,
+            enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(180)) + androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(200)),
+            exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(140)) + androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(160))
+        ) {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                    .background(if (theme.isDark) Color.White.copy(0.06f) else Color.White)
+                    .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+                content = actions
+            )
+        }
+    }
+}
+
+/** یک ردیف دکمه کپسولی درون منوی کشویی */
+@Composable
+private fun CapsuleMenuItem(
+    icon: AppIcon,
+    label: String,
+    accent: Color,
+    primary: Boolean = false,
+    danger: Boolean = false,
+    onClick: () -> Unit
+) {
+    val bg = when {
+        primary -> accent.copy(0.78f)
+        danger -> accent.copy(0.10f)
+        else -> LocalThemeState.current.searchBgColor
+    }
+    val textColor = when {
+        primary -> Color(0xFF202124)
+        else -> accent
+    }
+    var borderColor = glassBorder(LocalThemeState.current.isDark, LocalThemeState.current.amoledDark)
+    if (danger || primary) borderColor = accent.copy(if (primary) 0f else 0.30f)
+    Box(
+        Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(bg)
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RoundedAppIcon(icon, tint = textColor, size = 17.dp)
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = textColor)
+        }
+    }
 }
 
 @Composable
@@ -1282,6 +1380,8 @@ fun UserDetailsDialog(
     var availableTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
     var templatesLoading by remember { mutableStateOf(false) }
     var templatesFailed by remember { mutableStateOf(false) }
+    // وضعیت باز/بسته بودن منوی کشویی بدهی/فاکتور
+    var debtorMenuExpanded by remember { mutableStateOf(false) }
     val traffic = if (currentUser.dataLimit == 0L) "نامحدود" else formatBytes(currentUser.dataLimit)
     val percentage = if (currentUser.dataLimit > 0L) ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
     val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
@@ -1380,58 +1480,63 @@ fun UserDetailsDialog(
                     }
                 }
 
-                // کارت اشتراک یک ردیف فشرده است؛ توضیح تکراری حذف شده تا فقط اکشن‌های اصلی بمانند.
+                // کارت اشتراک - فقط آیکون‌ها بدون متن
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
                         .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
                         .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                        .padding(horizontal = 8.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    action("کپی", Modifier.width(48.dp), height = 26.dp) { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", currentUser.subUrl)) }
-                    action("QR", Modifier.width(38.dp), height = 26.dp) { qrOpen = true }
+                    // دکمه‌های آیکون کپی و QR
+                    IconActionBtn(AppIcon.Copy, "کپی", theme, Modifier.size(32.dp)) {
+                        val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", currentUser.subUrl))
+                        android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    IconActionBtn(AppIcon.Qr, "QR", theme, Modifier.size(32.dp)) { qrOpen = true }
                 }
 
-                // بدهکار
+                // === بخش بدهی/فاکتور: منوی کشویی یکپارچه ===
                 if (debtorInfo != null) {
-                    Column(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                            .background(GlassRed.copy(0.10f))
-                            .border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(12.dp))
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    CapsuleActionMenu(
+                        label = "بدهکار · ${debtorInfo.amount} ${debtorInfo.currency}",
+                        expanded = debtorMenuExpanded,
+                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
-                            Text("بدهکار", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed)
-                            Spacer(Modifier.weight(1f))
-                            Text("${debtorInfo.amount} ${debtorInfo.currency}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                        Text("از ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(debtorInfo.markedAt))} - ${debtorInfo.notes.ifBlank { "بدون یادداشت" }}", fontSize = 10.sp, color = theme.mutedColor)
+                        // اطلاعات بدهی
+                        Text(
+                            "از ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(debtorInfo.markedAt))}" +
+                                    if (debtorInfo.notes.isNotBlank()) " - ${debtorInfo.notes}" else " - بدون یادداشت",
+                            fontSize = 10.sp, color = theme.mutedColor
+                        )
                         if (debtorInfo.autoDisabled) {
-                            Text("⚠️ به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.14f)).padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 14.dp)
+                                Text("به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                            }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            action("تسویه بدهی ✅", Modifier.weight(1f), primary = true) { onClearDebt?.invoke() }
-                            action("ویرایش بدهی", Modifier.weight(1f)) { onMarkDebtor?.invoke() }
-                        }
+                        CapsuleMenuItem(AppIcon.CheckCircle, "تسویه بدهی", GlassGreen, primary = true) { onClearDebt?.invoke() }
+                        CapsuleMenuItem(AppIcon.Edit, "ویرایش بدهی", GlassRed, danger = true) { onMarkDebtor?.invoke() }
+                        CapsuleMenuItem(AppIcon.Receipt, "صدور فاکتور", theme.accentPrimary) { onInvoice?.invoke() }
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth()) {
-                        SettingsActionRow("ثبت بدهکار", "این کاربر بدهکار است و مبلغ بدهی را ثبت کن", AppIcon.Warning, GlassRed) { onMarkDebtor?.invoke() }
+                    CapsuleActionMenu(
+                        label = "بدهی / فاکتور",
+                        expanded = debtorMenuExpanded,
+                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
+                    ) {
+                        CapsuleMenuItem(AppIcon.Warning, "ثبت بدهکار", GlassRed, danger = true) { onMarkDebtor?.invoke() }
+                        CapsuleMenuItem(AppIcon.Receipt, "صدور فاکتور", theme.accentPrimary) { onInvoice?.invoke() }
                     }
-                }
-
-                // دکمه فاکتور
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    action("🧾 فاکتور اشتراک", Modifier.weight(1f), primary = false) { onInvoice?.invoke() }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     action("تمپلت‌ها", Modifier.weight(1f)) { templatePickerOpen = true }
-                    action("تنظیمات کاربر", Modifier.weight(2f), primary = true) { editOpen = true }
+                    action("ویرایش کاربر", Modifier.weight(2f), primary = true) { editOpen = true }
                 }
 
                 Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
