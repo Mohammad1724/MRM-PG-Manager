@@ -149,30 +149,19 @@ fun InvoiceDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // هدر
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(
-                            Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
-                                .background(theme.accentPrimary.copy(0.18f))
-                                .border(BorderStroke(1.dp, theme.accentPrimary.copy(0.32f)), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            RoundedAppIcon(AppIcon.Receipt, tint = theme.accentPrimary, size = 20.dp)
-                        }
-                        Column {
-                            Text("فاکتور اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                            Text(user.username, fontSize = 10.sp, color = theme.mutedColor)
-                        }
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
-                            .background(theme.searchBgColor).clickable { onDismiss() },
+                        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
+                            .background(theme.accentPrimary.copy(0.18f))
+                            .border(BorderStroke(1.dp, theme.accentPrimary.copy(0.32f)), RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 22.sp, color = theme.mutedColor) }
+                    ) {
+                        RoundedAppIcon(AppIcon.Receipt, tint = theme.accentPrimary, size = 20.dp)
+                    }
+                    Column {
+                        Text("فاکتور اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        Text(user.username, fontSize = 10.sp, color = theme.mutedColor)
+                    }
                 }
 
                 Divider(color = glassBorder(theme.isDark, theme.amoledDark), thickness = 1.dp)
@@ -359,12 +348,12 @@ private fun InvoicePreviewCard(
     val theme = LocalThemeState.current
 
     Dialog(onDismissRequest = onClose) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // کارت فاکتور - پس‌زمینه سفید/روشن برای خوانایی در اسکرین‌شات
+            // کارت فاکتور - پس‌زمینه سفید/روشن برای خوانایی در اسکرین‌شات (بدون دکمه بستن)
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -375,15 +364,6 @@ private fun InvoicePreviewCard(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // دکمه بستن در بالا سمت راست کارت
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Box(
-                        Modifier.size(28.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFF2F2F4))
-                            .clickable { onClose() },
-                        contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 20.sp, color = Color(0xFF74757B), fontWeight = FontWeight.Bold) }
-                }
-
                 // لوگو/برند
                 if (logoBitmap != null) {
                     Image(
@@ -468,6 +448,12 @@ private fun InvoicePreviewCard(
                     color = Color(0xFFA09C94)
                 )
             }
+            // دکمه بستن در پایین (بیرون کارت سفید تا در اسکرین‌شات دیده نشود)
+            com.mrm.pgmanager.ui.components.MutedCancelButton(
+                "بستن",
+                onClick = onClose,
+                modifier = Modifier.fillMaxWidth().height(44.dp)
+            )
         }
     }
 }
