@@ -59,6 +59,17 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
+    // بدهکاران
+    var debtorTotalAmount by remember { mutableStateOf(0L) }
+    var debtorCount by remember { mutableStateOf(0) }
+    var debtorCurrency by remember { mutableStateOf(settings.debtorCurrency) }
+    fun refreshDebtors() {
+        val all = store.readDebtors().values.filter { it.baseUrl == session.baseUrl }
+        debtorCount = all.size
+        debtorTotalAmount = all.sumOf { it.amount }
+        debtorCurrency = all.firstOrNull()?.currency ?: settings.debtorCurrency
+    }
+    LaunchedEffect(Unit) { refreshDebtors() }
     fun evaluateHealth(s: SystemStats) {
         if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
         fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message)
@@ -74,6 +85,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         } else capacityAlerted = false
     }
     suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null; store.saveStatsCache(it)
+        refreshDebtors()
         // ویجت حداکثر هر ۳۰ ثانیه به‌روز شود؛ در هر چرخهٔ رفرش نه (جلوگیری از بار اضافی).
         if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
         evaluateHealth(it) }.onFailure { e ->
@@ -128,6 +140,14 @@ LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             Text("کاربران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("کل کاربران", "${s.totalUsers}", AppIcon.Users, Modifier.weight(1f)); DashCard("آنلاین", "${s.onlineUsers}", AppIcon.User, Modifier.weight(1f), GlassGreen) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("فعال", "${s.activeUsers}", AppIcon.Check, Modifier.weight(1f)); DashCard("منقضی / محدود", "${s.expiredUsers + s.limitedUsers}", AppIcon.Warning, Modifier.weight(1f), Color(0xFFD9822B)) }
+            // بدهکاران - مجموع کل
+            if (debtorCount > 0) {
+                Text("بدهکاران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), Color(0xFFC93B3B))
+                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), Color(0xFFC93B3B))
+                }
+            }
             Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("دریافت", formatBytes(s.incomingBandwidth), AppIcon.Download, Modifier.weight(1f), GlassGreen); DashCard("ارسال", formatBytes(s.outgoingBandwidth), AppIcon.Upload, Modifier.weight(1f)) }
             TrafficChartCard(points = trafficPoints, incoming = s.incomingBandwidth, outgoing = s.outgoingBandwidth)
@@ -164,6 +184,16 @@ private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoin
             }
         }
         Text(if (points.isEmpty()) "دادهٔ تاریخی ترافیک از پنل دریافت نشد." else "${points.size} نقطهٔ واقعی از آمار ترافیک پنل", fontSize = 8.sp, color = t.mutedColor)
+    }
+}
+
+private fun formatDebtorAmountFull(amount: Long): String {
+    return when {
+        amount == 0L -> "0"
+        amount >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.2fB", amount / 1_000_000_000.0).trimEnd('0').trimEnd('.')
+        amount >= 1_000_000L -> String.format(java.util.Locale.US, "%.1fM", amount / 1_000_000.0).trimEnd('0').trimEnd('.')
+        amount >= 1000L -> "%,d".format(java.util.Locale.US, amount)
+        else -> amount.toString()
     }
 }
 
