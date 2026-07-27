@@ -1,8 +1,7 @@
 package com.mrm.pgmanager.ui.dialogs
 
-import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -11,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +32,7 @@ import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.CompactGlassField
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -61,12 +62,15 @@ fun InvoiceDialog(
     val scope = rememberCoroutineScope()
     val store = remember { SessionStore(context) }
 
-    // قیمت دستی کاربر
-    var manualPrice by remember { mutableStateOf("") }
+    // ==== ورودی‌ها ====
+    var currentPriceText by remember { mutableStateOf("") }
+    var previousDebtText by remember { mutableStateOf(
+        if (debtorInfo != null && debtorInfo.amount > 0) debtorInfo.amount.toString() else ""
+    ) }
     var generatingPdf by remember { mutableStateOf(false) }
-    var generatedPdfFile by remember { mutableStateOf<File?>(null) }
+    var previewMode by remember { mutableStateOf(false) }
 
-    // لوگو
+    // ==== اطلاعات برند/لوگو ====
     val logoPath = remember { store.readInvoiceLogoPath() }
     val sellerName = remember { store.readInvoiceSeller() }
     var logoBitmap by remember(logoPath) { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -74,22 +78,22 @@ fun InvoiceDialog(
         logoBitmap = if (!logoPath.isNullOrBlank()) {
             runCatching {
                 val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
-                android.graphics.BitmapFactory.decodeFile(logoPath, opts)
+                BitmapFactory.decodeFile(logoPath, opts)
             }.getOrNull()
         } else null
     }
 
-    // محاسبه روزها
+    // ==== محاسبات تاریخ ====
     val startDateIso = user.createdAt ?: ""
     val endDateIso = user.expire ?: ""
-    val startJalali = JalaliCalendar.isoToShamsi(startDateIso).ifBlank { "نامشخص" }
+    val startJalali = JalaliCalendar.isoToShamsi(startDateIso).ifBlank { "-" }
     val endJalali = JalaliCalendar.isoToShamsi(endDateIso).ifBlank { "نامحدود" }
-    val startGregorian = try { startDateIso.take(10) } catch (_: Exception) { "نامشخص" }
-    val endGregorian = try { endDateIso.take(10) } catch (_: Exception) { "نامحدود" }
 
     val durationDays = runCatching {
-        val s = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
-        val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
+        val s = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+        catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
+        val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+        catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
         ChronoUnit.DAYS.between(s, e)
     }.getOrDefault(0)
 
@@ -98,386 +102,383 @@ fun InvoiceDialog(
         durationDays == 1L -> "1 روزه"
         durationDays < 30 -> "$durationDays روزه"
         durationDays == 30L -> "1 ماهه"
-        durationDays < 365 -> "${durationDays/30} ماهه (${durationDays} روز)"
+        durationDays < 365 -> "${durationDays/30} ماهه"
         else -> "${durationDays/30} ماهه"
     }
 
     val dataLimitText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
-    val usedText = formatBytes(user.usedTraffic)
-    val remainingBytes = if (user.dataLimit > 0) (user.dataLimit - user.usedTraffic).coerceAtLeast(0) else 0L
-    val remainingText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(remainingBytes)
-
-    val invoiceId = "INV-${user.id}-${SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())}"
-    val invoiceDate = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date())
     val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
 
-    // محاسبه مبلغ نهایی
-    val manualPriceLong = manualPrice.filter { it.isDigit() }.toLongOrNull()
-    val effectivePrice = when {
-        manualPriceLong != null && manualPriceLong > 0 -> manualPriceLong
-        debtorInfo != null && debtorInfo.amount > 0 -> debtorInfo.amount
-        else -> null
-    }
-    val priceText = when {
-        manualPriceLong != null && manualPriceLong > 0 -> "${"%,d".format(Locale.US, manualPriceLong)} $currency"
-        debtorInfo != null && debtorInfo.amount > 0 -> "${"%,d".format(Locale.US, debtorInfo.amount)} $currency"
-        else -> "پرداخت شده ✅"
-    }
-    val priceColor = when {
-        manualPriceLong != null && manualPriceLong > 0 -> theme.accentPrimary
-        debtorInfo != null && debtorInfo.amount > 0 -> GlassRed
-        else -> GlassGreen
+    // ==== محاسبه مبالغ ====
+    val currentPrice = currentPriceText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val previousDebt = previousDebtText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val totalDebt = currentPrice + previousDebt
+
+    // ==== حالت پیش‌نمایش (تمام صفحه برای اسکرین‌شات) ====
+    if (previewMode) {
+        InvoicePreviewCard(
+            logoBitmap = logoBitmap,
+            sellerName = sellerName,
+            username = user.username,
+            volume = dataLimitText,
+            duration = durationText,
+            startDate = startJalali,
+            endDate = endJalali,
+            currentPrice = currentPrice,
+            previousDebt = previousDebt,
+            totalDebt = totalDebt,
+            currency = currency,
+            invoiceDate = invoiceDateJalali,
+            onClose = { previewMode = false }
+        )
+        return
     }
 
-    // متن اشتراکی برای ارسال به کاربر
-    val shareText = buildString {
-        appendLine("🧾 فاکتور اشتراک VPN")
-        appendLine("━━━━━━━━━━━━━━━━")
-        if (sellerName.isNotBlank()) appendLine("🏢 $sellerName")
-        appendLine("👤 نام کاربری: ${user.username}")
-        appendLine("📦 حجم: $dataLimitText")
-        appendLine("⏳ مدت: $durationText")
-        appendLine("📅 شروع: $startJalali ($startGregorian)")
-        appendLine("📅 پایان: $endJalali ($endGregorian)")
-        appendLine("📊 مصرف شده: $usedText")
-        appendLine("📊 باقی‌مانده: $remainingText")
-        appendLine("🔗 وضعیت: ${when(user.status) { "active" -> "فعال" ; "disabled" -> "غیرفعال" ; "expired" -> "منقضی" ; "limited" -> "محدود" ; else -> user.status }}")
-        appendLine("💰 مبلغ: $priceText")
-        if (debtorInfo != null && debtorInfo.notes.isNotBlank()) appendLine("📝 توضیح: ${debtorInfo.notes}")
-        if (!user.note.isNullOrBlank()) appendLine("📝 یادداشت: ${user.note}")
-        appendLine("━━━━━━━━━━━━━━━━")
-        appendLine("🆔 شماره فاکتور: $invoiceId")
-        appendLine("📅 تاریخ فاکتور: $invoiceDateJalali")
-        appendLine("")
-        appendLine("با تشکر از شما! 🙏")
-        if (user.subUrl.isNotBlank()) {
-            appendLine("")
-            appendLine("لینک اشتراک:")
-            appendLine(user.subUrl.take(80) + if (user.subUrl.length > 80) "..." else "")
-        }
-    }
-
-    fun shareTextInvoice() {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, shareText)
-            putExtra(Intent.EXTRA_SUBJECT, "فاکتور ${user.username}")
-        }
-        context.startActivity(Intent.createChooser(intent, "اشتراک فاکتور"))
-    }
-
-    fun copyInvoice() {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Invoice", shareText))
-        android.widget.Toast.makeText(context, "فاکتور کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-    }
-
-    fun generateAndSharePdf() {
-        if (generatingPdf) return
-        generatingPdf = true
-        scope.launch(Dispatchers.IO) {
-            val file = runCatching {
-                PdfInvoiceGenerator.generate(
-                    context = context,
-                    user = user,
-                    debtorInfo = debtorInfo,
-                    currency = currency,
-                    priceOverride = effectivePrice,
-                    logoPath = logoPath,
-                    sellerName = sellerName
-                )
-            }.getOrNull()
-            withContext(Dispatchers.Main) {
-                generatingPdf = false
-                if (file != null) {
-                    generatedPdfFile = file
-                    // Share PDF
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "application/pdf"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    context.startActivity(Intent.createChooser(shareIntent, "اشتراک فاکتور PDF"))
-                } else {
-                    android.widget.Toast.makeText(context, "خطا در ساخت PDF", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    // به‌روزرسانی خودکار وقتی قیمت دستی تغییر می‌کند
-    fun regeneratePdfForPreview() {
-        generatedPdfFile = null
-    }
-
+    // ==== دیالوگ ویرایش ====
     Dialog(onDismissRequest = onDismiss) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .heightIn(max = 720.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .heightIn(max = 680.dp)
+                .clip(RoundedCornerShape(24.dp))
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
-                .padding(16.dp)
+                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp))
+                .padding(18.dp)
         ) {
             Column(
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // هدر فاکتور با لوگو
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(theme.cardSurfaceColor)
-                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(16.dp))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // هدر
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // لوگو در صورت وجود
-                    if (logoBitmap != null) {
-                        Image(
-                            bitmap = logoBitmap!!.asImageBitmap(),
-                            contentDescription = "Logo",
-                            modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Box(
-                            Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                            Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
                                 .background(theme.accentPrimary.copy(0.18f))
                                 .border(BorderStroke(1.dp, theme.accentPrimary.copy(0.32f)), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            RoundedAppIcon(AppIcon.Receipt, tint = theme.inkColor, size = 24.dp)
+                            RoundedAppIcon(AppIcon.Receipt, tint = theme.accentPrimary, size = 20.dp)
                         }
-                    }
-                    if (sellerName.isNotBlank()) {
-                        Text(sellerName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    }
-                    Text("فاکتور اشتراک", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (sellerName.isBlank()) Text("MRM PG Manager", fontSize = 10.sp, color = theme.mutedColor)
-                    Divider(color = glassBorder(theme.isDark, theme.amoledDark), thickness = 1.dp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column {
-                            Text("شماره فاکتور", fontSize = 9.sp, color = theme.mutedColor)
-                            Text(invoiceId, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("تاریخ", fontSize = 9.sp, color = theme.mutedColor)
-                            Text(invoiceDateJalali, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Text(invoiceDate, fontSize = 8.sp, color = theme.mutedColor)
+                            Text("فاکتور اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                            Text(user.username, fontSize = 10.sp, color = theme.mutedColor)
                         }
                     }
+                    Box(
+                        Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+                            .background(theme.searchBgColor).clickable { onDismiss() },
+                        contentAlignment = Alignment.Center
+                    ) { Text("×", fontSize = 22.sp, color = theme.mutedColor) }
                 }
 
-                // اطلاعات کاربر
+                Divider(color = glassBorder(theme.isDark, theme.amoledDark), thickness = 1.dp)
+
+                // اطلاعات ثابت کاربر (فقط نمایشی)
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
+                        .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
                         .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("👤 اطلاعات کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    InvoiceRow("نام کاربری", user.username, theme.inkColor)
-                    InvoiceRow("وضعیت", when(user.status) { "active" -> "فعال ✅" ; "disabled" -> "غیرفعال ❌" ; "expired" -> "منقضی ⌛" ; "limited" -> "محدود ⚠️" ; else -> user.status }, if (user.status=="active") GlassGreen else GlassRed)
-                    if (!user.note.isNullOrBlank()) InvoiceRow("یادداشت", user.note!!, theme.mutedColor)
+                    InfoRow("نام کاربری", user.username, theme)
+                    InfoRow("حجم اشتراک", dataLimitText, theme, bold = true)
+                    InfoRow("مدت اشتراک", durationText, theme, bold = true, color = theme.accentPrimary)
+                    InfoRow("تاریخ شروع", startJalali, theme)
+                    InfoRow("تاریخ پایان", endJalali, theme, color = GlassRed, bold = true)
                 }
 
-                // جزئیات اشتراک
+                // فیلدهای مبلغ
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
+                        .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
                         .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("📦 مشخصات اشتراک", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    InvoiceRow("حجم کل", dataLimitText, theme.inkColor, bold = true)
-                    InvoiceRow("مصرف شده", usedText, GlassGreen)
-                    InvoiceRow("باقی‌مانده", remainingText, theme.inkColor)
+                    Text("💰 مبالغ", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+
+                    // قیمت فعلی
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("قیمت این دوره", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        CompactGlassField(
+                            value = currentPriceText,
+                            onValueChange = { v -> currentPriceText = v.filter { it.isDigit() } },
+                            placeholder = "مثال: ۵۰,۰۰۰",
+                            keyboardType = KeyboardType.Number,
+                            leading = currency
+                        )
+                    }
+
+                    // بدهی قبلی
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("بدهی قبلی", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        CompactGlassField(
+                            value = previousDebtText,
+                            onValueChange = { v -> previousDebtText = v.filter { it.isDigit() } },
+                            placeholder = "0",
+                            keyboardType = KeyboardType.Number,
+                            leading = currency
+                        )
+                    }
+
                     Divider(color = glassBorder(theme.isDark, theme.amoledDark).copy(alpha = 0.5f))
-                    InvoiceRow("مدت اشتراک", durationText, theme.accentPrimary, bold = true)
-                    InvoiceRow("تاریخ شروع (شمسی)", startJalali, theme.inkColor)
-                    InvoiceRow("تاریخ شروع (میلادی)", startGregorian, theme.mutedColor)
-                    InvoiceRow("تاریخ پایان (شمسی)", endJalali, GlassRed, bold = true)
-                    InvoiceRow("تاریخ پایان (میلادی)", endGregorian, theme.mutedColor)
-                }
 
-                // ==== بخش قیمت دستی (جدید!) ====
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
-                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RoundedAppIcon(AppIcon.Money, tint = theme.accentPrimary, size = 16.dp)
-                        Text("💰 قیمت فروش (دستی)", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    }
-                    Text("اگر می‌خواهید قیمت دلخواه (غیر از بدهی) در فاکتور نمایش داده شود، اینجا وارد کنید:", fontSize = 9.sp, color = theme.mutedColor)
-                    CompactGlassField(
-                        value = manualPrice,
-                        onValueChange = { v ->
-                            manualPrice = v.filter { it.isDigit() }
-                            regeneratePdfForPreview()
-                        },
-                        placeholder = "مثال 50000",
-                        keyboardType = KeyboardType.Number,
-                        leading = currency
-                    )
-                }
-
-                // نمایش مبلغ نهایی
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(priceColor.copy(0.10f))
-                        .border(BorderStroke(1.dp, priceColor.copy(0.32f)), RoundedCornerShape(14.dp))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RoundedAppIcon(AppIcon.Money, tint = priceColor, size = 18.dp)
-                        Text(if (effectivePrice != null) "مبلغ نهایی" else "وضعیت پرداخت", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = priceColor)
-                    }
-                    Text(priceText, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = priceColor)
-                    if (manualPriceLong != null && manualPriceLong > 0) {
-                        Text("✅ مبلغ دستی اعمال شد", fontSize = 9.sp, color = priceColor)
+                    // مجموع
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("مبلغ قابل پرداخت", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        val totalColor = if (totalDebt > 0) GlassRed else GlassGreen
+                        val totalText = if (totalDebt > 0) "%,d %s".format(Locale.US, totalDebt, currency) else "پرداخت شده ✅"
+                        Text(totalText, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = totalColor)
                     }
                 }
 
-                // بدهی (اگر قیمت دستی وارد نشده)
-                if (debtorInfo != null && (manualPriceLong == null || manualPriceLong <= 0)) {
-                    Column(
+                // دکمه‌ها
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // پیش‌نمایش
+                    Box(
                         Modifier
                             .fillMaxWidth()
+                            .height(50.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(GlassRed.copy(0.10f))
-                            .border(BorderStroke(1.dp, GlassRed.copy(0.32f)), RoundedCornerShape(14.dp))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .background(theme.accentPrimary.copy(0.15f))
+                            .border(BorderStroke(1.2.dp, theme.accentPrimary.copy(0.5f)), RoundedCornerShape(14.dp))
+                            .clickable { previewMode = true },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
-                            Text("💳 وضعیت بدهی", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RoundedAppIcon(AppIcon.Qr, tint = theme.accentPrimary, size = 18.dp)
+                            Text("📸 پیش‌نمایش فاکتور (اسکرین‌شات)", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.accentPrimary)
                         }
-                        InvoiceRow("مبلغ بدهی", "${"%,d".format(Locale.US, debtorInfo.amount)} ${debtorInfo.currency}", GlassRed, bold = true)
-                        InvoiceRow("تاریخ ثبت بدهی", SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(debtorInfo.markedAt)), theme.mutedColor)
-                        if (debtorInfo.notes.isNotBlank()) InvoiceRow("توضیح بدهی", debtorInfo.notes, theme.inkColor)
-                        if (debtorInfo.autoDisabled) {
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.14f)).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 14.dp)
-                                Text("این کاربر به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                    }
+
+                    // PDF
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (generatingPdf) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
+                            .clickable(enabled = !generatingPdf) {
+                                if (generatingPdf) return@clickable
+                                generatingPdf = true
+                                // اگر هیچ مبلغی وارد نشده و کاربر هم بدهکار نبود، حالت "پرداخت شده"
+                                val noPriceEntered = currentPrice == 0L && previousDebt == 0L && (debtorInfo == null || debtorInfo.amount == 0L)
+                                scope.launch(Dispatchers.IO) {
+                                    val file = runCatching {
+                                        PdfInvoiceGenerator.generate(
+                                            context = context,
+                                            user = user,
+                                            debtorInfo = debtorInfo,
+                                            currency = currency,
+                                            currentPrice = if (noPriceEntered) null else currentPrice,
+                                            previousDebt = if (noPriceEntered) null else previousDebt,
+                                            logoPath = logoPath,
+                                            sellerName = sellerName
+                                        )
+                                    }.getOrNull()
+                                    withContext(Dispatchers.Main) {
+                                        generatingPdf = false
+                                        if (file != null) {
+                                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "application/pdf"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(Intent.createChooser(intent, "اشتراک PDF"))
+                                        } else {
+                                            android.widget.Toast.makeText(context, "خطا در ساخت PDF", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (generatingPdf) {
+                            CircularProgressIndicator(Modifier.size(20.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                RoundedAppIcon(AppIcon.Pdf, tint = Color(0xFF202124), size = 18.dp)
+                                Text("📄 ساخت و اشتراک PDF", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
                             }
                         }
                     }
+
+                    // بستن
+                    com.mrm.pgmanager.ui.components.MutedCancelButton(
+                        "بستن",
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    )
                 }
-
-                // QR اگر موجود بود
-                if (user.subUrl.isNotBlank()) {
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(theme.cardSurfaceColor)
-                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text("لینک اشتراک محدود به این فاکتور نیست و قابل استفاده است", fontSize = 9.sp, color = theme.mutedColor, textAlign = TextAlign.Center)
-                        Text(user.subUrl.take(60) + if (user.subUrl.length > 60) "..." else "", fontSize = 8.sp, color = theme.mutedColor, maxLines = 2, textAlign = TextAlign.Center)
-                    }
-                }
-
-                // فوتر
-                Text("این فاکتور به صورت خودکار توسط MRM PG Manager تولید شده است - ${invoiceDateJalali}", fontSize = 8.sp, color = theme.mutedColor, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-
-                // اکشن‌ها در دو ردیف
-                Text("💡 برای تنظیم لوگو و نام فروشنده به تنظیمات > فاکتور بروید", fontSize = 8.sp, color = theme.accentPrimary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(theme.searchBgColor)
-                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
-                            .clickable { copyInvoice() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 16.dp)
-                            Text("کپی متن", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                    }
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(theme.accentPrimary.copy(0.18f))
-                            .border(BorderStroke(1.dp, theme.accentPrimary.copy(0.4f)), RoundedCornerShape(12.dp))
-                            .clickable { shareTextInvoice() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RoundedAppIcon(AppIcon.OpenNew, tint = theme.inkColor, size = 16.dp)
-                            Text("اشتراک متن", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                    }
-                }
-
-                // دکمه PDF (پرایمری)
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (generatingPdf) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
-                        .clickable(enabled = !generatingPdf) { generateAndSharePdf() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (generatingPdf) {
-                        CircularProgressIndicator(Modifier.size(20.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoundedAppIcon(AppIcon.Pdf, tint = Color(0xFF202124), size = 18.dp)
-                            Text("📄 ساخت و اشتراک‌گذاری PDF", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
-                        }
-                    }
-                }
-
-                com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(42.dp))
-                Text("💡 نکته: برای ارسال به مشتری می‌توانی از متن کپی/اشتراک یا PDF استفاده کنی", fontSize = 9.sp, color = theme.mutedColor, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
         }
     }
 }
 
 @Composable
-private fun InvoiceRow(label: String, value: String, valueColor: Color, bold: Boolean = false) {
+private fun InfoRow(label: String, value: String, theme: com.mrm.pgmanager.ui.theme.ThemeState, bold: Boolean = false, color: Color = theme.inkColor) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontSize = 10.sp, color = theme.mutedColor)
+        Text(value, fontSize = 12.sp, fontWeight = if (bold) FontWeight.ExtraBold else FontWeight.Medium, color = color)
+    }
+}
+
+/**
+ * کارت تمام‌صفحه فاکتور برای اسکرین‌شات - طراحی ساده و شیک
+ */
+@Composable
+private fun InvoicePreviewCard(
+    logoBitmap: android.graphics.Bitmap?,
+    sellerName: String,
+    username: String,
+    volume: String,
+    duration: String,
+    startDate: String,
+    endDate: String,
+    currentPrice: Long,
+    previousDebt: Long,
+    totalDebt: Long,
+    currency: String,
+    invoiceDate: String,
+    onClose: () -> Unit
+) {
     val theme = LocalThemeState.current
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-        Text(label, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        Text(value, fontSize = 11.sp, fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium, color = valueColor, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+
+    Dialog(onDismissRequest = onClose) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            // کارت فاکتور - پس‌زمینه سفید/روشن برای خوانایی در اسکرین‌شات
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White)
+                    .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), RoundedCornerShape(24.dp))
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // دکمه بستن در بالا سمت راست کارت
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Box(
+                        Modifier.size(28.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFF2F2F4))
+                            .clickable { onClose() },
+                        contentAlignment = Alignment.Center
+                    ) { Text("×", fontSize = 20.sp, color = Color(0xFF74757B), fontWeight = FontWeight.Bold) }
+                }
+
+                // لوگو/برند
+                if (logoBitmap != null) {
+                    Image(
+                        bitmap = logoBitmap.asImageBitmap(),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(90.dp).clip(RoundedCornerShape(18.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Box(
+                        Modifier.size(90.dp).clip(RoundedCornerShape(18.dp))
+                            .background(Color(0xFFFFF8E1))
+                            .border(BorderStroke(1.dp, Color(0xFFF4C928).copy(alpha = 0.4f)), RoundedCornerShape(18.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(if (sellerName.isNotBlank()) sellerName.take(3) else "MRM", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD4A800))
+                    }
+                }
+
+                // نام برند
+                if (sellerName.isNotBlank()) {
+                    Text(sellerName, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                }
+                Text(
+                    "فاکتور اشتراک VPN",
+                    fontSize = 13.sp,
+                    color = Color(0xFF74757B)
+                )
+
+                // خط جداکننده طلایی
+                Box(
+                    Modifier.fillMaxWidth(0.8f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFF4C928))
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // مشخصات کاربر
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF8F8FA))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PreviewRow("نام کاربری", username, bold = true)
+                    PreviewRow("حجم اشتراک", volume, bold = true, color = Color(0xFF202124))
+                    PreviewRow("مدت اشتراک", duration, color = Color(0xFFD4A800), bold = true)
+                    PreviewRow("تاریخ شروع", startDate)
+                    PreviewRow("تاریخ پایان", endDate, color = Color(0xFFC93B3B), bold = true)
+                }
+
+                // مبالغ
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF8F8FA))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    PreviewRow("قیمت این دوره", "%,d %s".format(Locale.US, currentPrice, currency))
+                    if (previousDebt > 0) {
+                        PreviewRow("بدهی قبلی", "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
+                    }
+                    Divider(color = Color(0xFFE8E8EC))
+                    val totalColor = if (totalDebt > 0) Color(0xFFC93B3B) else Color(0xFF1A8C5B)
+                    val totalText = if (totalDebt > 0) "%,d %s".format(Locale.US, totalDebt, currency) else "پرداخت شده ✅"
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("مبلغ قابل پرداخت", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                        Text(totalText, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = totalColor)
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // تاریخ و تشکر
+                Text("با تشکر از انتخاب شما 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
+                Text(
+                    "تاریخ صدور: $invoiceDate",
+                    fontSize = 9.sp,
+                    color = Color(0xFFA09C94)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreviewRow(label: String, value: String, bold: Boolean = false, color: Color = Color(0xFF202124)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, fontSize = 11.sp, color = Color(0xFF74757B))
+        Text(value, fontSize = 12.sp, fontWeight = if (bold) FontWeight.ExtraBold else FontWeight.Medium, color = color)
     }
 }
