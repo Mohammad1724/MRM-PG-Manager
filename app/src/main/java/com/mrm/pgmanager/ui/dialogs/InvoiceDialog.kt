@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +32,6 @@ import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.CompactGlassField
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -40,7 +40,6 @@ import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.PdfInvoiceGenerator
 import com.mrm.pgmanager.utils.formatBytes
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
