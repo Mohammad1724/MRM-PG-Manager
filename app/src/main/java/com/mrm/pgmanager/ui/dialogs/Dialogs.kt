@@ -112,7 +112,8 @@ fun QuickActionSheet(
     onResetExpiry: () -> Unit,
     onDelete: () -> Unit,
     onDebtor: (() -> Unit)? = null,
-    isDebtor: Boolean = false
+    isDebtor: Boolean = false,
+    onInvoice: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
@@ -137,12 +138,15 @@ fun QuickActionSheet(
                     QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.Note, "فاکتور 🧾", theme.accentPrimary, Modifier.weight(1f)) {
+                        if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
+                    }
                     QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) "تسویه بدهی" else "بدهکار", GlassRed, Modifier.weight(1f)) {
                         if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
                     }
-                    QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
                     QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                 }
             }
@@ -1136,7 +1140,8 @@ fun UserDetailsDialog(
     session: com.mrm.pgmanager.data.model.Session? = null,
     debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null,
     onMarkDebtor: (() -> Unit)? = null,
-    onClearDebt: (() -> Unit)? = null
+    onClearDebt: (() -> Unit)? = null,
+    onInvoice: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -1289,6 +1294,11 @@ fun UserDetailsDialog(
                     Row(Modifier.fillMaxWidth()) {
                         SettingsActionRow("ثبت بدهکار", "این کاربر بدهکار است و مبلغ بدهی را ثبت کن", AppIcon.Warning, GlassRed) { onMarkDebtor?.invoke() }
                     }
+                }
+
+                // دکمه فاکتور
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    action("🧾 فاکتور اشتراک", Modifier.weight(1f), primary = false) { onInvoice?.invoke() }
                 }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
