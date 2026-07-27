@@ -440,7 +440,7 @@ fun ThemeEditorDialog(
         }
     }
     // در صفحهٔ ورود (بدون نشست) فقط تنظیمات ظاهری معنا دارد؛ بقیهٔ تب‌ها پنهان می‌مانند.
-    val sections = remember(session) { if (session == null) listOf("ظاهر") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "کاربران", "فاکتور", "امنیت") }
+    val sections = remember(session) { if (session == null) listOf("ظاهر", "پشتیبان") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "کاربران", "فاکتور", "پشتیبان", "امنیت") }
 
     // === انتخاب لوگو برای فاکتور ===
     var invoiceLogoPath by remember { mutableStateOf(store.readInvoiceLogoPath()) }
@@ -486,6 +486,118 @@ fun ThemeEditorDialog(
                     }
                 }
             }
+        }
+    }
+
+    // === پشتیبان‌گیری ===
+    var backupEnabled by remember { mutableStateOf(store.readBackupEnabled()) }
+    var backupInterval by remember { mutableStateOf(store.readBackupIntervalHours()) }
+    var backupKeep by remember { mutableStateOf(store.readBackupKeepCount()) }
+    var backupPassword by remember { mutableStateOf(store.readBackupPassword()) }
+    var backupFolderUri by remember { mutableStateOf(store.readBackupUri()) }
+    var backupFolderName by remember { mutableStateOf<String?>(null) }
+    var backupBusy by remember { mutableStateOf(false) }
+    var backupLastMsg by remember { mutableStateOf(store.readLastBackupMessage()) }
+    var restoreDialogOpen by remember { mutableStateOf(false) }
+    var restorePreview by remember { mutableStateOf<com.mrm.pgmanager.utils.BackupManager.BackupInfo?>(null) }
+    var restorePasswordInput by remember { mutableStateOf("") }
+    var restorePassword by remember { mutableStateOf(false) }
+    var restoreUri by remember { mutableStateOf<Uri?>(null) }
+    var restoreResult by remember { mutableStateOf<String?>(null) }
+
+    // Resolve backup folder name
+    LaunchedEffect(backupFolderUri) {
+        backupFolderName = if (backupFolderUri != null) {
+            val uri = Uri.parse(backupFolderUri)
+            runCatching {
+                context.contentResolver.query(uri, arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
+                    if (c.moveToFirst()) c.getString(0) else null
+                }
+            }.getOrNull()
+        } else null
+    }
+
+    val pickBackupDir = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri?.let {
+            val takeFlags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            store.saveBackupUri(it.toString())
+            backupFolderUri = it.toString()
+        }
+    }
+
+    val pickRestoreFile = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            runCatching {
+                context.contentResolver.openInputStream(it)?.use { ins ->
+                    com.mrm.pgmanager.utils.BackupManager.inspect(ins)
+                }
+            }.onSuccess { info ->
+                restorePreview = info
+                restoreUri = it
+                restorePasswordInput = ""
+                restorePassword = info.encrypted
+                restoreResult = null
+                restoreDialogOpen = true
+            }.onFailure { e ->
+                // Could be encrypted - ask password
+                restorePreview = null
+                restoreUri = it
+                restorePasswordInput = ""
+                restorePassword = true
+                restoreResult = null
+                restoreDialogOpen = true
+            }
+        }
+    }
+
+    fun performBackup(manual: Boolean) {
+        if (backupBusy) return
+        val targetUri = backupFolderUri
+        if (targetUri.isNullOrBlank()) {
+            android.widget.Toast.makeText(context, "ابتدا پوشهٔ ذخیره‌سازی را انتخاب کنید", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        backupBusy = true
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                val dirUri = Uri.parse(targetUri)
+                val cr = context.contentResolver
+                val name = com.mrm.pgmanager.utils.BackupManager.generateFileName()
+                val docUri = android.provider.DocumentsContract.createDocument(
+                    cr,
+                    android.provider.DocumentsContract.buildDocumentUriUsingTree(dirUri, android.provider.DocumentsContract.getTreeDocumentId(dirUri)),
+                    "application/octet-stream",
+                    name
+                ) ?: throw Exception("ایجاد فایل ممکن نشد")
+                cr.openOutputStream(docUri)?.use { os ->
+                    com.mrm.pgmanager.utils.BackupManager.createBackup(context, os, backupPassword, appVersion)
+                }
+                com.mrm.pgmanager.utils.BackupManager.pruneBackups(context, dirUri, backupKeep)
+                store.saveBackupEnabled(backupEnabled)
+                store.saveBackupIntervalHours(backupInterval)
+                store.saveBackupKeepCount(backupKeep)
+                store.saveBackupPassword(backupPassword)
+                com.mrm.pgmanager.work.BackupWorker.schedule(context, if (backupEnabled) backupInterval else 0)
+            }.onSuccess {
+                backupLastMsg = if (manual) "پشتیبان‌گیری دستی موفق ✅" else "پشتیبان‌گیری خودکار انجام شد"
+                store.saveLastBackupMessage(backupLastMsg)
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "پشتیبان‌گیری با موفقیت ذخیره شد", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }.onFailure { e ->
+                backupLastMsg = "خطا: ${e.message}"
+                store.saveLastBackupSuccess(false)
+                store.saveLastBackupMessage(backupLastMsg)
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "خطا در پشتیبان‌گیری: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+            withContext(Dispatchers.Main) { backupBusy = false }
         }
     }
 
@@ -894,6 +1006,134 @@ fun ThemeEditorDialog(
                                 )
                             }
                         }
+                        "پشتیبان" -> {
+                            SettingsCard("پوشه ذخیره‌سازی", AppIcon.Folder) {
+                                Text("پشتیبان‌ها در پوشه‌ای که انتخاب می‌کنید روی حافظهٔ گوشی ذخیره می‌شوند.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Box(
+                                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(12.dp))
+                                        .background(theme.searchBgColor)
+                                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+                                        .clickable { pickBackupDir.launch(null) }
+                                        .padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 17.dp)
+                                        Text(
+                                            backupFolderName ?: "انتخاب پوشه...",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (backupFolderName != null) theme.inkColor else theme.mutedColor,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                if (backupFolderUri != null) {
+                                    Box(
+                                        Modifier.fillMaxWidth().height(32.dp).clip(RoundedCornerShape(8.dp))
+                                            .background(GlassRed.copy(0.08f))
+                                            .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                store.saveBackupUri(null)
+                                                backupFolderUri = null
+                                            }.padding(horizontal = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("لغو انتخاب پوشه", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                                    }
+                                }
+                            }
+
+                            SettingsCard("پشتیبان‌گیری خودکار", AppIcon.Backup, accent = theme.accentPrimary) {
+                                Text("در بازه‌های زمانی تعیین‌شده از همهٔ تنظیمات و حساب‌ها یک کپی امن در پوشهٔ انتخابی گرفته می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                SettingsSwitchRow("فعال‌سازی پشتیبان خودکار", "", backupEnabled) { v ->
+                                    backupEnabled = v
+                                    store.saveBackupEnabled(v)
+                                    com.mrm.pgmanager.work.BackupWorker.schedule(context, if (v) backupInterval else 0)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("بازهٔ زمانی", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (backupEnabled) theme.inkColor else theme.mutedColor)
+                                    val options = listOf("۶ ساعت", "۱۲ ساعت", "روزانه", "۳ روز", "هفتگی")
+                                    val values = listOf(6, 12, 24, 72, 168)
+                                    val idx = values.indexOf(backupInterval).coerceAtLeast(0)
+                                    SegmentedControl(
+                                        options = options,
+                                        selectedIndex = if (backupEnabled) idx else 0,
+                                        enabled = backupEnabled
+                                    ) { i ->
+                                        backupInterval = values[i]
+                                        store.saveBackupIntervalHours(backupInterval)
+                                        com.mrm.pgmanager.work.BackupWorker.schedule(context, backupInterval)
+                                    }
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("تعداد نسخه‌های نگهداری", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                    val keepOptions = listOf("۳ نسخه", "۵ نسخه", "۷ نسخه", "۱۴ نسخه", "۳۰ نسخه")
+                                    val keepValues = listOf(3, 5, 7, 14, 30)
+                                    SegmentedControl(
+                                        options = keepOptions,
+                                        selectedIndex = keepValues.indexOf(backupKeep).coerceAtLeast(2)
+                                    ) { i ->
+                                        backupKeep = keepValues[i]
+                                        store.saveBackupKeepCount(backupKeep)
+                                    }
+                                    Text("نسخه‌های قدیمی‌تر به‌طور خودکار حذف می‌شوند.", fontSize = 8.5.sp, color = theme.mutedColor)
+                                }
+                            }
+
+                            SettingsCard("رمزگذاری", AppIcon.Lock, accent = GlassGreen) {
+                                Text("با تعیین رمز، فایل بکاپ با AES-256 رمزنگاری می‌شود و بدون رمز روی دستگاه دیگری قابل بازیابی نیست. برای بکاپ ساده و بدون رمز این فیلد را خالی بگذارید.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                CompactGlassField(
+                                    value = backupPassword,
+                                    onValueChange = { v -> backupPassword = v.take(64); store.saveBackupPassword(v) },
+                                    placeholder = "رمز بکاپ (اختیاری)",
+                                    leadingAppIcon = AppIcon.Lock,
+                                    keyboardType = KeyboardType.Password
+                                )
+                            }
+
+                            SettingsCard("عملیات", AppIcon.Settings) {
+                                if (backupLastMsg.isNotBlank()) {
+                                    Text(backupLastMsg, fontSize = 9.sp, color = theme.mutedColor)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Box(
+                                        Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(12.dp))
+                                            .background(if (backupBusy) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
+                                            .clickable(enabled = !backupBusy) { performBackup(manual = true) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (backupBusy) {
+                                            CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
+                                        } else {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                RoundedAppIcon(AppIcon.Backup, tint = Color(0xFF202124), size = 16.dp)
+                                                Text("پشتیبان‌گیری دستی", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                                            }
+                                        }
+                                    }
+                                    Box(
+                                        Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(12.dp))
+                                            .background(theme.searchBgColor)
+                                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+                                            .clickable { pickRestoreFile.launch(arrayOf("*/*")) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            RoundedAppIcon(AppIcon.Restore, tint = theme.inkColor, size = 16.dp)
+                                            Text("بازیابی از فایل", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                                        }
+                                    }
+                                }
+                                val lastAt = store.readLastBackupAt()
+                                if (lastAt > 0) {
+                                    val sdf = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
+                                    Text("آخرین پشتیبان: ${sdf.format(java.util.Date(lastAt))}", fontSize = 8.5.sp, color = theme.mutedColor)
+                                }
+                            }
+                        }
                         "امنیت" -> {
                             SettingsCard("قفل برنامه", AppIcon.Lock, accent = GlassGreen) {
                                 SettingsSwitchRow(
@@ -955,6 +1195,133 @@ fun ThemeEditorDialog(
     }
     if (bulkCreateOpen && session != null) {
         BulkCreateUsersDialog(session = session, onDismiss = { bulkCreateOpen = false })
+    }
+    // ==== دیالوگ بازیابی بکاپ ====
+    if (restoreDialogOpen && restoreUri != null) {
+        var restoreAccounts by remember { mutableStateOf(true) }
+        var restoreDebtors by remember { mutableStateOf(true) }
+        var restoreSettings by remember { mutableStateOf(true) }
+        var restoreInvoice by remember { mutableStateOf(true) }
+        var restoring by remember { mutableStateOf(false) }
+        val ctx = LocalContext.current
+        Dialog(onDismissRequest = { if (!restoring) restoreDialogOpen = false }) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(18.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("بازیابی پشتیبان", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+
+                    if (restorePreview != null) {
+                        val info = restorePreview!!
+                        val sdf = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("اطلاعات فایل:", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                            Text("• تاریخ ساخت: ${sdf.format(java.util.Date(info.createdAt))}", fontSize = 10.sp, color = theme.inkColor)
+                            Text("• نسخه اپ: ${info.appVersion.ifBlank { "-" }}", fontSize = 10.sp, color = theme.inkColor)
+                            Text("• تعداد حساب: ${info.accountsCount}", fontSize = 10.sp, color = theme.inkColor)
+                            Text("• تعداد بدهکار: ${info.debtorsCount}", fontSize = 10.sp, color = theme.inkColor)
+                            if (info.sellerName.isNotBlank()) Text("• فروشنده: ${info.sellerName}", fontSize = 10.sp, color = theme.inkColor)
+                            if (info.hasLogo) Text("• دارای لوگو", fontSize = 10.sp, color = theme.inkColor)
+                            if (info.encrypted) Text("• رمزنگاری شده", fontSize = 10.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Text("فایل انتخاب شد. در صورت رمزدار بودن، رمز را وارد کنید.", fontSize = 10.sp, color = theme.mutedColor)
+                    }
+
+                    if (restorePassword) {
+                        CompactGlassField(
+                            value = restorePasswordInput,
+                            onValueChange = { restorePasswordInput = it },
+                            placeholder = "رمز بکاپ",
+                            leadingAppIcon = AppIcon.Lock,
+                            keyboardType = KeyboardType.Password
+                        )
+                    }
+
+                    Text("انتخاب بخش‌ها برای بازیابی:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        RestoreCheck("حساب‌های پنل (توکن‌ها)", restoreAccounts) { restoreAccounts = it }
+                        RestoreCheck("بدهکاران", restoreDebtors) { restoreDebtors = it }
+                        RestoreCheck("تنظیمات (تم، پایش، قفل، نما)", restoreSettings) { restoreSettings = it }
+                        RestoreCheck("فاکتور (لوگو و نام فروشنده)", restoreInvoice) { restoreInvoice = it }
+                    }
+
+                    restoreResult?.let { Text(it, fontSize = 10.sp, color = GlassGreen, fontWeight = FontWeight.Bold) }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (!restoring) {
+                                com.mrm.pgmanager.ui.components.MutedCancelButton("انصراف", onClick = { restoreDialogOpen = false }, modifier = Modifier.fillMaxWidth().height(44.dp))
+                            } else {
+                                Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(13.dp)).background(theme.searchBgColor.copy(0.5f)), contentAlignment = Alignment.Center) {
+                                    Text("انصراف", color = theme.mutedColor.copy(0.5f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                        Box(
+                            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (restoring) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
+                                .clickable(enabled = !restoring) {
+                                    if (!restoreAccounts && !restoreDebtors && !restoreSettings && !restoreInvoice) {
+                                        android.widget.Toast.makeText(ctx, "حداقل یک بخش را انتخاب کنید", android.widget.Toast.LENGTH_SHORT).show()
+                                        return@clickable
+                                    }
+                                    restoring = true
+                                    scope.launch(Dispatchers.IO) {
+                                        runCatching {
+                                            ctx.contentResolver.openInputStream(restoreUri!!)?.use { ins ->
+                                                com.mrm.pgmanager.utils.BackupManager.restoreBackup(
+                                                    ctx, ins, restorePasswordInput,
+                                                    restoreAccounts = restoreAccounts,
+                                                    restoreDebtors = restoreDebtors,
+                                                    restoreSettings = restoreSettings,
+                                                    restoreInvoice = restoreInvoice
+                                                )
+                                            } ?: throw Exception("باز کردن فایل ممکن نشد")
+                                        }.onSuccess { (_, msg) ->
+                                            withContext(Dispatchers.Main) {
+                                                restoreResult = "$msg\nلطفاً اپ را یک‌بار بسته و دوباره باز کنید."
+                                                restorePreview = null
+                                                restoring = false
+                                                android.widget.Toast.makeText(ctx, "بازیابی موفق", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        }.onFailure { e ->
+                                            withContext(Dispatchers.Main) {
+                                                restoreResult = "خطا: ${e.message}"
+                                                restoring = false
+                                            }
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (restoring) CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
+                            else Text("بازیابی", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RestoreCheck(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor)
+            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp))
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(Modifier.size(20.dp).clip(RoundedCornerShape(6.dp))
+            .background(if (checked) theme.accentPrimary.copy(0.78f) else Color.Transparent)
+            .border(BorderStroke(1.dp, if (checked) theme.accentPrimary else theme.mutedColor.copy(0.4f)), RoundedCornerShape(6.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (checked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 13.dp)
+        }
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
     }
 }
 
