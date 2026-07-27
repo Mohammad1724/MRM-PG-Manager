@@ -451,7 +451,7 @@ object BackupManager {
             dirUri,
             android.provider.DocumentsContract.getTreeDocumentId(dirUri)
         )
-        class Entry(val name: String, val docId: String)
+        data class Entry(val name: String, val docId: String)
         val files = contentResolver.query(childUri,
             arrayOf(android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME),
