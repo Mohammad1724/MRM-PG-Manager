@@ -131,17 +131,16 @@ private fun formatDebtorAmount(amount: Long): String {
 }
 
 @Composable
+/** نشانگر کوچک بدهکار (نقطه قرمز) کنار نام کاربری - بدون نمایش مبلغ */
+@Composable
 private fun DebtorBadge(debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo, compact: Boolean = false) {
-    val amountText = if (debtorInfo.amount>0) " ${formatDebtorAmount(debtorInfo.amount)} ${debtorInfo.currency}" else ""
+    val theme = LocalThemeState.current
+    val size = if (compact) 8.dp else 10.dp
     Box(
-        Modifier.height(if (compact) 17.dp else 20.dp).clip(RoundedCornerShape(if (compact) 5.dp else 6.dp))
-            .background(GlassRed.copy(0.13f))
-            .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(if (compact) 5.dp else 6.dp))
-            .padding(horizontal = if (compact) 4.dp else 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("بدهکار$amountText", fontSize = if (compact) 6.5.sp else 8.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
+        Modifier.size(size).clip(RoundedCornerShape(50))
+            .background(GlassRed)
+            .border(BorderStroke(1.dp, if (theme.isDark) theme.dialogBgColor else Color.White), RoundedCornerShape(50))
+    )
 }
 
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
@@ -365,7 +364,11 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)); Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor)) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        if (debtorInfo != null) DebtorBadge(debtorInfo, compact = true)
+                        Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
+                    }
                     Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = Color(0xFF3B82F6), size = 11.dp) }
@@ -379,11 +382,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                debtorInfo?.let { d ->
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(GlassRed.copy(0.14f)).border(BorderStroke(0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                        Text("بدهکار ${if (d.amount>0) formatDebtorAmount(d.amount) else ""}", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1)
-                    }
-                }
                 // دکمه کوچک فاکتور در کارت گرید
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.accentPrimary.copy(0.12f)).border(BorderStroke(0.8.dp, theme.accentPrimary.copy(0.22f)), RoundedCornerShape(7.dp)).clickable { onInvoiceClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                     Text("فاکتور", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1)
@@ -549,14 +547,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                     UserCardAction("QR", Modifier.width(30.dp)) { onQrClick(user) }
                 }
             }
-            debtorInfo?.let { d ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(6.dp)).background(GlassRed.copy(0.12f)).border(BorderStroke(0.8.dp, GlassRed.copy(0.28f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                        Text("بدهکار: ${formatDebtorAmount(d.amount)} ${d.currency} - ${java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(d.markedAt))}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1)
-                    }
-                }
-            }
-
             // ردیف داده‌ها: دو انتهای کارت ثابت و قابل اسکن هستند.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
