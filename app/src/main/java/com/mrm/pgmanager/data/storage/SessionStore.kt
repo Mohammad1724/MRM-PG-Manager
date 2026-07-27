@@ -13,7 +13,7 @@ import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
 
 class SessionStore(context: Context) {
-    private val prefs = EncryptedSharedPreferences.create(
+    internal val prefs = EncryptedSharedPreferences.create(
         context,
         "mrm_pg_manager",
         MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
@@ -323,4 +323,23 @@ class SessionStore(context: Context) {
     // === نام فروشنده/برند برای فاکتور ===
     fun readInvoiceSeller(): String = prefs.getString("invoice_seller", "") ?: ""
     fun saveInvoiceSeller(name: String) = prefs.edit().putString("invoice_seller", name).apply()
+
+    // === تنظیمات پشتیبان‌گیری ===
+    fun readBackupUri(): String? = prefs.getString("backup_uri", null)
+    fun saveBackupUri(uri: String?) = prefs.edit().putString("backup_uri", uri).apply()
+    fun readBackupEnabled(): Boolean = prefs.getBoolean("backup_enabled", false)
+    fun saveBackupEnabled(v: Boolean) = prefs.edit().putBoolean("backup_enabled", v).apply()
+    /** بازه پشتیبان‌گیری خودکار بر حسب ساعت (0=فقط دستی، ۶/۱۲/۲۴/۷۲ ساعت) */
+    fun readBackupIntervalHours(): Int = prefs.getInt("backup_interval_hours", 24).coerceIn(0, 720)
+    fun saveBackupIntervalHours(h: Int) = prefs.edit().putInt("backup_interval_hours", h.coerceIn(0, 720)).apply()
+    fun readBackupPassword(): String = prefs.getString("backup_password", "") ?: ""
+    fun saveBackupPassword(p: String) = prefs.edit().putString("backup_password", p).apply()
+    fun readBackupKeepCount(): Int = prefs.getInt("backup_keep_count", 7).coerceIn(2, 30)
+    fun saveBackupKeepCount(n: Int) = prefs.edit().putInt("backup_keep_count", n.coerceIn(2, 30)).apply()
+    fun readLastBackupAt(): Long = prefs.getLong("backup_last_at", 0L)
+    fun saveLastBackupAt(ts: Long) = prefs.edit().putLong("backup_last_at", ts).apply()
+    fun readLastBackupSuccess(): Boolean = prefs.getBoolean("backup_last_ok", true)
+    fun saveLastBackupSuccess(ok: Boolean) = prefs.edit().putBoolean("backup_last_ok", ok).apply()
+    fun readLastBackupMessage(): String = prefs.getString("backup_last_msg", "") ?: ""
+    fun saveLastBackupMessage(m: String) = prefs.edit().putString("backup_last_msg", m).apply()
 }
