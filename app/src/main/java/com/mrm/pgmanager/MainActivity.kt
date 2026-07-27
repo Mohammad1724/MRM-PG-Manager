@@ -42,6 +42,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.work.BackupWorker
 import com.mrm.pgmanager.work.MonitoringWorker
 import java.util.concurrent.TimeUnit
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
@@ -179,6 +180,10 @@ fun MRMApp() {
         if (session != null) {
             val request = PeriodicWorkRequestBuilder<MonitoringWorker>(15, TimeUnit.MINUTES).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("mrm_background_monitoring", ExistingPeriodicWorkPolicy.UPDATE, request)
+            // زمان‌بندی پشتیبان‌گیری خودکار
+            val store = SessionStore(context)
+            val hours = if (store.readBackupEnabled()) store.readBackupIntervalHours() else 0
+            BackupWorker.schedule(context, hours)
         }
     }
 
