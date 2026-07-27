@@ -125,7 +125,6 @@ fun BulkCreateUsersDialog(
                         Text("ساخت گروهی کاربر", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         Text("تولید چند کاربر هم‌زمان با نام یکدست", fontSize = 9.5.sp, color = theme.mutedColor)
                     }
-                    if (!running) Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 19.sp, color = theme.mutedColor) }
                 }
 
                 if (!running && !done) {
