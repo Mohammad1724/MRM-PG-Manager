@@ -130,7 +130,6 @@ private fun formatDebtorAmount(amount: Long): String {
     }
 }
 
-@Composable
 /** نشانگر کوچک بدهکار (نقطه قرمز) کنار نام کاربری - بدون نمایش مبلغ */
 @Composable
 private fun DebtorBadge(debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo, compact: Boolean = false) {
