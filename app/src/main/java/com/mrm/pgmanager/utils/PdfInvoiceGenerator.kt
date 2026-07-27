@@ -6,12 +6,10 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Paint.Align
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
-import android.text.Layout
-import android.text.StaticLayout
 import android.text.TextPaint
 import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
@@ -19,6 +17,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+
+private data class InvoiceRow(val label: String, val value: String, val bold: Boolean = false, val color: Int)
 
 object PdfInvoiceGenerator {
 
@@ -55,62 +55,53 @@ object PdfInvoiceGenerator {
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
 
-        // فونت‌ها - استفاده از فونت پیش‌فرض سیستم که فارسی را پشتیبانی می‌کند
-        val persianTypeface = runCatching {
-            // Try common Persian/ Arabic fonts on Android
-            Typeface.create("sans-serif", Typeface.NORMAL)
-        }.getOrDefault(Typeface.DEFAULT)
+        val persianTypeface = Typeface.create("sans-serif", Typeface.NORMAL)
 
         val titlePaint = TextPaint().apply {
             color = darkColor
             textSize = 22f
             isAntiAlias = true
             typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-            textAlign = Align.RIGHT
+            textAlign = Paint.Align.RIGHT
         }
         val h2Paint = TextPaint().apply {
             color = darkColor
             textSize = 14f
             isAntiAlias = true
             typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-            textAlign = Align.RIGHT
+            textAlign = Paint.Align.RIGHT
         }
         val boldPaint = TextPaint().apply {
             color = darkColor
             textSize = 11f
             isAntiAlias = true
             typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-            textAlign = Align.RIGHT
+            textAlign = Paint.Align.RIGHT
         }
         val normalPaint = TextPaint().apply {
             color = darkColor
             textSize = 10f
             isAntiAlias = true
             typeface = persianTypeface
-            textAlign = Align.RIGHT
+            textAlign = Paint.Align.RIGHT
         }
         val smallPaint = TextPaint().apply {
             color = grayColor
             textSize = 8.5f
             isAntiAlias = true
             typeface = persianTypeface
-            textAlign = Align.RIGHT
+            textAlign = Paint.Align.RIGHT
         }
         val centerPaint = TextPaint().apply {
             color = darkColor
             textSize = 11f
             isAntiAlias = true
             typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-            textAlign = Align.CENTER
+            textAlign = Paint.Align.CENTER
         }
         val pricePaint = TextPaint().apply {
             isAntiAlias = true
-            textAlign = Align.CENTER
-        }
-        val linePaint = Paint().apply {
-            color = primaryColor
-            style = Paint.Style.FILL
-            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
         }
         val borderPaint = Paint().apply {
             color = borderGray
@@ -135,21 +126,19 @@ object PdfInvoiceGenerator {
 
         val logoSize = 72f
         if (logoBitmap != null) {
-            val src = RectF(0f, 0f, logoBitmap.width.toFloat(), logoBitmap.height.toFloat())
             val dst = RectF(MARGIN, y, MARGIN + logoSize, y + logoSize)
-            canvas.drawBitmap(logoBitmap, src, dst, null)
+            canvas.drawBitmap(logoBitmap, null, dst, null)
         } else {
-            // Placeholder
-            fillPaint.color = primaryColor
             val phRect = RectF(MARGIN, y, MARGIN + logoSize, y + logoSize)
-            canvas.drawRoundRect(phRect, 14f, 14f, borderPaint)
             fillPaint.color = Color.argb(40, 0xF4, 0xC9, 0x28)
             canvas.drawRoundRect(phRect, 14f, 14f, fillPaint)
+            borderPaint.color = primaryColor
+            canvas.drawRoundRect(phRect, 14f, 14f, borderPaint)
             val mrmPaint = TextPaint().apply {
                 color = darkColor
                 textSize = 20f
                 typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-                textAlign = Align.CENTER
+                textAlign = Paint.Align.CENTER
                 isAntiAlias = true
             }
             canvas.drawText(if (sellerName.isNotBlank()) sellerName.take(3) else "MRM", MARGIN + logoSize / 2f, y + logoSize / 2f + 7f, mrmPaint)
@@ -159,7 +148,7 @@ object PdfInvoiceGenerator {
         canvas.drawText("فاکتور اشتراک", PAGE_WIDTH - MARGIN, y + 24f, titlePaint)
         val seller = if (sellerName.isNotBlank()) sellerName else "MRM PG Manager"
         canvas.drawText(seller, PAGE_WIDTH - MARGIN, y + 44f, h2Paint)
-        val subPaint = TextPaint(smallPaint).apply { textAlign = Align.RIGHT }
+        val subPaint = TextPaint(smallPaint).apply { textAlign = Paint.Align.RIGHT }
         canvas.drawText("Subscription Invoice / Voucher", PAGE_WIDTH - MARGIN, y + 60f, subPaint)
 
         y += logoSize + 14f
@@ -174,28 +163,27 @@ object PdfInvoiceGenerator {
         val invoiceDate = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date())
         val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
 
-        // ردیف اطلاعات: شماره فاکتور راست، تاریخ چپ
         canvas.drawText("شماره فاکتور / Invoice No.", PAGE_WIDTH - MARGIN, y, smallPaint)
         canvas.drawText(invoiceId, PAGE_WIDTH - MARGIN, y + 16f, boldPaint)
 
-        canvas.drawText("تاریخ / Date", MARGIN + 200f, y, smallPaint.apply { textAlign = Align.LEFT })
-        canvas.drawText(invoiceDateJalali, MARGIN + 200f, y + 16f, boldPaint.apply { textAlign = Align.LEFT })
+        canvas.drawText("تاریخ / Date", MARGIN + 200f, y, TextPaint(smallPaint).apply { textAlign = Paint.Align.LEFT })
+        canvas.drawText(invoiceDateJalali, MARGIN + 200f, y + 16f, TextPaint(boldPaint).apply { textAlign = Paint.Align.LEFT })
 
         y += 36f
-        canvas.drawText("ساعت صدور / Issue Time", PAGE_WIDTH - MARGIN, y, smallPaint.apply { textAlign = Align.RIGHT })
+        canvas.drawText("ساعت صدور / Issue Time", PAGE_WIDTH - MARGIN, y, smallPaint)
         canvas.drawText(invoiceDate, PAGE_WIDTH - MARGIN, y + 16f, normalPaint)
 
-        canvas.drawText("نام کاربری / Username", MARGIN + 200f, y, smallPaint.apply { textAlign = Align.LEFT })
-        canvas.drawText(user.username, MARGIN + 200f, y + 16f, boldPaint.apply { textAlign = Align.LEFT })
+        canvas.drawText("نام کاربری / Username", MARGIN + 200f, y, TextPaint(smallPaint).apply { textAlign = Paint.Align.LEFT })
+        canvas.drawText(user.username, MARGIN + 200f, y + 16f, TextPaint(boldPaint).apply { textAlign = Paint.Align.LEFT })
 
         y += 38f
 
         // ===== نوار وضعیت =====
         val statusText = when (user.status) {
-            "active" -> "✅ فعال / Active"
-            "disabled" -> "❌ غیرفعال / Disabled"
-            "expired" -> "⌛ منقضی / Expired"
-            "limited" -> "⚠️ محدود / Limited"
+            "active" -> "فعال / Active"
+            "disabled" -> "غیرفعال / Disabled"
+            "expired" -> "منقضی / Expired"
+            "limited" -> "محدود / Limited"
             else -> user.status
         }
         val statusColor = when (user.status) {
@@ -213,10 +201,9 @@ object PdfInvoiceGenerator {
         y += 46f
 
         // ===== جدول مشخصات اشتراک =====
-        canvas.drawText("📦 جزئیات اشتراک / Subscription Details", PAGE_WIDTH - MARGIN, y, h2Paint)
+        canvas.drawText("جزئیات اشتراک / Subscription Details", PAGE_WIDTH - MARGIN, y, h2Paint)
         y += 20f
 
-        // محاسبات
         val dataLimitText = if (user.dataLimit == 0L) "نامحدود / Unlimited" else formatBytes(user.dataLimit)
         val usedText = formatBytes(user.usedTraffic)
         val remainingBytes = if (user.dataLimit > 0) (user.dataLimit - user.usedTraffic).coerceAtLeast(0) else 0L
@@ -238,41 +225,39 @@ object PdfInvoiceGenerator {
         }.getOrDefault(0)
         val durationText = when {
             durationDays <= 0 -> "نامحدود / Unlimited"
-            durationDays == 1L -> "۱ روز / 1 day"
+            durationDays == 1L -> "1 روز / 1 day"
             durationDays < 30 -> "$durationDays روز / $durationDays days"
-            durationDays == 30L -> "۱ ماه / 1 month"
+            durationDays == 30L -> "1 ماه / 1 month"
             durationDays < 365 -> "${durationDays/30} ماه (${durationDays} روز)"
             else -> "${durationDays/30} ماه"
         }
 
-        data class Row(val label: String, val value: String, val bold: Boolean = false, val color: Int = darkColor)
         val rows = listOf(
-            Row("حجم کل / Total Volume", dataLimitText, bold = true),
-            Row("مصرف شده / Used", usedText, color = greenColor),
-            Row("باقی‌مانده / Remaining", remainingText),
-            Row("مدت اشتراک / Duration", durationText, bold = true, color = primaryColor.toInt()),
-            Row("شروع شمسی / Start (Shamsi)", startJalali),
-            Row("پایان شمسی / End (Shamsi)", endJalali, bold = true, color = redColor),
-            Row("شروع میلادی / Start (Gregorian)", startGregorian, color = grayColor),
-            Row("پایان میلادی / End (Gregorian)", endGregorian, color = grayColor)
+            InvoiceRow("حجم کل / Total Volume", dataLimitText, bold = true, color = darkColor),
+            InvoiceRow("مصرف شده / Used", usedText, color = greenColor),
+            InvoiceRow("باقی‌مانده / Remaining", remainingText, color = darkColor),
+            InvoiceRow("مدت اشتراک / Duration", durationText, bold = true, color = primaryColor),
+            InvoiceRow("شروع شمسی / Start (Shamsi)", startJalali, color = darkColor),
+            InvoiceRow("پایان شمسی / End (Shamsi)", endJalali, bold = true, color = redColor),
+            InvoiceRow("شروع میلادی / Start (Gregorian)", startGregorian, color = grayColor),
+            InvoiceRow("پایان میلادی / End (Gregorian)", endGregorian, color = grayColor)
         )
 
         val rowH = 28f
         val labelW = (PAGE_WIDTH - 2 * MARGIN) * 0.55f
-        val valueW = (PAGE_WIDTH - 2 * MARGIN) * 0.45f
-        for ((idx, r) in rows.withIndex()) {
+        for (r in rows) {
             val top = y
-            val bgColor = if (idx % 2 == 0) Color.WHITE else lightGray
+            val bgColor = if ((rows.indexOf(r) % 2) == 0) Color.WHITE else lightGray
             fillPaint.color = bgColor
             canvas.drawRect(MARGIN, top, PAGE_WIDTH - MARGIN, top + rowH, fillPaint)
             borderPaint.color = borderGray
             canvas.drawRect(MARGIN, top, PAGE_WIDTH - MARGIN, top + rowH, borderPaint)
 
-            val paint = if (r.bold) TextPaint(boldPaint).apply { color = r.color; textAlign = Align.RIGHT }
-            else TextPaint(normalPaint).apply { color = r.color; textAlign = Align.RIGHT }
+            val paint = if (r.bold) TextPaint(boldPaint).apply { color = r.color; textAlign = Paint.Align.RIGHT }
+            else TextPaint(normalPaint).apply { color = r.color; textAlign = Paint.Align.RIGHT }
             canvas.drawText(r.value, PAGE_WIDTH - MARGIN - 10f, top + 18f, paint)
 
-            val lblPaint = TextPaint(smallPaint).apply { textAlign = Align.RIGHT }
+            val lblPaint = TextPaint(smallPaint).apply { textAlign = Paint.Align.RIGHT }
             canvas.drawText(r.label, MARGIN + labelW - 10f, top + 18f, lblPaint)
             y += rowH
         }
@@ -287,38 +272,36 @@ object PdfInvoiceGenerator {
 
         val priceBoxH = 80f
         val priceRect = RectF(MARGIN, y, PAGE_WIDTH - MARGIN, y + priceBoxH)
-        val (priceTitle, priceVal, priceColor): Triple<String, String, Int> = when {
-            effectivePrice != null && effectivePrice > 0 -> {
-                fillPaint.color = when {
-                    priceOverride != null && priceOverride > 0 -> Color.argb(25, 0x1A, 0x8C, 0x5B)
-                    else -> Color.argb(25, 0xC9, 0x3B, 0x3B)
-                }
-                canvas.drawRoundRect(priceRect, 10f, 10f, fillPaint)
-                borderPaint.color = when {
-                    priceOverride != null && priceOverride > 0 -> greenColor
-                    else -> redColor
-                }
-                borderPaint.strokeWidth = 2f
-                canvas.drawRoundRect(priceRect, 10f, 10f, borderPaint)
-                borderPaint.strokeWidth = 1f
 
-                val title = if (priceOverride != null && priceOverride > 0) "مبلغ قابل پرداخت / Price" else "مبلغ بدهی / Outstanding Debt"
-                val value = "%,d %s".format(Locale.US, effectivePrice, if (priceOverride != null) currency else (debtorInfo?.currency ?: currency))
-                val col = if (priceOverride != null && priceOverride > 0) greenColor else redColor
-                Triple(title, value, col)
-            }
-            else -> {
-                fillPaint.color = Color.argb(25, 0x1A, 0x8C, 0x5B)
-                canvas.drawRoundRect(priceRect, 10f, 10f, fillPaint)
-                borderPaint.color = greenColor
-                borderPaint.strokeWidth = 2f
-                canvas.drawRoundRect(priceRect, 10f, 10f, borderPaint)
-                borderPaint.strokeWidth = 1f
-                Triple("وضعیت پرداخت / Payment Status", "✅ پرداخت شده / Paid", greenColor)
-            }
+        val priceTitle: String
+        val priceVal: String
+        val priceColor: Int
+
+        if (effectivePrice != null && effectivePrice > 0) {
+            val isManual = priceOverride != null && priceOverride > 0
+            fillPaint.color = if (isManual) Color.argb(25, 0x1A, 0x8C, 0x5B) else Color.argb(25, 0xC9, 0x3B, 0x3B)
+            canvas.drawRoundRect(priceRect, 10f, 10f, fillPaint)
+            borderPaint.color = if (isManual) greenColor else redColor
+            borderPaint.strokeWidth = 2f
+            canvas.drawRoundRect(priceRect, 10f, 10f, borderPaint)
+            borderPaint.strokeWidth = 1f
+
+            priceTitle = if (isManual) "مبلغ قابل پرداخت / Price" else "مبلغ بدهی / Outstanding Debt"
+            priceVal = "%,d %s".format(Locale.US, effectivePrice, if (isManual) currency else (debtorInfo?.currency ?: currency))
+            priceColor = if (isManual) greenColor else redColor
+        } else {
+            fillPaint.color = Color.argb(25, 0x1A, 0x8C, 0x5B)
+            canvas.drawRoundRect(priceRect, 10f, 10f, fillPaint)
+            borderPaint.color = greenColor
+            borderPaint.strokeWidth = 2f
+            canvas.drawRoundRect(priceRect, 10f, 10f, borderPaint)
+            borderPaint.strokeWidth = 1f
+            priceTitle = "وضعیت پرداخت / Payment Status"
+            priceVal = "پرداخت شده / Paid"
+            priceColor = greenColor
         }
 
-        val titlePaint2 = TextPaint(smallPaint).apply { color = grayColor; textAlign = Align.CENTER }
+        val titlePaint2 = TextPaint(smallPaint).apply { color = grayColor; textAlign = Paint.Align.CENTER }
         canvas.drawText(priceTitle, PAGE_WIDTH / 2f, y + 26f, titlePaint2)
 
         pricePaint.color = priceColor
@@ -336,7 +319,7 @@ object PdfInvoiceGenerator {
             borderPaint.color = redColor
             canvas.drawRoundRect(noteRect, 8f, 8f, borderPaint)
 
-            val notePaint = TextPaint(normalPaint).apply { color = darkColor; textAlign = Align.RIGHT }
+            val notePaint = TextPaint(normalPaint).apply { color = darkColor; textAlign = Paint.Align.RIGHT }
             canvas.drawText("توضیح / Note: ${debtorInfo.notes}", PAGE_WIDTH - MARGIN - 10f, y + 26f, notePaint)
             y += noteH + 12f
         } else if (debtorInfo?.autoDisabled == true) {
@@ -344,8 +327,8 @@ object PdfInvoiceGenerator {
             val noteRect = RectF(MARGIN, y, PAGE_WIDTH - MARGIN, y + noteH)
             fillPaint.color = Color.argb(40, 0xC9, 0x3B, 0x3B)
             canvas.drawRoundRect(noteRect, 8f, 8f, fillPaint)
-            val notePaint = TextPaint(boldPaint).apply { color = redColor; textAlign = Align.CENTER; textSize = 10f }
-            canvas.drawText("⚠️ به صورت خودکار به دلیل بدهی قطع شده است", PAGE_WIDTH / 2f, y + 22f, notePaint)
+            val notePaint = TextPaint(boldPaint).apply { color = redColor; textAlign = Paint.Align.CENTER; textSize = 10f }
+            canvas.drawText("به صورت خودکار به دلیل بدهی قطع شده است", PAGE_WIDTH / 2f, y + 22f, notePaint)
             y += noteH + 12f
         }
 
@@ -357,7 +340,7 @@ object PdfInvoiceGenerator {
             canvas.drawRoundRect(noteRect, 8f, 8f, fillPaint)
             borderPaint.color = borderGray
             canvas.drawRoundRect(noteRect, 8f, 8f, borderPaint)
-            val notePaint = TextPaint(normalPaint).apply { color = darkColor; textAlign = Align.RIGHT }
+            val notePaint = TextPaint(normalPaint).apply { color = darkColor; textAlign = Paint.Align.RIGHT }
             canvas.drawText("یادداشت / Note: ${user.note}", PAGE_WIDTH - MARGIN - 10f, y + 26f, notePaint)
             y += noteH + 12f
         }
@@ -370,29 +353,32 @@ object PdfInvoiceGenerator {
             canvas.drawRoundRect(subRect, 8f, 8f, fillPaint)
             borderPaint.color = borderGray
             canvas.drawRoundRect(subRect, 8f, 8f, borderPaint)
-            val subLbl = TextPaint(smallPaint).apply { color = grayColor; textAlign = Align.CENTER }
+            val subLbl = TextPaint(smallPaint).apply { color = grayColor; textAlign = Paint.Align.CENTER }
             canvas.drawText("لینک اشتراک / Subscription Link", PAGE_WIDTH / 2f, y + 18f, subLbl)
             val urlPaint = TextPaint(smallPaint).apply {
-                color = grayColor; textAlign = Align.CENTER; textSize = 7f
+                color = grayColor; textAlign = Paint.Align.CENTER; textSize = 7f
             }
             val shortUrl = user.subUrl.take(90) + if (user.subUrl.length > 90) "..." else ""
             canvas.drawText(shortUrl, PAGE_WIDTH / 2f, y + 34f, urlPaint)
             y += subH + 20f
         }
 
-        // امضا/فوتر
-        val footerPaint = TextPaint(smallPaint).apply { textAlign = Align.CENTER; color = grayColor }
-        canvas.drawText(
-            "این فاکتور به صورت خودکار توسط MRM PG Manager تولید شده است - $invoiceDateJalali\n" +
-                    "Generated automatically by MRM PG Manager on $invoiceDate",
-            PAGE_WIDTH / 2f, y + 10f, footerPaint
-        )
+        // فوتر
+        val footerPaint = TextPaint(smallPaint).apply { textAlign = Paint.Align.CENTER; color = grayColor }
+        val footerText = "این فاکتور به صورت خودکار توسط MRM PG Manager تولید شده است - $invoiceDateJalali\n" +
+                "Generated automatically by MRM PG Manager on $invoiceDate"
+        // خروجی چند خطی ساده
+        val lines = footerText.split("\n")
+        var fy = y + 10f
+        for (line in lines) {
+            canvas.drawText(line, PAGE_WIDTH / 2f, fy, footerPaint)
+            fy += 12f
+        }
 
         document.finishPage(page)
         FileOutputStream(file).use { document.writeTo(it) }
         document.close()
 
-        // آزادسازی بیت‌مپ لوگو
         logoBitmap?.recycle()
 
         return file
