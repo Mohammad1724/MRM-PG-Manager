@@ -2,6 +2,8 @@ package com.mrm.pgmanager.ui.dialogs
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -40,6 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import java.io.File
+import java.io.FileOutputStream
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
@@ -433,7 +437,54 @@ fun ThemeEditorDialog(
         }
     }
     // در صفحهٔ ورود (بدون نشست) فقط تنظیمات ظاهری معنا دارد؛ بقیهٔ تب‌ها پنهان می‌مانند.
-    val sections = remember(session) { if (session == null) listOf("ظاهر") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "کاربران", "امنیت") }
+    val sections = remember(session) { if (session == null) listOf("ظاهر") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "کاربران", "فاکتور", "امنیت") }
+
+    // === انتخاب لوگو برای فاکتور ===
+    var invoiceLogoPath by remember { mutableStateOf(store.readInvoiceLogoPath()) }
+    var invoiceLogoBitmap by remember(invoiceLogoPath) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(invoiceLogoPath) {
+        invoiceLogoBitmap = if (!invoiceLogoPath.isNullOrBlank()) {
+            runCatching {
+                val opts = BitmapFactory.Options().apply { inSampleSize = 4 }
+                BitmapFactory.decodeFile(invoiceLogoPath, opts)
+            }.getOrNull()
+        } else null
+    }
+    var invoiceSeller by remember { mutableStateOf(store.readInvoiceSeller()) }
+    val invoiceLogoLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch(Dispatchers.IO) {
+                val logoFile = File(context.filesDir, "invoice_logo.png")
+                runCatching {
+                    context.contentResolver.openInputStream(it)?.use { input ->
+                        // Scale down logo to save space
+                        val original = BitmapFactory.decodeStream(input)
+                        if (original != null) {
+                            val size = 400
+                            val scaled = Bitmap.createScaledBitmap(original, size, size, true)
+                            FileOutputStream(logoFile).use { out ->
+                                scaled.compress(android.graphics.Bitmap.CompressFormat.PNG, 90, out)
+                            }
+                            if (original !== scaled) original.recycle()
+                            scaled.recycle()
+                        }
+                    }
+                }.onSuccess {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        store.saveInvoiceLogoPath(logoFile.absolutePath)
+                        invoiceLogoPath = logoFile.absolutePath
+                        android.widget.Toast.makeText(context, "لوگو با موفقیت ذخیره شد", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }.onFailure { e ->
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        android.widget.Toast.makeText(context, "خطا در ذخیره لوگو: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -775,6 +826,82 @@ fun ThemeEditorDialog(
                                 Text("فهرست کامل کاربران پنل را به‌صورت فایل CSV یا JSON ذخیره و اشتراک‌گذاری کن.", fontSize = 9.5.sp, color = theme.mutedColor)
                                 SettingsActionRow(if (exportBusy) "در حال آماده‌سازی..." else "خروجی CSV", "مناسب اکسل و گزارش‌گیری", AppIcon.Download, GlassGreen) { startExport("csv") { name -> csvLauncher.launch(name) } }
                                 SettingsActionRow(if (exportBusy) "در حال آماده‌سازی..." else "خروجی JSON", "مناسب برنامه‌نویسی و بکاپ", AppIcon.Download, theme.accentPrimary) { startExport("json") { name -> jsonLauncher.launch(name) } }
+                            }
+                        }
+                        "فاکتور" -> {
+                            SettingsCard("لوگوی فاکتور", AppIcon.Image, accent = theme.accentPrimary) {
+                                Text("تصویری که بالای فاکتورهای متنی و PDF نمایش داده می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                // پیش‌نمایش لوگو
+                                Box(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                        .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
+                                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (invoiceLogoBitmap != null) {
+                                        Image(
+                                            bitmap = invoiceLogoBitmap!!.asImageBitmap(),
+                                            contentDescription = "Logo Preview",
+                                            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(14.dp)),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    } else {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            RoundedAppIcon(AppIcon.Image, tint = theme.mutedColor, size = 32.dp)
+                                            Text("هنوز لوگویی انتخاب نشده است", fontSize = 10.sp, color = theme.mutedColor)
+                                        }
+                                    }
+                                }
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Box(
+                                        Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(12.dp))
+                                            .background(theme.accentPrimary.copy(0.78f))
+                                            .clickable { invoiceLogoLauncher.launch("image/*") },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            RoundedAppIcon(AppIcon.Upload, tint = Color(0xFF202124), size = 16.dp)
+                                            Text(if (invoiceLogoPath != null) "تغییر لوگو" else "انتخاب لوگو", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202124))
+                                        }
+                                    }
+                                    if (invoiceLogoPath != null) {
+                                        Box(
+                                            Modifier.height(42.dp).width(42.dp).clip(RoundedCornerShape(12.dp))
+                                                .background(GlassRed.copy(0.10f))
+                                                .border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    store.clearInvoiceLogo()
+                                                    invoiceLogoPath = null
+                                                    android.widget.Toast.makeText(context, "لوگو حذف شد", android.widget.Toast.LENGTH_SHORT).show()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 18.dp)
+                                        }
+                                    }
+                                }
+                                Text("پیشنهاد: تصویر مربعی با پس‌زمینه شفاف (PNG) و حداکثر ۴۰۰x۴۰۰ پیکسل.", fontSize = 8.5.sp, color = theme.mutedColor)
+                            }
+                            SettingsCard("نام فروشنده/برند", AppIcon.Receipt) {
+                                Text("این نام زیر لوگو و بالای فاکتور نمایش داده می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                CompactGlassField(
+                                    value = invoiceSeller,
+                                    onValueChange = { v ->
+                                        invoiceSeller = v.take(40)
+                                        store.saveInvoiceSeller(v)
+                                    },
+                                    placeholder = "مثلاً فروشگاه VPN من",
+                                    leadingAppIcon = AppIcon.Receipt
+                                )
+                            }
+                            SettingsCard("دربارهٔ فاکتور", AppIcon.Receipt) {
+                                Text(
+                                    "فاکتورها در دو فرم متن (قابل کپی/اشتراک) و PDF (چاپ حرفه‌ای) در دسترس هستند. " +
+                                    "هنگام بازکردن فاکتور از روی کارت کاربر، می‌توانید مبلغ را به‌صورت دستی وارد کنید تا به‌جای بدهی یا «پرداخت شده» در فاکتور نمایش داده شود.",
+                                    fontSize = 9.5.sp,
+                                    color = theme.mutedColor
+                                )
                             }
                         }
                         "امنیت" -> {
