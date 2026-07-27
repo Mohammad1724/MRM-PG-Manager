@@ -1292,9 +1292,9 @@ private fun CapsuleActionMenu(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
                 Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed, modifier = Modifier.weight(1f))
-                // فلش بالا/پایین
+                // فلش بالا/پایین: وقتی باز است به بالا، وقتی بسته است به پایین
                 RoundedAppIcon(
-                    if (expanded) AppIcon.Prev else AppIcon.Next,
+                    AppIcon.Next,
                     tint = GlassRed, size = 16.dp,
                     modifier = Modifier.graphicsLayer { rotationZ = if (expanded) -90f else 90f }
                 )
