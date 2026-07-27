@@ -5,8 +5,10 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.AttachMoney
+import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.PictureAsPdf
@@ -57,7 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money }
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -105,6 +107,9 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Pdf -> Icons.Rounded.PictureAsPdf
     AppIcon.Receipt -> Icons.Rounded.ReceiptLong
     AppIcon.Money -> Icons.Rounded.AttachMoney
+    AppIcon.Backup -> Icons.Rounded.Backup
+    AppIcon.Restore -> Icons.Rounded.FileDownload
+    AppIcon.Folder -> Icons.Rounded.Folder
 }
 
 @Composable
