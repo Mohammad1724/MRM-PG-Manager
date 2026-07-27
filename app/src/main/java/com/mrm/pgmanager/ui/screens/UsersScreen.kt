@@ -130,16 +130,19 @@ private fun formatDebtorAmount(amount: Long): String {
     }
 }
 
-/** نشانگر کوچک بدهکار (نقطه قرمز) کنار نام کاربری - بدون نمایش مبلغ */
+/** نشانگر کوچک بدهکار (سکه قرمز با حرف ت) کنار نام کاربری */
 @Composable
 private fun DebtorBadge(debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo, compact: Boolean = false) {
     val theme = LocalThemeState.current
-    val size = if (compact) 8.dp else 10.dp
+    val size = if (compact) 16.dp else 18.dp
     Box(
         Modifier.size(size).clip(RoundedCornerShape(50))
-            .background(GlassRed)
-            .border(BorderStroke(1.dp, if (theme.isDark) theme.dialogBgColor else Color.White), RoundedCornerShape(50))
-    )
+            .background(GlassRed.copy(0.14f))
+            .border(BorderStroke(0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(50)),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(AppIcon.Money, tint = GlassRed, size = if (compact) 10.dp else 11.dp)
+    }
 }
 
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
@@ -351,8 +354,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f)
-    val progressColor = when { debtorInfo != null -> GlassRed; user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val statusColor = when { debtorInfo != null -> GlassRed; user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
+    val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
+    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
@@ -381,17 +384,9 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                // دکمه کوچک فاکتور در کارت گرید
-                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.accentPrimary.copy(0.12f)).border(BorderStroke(0.8.dp, theme.accentPrimary.copy(0.22f)), RoundedCornerShape(7.dp)).clickable { onInvoiceClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                    Text("فاکتور", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1)
-                }
                 if (user.subUrl.isNotBlank()) {
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                    }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("کپی", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable { onQrClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) { Text("QR", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    IconGridAction(AppIcon.Copy) { copySubscription(context, user) }
+                    IconGridAction(AppIcon.Qr) { onQrClick(user) }
                 }
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                     Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
@@ -495,6 +490,45 @@ private fun UserCardAction(
     }
 }
 
+/** دکمهٔ آیکنی برای کارت‌های لیست استاندارد (کپی/QR) */
+@Composable
+private fun IconCardAction(icon: AppIcon, modifier: Modifier = Modifier, contentDesc: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier.clip(RoundedCornerShape(8.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
+    }
+}
+
+/** دکمهٔ آیکنی برای نمای فشرده */
+@Composable
+private fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, contentDesc: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(
+        modifier.clip(RoundedCornerShape(6.dp))
+            .background(theme.searchBgColor)
+            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 13.dp)
+    }
+}
+
+/** دکمهٔ آیکنی برای نمای گرید */
+@Composable
+private fun IconGridAction(icon: AppIcon, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = theme.inkColor, size = 13.dp)
+    }
+}
+
 /**
  * کارت استاندارد فهرست موبایل - با پشتیبانی بدهکار + فاکتور.
  */
@@ -507,7 +541,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     val shownProgress = if (user.dataLimit > 0) actualProgress else .035f
     val progressPercent = (actualProgress * 100).roundToInt()
     val progressColor = when {
-        debtorInfo != null -> GlassRed
         user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen
         progressPercent < 90 -> GlassAmber
         else -> GlassRed
@@ -540,10 +573,9 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
                 UserStatusBadge(user, Modifier.width(42.dp))
                 debtorInfo?.let { DebtorBadge(it) }
-                UserCardAction("فاکتور", Modifier.width(52.dp)) { onInvoiceClick(user) }
                 if (user.subUrl.isNotBlank()) {
-                    UserCardAction("کپی", Modifier.width(36.dp)) { copySubscription(context, user) }
-                    UserCardAction("QR", Modifier.width(30.dp)) { onQrClick(user) }
+                    IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = "کپی") { copySubscription(context, user) }
+                    IconCardAction(AppIcon.Qr, Modifier.size(34.dp), contentDesc = "QR") { onQrClick(user) }
                 }
             }
             // ردیف داده‌ها: دو انتهای کارت ثابت و قابل اسکن هستند.
@@ -576,7 +608,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
-    val progressColor = when { debtorInfo != null -> GlassRed; user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
+    val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
     // ردیف داده‌ای فشرده: سطح سفید، border ظریف و ستون‌های ثابت؛ نزدیک به جدول Users پنل.
@@ -602,10 +634,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
-            RowAction("فاکتور", Modifier.width(40.dp), 22.dp) { onInvoiceClick(user) }
             if (user.subUrl.isNotBlank()) {
-                RowAction("کپی", Modifier.width(32.dp), 22.dp) { copySubscription(context, user) }
-                RowAction("QR", Modifier.width(28.dp), 22.dp) { onQrClick(user) }
+                IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = "کپی") { copySubscription(context, user) }
+                IconRowAction(AppIcon.Qr, Modifier.size(24.dp), contentDesc = "QR") { onQrClick(user) }
             }
         }
     }
