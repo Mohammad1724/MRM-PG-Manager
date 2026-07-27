@@ -154,6 +154,8 @@ fun QuickActionSheet(
                     QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
                     QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                 }
+                // دکمه بستن
+                com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(40.dp))
             }
         }
     }
@@ -507,12 +509,6 @@ fun ThemeEditorDialog(
                         Text("تنظیمات", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         Text("شخصی‌سازی، پایش و امنیت حساب مدیر", fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Box(
-                        Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
-                            .background(theme.searchBgColor)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
                 }
                 // تب بخش‌ها به‌صورت سگمنت یکدست (اگر فقط یک بخش باشد، مخفی می‌ماند)
                 if (sections.size > 1) {
@@ -1151,12 +1147,9 @@ fun UserEditorDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp))) {
             Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp, modifier = Modifier.padding(end = 6.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    }
-                    Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).clickable { onDismiss() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 21.sp, color = theme.mutedColor) }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp)
+                    Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 }
                 // اطلاعات پایه
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1269,26 +1262,28 @@ private fun CapsuleActionMenu(
     label: String,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
+    isDebtor: Boolean = false,
     actions: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalThemeState.current
+    val headerColor = if (isDebtor) GlassRed else theme.accentPrimary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // دکمه سربرگ کشویی
+        // دکمه سربرگ کشویی - هماهنگ با دکمه‌های کپسولی settings
         Box(
             Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp))
-                .background(GlassRed.copy(0.10f))
-                .border(BorderStroke(1.2.dp, GlassRed.copy(0.30f)), RoundedCornerShape(14.dp))
+                .background(headerColor.copy(0.10f))
+                .border(BorderStroke(1.2.dp, headerColor.copy(0.30f)), RoundedCornerShape(14.dp))
                 .clickable { onToggleExpand() }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
-                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed, modifier = Modifier.weight(1f))
+                RoundedAppIcon(if (isDebtor) AppIcon.Warning else AppIcon.Money, tint = headerColor, size = 18.dp)
+                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = headerColor, modifier = Modifier.weight(1f))
                 // فلش بالا/پایین: وقتی باز است به بالا، وقتی بسته است به پایین
                 RoundedAppIcon(
                     AppIcon.Next,
-                    tint = GlassRed, size = 16.dp,
+                    tint = headerColor, size = 16.dp,
                     modifier = Modifier.graphicsLayer { rotationZ = if (expanded) -90f else 90f }
                 )
             }
@@ -1411,10 +1406,7 @@ fun UserDetailsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp))) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("جزئیات کاربر", Modifier.weight(1f), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 24.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor) }
-                }
+                Text("جزئیات کاربر", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                 // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
                 Row(
@@ -1495,9 +1487,10 @@ fun UserDetailsDialog(
                 // === بخش بدهی/فاکتور: منوی کشویی یکپارچه ===
                 if (debtorInfo != null) {
                     CapsuleActionMenu(
-                        label = "بدهکار · ${debtorInfo.amount} ${debtorInfo.currency}",
+                        label = "بخش مالی · ${debtorInfo.amount} ${debtorInfo.currency}",
                         expanded = debtorMenuExpanded,
-                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
+                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded },
+                        isDebtor = true
                     ) {
                         // اطلاعات بدهی
                         Text(
@@ -1518,7 +1511,7 @@ fun UserDetailsDialog(
                     }
                 } else {
                     CapsuleActionMenu(
-                        label = "بدهی / فاکتور",
+                        label = "بخش مالی",
                         expanded = debtorMenuExpanded,
                         onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
                     ) {
@@ -1543,6 +1536,8 @@ fun UserDetailsDialog(
                         action("حذف کاربر", Modifier.weight(1f), destructive = true) { onDelete() }
                     }
                 }
+                // دکمه بستن در پایین پنجره
+                com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(44.dp))
             }
         }
     }
