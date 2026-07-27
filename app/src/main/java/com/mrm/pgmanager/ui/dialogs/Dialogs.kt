@@ -893,15 +893,8 @@ fun ThemeEditorDialog(
                                         store.saveInvoiceSeller(v)
                                     },
                                     placeholder = "مثلاً فروشگاه VPN من",
-                                    leadingAppIcon = AppIcon.Receipt
-                                )
-                            }
-                            SettingsCard("دربارهٔ فاکتور", AppIcon.Receipt) {
-                                Text(
-                                    "فاکتورها در دو فرم متن (قابل کپی/اشتراک) و PDF (چاپ حرفه‌ای) در دسترس هستند. " +
-                                    "هنگام بازکردن فاکتور از روی کارت کاربر، می‌توانید مبلغ را به‌صورت دستی وارد کنید تا به‌جای بدهی یا «پرداخت شده» در فاکتور نمایش داده شود.",
-                                    fontSize = 9.5.sp,
-                                    color = theme.mutedColor
+                                    leadingAppIcon = AppIcon.Receipt,
+                                    keyboardType = KeyboardType.Text
                                 )
                             }
                         }
