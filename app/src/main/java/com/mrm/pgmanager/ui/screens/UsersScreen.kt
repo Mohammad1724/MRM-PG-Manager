@@ -344,10 +344,10 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 }
 
 // FIX 2: Online dot
-// FIX 3: GB / GB and days left + Debtor badge
+// FIX 3: GB / GB and days left + Debtor badge + Invoice button
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
+private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
@@ -383,6 +383,10 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(GlassRed.copy(0.14f)).border(BorderStroke(0.8.dp, GlassRed.copy(0.32f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
                         Text("بدهکار ${if (d.amount>0) formatDebtorAmount(d.amount) else ""}", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = GlassRed, maxLines = 1)
                     }
+                }
+                // دکمه کوچک فاکتور در کارت گرید
+                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.accentPrimary.copy(0.12f)).border(BorderStroke(0.8.dp, theme.accentPrimary.copy(0.22f)), RoundedCornerShape(7.dp)).clickable { onInvoiceClick(user) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                    Text("فاکتور", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1)
                 }
                 if (user.subUrl.isNotBlank()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable {
@@ -495,11 +499,11 @@ private fun UserCardAction(
 }
 
 /**
- * کارت استاندارد فهرست موبایل - با پشتیبانی بدهکار.
+ * کارت استاندارد فهرست موبایل - با پشتیبانی بدهکار + فاکتور.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
+private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
@@ -539,9 +543,10 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
                 UserStatusBadge(user, Modifier.width(42.dp))
                 debtorInfo?.let { DebtorBadge(it) }
+                UserCardAction("فاکتور", Modifier.width(52.dp)) { onInvoiceClick(user) }
                 if (user.subUrl.isNotBlank()) {
-                    UserCardAction("کپی", Modifier.width(46.dp)) { copySubscription(context, user) }
-                    UserCardAction("QR", Modifier.width(40.dp)) { onQrClick(user) }
+                    UserCardAction("کپی", Modifier.width(36.dp)) { copySubscription(context, user) }
+                    UserCardAction("QR", Modifier.width(30.dp)) { onQrClick(user) }
                 }
             }
             debtorInfo?.let { d ->
@@ -578,7 +583,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null) {
+private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
@@ -608,9 +613,10 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
+            RowAction("فاکتور", Modifier.width(40.dp), 22.dp) { onInvoiceClick(user) }
             if (user.subUrl.isNotBlank()) {
-                RowAction("کپی", Modifier.width(36.dp), 22.dp) { copySubscription(context, user) }
-                RowAction("QR", Modifier.width(32.dp), 22.dp) { onQrClick(user) }
+                RowAction("کپی", Modifier.width(32.dp), 22.dp) { copySubscription(context, user) }
+                RowAction("QR", Modifier.width(28.dp), 22.dp) { onQrClick(user) }
             }
         }
     }
@@ -742,6 +748,7 @@ fun UsersScreen(
     var debtorDialogUser by remember { mutableStateOf<PanelUser?>(null) }
     var debtorEditAmount by remember { mutableStateOf("") }
     var debtorEditNotes by remember { mutableStateOf("") }
+    var invoiceDialogUser by remember { mutableStateOf<PanelUser?>(null) }
 
     fun reloadDebtors() { debtors = store.readDebtors() }
     val debtorsForCurrentPanel = remember(debtors, session.baseUrl) { debtors.values.filter { it.baseUrl == session.baseUrl } }
@@ -971,17 +978,17 @@ fun UsersScreen(
                     else -> when (viewMode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             items(processedUsers) { user ->
-                                LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                                LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username], onInvoiceClick = { invoiceDialogUser = it })
                             }
                         }
                         ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             items(processedUsers) { user ->
-                                LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                                LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username], onInvoiceClick = { invoiceDialogUser = it })
                             }
                         }
                         ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             items(processedUsers) { user ->
-                                LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
+                                LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrUser = it }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username], onInvoiceClick = { invoiceDialogUser = it })
                             }
                         }
                     }
@@ -1174,7 +1181,8 @@ fun UsersScreen(
             },
             onDelete = { deleteUser = u },
             onDebtor = { debtorDialogUser = u },
-            isDebtor = isDebtor
+            isDebtor = isDebtor,
+            onInvoice = { invoiceDialogUser = u }
         )
     }
 
@@ -1233,6 +1241,10 @@ fun UsersScreen(
                         runCatching { PanelApi.setDisabled(session, user.username, false) }.onSuccess { load() }
                     }
                 }
+            },
+            onInvoice = {
+                invoiceDialogUser = user
+                selectedUser = null
             }
         )
     }
@@ -1285,6 +1297,14 @@ fun UsersScreen(
     }
     qrUser?.let { user ->
         SubscriptionQrDialog(user = user, onDismiss = { qrUser = null })
+    }
+    invoiceDialogUser?.let { u ->
+        com.mrm.pgmanager.ui.dialogs.InvoiceDialog(
+            user = u,
+            debtorInfo = debtorByUsername[u.username],
+            currency = monitoringSettings.debtorCurrency,
+            onDismiss = { invoiceDialogUser = null }
+        )
     }
     debtorDialogUser?.let { u ->
         val existing = debtorByUsername[u.username]
