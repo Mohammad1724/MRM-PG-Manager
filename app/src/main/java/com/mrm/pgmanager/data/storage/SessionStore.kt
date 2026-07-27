@@ -313,4 +313,14 @@ class SessionStore(context: Context) {
     fun readDebtorsForBase(baseUrl: String): List<com.mrm.pgmanager.data.model.DebtorInfo> {
         return readDebtors().values.filter { it.baseUrl == baseUrl }
     }
+
+    // === لوگوی فاکتور (در فایل خصوصی برنامه ذخیره می‌شود) ===
+    fun hasInvoiceLogo(): Boolean = prefs.contains("invoice_logo_path")
+    fun readInvoiceLogoPath(): String? = prefs.getString("invoice_logo_path", null)
+    fun saveInvoiceLogoPath(path: String?) = prefs.edit().putString("invoice_logo_path", path).apply()
+    fun clearInvoiceLogo() = prefs.edit().remove("invoice_logo_path").apply()
+
+    // === نام فروشنده/برند برای فاکتور ===
+    fun readInvoiceSeller(): String = prefs.getString("invoice_seller", "") ?: ""
+    fun saveInvoiceSeller(name: String) = prefs.edit().putString("invoice_seller", name).apply()
 }
