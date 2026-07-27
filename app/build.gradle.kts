@@ -65,6 +65,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.zxing:core:3.5.3")
-    implementation("com.itextpdf:itextpdf:5.5.13.3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
