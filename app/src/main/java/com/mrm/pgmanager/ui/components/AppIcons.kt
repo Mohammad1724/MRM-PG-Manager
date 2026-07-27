@@ -4,9 +4,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
@@ -53,7 +57,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next }
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -97,6 +101,10 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Upload -> Icons.Rounded.FileUpload
     AppIcon.Prev -> Icons.Rounded.ChevronLeft
     AppIcon.Next -> Icons.Rounded.ChevronRight
+    AppIcon.Image -> Icons.Rounded.Image
+    AppIcon.Pdf -> Icons.Rounded.PictureAsPdf
+    AppIcon.Receipt -> Icons.Rounded.ReceiptLong
+    AppIcon.Money -> Icons.Rounded.AttachMoney
 }
 
 @Composable
