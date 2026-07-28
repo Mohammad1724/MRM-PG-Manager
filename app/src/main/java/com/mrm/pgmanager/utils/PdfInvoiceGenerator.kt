@@ -46,17 +46,23 @@ object PdfInvoiceGenerator {
         currency: String = "تومان",
         currentPrice: Long? = null,
         previousDebt: Long? = null,
+        paidAmount: Long? = null,
+        notes: String = "",
         logoPath: String? = null,
-        sellerName: String = ""
+        sellerName: String = "",
+        isFullyPaid: Boolean = false,
+        totalBilled: Long = 0L,
+        remainingDebt: Long = 0L
     ): File {
         val dir = File(context.cacheDir, "invoices").apply { mkdirs() }
         val file = File(dir, "invoice-${user.username}-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.pdf")
 
-        // محاسبه مبالغ
         val cp = currentPrice ?: 0L
         val pd = previousDebt ?: if (currentPrice == null && debtorInfo != null) debtorInfo.amount else 0L
-        val total = cp + pd
-        val isPaid = cp == 0L && pd == 0L
+        val paid = paidAmount ?: 0L
+        val total = if (totalBilled > 0) totalBilled else cp + pd
+        val remaining = if (paid > 0) (total - paid).coerceAtLeast(0L) else total
+        val isPaid = isFullyPaid || (cp == 0L && pd == 0L)
 
         // محاسبه ارتفاع صفحه پویا
         val pageHeight = 720
@@ -199,8 +205,17 @@ object PdfInvoiceGenerator {
         y += infoBoxH + 18f
 
         // ==== کارت مبالغ ====
-        val showPrevDebt = pd > 0
-        val priceBoxH = if (showPrevDebt) 120f else 92f
+        var priceRows = 0
+        if (cp > 0) priceRows++
+        if (pd > 0) priceRows++
+        if (total > 0) priceRows++
+        if (paid > 0) priceRows++
+        if (paid > 0 && remaining > 0) priceRows++
+        val priceBoxH = when {
+            priceRows <= 2 -> 100f
+            priceRows <= 4 -> 150f
+            else -> 180f
+        }
         val priceRect = RectF(MARGIN + 10f, y, PAGE_WIDTH - MARGIN - 10f, y + priceBoxH)
         fillPaint.color = lightGray
         canvas.drawRoundRect(priceRect, 16f, 16f, fillPaint)
@@ -209,37 +224,67 @@ object PdfInvoiceGenerator {
 
         ry = y + 22f
 
-        // قیمت دوره
-        canvas.drawText("قیمت این دوره", rightX, ry, labelPaint)
-        canvas.drawText("%,d %s".format(Locale.US, cp, currency), leftX, ry, valPaint)
-        ry += rowH
-
-        if (showPrevDebt) {
+        if (cp > 0) {
+            canvas.drawText("قیمت این دوره", rightX, ry, labelPaint)
+            canvas.drawText("%,d %s".format(Locale.US, cp, currency), leftX, ry, valPaint)
+            ry += rowH
+        }
+        if (pd > 0) {
             canvas.drawText("بدهی قبلی", rightX, ry, labelPaint)
             val pdP = TextPaint(valPaint).apply { color = redColor }
             canvas.drawText("%,d %s".format(Locale.US, pd, currency), leftX, ry, pdP)
             ry += rowH
-
-            fillPaint.color = borderGray
-            canvas.drawRect(MARGIN + 30f, ry - 6f, PAGE_WIDTH - MARGIN - 30f, ry - 5f, fillPaint)
-            ry += 14f
-        } else {
-            ry += 8f
+        }
+        if (total > 0) {
             fillPaint.color = borderGray
             canvas.drawRect(MARGIN + 30f, ry - 4f, PAGE_WIDTH - MARGIN - 30f, ry - 3f, fillPaint)
-            ry += 16f
+            ry += 14f
+            canvas.drawText("جمع کل", rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
+            canvas.drawText("%,d %s".format(Locale.US, total, currency), leftX, ry, valPaint)
+            ry += rowH
+        }
+        if (paid > 0) {
+            val paidP = TextPaint(valPaint).apply { color = greenColor }
+            canvas.drawText("پرداخت شده", rightX, ry, labelPaint)
+            canvas.drawText("%,d %s".format(Locale.US, paid, currency), leftX, ry, paidP)
+            ry += rowH
+        }
+        if (paid > 0 && remaining > 0) {
+            val remP = TextPaint(valPaint).apply { color = redColor }
+            canvas.drawText("مانده بدهی", rightX, ry, labelPaint)
+            canvas.drawText("%,d %s".format(Locale.US, remaining, currency), leftX, ry, remP)
+            ry += rowH
         }
 
-        // مجموع
-        val totalColor = if (isPaid) greenColor else redColor
-        canvas.drawText("مبلغ قابل پرداخت", rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
-        totalTextPaint.color = totalColor
+        fillPaint.color = borderGray
+        canvas.drawRect(MARGIN + 30f, ry - 4f, PAGE_WIDTH - MARGIN - 30f, ry - 3f, fillPaint)
+        ry += 16f
+
+        // مجموع نهایی
+        val finalColor = if (isPaid) greenColor else redColor
+        val finalLabel = if (isPaid) "پرداخت شده" else if (paid > 0 && remaining > 0) "مانده قابل پرداخت" else "مبلغ قابل پرداخت"
+        val finalTextStr = if (isPaid) "تسویه کامل ✅" else "%,d %s".format(Locale.US, remaining, currency)
+        canvas.drawText(finalLabel, rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
+        totalTextPaint.color = finalColor
         totalTextPaint.textSize = 16f
         totalTextPaint.typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-        val totalText = if (isPaid) "پرداخت شده" else "%,d %s".format(Locale.US, total, currency)
-        canvas.drawText(totalText, leftX, ry, totalTextPaint)
+        canvas.drawText(finalTextStr, leftX, ry, totalTextPaint)
 
-        y += priceBoxH + 28f
+        y += priceBoxH + 12f
+
+        // ==== یادداشت ====
+        if (notes.isNotBlank()) {
+            val noteH = 60f
+            val noteRect = RectF(MARGIN + 10f, y, PAGE_WIDTH - MARGIN - 10f, y + noteH)
+            fillPaint.color = lightGray
+            canvas.drawRoundRect(noteRect, 12f, 12f, fillPaint)
+            val noteLabelPaint = TextPaint(labelPaint).apply { color = grayColor; textSize = 10f }
+            canvas.drawText("یادداشت", rightX, y + 20f, noteLabelPaint)
+            val notePaint = TextPaint(valPaint).apply { textSize = 11f; color = darkColor }
+            val truncated = if (notes.length > 80) notes.take(80) + "..." else notes
+            canvas.drawText(truncated, MARGIN + 26f, y + 44f, notePaint)
+            y += noteH + 18f
+        }
 
         // ==== تشکر و تاریخ ====
         canvas.drawText("با تشکر از انتخاب شما", cx, y, thanksPaint)
