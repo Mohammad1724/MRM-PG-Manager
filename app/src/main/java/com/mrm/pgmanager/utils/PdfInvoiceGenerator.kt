@@ -62,7 +62,7 @@ object PdfInvoiceGenerator {
         val paid = paidAmount ?: 0L
         val total = if (totalBilled > 0) totalBilled else cp + pd
         val remaining = if (paid > 0) (total - paid).coerceAtLeast(0L) else total
-        val isPaid = isFullyPaid || (cp == 0L && pd == 0L)
+        val isPaid = isFullyPaid && total > 0L
 
         // محاسبه ارتفاع صفحه پویا
         val pageHeight = 720
@@ -156,21 +156,24 @@ object PdfInvoiceGenerator {
         y += 22f
 
         // ==== محاسبات اطلاعات ====
-        val startJalali = JalaliCalendar.isoToShamsi(user.createdAt ?: "").ifBlank { "-" }
         val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { "نامحدود" }
-        val durationDays = runCatching {
-            val s = try { Instant.parse(user.createdAt).atZone(ZoneId.systemDefault()).toLocalDate() }
-            catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
+        val daysRemaining = runCatching {
             val e = try { Instant.parse(user.expire).atZone(ZoneId.systemDefault()).toLocalDate() }
             catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-            ChronoUnit.DAYS.between(s, e)
+            ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0)
         }.getOrDefault(0)
+        val durationDays = daysRemaining.coerceAtLeast(0)
+        val startJalali = JalaliCalendar.isoToShamsi(LocalDate.now().toString()).ifBlank { "-" }
         val durationText = when {
             durationDays <= 0 -> "نامحدود"
             durationDays == 1L -> "1 روزه"
             durationDays < 30 -> "$durationDays روزه"
             durationDays == 30L -> "1 ماهه"
-            durationDays < 365 -> "${durationDays/30} ماهه"
+            durationDays < 365 -> {
+                val months = durationDays / 30
+                val extraDays = durationDays % 30
+                if (extraDays == 0) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
+            }
             else -> "${durationDays/30} ماهه"
         }
         val dataLimitText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
@@ -260,10 +263,24 @@ object PdfInvoiceGenerator {
         canvas.drawRect(MARGIN + 30f, ry - 4f, PAGE_WIDTH - MARGIN - 30f, ry - 3f, fillPaint)
         ry += 16f
 
+        val hasAnyAmount = cp > 0L || pd > 0L || paid > 0L
         // مجموع نهایی
-        val finalColor = if (isPaid) greenColor else redColor
-        val finalLabel = if (isPaid) "پرداخت شده" else if (paid > 0 && remaining > 0) "مانده قابل پرداخت" else "مبلغ قابل پرداخت"
-        val finalTextStr = if (isPaid) "تسویه کامل ✅" else "%,d %s".format(Locale.US, remaining, currency)
+        val finalColor = when {
+            isPaid && total > 0L -> greenColor
+            !hasAnyAmount -> grayColor
+            else -> redColor
+        }
+        val finalLabel = when {
+            isPaid && total > 0L -> "پرداخت شده"
+            !hasAnyAmount -> "وضعیت"
+            paid > 0 && remaining > 0 -> "مانده قابل پرداخت"
+            else -> "مبلغ قابل پرداخت"
+        }
+        val finalTextStr = when {
+            isPaid && total > 0L -> "تسویه کامل"
+            !hasAnyAmount -> "بدون مبلغ"
+            else -> "%,d %s".format(Locale.US, remaining, currency)
+        }
         canvas.drawText(finalLabel, rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
         totalTextPaint.color = finalColor
         totalTextPaint.textSize = 16f
