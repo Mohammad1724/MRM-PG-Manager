@@ -65,7 +65,7 @@ fun InvoiceDialog(
     // ==== ورودی‌ها ====
     var currentPriceText by remember { mutableStateOf("") }
     var previousDebtText by remember { mutableStateOf(
-        if (debtorInfo != null && debtorInfo.amount > 0) debtorInfo.amount.toString() else ""
+        if (debtorInfo != null && debtorInfo.amount > 0L) debtorInfo.amount.toString() else ""
     ) }
     var paidAmountText by remember { mutableStateOf("") }
     var notesText by remember { mutableStateOf("") }
@@ -93,23 +93,23 @@ fun InvoiceDialog(
     val daysRemaining = runCatching {
         val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
         catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-        ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0)
-    }.getOrDefault(0)
-    val durationDays = daysRemaining.coerceAtLeast(0)
+        ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0L)
+    }.getOrDefault(0L)
+    val durationDays = daysRemaining.coerceAtLeast(0L)
     val startLocalDate = LocalDate.now()
     val startJalali = JalaliCalendar.isoToShamsi(startLocalDate.toString()).ifBlank { "-" }
 
     val durationText = when {
-        durationDays <= 0 -> "نامحدود"
+        durationDays <= 0L -> "نامحدود"
         durationDays == 1L -> "1 روزه"
-        durationDays < 30 -> "$durationDays روزه"
+        durationDays < 30L -> "$durationDays روزه"
         durationDays == 30L -> "1 ماهه"
-        durationDays < 365 -> {
-            val months = durationDays / 30
-            val extraDays = durationDays % 30
-            if (extraDays == 0) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
+        durationDays < 365L -> {
+            val months = durationDays / 30L
+            val extraDays = durationDays % 30L
+            if (extraDays == 0L) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
         }
-        else -> "${durationDays/30} ماهه"
+        else -> "${durationDays/30L} ماهه"
     }
 
     val dataLimitText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
@@ -244,6 +244,7 @@ fun InvoiceDialog(
             remainingDebt = remainingDebt,
             isFullyPaid = isFullyPaid,
             totalBilled = totalBilled,
+            hasAnyAmount = hasAnyAmount,
             currency = currency,
             invoiceDate = invoiceDateJalali,
             notes = notesText,
@@ -363,9 +364,9 @@ fun InvoiceDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(if (totalBilled > 0) "جمع کل" else "وضعیت", fontSize = 11.sp, color = theme.mutedColor)
+                            Text(if (totalBilled > 0L) "جمع کل" else "وضعیت", fontSize = 11.sp, color = theme.mutedColor)
                             val totalColor = if (totalBilled == 0L) GlassGreen else theme.inkColor
-                            val totalText = if (totalBilled > 0) "%,d %s".format(Locale.US, totalBilled, currency) else "بدون مبلغ"
+                            val totalText = if (totalBilled > 0L) "%,d %s".format(Locale.US, totalBilled, currency) else "بدون مبلغ"
                             Text(totalText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = totalColor)
                         }
                         if (paidAmount > 0L) {
@@ -381,11 +382,11 @@ fun InvoiceDialog(
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (paidAmount > 0) "وضعیت نهایی" else "مبلغ قابل پرداخت", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                            Text(if (paidAmount > 0L) "وضعیت نهایی" else "مبلغ قابل پرداخت", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                             Text(
                                 if (isFullyPaid) "✅ پرداخت شده"
                                 else if (totalBilled == 0L) "✅ پرداخت شده"
-                                else if (remainingDebt > 0 && paidAmount > 0) "%,d %s مانده".format(Locale.US, remainingDebt, currency)
+                                else if (remainingDebt > 0L && paidAmount > 0L) "%,d %s مانده".format(Locale.US, remainingDebt, currency)
                                 else "%,d %s".format(Locale.US, remainingDebt, currency),
                                 fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = statusColor
                             )
@@ -531,6 +532,7 @@ private fun InvoicePreviewCard(
     remainingDebt: Long,
     isFullyPaid: Boolean,
     totalBilled: Long,
+    hasAnyAmount: Boolean,
     currency: String,
     invoiceDate: String,
     notes: String,
@@ -618,20 +620,20 @@ private fun InvoicePreviewCard(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    if (currentPrice > 0) PreviewRow("قیمت این دوره", "%,d %s".format(Locale.US, currentPrice, currency))
-                    if (previousDebt > 0) PreviewRow("بدهی قبلی", "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
-                    if (totalBilled > 0) {
+                    if (currentPrice > 0L) PreviewRow("قیمت این دوره", "%,d %s".format(Locale.US, currentPrice, currency))
+                    if (previousDebt > 0L) PreviewRow("بدهی قبلی", "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
+                    if (totalBilled > 0L) {
                         Divider(color = Color(0xFFE8E8EC))
                         PreviewRow("جمع کل", "%,d %s".format(Locale.US, totalBilled, currency))
                     }
-                    if (paidAmount > 0) PreviewRow("پرداخت شده", "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
-                    if (paidAmount > 0 && remainingDebt > 0) PreviewRow("مانده بدهی", "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
+                    if (paidAmount > 0L) PreviewRow("پرداخت شده", "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
+                    if (paidAmount > 0L && remainingDebt > 0L) PreviewRow("مانده بدهی", "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
                     Divider(color = Color(0xFFE8E8EC))
-                    val finalColor = if (isFullyPaid && totalBilled > 0L) Color(0xFF1A8C5B) else if (!hasAnyAmount) Color(0xFF74757B) else if (paidAmount > 0) Color(0xFFC93B3B) else Color(0xFFC93B3B)
+                    val finalColor = if (isFullyPaid && totalBilled > 0L) Color(0xFF1A8C5B) else if (!hasAnyAmount) Color(0xFF74757B) else if (paidAmount > 0L) Color(0xFFC93B3B) else Color(0xFFC93B3B)
                     val finalLabel = when {
                         isFullyPaid && totalBilled > 0L -> "✅ پرداخت شده"
                         !hasAnyAmount -> "وضعیت"
-                        paidAmount > 0 && remainingDebt > 0 -> "مانده قابل پرداخت"
+                        paidAmount > 0L && remainingDebt > 0L -> "مانده قابل پرداخت"
                         else -> "مبلغ قابل پرداخت"
                     }
                     val finalText = when {
