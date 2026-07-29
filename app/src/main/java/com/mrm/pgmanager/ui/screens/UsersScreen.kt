@@ -183,7 +183,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RoundedAppIcon(AppIcon.Search, tint = theme.mutedColor, size = 18.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (query.isEmpty()) Text("جستجو کاربر...", color = theme.mutedColor.copy(0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (query.isEmpty()) Text("جستجو در نام و یادداشت...", color = theme.mutedColor.copy(0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
@@ -897,7 +897,11 @@ fun UsersScreen(
     }
 
     val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent, debtorByUsername) {
-        var list = users.filter { it.username.contains(query, ignoreCase = true) }
+        val q = query.trim()
+        var list = if (q.isEmpty()) users else users.filter {
+            it.username.contains(q, ignoreCase = true) ||
+            (it.note ?: "").contains(q, ignoreCase = true)
+        }
         list = when (currentFilter) {
             UserFilter.ALL -> list
             UserFilter.ACTIVE -> list.filter { it.status == "active" }
