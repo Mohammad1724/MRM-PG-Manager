@@ -87,25 +87,28 @@ fun InvoiceDialog(
     }
 
     // ==== محاسبات تاریخ ====
-    val startDateIso = user.createdAt ?: ""
-    val endDateIso = user.expire ?: ""
-    val startJalali = JalaliCalendar.isoToShamsi(startDateIso).ifBlank { "-" }
-    val endJalali = JalaliCalendar.isoToShamsi(endDateIso).ifBlank { "نامحدود" }
-
-    val durationDays = runCatching {
-        val s = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
-        catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
+    // به جای استفاده از تاریخ ساخت حساب (که برای فاکتور این دوره اشتباه است)،
+    // شروع دوره = امروز؛ پایان = تاریخ انقضا. مدت = روزهای باقی‌مانده.
+    val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { "نامحدود" }
+    val daysRemaining = runCatching {
         val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
         catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-        ChronoUnit.DAYS.between(s, e)
+        ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0)
     }.getOrDefault(0)
+    val durationDays = daysRemaining.coerceAtLeast(0)
+    val startLocalDate = LocalDate.now()
+    val startJalali = JalaliCalendar.isoToShamsi(startLocalDate.toString()).ifBlank { "-" }
 
     val durationText = when {
         durationDays <= 0 -> "نامحدود"
         durationDays == 1L -> "1 روزه"
         durationDays < 30 -> "$durationDays روزه"
         durationDays == 30L -> "1 ماهه"
-        durationDays < 365 -> "${durationDays/30} ماهه"
+        durationDays < 365 -> {
+            val months = durationDays / 30
+            val extraDays = durationDays % 30
+            if (extraDays == 0) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
+        }
         else -> "${durationDays/30} ماهه"
     }
 
@@ -119,14 +122,16 @@ fun InvoiceDialog(
     val totalBilled = currentPrice + previousDebt
     val remainingDebt = (totalBilled - paidAmount).coerceAtLeast(0L)
     val isFullyPaid = totalBilled > 0L && paidAmount >= totalBilled
+    val hasAnyAmount = currentPrice > 0L || previousDebt > 0L || paidAmount > 0L
     val statusText = when {
-        totalBilled == 0L && previousDebt == 0L -> "پرداخت شده ✅"
-        isFullyPaid -> "پرداخت شده ✅"
+        isFullyPaid && hasAnyAmount -> "پرداخت شده ✅"
+        !hasAnyAmount -> "فاکتور بدون مبلغ"
         paidAmount > 0L && remainingDebt > 0L -> "پرداخت جزئی - مانده: %,d %s".format(Locale.US, remainingDebt, currency)
         else -> "مبلغ قابل پرداخت"
     }
     val statusColor = when {
-        isFullyPaid || totalBilled == 0L -> GlassGreen
+        isFullyPaid && hasAnyAmount -> GlassGreen
+        !hasAnyAmount -> theme.mutedColor
         paidAmount > 0L -> theme.accentPrimary
         else -> GlassRed
     }
@@ -622,9 +627,18 @@ private fun InvoicePreviewCard(
                     if (paidAmount > 0) PreviewRow("پرداخت شده", "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
                     if (paidAmount > 0 && remainingDebt > 0) PreviewRow("مانده بدهی", "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
                     Divider(color = Color(0xFFE8E8EC))
-                    val finalColor = if (isFullyPaid || totalBilled == 0L) Color(0xFF1A8C5B) else Color(0xFFC93B3B)
-                    val finalLabel = if (isFullyPaid || totalBilled == 0L) "✅ پرداخت شده" else if (paidAmount > 0 && remainingDebt > 0) "مانده قابل پرداخت" else "مبلغ قابل پرداخت"
-                    val finalText = if (isFullyPaid || totalBilled == 0L) "تسویه کامل" else "%,d %s".format(Locale.US, remainingDebt, currency)
+                    val finalColor = if (isFullyPaid && totalBilled > 0L) Color(0xFF1A8C5B) else if (!hasAnyAmount) Color(0xFF74757B) else if (paidAmount > 0) Color(0xFFC93B3B) else Color(0xFFC93B3B)
+                    val finalLabel = when {
+                        isFullyPaid && totalBilled > 0L -> "✅ پرداخت شده"
+                        !hasAnyAmount -> "وضعیت"
+                        paidAmount > 0 && remainingDebt > 0 -> "مانده قابل پرداخت"
+                        else -> "مبلغ قابل پرداخت"
+                    }
+                    val finalText = when {
+                        isFullyPaid && totalBilled > 0L -> "تسویه کامل"
+                        !hasAnyAmount -> "—"
+                        else -> "%,d %s".format(Locale.US, remainingDebt, currency)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(finalLabel, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
                         Text(finalText, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = finalColor)
