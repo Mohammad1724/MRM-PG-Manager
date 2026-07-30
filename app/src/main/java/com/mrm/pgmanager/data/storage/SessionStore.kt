@@ -215,7 +215,7 @@ class SessionStore(context: Context) {
                     usedTraffic = o.optLong("used_traffic"), dataLimit = o.optLong("data_limit"),
                     expire = o.optString("expire").ifBlank { null }, createdAt = o.optString("created_at").ifBlank { null },
                     subUrl = o.optString("sub_url"), onlineAt = o.optString("online_at").ifBlank { null }, isOnline = false,
-                    note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit")) o.optInt("hwid_limit") else null,
+                    note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit") && !o.isNull("hwid_limit")) o.optInt("hwid_limit").takeIf { it > 0 } else null,
                     groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
                     groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
                 )
