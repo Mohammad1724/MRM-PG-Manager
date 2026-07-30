@@ -3,7 +3,7 @@ package com.mrm.pgmanager.utils
 import java.text.DecimalFormat
 
 fun formatBytes(value: Long): String {
-    if (value <= 0) return "0 B"
+    if (value <= 0L) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val index = (kotlin.math.ln(value.toDouble()) / kotlin.math.ln(1024.0)).toInt().coerceAtMost(units.lastIndex)
     val df = java.text.DecimalFormat("#.##", java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US))
