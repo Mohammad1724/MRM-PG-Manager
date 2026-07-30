@@ -406,12 +406,12 @@ object BackupManager {
                     if (username.isBlank() || base.isBlank()) continue
                     val d = com.mrm.pgmanager.data.model.DebtorInfo(
                         username = username, baseUrl = base,
-                        amount = o.optLong("amount", 0),
+                        amount = o.optLong("amount", 0L),
                         currency = o.optString("currency", "تومان").ifBlank { "تومان" },
                         markedAt = o.optLong("markedAt", System.currentTimeMillis()),
                         notes = o.optString("notes", ""),
                         autoDisabled = o.optBoolean("autoDisabled", false),
-                        userId = o.optLong("userId", 0)
+                        userId = o.optLong("userId", 0L)
                     )
                     map[store.debtorKey(base, username)] = d
                 }
