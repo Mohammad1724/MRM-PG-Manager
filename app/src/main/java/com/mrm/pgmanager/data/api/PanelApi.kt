@@ -151,7 +151,7 @@ object PanelApi {
     suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
-        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
+        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
