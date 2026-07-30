@@ -26,8 +26,11 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             val users = PanelApi.users(session)
             store.saveUsersCache(users)
             val newStates = users.associate { user ->
-                val usage = if (user.dataLimit > 0) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
-                val nearExpiry = runCatching { val date = java.time.LocalDate.parse(user.expire?.take(10) ?: ""); java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), date).coerceAtLeast(0) <= settings.nearExpiryDays }.getOrDefault(false)
+                val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
+                val nearExpiry = runCatching {
+                    val date = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.expire?.take(10) ?: "") }
+                    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), date).coerceAtLeast(0L) <= settings.nearExpiryDays.toLong()
+                }.getOrDefault(false)
                 user.id to "${user.status}|$usage|$nearExpiry"
             }
             if (oldStates.isNotEmpty()) users.forEach { user ->
@@ -36,7 +39,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, (kind + user.id).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, body)
                 if (settings.notifyLimited && user.status == "limited" && !old.startsWith("limited")) notify("limited", "کاربر محدود شد", "${user.username} به سقف حجم رسیده است")
                 if (settings.notifyExpired && user.status == "expired" && !old.startsWith("expired")) notify("expired", "اشتراک منقضی شد", "اشتراک ${user.username} منقضی شده است")
-                val oldUsage = old.split("|").getOrNull(1)?.toIntOrNull() ?: 0; val usage = if (user.dataLimit > 0) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
+                val oldUsage = old.split("|").getOrNull(1)?.toIntOrNull() ?: 0; val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
                 if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify("near_limit", "هشدار مصرف", "${user.username} به $usage٪ مصرف رسیده است")
                 if (settings.notifyNearExpiry && now.substringAfterLast("|").toBoolean() && !old.substringAfterLast("|").toBoolean()) notify("near_expiry", "هشدار انقضا", "اشتراک ${user.username} نزدیک به انقضا است")
             }
@@ -84,8 +87,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     }
                     store.saveAlertFlag(key, condition)
                 }
-                val ram = if (stats.memTotal > 0) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
-                val disk = if (stats.diskTotal > 0) (stats.diskUsed * 100 / stats.diskTotal).toInt() else 0
+                val ram = if (stats.memTotal > 0L) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
+                val disk = if (stats.diskTotal > 0L) (stats.diskUsed * 100 / stats.diskTotal).toInt() else 0
                 healthAlert("cpu", 5101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(stats.cpuUsage)}٪ رسیده است", stats.cpuUsage >= settings.cpuThreshold)
                 healthAlert("ram", 5102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است", ram >= settings.ramThreshold)
                 healthAlert("disk", 5103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است", disk >= settings.diskThreshold)
