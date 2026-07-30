@@ -99,8 +99,8 @@ private fun daysLeftText(expire: String?): String {
         val inst = java.time.Instant.parse(expire)
         val diffSec = inst.epochSecond - java.time.Instant.now().epochSecond
         when {
-            diffSec <= 0 -> "منقضی"
-            diffSec < 86400 -> "امروز"
+            diffSec <= 0L -> "منقضی"
+            diffSec < 86400L -> "امروز"
             else -> "${(diffSec + 86399L) / 86400L} روز" // گردکردنِ رو‌به‌بالا = هم‌خوان با پنل
         }
     } catch (e: Exception) {
@@ -108,11 +108,11 @@ private fun daysLeftText(expire: String?): String {
             val exp = LocalDate.parse(expire.take(10))
             val diff = ChronoUnit.DAYS.between(LocalDate.now(), exp)
             when {
-                diff < 0 -> "منقضی"
+                diff < 0L -> "منقضی"
                 diff == 0L -> "امروز"
                 diff == 1L -> "۱ روز"
-                diff <= 7 -> "$diff روز"
-                diff <= 30 -> "${diff} روز"
+                diff <= 7L -> "$diff روز"
+                diff <= 30L -> "${diff} روز"
                 else -> "${diff} روز"
             }
         } catch (e2: Exception) { JalaliCalendar.isoToShamsi(expire).ifEmpty { "نامحدود" } }
@@ -351,8 +351,8 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val progressPercent = if (user.dataLimit > 0) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    val progressPercent = if (user.dataLimit > 0L) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
+    val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f)
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
     val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
@@ -537,8 +537,8 @@ private fun IconGridAction(icon: AppIcon, onClick: () -> Unit) {
 private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
-    val shownProgress = if (user.dataLimit > 0) actualProgress else .035f
+    val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
+    val shownProgress = if (user.dataLimit > 0L) actualProgress else .035f
     val progressPercent = (actualProgress * 100).roundToInt()
     val progressColor = when {
         user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen
@@ -607,7 +607,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: com.mrm.pgmanager.data.model.DebtorInfo? = null, onInvoiceClick: (PanelUser) -> Unit = {}) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val actualProgress = if (user.dataLimit > 0) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
+    val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
@@ -703,7 +703,7 @@ fun DebtorEditDialog(
                 }
                 com.mrm.pgmanager.ui.components.PrimarySaveButton(
                     text = if (existing != null) "ذخیره تغییرات" else "ثبت بدهکار",
-                    enabled = amountLong >= 0,
+                    enabled = amountLong >= 0L,
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     onClick = { onSave(amountLong, notes) }
                 )
@@ -799,12 +799,12 @@ fun UsersScreen(
                 offlineAt = null
                 val settings = store.readMonitoringSettings()
                 val nextStates = list.associate { u ->
-                    val usage = if (u.dataLimit > 0) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
+                    val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                     val remainingDays = runCatching {
                         val date = try { java.time.Instant.parse(u.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.expire?.take(10) ?: "") }
-                        ChronoUnit.DAYS.between(LocalDate.now(), date).coerceAtLeast(0)
+                        ChronoUnit.DAYS.between(LocalDate.now(), date).coerceAtLeast(0L)
                     }.getOrDefault(Long.MAX_VALUE)
-                    val nearExpiry = remainingDays <= settings.nearExpiryDays
+                    val nearExpiry = remainingDays <= settings.nearExpiryDays.toLong()
                     u.id to "${u.status}|$usage|$nearExpiry"
                 }
                 // اولین دریافت فقط baseline است؛ اعلان‌ها از تغییرات بعدی صادر می‌شوند.
@@ -816,7 +816,7 @@ fun UsersScreen(
                         fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text)
                         if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), "کاربر محدود شد", "${u.username} به سقف حجم رسیده است")
                         if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), "اشتراک منقضی شد", "اشتراک ${u.username} منقضی شده است")
-                        val usage = if (u.dataLimit > 0) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
+                        val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                         val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
                         if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), "هشدار مصرف", "${u.username} به $usage٪ مصرف حجم رسیده است")
                         val nearExpiry = current.substringAfterLast("|").toBoolean()
@@ -905,8 +905,8 @@ fun UsersScreen(
         list = when (currentFilter) {
             UserFilter.ALL -> list
             UserFilter.ACTIVE -> list.filter { it.status == "active" }
-            UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
-            UserFilter.EXPIRED -> list.filter { val p = if (it.dataLimit > 0) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 1.0 || it.status == "expired" || it.status == "limited" }
+            UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
+            UserFilter.EXPIRED -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 1.0 || it.status == "expired" || it.status == "limited" }
             UserFilter.DISABLED -> list.filter { it.status == "disabled" }
             UserFilter.DEBTOR -> list.filter { debtorByUsername.containsKey(it.username) }
         }
@@ -1197,9 +1197,9 @@ fun UsersScreen(
                     val totalDays = runCatching {
                         val expires = try { java.time.Instant.parse(u.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.expire?.take(10) ?: "") }
                         val created = try { java.time.Instant.parse(u.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.createdAt?.take(10) ?: "") }
-                        ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1)
-                    }.getOrDefault(0)
-                    val newExpire = if (totalDays > 0) LocalDate.now().plusDays(totalDays).toString() else ""
+                        ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1L)
+                    }.getOrDefault(0L)
+                    val newExpire = if (totalDays > 0L) LocalDate.now().plusDays(totalDays).toString() else ""
                     PanelApi.modifyUser(session, u.username, u.dataLimit.toDouble() / 1073741824.0, newExpire, u.note ?: "", u.hwidLimit, u.groupIds)
                 }
             },
