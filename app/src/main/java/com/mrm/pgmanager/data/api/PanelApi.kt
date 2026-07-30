@@ -219,12 +219,12 @@ object PanelApi {
                     try {
                         // Try timestamp (seconds or milliseconds)
                         val ts = onlineAtStr.toLong()
-                        if (ts < 1e12) ts * 1000 else ts // Convert seconds to ms if needed
+                        if (ts < 1_000_000_000_000L) ts * 1000 else ts // Convert seconds to ms if needed
                     } catch (e2: Exception) {
                         0L
                     }
                 }
-                if (onlineTime > 0 && now - onlineTime < 300_000) { // 5 minutes
+                if (onlineTime > 0L && now - onlineTime < 300_000L) { // 5 minutes
                     isOnline = true
                 }
             }
@@ -234,8 +234,8 @@ object PanelApi {
             id = user.optLong("id", 0L),
             username = user.getString("username"),
             status = user.optString("status", "unknown"),
-            usedTraffic = user.optLong("used_traffic", 0),
-            dataLimit = user.optLong("data_limit", 0),
+            usedTraffic = user.optLong("used_traffic", 0L),
+            dataLimit = user.optLong("data_limit", 0L),
             expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
             createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
             subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
@@ -373,7 +373,7 @@ object PanelApi {
         if (date.isBlank() || date == "null" || date == "0") return 0
         val target = runCatching { java.time.LocalDate.parse(date.take(10)) }.getOrNull()
             ?: return "${date}T23:59:59Z"
-        val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), target).coerceAtLeast(0)
+        val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), target).coerceAtLeast(0L)
         return java.time.Instant.now().plusSeconds(days * 86400L).toString()
     }
 }
