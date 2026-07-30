@@ -74,9 +74,9 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
         if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
         fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message)
         if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(s.cpuUsage)}٪ رسیده است"); cpuAlerted = true } else cpuAlerted = false
-        val ram = if (s.memTotal > 0) (s.memUsed * 100 / s.memTotal).toInt() else 0
+        val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
         if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است"); ramAlerted = true } else ramAlerted = false
-        val disk = if (s.diskTotal > 0) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
+        val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
         if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
         // هشدار ظرفیت: عبور تعداد کاربران آنلاین هم‌زمان از حد تعیین‌شده (با latch تا رفع شرط).
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
@@ -136,7 +136,10 @@ LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
         stats?.let { s ->
             Text("سیستم", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("CPU", "${"%.1f".format(s.cpuUsage)}%", AppIcon.Gauge, Modifier.weight(1f)); DashCard("RAM", "${formatBytes(s.memUsed)} / ${formatBytes(s.memTotal)}", AppIcon.Memory, Modifier.weight(1f)) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("Disk", "${formatBytes(s.diskUsed)} / ${formatBytes(s.diskTotal)}", AppIcon.Storage, Modifier.weight(1f)); DashCard("Uptime", "${s.uptimeSeconds / 86400} روز", AppIcon.Timer, Modifier.weight(1f)) }
+            val uptimeDays = s.uptimeSeconds / 86400L
+            val uptimeHours = (s.uptimeSeconds % 86400L) / 3600L
+            val uptimeText = if (uptimeDays > 0L) "$uptimeDays روز و $uptimeHours ساعت" else "$uptimeHours ساعت"
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("Disk", "${formatBytes(s.diskUsed)} / ${formatBytes(s.diskTotal)}", AppIcon.Storage, Modifier.weight(1f)); DashCard("Uptime", uptimeText, AppIcon.Timer, Modifier.weight(1f)) }
             Text("کاربران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("کل کاربران", "${s.totalUsers}", AppIcon.Users, Modifier.weight(1f)); DashCard("آنلاین", "${s.onlineUsers}", AppIcon.User, Modifier.weight(1f), GlassGreen) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("فعال", "${s.activeUsers}", AppIcon.Check, Modifier.weight(1f)); DashCard("منقضی / محدود", "${s.expiredUsers + s.limitedUsers}", AppIcon.Warning, Modifier.weight(1f), Color(0xFFD9822B)) }
