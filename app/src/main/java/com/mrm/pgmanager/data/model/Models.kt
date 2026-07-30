@@ -20,11 +20,11 @@ data class PanelUser(
 )
 
 data class SystemStats(
-    val uptimeSeconds: Long = 0,
-    val memTotal: Long = 0,
-    val memUsed: Long = 0,
-    val diskTotal: Long = 0,
-    val diskUsed: Long = 0,
+    val uptimeSeconds: Long = 0L,
+    val memTotal: Long = 0L,
+    val memUsed: Long = 0L,
+    val diskTotal: Long = 0L,
+    val diskUsed: Long = 0L,
     val cpuCores: Int = 0,
     val cpuUsage: Float = 0f,
     val totalUsers: Int = 0,
@@ -34,8 +34,8 @@ data class SystemStats(
     val limitedUsers: Int = 0,
     val disabledUsers: Int = 0,
     val onHoldUsers: Int = 0,
-    val incomingBandwidth: Long = 0,
-    val outgoingBandwidth: Long = 0
+    val incomingBandwidth: Long = 0L,
+    val outgoingBandwidth: Long = 0L
 )
 
 data class TrafficPoint(val timestamp: String, val totalTraffic: Long)
