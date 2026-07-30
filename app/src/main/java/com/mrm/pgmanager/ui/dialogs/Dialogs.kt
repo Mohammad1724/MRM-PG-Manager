@@ -1498,7 +1498,7 @@ fun UserEditorDialog(
     var addGb by remember { mutableStateOf("") }
     var addDaysInput by remember { mutableStateOf("") }
     var note by remember { mutableStateOf(initial?.note ?: "") }
-    var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
+    var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "0") }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
     var groups by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
     var templates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
@@ -1570,8 +1570,8 @@ fun UserEditorDialog(
                 Column(card(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompactGlassField(hwid, { hwid = it.filter(Char::isDigit) }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
-                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { hwid = "" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
+                        CompactGlassField(if (hwid == "0" || hwid.isEmpty()) "" else hwid, { v -> hwid = v.filter(Char::isDigit).ifBlank { "0" } }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
+                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { hwid = "0" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
@@ -1595,7 +1595,8 @@ fun UserEditorDialog(
                     MutedCancelButton("انصراف", onDismiss, Modifier.weight(.35f))
                     PrimarySaveButton("ذخیرهٔ تغییرات", modifier = Modifier.weight(.65f), onClick = {
                         val expire = days.toIntOrNull()?.takeIf { it >= 0 }?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) } ?: ""
-                        val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwid.toIntOrNull(), groupIds)
+                        val hwidValue = hwid.toIntOrNull() ?: 0
+                        val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds)
                         if (selectedTemplate != null && initial == null && onSaveWithTemplate != null) onSaveWithTemplate(username, selectedTemplate!!, note) else { onSave(values, expire); if (initial != null && active != (initial.status != "disabled")) onToggle?.invoke() }
                     })
                 }
