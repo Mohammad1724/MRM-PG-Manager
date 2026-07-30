@@ -80,7 +80,7 @@ private fun parseOnlineMillis(raw: String?): Long? {
     if (raw.isNullOrBlank()) return null
     val s = raw.replace(" ", "T")
     runCatching { return java.time.Instant.parse(s).toEpochMilli() }
-    runCatching { val ts = raw.trim().toLong(); return if (ts < 1e12) ts * 1000 else ts }
+    runCatching { val ts = raw.trim().toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
     return null
 }
 
@@ -89,14 +89,14 @@ fun lastSeenText(onlineAt: String?, isOnline: Boolean): String {
     if (isOnline) return "آنلاین"
     val millis = parseOnlineMillis(onlineAt) ?: return "آخرین آنلاین: نامشخص"
     val diffMin = (System.currentTimeMillis() - millis) / 60000L
-    if (diffMin <= 0) return "آنلاین"
+    if (diffMin <= 0L) return "آنلاین"
     return when {
-        diffMin < 1 -> "هم‌اکنون"
-        diffMin < 60 -> "${faNum(diffMin)} دقیقه پیش"
-        diffMin < 1440 -> "${faNum(diffMin / 60)} ساعت پیش"
-        diffMin < 1440 * 30 -> "${faNum(diffMin / 1440)} روز پیش"
-        diffMin < 1440 * 365 -> "${faNum(diffMin / (1440 * 30))} ماه پیش"
-        else -> "${faNum(diffMin / (1440 * 365))} سال پیش"
+        diffMin < 1L -> "هم‌اکنون"
+        diffMin < 60L -> "${faNum(diffMin)} دقیقه پیش"
+        diffMin < 1440L -> "${faNum(diffMin / 60L)} ساعت پیش"
+        diffMin < 1440L * 30L -> "${faNum(diffMin / 1440L)} روز پیش"
+        diffMin < 1440L * 365L -> "${faNum(diffMin / (1440L * 30L))} ماه پیش"
+        else -> "${faNum(diffMin / (1440L * 365L))} سال پیش"
     }
 }
 
@@ -105,13 +105,13 @@ fun lastSeenShort(onlineAt: String?, isOnline: Boolean): String {
     if (isOnline) return "آنلاین"
     val millis = parseOnlineMillis(onlineAt) ?: return ""
     val diffMin = (System.currentTimeMillis() - millis) / 60000L
-    if (diffMin <= 0) return "آنلاین"
+    if (diffMin <= 0L) return "آنلاین"
     return when {
-        diffMin < 60 -> "${diffMin}m"
-        diffMin < 1440 -> "${diffMin / 60}h"
-        diffMin < 10080 -> "${diffMin / 1440}d"
-        diffMin < 43200 -> "${diffMin / 10080}w"
-        diffMin < 525600 -> "${diffMin / 43200}mo"
-        else -> "${diffMin / 525600}y"
+        diffMin < 60L -> "${diffMin}m"
+        diffMin < 1440L -> "${diffMin / 60L}h"
+        diffMin < 10080L -> "${diffMin / 1440L}d"
+        diffMin < 43200L -> "${diffMin / 10080L}w"
+        diffMin < 525600L -> "${diffMin / 43200L}mo"
+        else -> "${diffMin / 525600L}y"
     }
 }
