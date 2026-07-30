@@ -853,7 +853,7 @@ fun ThemeEditorDialog(
                                                 testing = true
                                                 val result = runCatching { PanelApi.systemStats(session) }
                                                 testResult = result.fold(
-                                                    onSuccess = { s -> true to "اتصال برقرار است · آپ‌تایم ${s.uptimeSeconds / 86400} روز و ${(s.uptimeSeconds % 86400) / 3600} ساعت" },
+                                                    onSuccess = { s -> true to "اتصال برقرار است · آپ‌تایم ${s.uptimeSeconds / 86400L} روز و ${(s.uptimeSeconds % 86400L) / 3600L} ساعت" },
                                                     onFailure = { e -> false to ("خطا در اتصال: " + (e.message ?: "پنل در دسترس نیست")) }
                                                 )
                                                 testing = false
@@ -1127,7 +1127,7 @@ fun ThemeEditorDialog(
                                     }
                                 }
                                 val lastAt = store.readLastBackupAt()
-                                if (lastAt > 0) {
+                                if (lastAt > 0L) {
                                     val sdf = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
                                     Text("آخرین پشتیبان: ${sdf.format(java.util.Date(lastAt))}", fontSize = 8.5.sp, color = theme.mutedColor)
                                 }
@@ -1388,7 +1388,16 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
     var y by remember { mutableStateOf(parsed.year) }
     var m by remember { mutableStateOf(parsed.month) }
     var d by remember { mutableStateOf(parsed.day) }
-    val daysInMonth = when { m in 1..6 -> 31; m in 7..11 -> 30; else -> if (y % 4 == 3) 30 else 29 }
+    val daysInMonth = when {
+        m in 1..6 -> 31
+        m in 7..11 -> 30
+        else -> {
+            // محاسبهٔ سال کبیسهٔ شمسی بر پایهٔ چرخهٔ ۳۳ساله (دقت خوب برای سال‌های ۱۲۰۰ تا ۱۵۰۰ ه‍.ش)
+            val mod = ((y - 474) % 33 + 33) % 33
+            val isLeap = mod == 1 || mod == 5 || mod == 9 || mod == 13 || mod == 17 || mod == 22 || mod == 26 || mod == 30
+            if (isLeap) 30 else 29
+        }
+    }
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1482,7 +1491,7 @@ fun UserEditorDialog(
         initial?.let { user ->
             val expires = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
             val created = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
-            java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(0).toString()
+            java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(0L).toString()
         } ?: ""
     }.getOrDefault("")) }
     // ورودی‌های افزایشی؛ مقدار نهایی حجم/زمان جدا نگه داشته می‌شود تا با +GB و +روز جمع شود.
@@ -1593,7 +1602,7 @@ fun UserEditorDialog(
             }
         }
     }
-    if (showCalendar) ShamsiCalendarPickerDialog(JalaliCalendar.todayJalali().toString(), { showCalendar = false }) { shamsi -> days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0).toString() }.getOrDefault("") }
+    if (showCalendar) ShamsiCalendarPickerDialog(JalaliCalendar.todayJalali().toString(), { showCalendar = false }) { shamsi -> days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("") }
     if (resetUsage) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { resetUsage = false }, onConfirm = { resetUsage = false; onResetUsage?.invoke() })
     if (resetExpiry) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { resetExpiry = false }, onConfirm = { resetExpiry = false; onResetExpiry?.invoke() })
 }
@@ -1604,7 +1613,7 @@ private fun detailDaysText(expire: String?): String {
     return runCatching {
         val end = try { java.time.Instant.parse(expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(expire.take(10)) }
         val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end)
-        if (d < 0) "منقضی" else "$d روز"
+        if (d < 0L) "منقضی" else "$d روز"
     }.getOrDefault("نامحدود")
 }
 
@@ -1926,7 +1935,7 @@ fun UserDetailsDialog(
     }
     if (editOpen) UserEditorDialog(currentUser, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, { expiryConfirm = true }, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
-    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0); onResetUsage() })
+    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(days.toLong()).toString()); onResetExpiry(days) })
 }
 
