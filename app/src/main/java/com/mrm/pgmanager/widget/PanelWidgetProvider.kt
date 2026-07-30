@@ -43,7 +43,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
         }
 
         private fun formatRam(bytes: Long): String {
-            if (bytes <= 0) return "-"
+            if (bytes <= 0L) return "-"
             val gb = bytes / (1024.0 * 1024.0 * 1024.0)
             return if (gb >= 1.0) "%.1fG".format(gb) else "%.0fM".format(bytes / (1024.0 * 1024.0))
         }
@@ -57,8 +57,8 @@ class PanelWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, layoutRes)
             val store = SessionStore(context)
             val cache = runCatching { store.readStatsCache() }.getOrNull()
-            val debtors = runCatching { store.readDebtors().size }.getOrDefault(0)
             val session = store.read()
+            val debtors = runCatching { store.readDebtors().values.count { it.baseUrl == session?.baseUrl } }.getOrDefault(0)
 
             if (cache != null) {
                 val (stats, ts) = cache
@@ -70,7 +70,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
                 // RAM
                 val usedGb = stats.memUsed / (1024.0 * 1024.0 * 1024.0)
                 val totalGb = stats.memTotal / (1024.0 * 1024.0 * 1024.0)
-                val ramPercent = if (stats.memTotal > 0) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
+                val ramPercent = if (stats.memTotal > 0L) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
                 views.setTextViewText(R.id.w_ram_val, "${ramPercent}%")
                 views.setTextViewText(R.id.w_ram_sub, "%.1f/%.1fG".format(usedGb, totalGb))
                 // CPU
