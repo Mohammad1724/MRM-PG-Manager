@@ -1486,12 +1486,12 @@ fun UserEditorDialog(
     val store = remember { SessionStore(context) }
     var username by remember { mutableStateOf(initial?.username ?: "") }
     var limitGb by remember { mutableStateOf(if (initial == null || initial.dataLimit == 0L) "" else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')) }
-    // «زمان کل» از فاصلهٔ تاریخ ساخت تا تاریخ انقضا محاسبه می‌شود؛ نه زمان باقی‌مانده تا امروز.
+    // «زمان کل» = روزهای باقی‌مانده از امروز تا تاریخ انقضا (همان مقداری که پس از ریست/تمدید معنادار است).
+    // پیش از این، روزها از تاریخ ساخت حساب می‌شمرده که پس از تمدید باعث نمایش عدد غلط (مثل ۱۰۴ روز) می‌شد.
     var days by remember { mutableStateOf(runCatching {
         initial?.let { user ->
             val expires = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-            val created = try { java.time.Instant.parse(user.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(user.createdAt?.take(10) ?: "") }
-            java.time.temporal.ChronoUnit.DAYS.between(created, expires).coerceAtLeast(0L).toString()
+            java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), expires).coerceAtLeast(0L).toString()
         } ?: ""
     }.getOrDefault("")) }
     // ورودی‌های افزایشی؛ مقدار نهایی حجم/زمان جدا نگه داشته می‌شود تا با +GB و +روز جمع شود.
@@ -1506,7 +1506,6 @@ fun UserEditorDialog(
     var selectedTemplate by remember { mutableStateOf<Int?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var resetUsage by remember { mutableStateOf(false) }
-    var resetExpiry by remember { mutableStateOf(false) }
 
     LaunchedEffect(session) { if (session != null) {
         groups = runCatching { com.mrm.pgmanager.data.api.PanelApi.groups(session) }.getOrDefault(emptyList())
@@ -1605,7 +1604,6 @@ fun UserEditorDialog(
     }
     if (showCalendar) ShamsiCalendarPickerDialog(JalaliCalendar.todayJalali().toString(), { showCalendar = false }) { shamsi -> days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("") }
     if (resetUsage) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { resetUsage = false }, onConfirm = { resetUsage = false; onResetUsage?.invoke() })
-    if (resetExpiry) ConfirmActionDialog("ریست زمان اشتراک؟", "زمان اشتراک نامحدود می‌شود.", onDismiss = { resetExpiry = false }, onConfirm = { resetExpiry = false; onResetExpiry?.invoke() })
 }
 
 @Composable
@@ -1937,7 +1935,7 @@ fun UserDetailsDialog(
     if (editOpen) UserEditorDialog(currentUser, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, { expiryConfirm = true }, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
-    if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; currentUser = currentUser.copy(expire = java.time.LocalDate.now().plusDays(days.toLong()).toString()); onResetExpiry(days) })
+    if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
 }
 
 @Composable
