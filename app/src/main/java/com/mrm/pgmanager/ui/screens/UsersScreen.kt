@@ -61,6 +61,7 @@ import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.dialogs.BulkCreateUsersDialog
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
+import com.mrm.pgmanager.ui.dialogs.ResetExpiryDurationDialog
 import com.mrm.pgmanager.ui.dialogs.QuickActionSheet
 import com.mrm.pgmanager.ui.dialogs.SettingsActionRow
 import com.mrm.pgmanager.ui.dialogs.SubscriptionQrDialog
@@ -769,6 +770,8 @@ fun UsersScreen(
     var debtorEditAmount by remember { mutableStateOf("") }
     var debtorEditNotes by remember { mutableStateOf("") }
     var invoiceDialogUser by remember { mutableStateOf<PanelUser?>(null) }
+    // کاربر هدفِ ریست زمان از طریق QuickActionSheet (long-press)
+    var resetExpiryTarget by remember { mutableStateOf<PanelUser?>(null) }
 
     fun reloadDebtors() { debtors = store.readDebtors() }
     val debtorsForCurrentPanel = remember(debtors, session.baseUrl) { debtors.values.filter { it.baseUrl == session.baseUrl } }
@@ -1192,17 +1195,9 @@ fun UsersScreen(
             onQr = { qrUser = u },
             onEdit = { selectedUser = u },
             onResetUsage = { runAction(notification = "ریست حجم" to "مصرف ${u.username} صفر شد") { PanelApi.resetUsage(session, u.username) } },
-            onResetExpiry = {
-                runAction {
-                    val totalDays = runCatching {
-                        val expires = try { java.time.Instant.parse(u.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.expire?.take(10) ?: "") }
-                        val created = try { java.time.Instant.parse(u.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(u.createdAt?.take(10) ?: "") }
-                        ChronoUnit.DAYS.between(created, expires).coerceAtLeast(1L)
-                    }.getOrDefault(0L)
-                    val newExpire = if (totalDays > 0L) LocalDate.now().plusDays(totalDays).toString() else ""
-                    PanelApi.modifyUser(session, u.username, u.dataLimit.toDouble() / 1073741824.0, newExpire, u.note ?: "", u.hwidLimit, u.groupIds)
-                }
-            },
+            // «ریست زمان» در QuickActionSheet مثل جزئیات کاربر، پنجرهٔ انتخاب تعداد روز را باز می‌کند
+            // (پیش از این به اشتباه فاصلهٔ ساخت تا انقضا را به‌عنوان روز جدید می‌فرستاد و مقدار روز را زیاد نشان می‌داد).
+            onResetExpiry = { resetExpiryTarget = u },
             onDelete = { deleteUser = u },
             onDebtor = { debtorDialogUser = u },
             isDebtor = isDebtor,
@@ -1239,10 +1234,10 @@ fun UsersScreen(
             onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },
             onResetUsage = {
-                runAction(notification = "ریست حجم" to "مصرف ${user.username} صفر شد") { PanelApi.resetUsage(session, user.username) }
+                selectedUser = null; runAction(notification = "ریست حجم" to "مصرف ${user.username} صفر شد") { PanelApi.resetUsage(session, user.username) }
             },
             onResetExpiry = { days ->
-                runAction {
+                selectedUser = null; runAction(notification = "ریست زمان" to "زمان ${user.username} به $days روز ریست شد") {
                     val newExpire = java.time.LocalDate.now().plusDays(days.toLong()).toString()
                     PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
                 }
@@ -1385,6 +1380,20 @@ fun UsersScreen(
             }
         )
     }
+    // === ریست زمان از QuickActionSheet (long-press) ===
+    resetExpiryTarget?.let { u ->
+        ResetExpiryDurationDialog(
+            onDismiss = { resetExpiryTarget = null },
+            onConfirm = { days ->
+                val targetUser = u; resetExpiryTarget = null
+                runAction(notification = "ریست زمان" to "زمان ${targetUser.username} به $days روز ریست شد") {
+                    val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
+                    PanelApi.modifyUser(session, targetUser.username, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
+                }
+            }
+        )
+    }
+
     // بررسی خودکار بدهکاران برای قطع پس از X ساعت - هر بار که users لود می‌شود یا هر 60 ثانیه
     LaunchedEffect(users, monitoringSettings.debtorAutoDisableEnabled, monitoringSettings.debtorAutoDisableAfterHours) {
         if (!monitoringSettings.debtorAutoDisableEnabled) return@LaunchedEffect
