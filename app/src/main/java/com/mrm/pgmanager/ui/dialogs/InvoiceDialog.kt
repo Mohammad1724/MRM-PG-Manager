@@ -461,8 +461,7 @@ fun InvoiceDialog(
                                                 logoPath = logoPath,
                                                 sellerName = sellerName,
                                                 isFullyPaid = isFullyPaid || totalBilled == 0L,
-                                                totalBilled = totalBilled,
-                                                remainingDebt = remainingDebt
+                                                totalBilled = totalBilled
                                             )
                                         }.getOrNull()
                                         withContext(Dispatchers.Main) {
