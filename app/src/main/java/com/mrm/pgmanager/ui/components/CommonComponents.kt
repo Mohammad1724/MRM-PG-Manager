@@ -47,6 +47,8 @@ import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -54,7 +56,6 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
     val resId = remember(context) {
         var id = context.resources.getIdentifier("ic_launcher", "drawable", context.packageName)
         if (id == 0) id = context.resources.getIdentifier("logo_mrm", "drawable", context.packageName)
-        if (id == 0) id = context.resources.getIdentifier("file_000000003f2481f8aa2cab3dfb1ff5a1", "drawable", context.packageName)
         id
     }
     if (resId != 0) {
@@ -82,22 +83,11 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
 @Composable
 fun PasswordEyeIcon(visible: Boolean) {
     val theme = LocalThemeState.current
-    Canvas(modifier = Modifier.size(20.dp)) {
+    Canvas(modifier = Modifier.size(20.dp).semantics { contentDescription = if (visible) "پنهان‌کردن رمز" else "نمایش رمز" }) {
         val w = size.width; val h = size.height
         drawOval(color = theme.inkColor, topLeft = Offset(1f, h * 0.22f), size = Size(w - 2f, h * 0.56f), style = Stroke(width = 2.2f))
         drawCircle(color = if (visible) theme.accentPrimary else theme.inkColor, radius = if (visible) w * 0.20f else w * 0.14f, center = Offset(w * 0.5f, h * 0.5f))
         if (!visible) drawLine(color = theme.accentPrimary, start = Offset(w * 0.10f, h * 0.90f), end = Offset(w * 0.90f, h * 0.10f), strokeWidth = 2.8f)
-    }
-}
-
-@Composable
-fun ExitIcon() {
-    Canvas(modifier = Modifier.size(16.dp)) {
-        val w = size.width; val h = size.height
-        drawRect(color = GlassRed, topLeft = Offset(0f, 1f), size = Size(w * 0.45f, h - 2f), style = Stroke(width = 2f))
-        drawLine(color = GlassRed, start = Offset(w * 0.25f, h * 0.5f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
-        drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.22f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
-        drawLine(color = GlassRed, start = Offset(w * 0.68f, h * 0.78f), end = Offset(w, h * 0.5f), strokeWidth = 2.2f)
     }
 }
 
@@ -106,7 +96,7 @@ fun ExitIcon() {
 // danger (کاشی قرمز کم‌رنگ + مرز و متن قرمز). انیمیشن فشاری در همه حفظ شده است.
 
 @Composable
-fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false, size: Dp = 42.dp) {
+fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false, size: Dp = 42.dp, contentDescription: String? = null) {
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -116,6 +106,7 @@ fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier
             .clip(RoundedCornerShape(size / 3f))
             .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
             .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
+            .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { icon() }
@@ -273,17 +264,6 @@ fun UltraPremiumField(
             }
         }
     }
-}
-
-// Jelly for backward compat
-@Composable
-fun JellyGlassActionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
-    PrimarySaveButton(text = text, onClick = onClick, modifier = modifier.height(58.dp), enabled = enabled)
-}
-
-@Composable
-fun JellyGlassInputField(value: String, onValueChange: (String) -> Unit, label: String, leadingIcon: String, modifier: Modifier = Modifier, password: Boolean = false, keyboardType: KeyboardType = KeyboardType.Text) {
-    UltraPremiumField(value = value, onValueChange = onValueChange, label = label, placeholder = label, leadingIcon = leadingIcon, isPassword = password, keyboardType = keyboardType, modifier = modifier)
 }
 
 @Composable
