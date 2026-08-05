@@ -40,14 +40,17 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                 // پیش‌تنظیم‌های روز: کاشی خاکستریِ خنثیِ design system.
                 listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { days = value.toString(); error = null }, contentAlignment = Alignment.Center) { Text("$value روز", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("انصراف", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
-                // دکمهٔ اصلی: کپسول اکسنت ۷۸٪ + متن تیره (هم‌سبک با سگمنت تنظیمات).
-                Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.78f)).clickable {
-                    val n = days.toIntOrNull()?.takeIf { it > 0 }
-                    if (n == null) error = "عدد روز معتبر (بزرگ‌تر از صفر) وارد کنید."
-                    else onConfirm(n)
-                }, contentAlignment = Alignment.Center) { Text("اعمال زمان", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202124)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                PrimaryButton(
+                    text = "اعمال زمان",
+                    onClick = {
+                        val n = days.toIntOrNull()?.takeIf { it > 0 }
+                        if (n == null) error = "عدد روز معتبر (بزرگ‌تر از صفر) وارد کنید."
+                        else onConfirm(n)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
