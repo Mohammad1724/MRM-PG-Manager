@@ -79,38 +79,38 @@ data class ThemeState(
         else -> Color(0xFFFFFFFF)
     }
     val cardBorderBrush: Brush
-        get() = if (isDark) Brush.linearGradient(listOf(Color.White.copy(0.22f), Color.White.copy(0.08f)))
-        else Brush.linearGradient(listOf(Color(0xFFDCDDE1), Color(0xFFDCDDE1)))
+        get() = if (isDark) Brush.linearGradient(listOf(Color.White.copy(0.25f), Color.White.copy(0.05f)))
+        else Brush.linearGradient(listOf(Color(0xFFE2E4E9), Color(0xFFD1D3D9)))
     val dialogBgColor: Color get() = when {
-        isDark && amoledDark -> Color(0xFF0C0C0F)
-        isDark -> Color(0xFF18181C)
+        isDark && amoledDark -> Color(0xFF080808)
+        isDark -> Color(0xFF16161A)
         else -> Color(0xFFFFFFFF)
     }
     val searchBgColor: Color get() = when {
-        isDark && amoledDark -> Color(0xFF1B1B20)
-        isDark -> Color(0xFF2C2C32)
-        else -> Color(0xFFF2F2F4)
+        isDark && amoledDark -> Color(0xFF121212)
+        isDark -> Color(0xFF1F1F24)
+        else -> Color(0xFFF1F2F6)
     }
 }
 
 val LocalThemeState = compositionLocalOf { ThemeState() }
 
-val GlassGreen = Color(0xFF1A8C5B)
-val GlassAmber = Color(0xFFD9822B)
-val GlassRed = Color(0xFFC93B3B)
-val GlassShape = RoundedCornerShape(24.dp)
+val GlassGreen = Color(0xFF22C55E)
+val GlassAmber = Color(0xFFF59E0B)
+val GlassRed = Color(0xFFEF4444)
+val GlassShape = RoundedCornerShape(20.dp)
+val PremiumCardShape = RoundedCornerShape(18.dp)
 
-// نام‌های قبلی حفظ شده‌اند تا مهاجرت صفحه‌ها مرحله‌ای باشد، اما ظاهر «glass» در تم روشن
-// اکنون همان سطح سفید و border ظریف design system جدید را تولید می‌کند.
 fun glassBg(isDark: Boolean, amoled: Boolean = false) = when {
-    isDark && amoled -> Color(0xFF131316)
-    isDark -> Color(0xFF1E1E24)
-    else -> Color(0xFFFFFFFF)
+    isDark && amoled -> Color(0xFF0F0F0F).copy(alpha = 0.8f)
+    isDark -> Color(0xFF1E1E24).copy(alpha = 0.85f)
+    else -> Color(0xFFFFFFFF).copy(alpha = 0.9f)
 }
+
 fun glassBorder(isDark: Boolean, amoled: Boolean = false) = when {
-    isDark && amoled -> Color(0xFFEDEDED).copy(alpha = 0.22f)
-    isDark -> Color(0xFF9E9E9E).copy(alpha = 0.32f)
-    else -> Color(0xFFD7D8DD)
+    isDark && amoled -> Color(0xFFFFFFFF).copy(alpha = 0.15f)
+    isDark -> Color(0xFFFFFFFF).copy(alpha = 0.12f)
+    else -> Color(0xFF000000).copy(alpha = 0.08f)
 }
 
 @Composable
@@ -118,10 +118,10 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     val colors = if (themeState.isDark) {
         darkColorScheme(
             primary = themeState.accentPrimary,
-            onPrimary = Color.White,
+            onPrimary = Color(0xFF1A1A1A),
             secondary = themeState.accentLight,
-            background = if (themeState.amoledDark) Color(0xFF000000) else Color(0xFF101012),
-            surface = (if (themeState.amoledDark) Color(0xFF131316) else Color(0xFF1E1E22)).copy(alpha = 0.70f),
+            background = if (themeState.amoledDark) Color(0xFF000000) else Color(0xFF0D0D10),
+            surface = if (themeState.amoledDark) Color(0xFF080808) else Color(0xFF141418),
             onSurface = themeState.inkColor,
             onBackground = themeState.inkColor,
             error = GlassRed
@@ -131,7 +131,7 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
             primary = themeState.accentPrimary,
             onPrimary = Color.White,
             secondary = themeState.accentLight,
-            background = Color(0xFFF7F7F8),
+            background = Color(0xFFF8F9FA),
             surface = Color.White,
             onSurface = themeState.inkColor,
             onBackground = themeState.inkColor,
@@ -139,10 +139,15 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
         )
     }
 
+    val typography = androidx.compose.material3.Typography(
+        displayLarge = androidx.compose.material3.Typography().displayLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif),
+        // می‌توان در اینجا فونت‌های سفارشی را نیز ست کرد
+    )
+
     val bgGradient = when {
-        themeState.isDark && themeState.amoledDark -> Brush.verticalGradient(listOf(Color(0xFF030303), Color(0xFF000000), Color(0xFF000000)))
-        themeState.isDark -> Brush.verticalGradient(listOf(Color(0xFF15151A), Color(0xFF0E0E12), Color(0xFF08080A)))
-        else -> Brush.verticalGradient(listOf(Color(0xFFF7F7F8), Color(0xFFF7F7F8)))
+        themeState.isDark && themeState.amoledDark -> Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF000000)))
+        themeState.isDark -> Brush.verticalGradient(listOf(Color(0xFF0F0F13), Color(0xFF08080A)))
+        else -> Brush.verticalGradient(listOf(Color(0xFFF8F9FA), Color(0xFFF2F3F7)))
     }
 
     val view = LocalView.current
@@ -164,25 +169,16 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
                 // در تم روشن، پس‌زمینه کاملاً خنثی و بدون هاله است؛ همان زبان بصری پنل وب.
                 // هاله‌ها فقط برای تم تیره نگه داشته شده‌اند (در AMOLED هم ملایم باقی می‌مانند).
                 if (themeState.isDark) {
-                Box(
-                    Modifier.size(600.dp).align(Alignment.TopStart).offset(x = (-160).dp, y = (-80).dp)
-                        .background(Brush.radialGradient(listOf(themeState.accentSpotHigh, themeState.accentSpotLow, Color.Transparent)), RoundedCornerShape(300.dp))
-                        .blur(22.dp)
-                )
-                Box(
-                    Modifier.size(440.dp).align(Alignment.TopEnd).offset(x = 120.dp, y = (-60).dp)
-                        .background(Brush.radialGradient(listOf(themeState.accentLight.copy(alpha = 0.32f), Color.Transparent)), RoundedCornerShape(300.dp))
-                        .blur(26.dp)
-                )
-                Box(
-                    Modifier.size(520.dp).align(Alignment.BottomStart).offset(x = (-150).dp, y = 120.dp)
-                        .background(Brush.radialGradient(listOf(themeState.accentSpotHigh.copy(alpha = 0.28f), Color.Transparent)), RoundedCornerShape(300.dp))
-                        .blur(32.dp)
-                )
-                Box(
-                    Modifier.size(380.dp).align(Alignment.Center).offset(x = 80.dp, y = (-20).dp)
-                        .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent)), RoundedCornerShape(300.dp))
-                )
+                    Box(
+                        Modifier.size(600.dp).align(Alignment.TopStart).offset(x = (-180).dp, y = (-120).dp)
+                            .background(Brush.radialGradient(listOf(themeState.accentSpotHigh.copy(alpha = 0.25f), Color.Transparent)), RoundedCornerShape(300.dp))
+                            .blur(40.dp)
+                    )
+                    Box(
+                        Modifier.size(450.dp).align(Alignment.BottomEnd).offset(x = 140.dp, y = 100.dp)
+                            .background(Brush.radialGradient(listOf(themeState.accentLight.copy(alpha = 0.15f), Color.Transparent)), RoundedCornerShape(300.dp))
+                            .blur(45.dp)
+                    )
                 }
                 content()
             }
