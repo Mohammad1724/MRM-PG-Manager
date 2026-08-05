@@ -31,8 +31,9 @@ import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.utils.NotificationHelper
-import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import androidx.compose.ui.draw.clip
+import com.mrm.pgmanager.ui.components.MrmText
+import com.mrm.pgmanager.ui.components.TechnicalContainer
 import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
