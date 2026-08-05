@@ -219,7 +219,7 @@ fun MrmButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled && !loading) 0.96f else 1.0f,
+        targetValue = if (isPressed && enabled && !loading) 0.95f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "btnScale"
     )
@@ -229,30 +229,30 @@ fun MrmButton(
     val (backgroundColor, contentColor, borderStroke) = when (style) {
         MrmButtonStyle.Primary -> {
             Triple(
-                Brush.linearGradient(listOf(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.85f))),
+                Brush.verticalGradient(listOf(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.82f))),
                 Color(0xFF1A1A1A),
                 null
             )
         }
         MrmButtonStyle.Secondary -> {
             Triple(
-                Brush.linearGradient(listOf(theme.searchBgColor, theme.searchBgColor)),
+                Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
                 theme.inkColor,
-                BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark))
+                BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark))
             )
         }
         MrmButtonStyle.Danger -> {
             Triple(
-                Brush.linearGradient(listOf(GlassRed.copy(0.12f), GlassRed.copy(0.08f))),
+                Brush.verticalGradient(listOf(GlassRed.copy(0.15f), GlassRed.copy(0.08f))),
                 GlassRed,
-                BorderStroke(1.dp, GlassRed.copy(0.35f))
+                BorderStroke(1.2.dp, GlassRed.copy(0.35f))
             )
         }
         MrmButtonStyle.Glass -> {
             Triple(
-                Brush.linearGradient(listOf(Color.White.copy(0.08f), Color.White.copy(0.02f))),
+                Brush.verticalGradient(listOf(Color.White.copy(0.12f), Color.White.copy(0.04f))),
                 theme.inkColor,
-                BorderStroke(1.dp, Color.White.copy(0.15f))
+                BorderStroke(1.2.dp, Color.White.copy(0.20f))
             )
         }
     }
@@ -260,19 +260,20 @@ fun MrmButton(
     Box(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale)
-            .height(if (compact) 36.dp else 52.dp)
+            .height(if (compact) 38.dp else 56.dp)
             .clip(RoundedCornerShape(16.dp))
             .let { 
                 if (style == MrmButtonStyle.Primary && enabled && !loading) {
-                    it.graphicsLayer(shadowElevation = 8f) // Soft shadow for primary
+                    // Premium multi-layer shadow
+                    it.shadow(elevation = 10.dp, shape = RoundedCornerShape(16.dp), ambientColor = theme.accentPrimary.copy(0.5f), spotColor = theme.accentPrimary)
                 } else it
             }
             .background(backgroundColor)
             .let { if (borderStroke != null) it.border(borderStroke, RoundedCornerShape(16.dp)) else it }
-            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(color = contentColor.copy(0.2f)), enabled = enabled && !loading, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(color = contentColor.copy(0.25f)), enabled = enabled && !loading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // Inner Glow / Illumination effect for Primary
+        // High-end glass reflection effect
         if (style == MrmButtonStyle.Primary && enabled && !loading) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val path = androidx.compose.ui.graphics.Path().apply {
@@ -280,8 +281,13 @@ fun MrmButton(
                 }
                 drawContext.canvas.save()
                 drawContext.canvas.clipPath(path)
+                // Glossy reflection top
                 drawRect(
-                    brush = Brush.verticalGradient(listOf(Color.White.copy(0.25f), Color.Transparent), startY = 0f, endY = size.height * 0.4f),
+                    brush = Brush.verticalGradient(
+                        0.0f to Color.White.copy(0.35f),
+                        0.4f to Color.White.copy(0.1f),
+                        1.0f to Color.Transparent
+                    ),
                     size = size
                 )
                 drawContext.canvas.restore()
@@ -289,28 +295,29 @@ fun MrmButton(
         }
 
         Row(
-            modifier = Modifier.padding(horizontal = if (compact) 12.dp else 20.dp).graphicsLayer(alpha = contentAlpha),
+            modifier = Modifier.padding(horizontal = if (compact) 14.dp else 22.dp).graphicsLayer(alpha = contentAlpha),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             if (loading) {
                 androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(22.dp),
                     color = contentColor,
-                    strokeWidth = 2.dp
+                    strokeWidth = 2.5.dp
                 )
             } else {
                 if (icon != null) {
-                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) 16.dp else 20.dp)
-                    Spacer(Modifier.width(8.dp))
+                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) 18.dp else 22.dp)
+                    Spacer(Modifier.width(10.dp))
                 }
                 Text(
                     text = text,
                     color = contentColor,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = if (compact) 11.sp else 14.5.sp,
+                    fontSize = if (compact) 12.sp else 15.sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    letterSpacing = if (theme.isDark) 0.5.sp else 0.sp
                 )
             }
         }
@@ -365,7 +372,6 @@ fun TechnicalContainer(
     }
 }
 
-// === ULTRA PREMIUM FIELD - EXACTLY LIKE THE PRETTY IMAGE ===
 @Composable
 fun UltraPremiumField(
     value: String,
@@ -382,22 +388,29 @@ fun UltraPremiumField(
     val theme = LocalThemeState.current
     var isFocused by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+    val focusGlow by animateFloatAsState(targetValue = if (isFocused) 1f else 0f, label = "fieldGlow")
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor.copy(0.9f), modifier = Modifier.padding(start = 6.dp))
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(label, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor.copy(alpha = 0.9f), modifier = Modifier.padding(start = 6.dp))
         
         val interactionSource = remember { MutableInteractionSource() }
         
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(62.dp)
+                .height(64.dp)
                 .clip(RoundedCornerShape(18.dp))
+                .let {
+                    if (isFocused) {
+                        it.shadow(elevation = (6 * focusGlow).dp, shape = RoundedCornerShape(18.dp), spotColor = theme.accentPrimary.copy(alpha = 0.4f))
+                    } else it
+                }
                 .background(
                     if (isFocused) {
-                        if (theme.isDark) theme.cardSurfaceColor.copy(0.95f) else Color.White
+                        if (theme.isDark) theme.cardSurfaceColor.copy(0.98f) else Color.White
                     } else {
-                        if (theme.isDark) theme.cardSurfaceColor.copy(0.7f) else theme.searchBgColor.copy(0.5f)
+                        if (theme.isDark) theme.cardSurfaceColor.copy(0.65f) else theme.searchBgColor.copy(0.45f)
                     }
                 )
                 .border(
@@ -407,34 +420,30 @@ fun UltraPremiumField(
                     ),
                     RoundedCornerShape(18.dp)
                 )
-                .let {
-                    if (isFocused) it.graphicsLayer(shadowElevation = 4f) else it
-                }
         ) {
             Row(
-                Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                Modifier.fillMaxSize().padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Icon wrapper
+                // Animated Icon wrapper
                 Box(
-                    Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                    Modifier.size(44.dp).clip(RoundedCornerShape(14.dp))
                         .background(if (isFocused) theme.accentPrimary.copy(0.12f) else if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 20.dp)
+                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 22.dp)
                     else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 18.sp)
                 }
 
-                // Input area
+                // Input area with direction handling
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty()) {
                         Text(
                             placeholder,
                             color = theme.mutedColor.copy(0.45f),
-                            fontSize = 14.5.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.let { if (isTechnical) it.graphicsLayer(alpha = 0.8f) else it },
                             style = TextStyle(textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content)
                         )
                     }
@@ -448,7 +457,7 @@ fun UltraPremiumField(
                         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                         textStyle = TextStyle(
                             color = theme.inkColor,
-                            fontSize = 15.5.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content
                         ),
@@ -460,15 +469,14 @@ fun UltraPremiumField(
                     ActionIconButton(
                         icon = { PasswordEyeIcon(visible = passwordVisible) },
                         onClick = { passwordVisible = !passwordVisible },
-                        size = 38.dp
+                        size = 40.dp
                     )
                 } else if (value.isNotEmpty()) {
-                    Box(
-                        Modifier.size(28.dp).clip(RoundedCornerShape(14.dp))
-                            .background(theme.searchBgColor)
-                            .clickable { onValueChange("") },
-                        contentAlignment = Alignment.Center
-                    ) { Text("×", color = theme.mutedColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+                    ActionIconButton(
+                        icon = { Text("×", color = theme.mutedColor, fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                        onClick = { onValueChange("") },
+                        size = 32.dp
+                    )
                 }
             }
         }
