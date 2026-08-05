@@ -2,6 +2,7 @@ package com.mrm.pgmanager
 
 import android.os.Bundle
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -51,16 +52,35 @@ import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
+import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
 import com.mrm.pgmanager.ui.theme.ThemeState
 
 class MainActivity : FragmentActivity() {
+    /** دیپ‌لینک دریافتی از اعلان‌ها (مقصد، نام کاربری). توسط MRMApp مصرف و null می‌شود. */
+    var pendingDeepLink by androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
+        readDeepLink(intent)
         setContent { MRMApp() }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readDeepLink(intent)
+    }
+
+    /** استخراج یک‌بارمصرفِ مقصد اعلان از Intent و پاک‌کردن extras تا دوباره پردازش نشود. */
+    private fun readDeepLink(intent: Intent?) {
+        if (intent == null) return
+        val dest = intent.getStringExtra(NotificationHelper.EXTRA_DEST) ?: return
+        pendingDeepLink = dest to (intent.getStringExtra(NotificationHelper.EXTRA_USERNAME) ?: "")
+        NotificationHelper.consumeDeepLink(intent)
     }
 }
 
@@ -131,6 +151,8 @@ fun MRMApp() {
     var selectedTab by remember { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
     var showDashboardSettings by remember { mutableStateOf(false) }
+    // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
+    var deepLinkUsername by remember { mutableStateOf<String?>(null) }
     val tabScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -180,10 +202,22 @@ fun MRMApp() {
         if (session != null) {
             val request = PeriodicWorkRequestBuilder<MonitoringWorker>(15, TimeUnit.MINUTES).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("mrm_background_monitoring", ExistingPeriodicWorkPolicy.UPDATE, request)
-            // زمان‌بندی پشتیبان‌گیری خودکار
-            val store = SessionStore(context)
+            // زمان‌بندی پشتیبان‌گیری خودکار (store بیرونی از MRMApp استفاده می‌شود)
             val hours = if (store.readBackupEnabled()) store.readBackupIntervalHours() else 0
             BackupWorker.schedule(context, hours)
+        }
+    }
+
+    // مصرف دیپ‌لینک اعلان‌ها: مقصد را به تب مربوطه ببر و اگر کاربری همراه بود، جزئیات او را باز کن.
+    // کلیدِ effect شامل «بودن نشست» است تا اگر اعلان قبل از ورود رسیده باشد، بعد از ورود پردازش شود.
+    val mainActivity = context as? MainActivity
+    val pending = mainActivity?.pendingDeepLink
+    LaunchedEffect(pending, session != null) {
+        // pending غیرنال بودن یعنی mainActivity هم غیرنال است (کامپایلر smart-cast می‌کند).
+        if (pending != null && session != null) {
+            mainActivity.pendingDeepLink = null
+            selectedTab = if (pending.first == NotificationHelper.DEST_USERS) 1 else 0
+            deepLinkUsername = pending.second.takeIf { it.isNotBlank() }
         }
     }
 
@@ -254,7 +288,9 @@ fun MRMApp() {
                 appLockTimeout = appLockTimeout,
                 onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
                 onSwitchAccount = switchAccount,
-                onAddAccount = { addingAccount = true }
+                onAddAccount = { addingAccount = true },
+                deepLinkUsername = deepLinkUsername,
+                onDeepLinkHandled = { deepLinkUsername = null }
             )
                 }
                 // تب‌بار پایین: دقیقاً همان کپسول سگمنت‌شدهٔ تب‌های تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
