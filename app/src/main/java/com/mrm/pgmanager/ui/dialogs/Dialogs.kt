@@ -256,9 +256,9 @@ fun SegmentedControl(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
-            .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
+        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp))
+            .background(theme.searchBgColor.copy(alpha = 0.6f))
+            .border(BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
             .padding(4.dp)
             .graphicsLayer(alpha = if (enabled) 1f else 0.55f),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -266,14 +266,14 @@ fun SegmentedControl(
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
-                Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp))
-                    .background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent)
+                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(10.dp))
+                    .background(if (selected) theme.accentPrimary.copy(.85f) else Color.Transparent)
                     .clickable(enabled = enabled) { onSelect(index) },
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) Color(0xFF202124) else theme.mutedColor, size = 14.dp)
-                    Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) Color(0xFF1A1A1A) else theme.mutedColor, size = 16.dp)
+                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
