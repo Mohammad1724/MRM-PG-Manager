@@ -183,8 +183,8 @@ fun BulkCreateUsersDialog(
                         CompactGlassField(note, { note = it.take(200) }, "یادداشت اختیاری برای همهٔ کاربران", leadingAppIcon = AppIcon.Note, fieldHeight = 38.dp)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(.38f).height(42.dp))
-                        PrimarySaveButton(if (canStart) "ساخت $count کاربر" else "فرم ناقص است", enabled = canStart, modifier = Modifier.weight(.62f).height(42.dp), onClick = { start() })
+                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(.38f))
+                        PrimaryButton(if (canStart) "ساخت $count کاربر" else "فرم ناقص است", enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() })
                     }
                 } else {
                     // نمای پیشرفت / نتیجه
@@ -204,15 +204,15 @@ fun BulkCreateUsersDialog(
                             if (errors.isNotEmpty()) {
                                 Text("${errors.size} خطا:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                                 Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(.06f)).border(BorderStroke(1.dp, GlassRed.copy(.20f)), RoundedCornerShape(10.dp)).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    errors.forEach { Text(it, fontSize = 9.5.sp, color = theme.inkColor) }
+                                    errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 9.5.sp, isTechnical = true) }
                                 }
                             }
                         }
                     }
                     if (!done) {
-                        GlassButton("لغو و توقف", onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth().height(42.dp), isRed = true)
+                        DangerButton("لغو و توقف", onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth())
                     } else {
-                        PrimarySaveButton("بستن", onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth().height(44.dp))
+                        PrimaryButton("بستن", onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
