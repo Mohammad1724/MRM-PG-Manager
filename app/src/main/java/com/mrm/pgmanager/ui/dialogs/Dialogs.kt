@@ -48,32 +48,39 @@ import java.io.FileOutputStream
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.UserEditorValues
+import com.mrm.pgmanager.data.model.UserTemplateItem
+import com.mrm.pgmanager.data.model.Group
+import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.PrimaryButton
 import com.mrm.pgmanager.ui.components.SecondaryButton
 import com.mrm.pgmanager.ui.components.DangerButton
 import com.mrm.pgmanager.ui.components.GlassButton
 import com.mrm.pgmanager.ui.components.SmallButton
+import com.mrm.pgmanager.ui.components.MiniGlassButton
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.TechnicalContainer
+import com.mrm.pgmanager.ui.components.ActionIconButton
+import com.mrm.pgmanager.ui.components.AppLogo
+import com.mrm.pgmanager.ui.components.PrimarySaveButton
+import com.mrm.pgmanager.ui.components.MutedCancelButton
 import com.mrm.pgmanager.ui.theme.GlassRed
+import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassShape
 import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
-import kotlin.math.roundToInt
 import com.mrm.pgmanager.ui.theme.LocalThemeState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.usersToCsv
 import com.mrm.pgmanager.utils.usersToJson
-import java.text.SimpleDateFormat
-import java.util.Date
 import com.mrm.pgmanager.utils.lastSeenText
 import com.mrm.pgmanager.utils.formatBytes
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 
@@ -136,8 +143,8 @@ fun QuickActionSheet(
                     Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) { 
-                        com.mrm.pgmanager.ui.components.MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                        com.mrm.pgmanager.ui.components.MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
+                        MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                        MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                     }
                     Box(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
@@ -185,9 +192,6 @@ private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier:
         }
     }
 }
-
-// === پنجرهٔ تنظیمات v2 — بازطراحی کامل بر پایهٔ design system اصلی برنامه ===
-// ساختار: هدر + تب‌های سگمنت‌شده + کارت‌های استانداردِ هم‌سبک با کارت‌های داشبورد.
 
 /** ردیف سوئیچ استاندارد تنظیمات: عنوان + توضیح اختیاری + Switch. */
 @Composable
@@ -355,7 +359,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-            com.mrm.pgmanager.ui.components.MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+            MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
         if (copyable) {
             ActionIconButton(
@@ -833,8 +837,8 @@ fun ThemeEditorDialog(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
                                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                                Text(acc.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text(acc.baseUrl, fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                MrmText(acc.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                                                MrmText(acc.baseUrl, fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                                             }
                                             if (isActive) {
                                                 Box(Modifier.clip(RoundedCornerShape(7.dp)).background(theme.accentPrimary.copy(.20f)).padding(horizontal = 8.dp, vertical = 4.dp)) { Text("فعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
@@ -983,8 +987,8 @@ fun ThemeEditorDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            RoundedAppIcon(AppIcon.Upload, tint = Color(0xFF202124), size = 16.dp)
-                                            Text(if (invoiceLogoPath != null) "تغییر لوگو" else "انتخاب لوگو", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF202124))
+                                            RoundedAppIcon(AppIcon.Upload, tint = Color(0xFF1A1A1A), size = 16.dp)
+                                            Text(if (invoiceLogoPath != null) "تغییر لوگو" else "انتخاب لوگو", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A1A))
                                         }
                                     }
                                     if (invoiceLogoPath != null) {
@@ -1123,11 +1127,11 @@ fun ThemeEditorDialog(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (backupBusy) {
-                                            CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
+                                            CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF1A1A1A), strokeWidth = 2.dp)
                                         } else {
                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                RoundedAppIcon(AppIcon.Backup, tint = Color(0xFF202124), size = 16.dp)
-                                                Text("پشتیبان‌گیری دستی", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                                                RoundedAppIcon(AppIcon.Backup, tint = Color(0xFF1A1A1A), size = 16.dp)
+                                                Text("پشتیبان‌گیری دستی", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A1A))
                                             }
                                         }
                                     }
@@ -1206,7 +1210,7 @@ fun ThemeEditorDialog(
                         Text("نسخهٔ ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
                 }
-                GlassButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(44.dp))
+                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -1266,20 +1270,22 @@ fun ThemeEditorDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Box(modifier = Modifier.weight(1f)) {
                             if (!restoring) {
-                                com.mrm.pgmanager.ui.components.MutedCancelButton("انصراف", onClick = { restoreDialogOpen = false }, modifier = Modifier.fillMaxWidth().height(44.dp))
+                                SecondaryButton("انصراف", onClick = { restoreDialogOpen = false }, modifier = Modifier.fillMaxWidth())
                             } else {
-                                Box(Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(13.dp)).background(theme.searchBgColor.copy(0.5f)), contentAlignment = Alignment.Center) {
-                                    Text("انصراف", color = theme.mutedColor.copy(0.5f), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(theme.searchBgColor.copy(0.5f)), contentAlignment = Alignment.Center) {
+                                    Text("انصراف", color = theme.mutedColor.copy(0.5f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
                             }
                         }
-                        Box(
-                            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
-                                .background(if (restoring) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
-                                .clickable(enabled = !restoring) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            PrimaryButton(
+                                text = "بازیابی",
+                                enabled = !restoring,
+                                loading = restoring,
+                                onClick = {
                                     if (!restoreAccounts && !restoreDebtors && !restoreSettings && !restoreInvoice) {
                                         android.widget.Toast.makeText(ctx, "حداقل یک بخش را انتخاب کنید", android.widget.Toast.LENGTH_SHORT).show()
-                                        return@clickable
+                                        return@PrimaryButton
                                     }
                                     restoring = true
                                     scope.launch(Dispatchers.IO) {
@@ -1308,10 +1314,8 @@ fun ThemeEditorDialog(
                                         }
                                     }
                                 },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (restoring) CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
-                            else Text("بازیابی", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -1414,18 +1418,18 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(20.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor)
+                MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
                 Box(Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
                     if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                     else Text("QR خطا", fontSize = 12.sp)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    GlassButton("کپی", onClick = {
+                    SecondaryButton("کپی", onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
                     }, modifier = Modifier.weight(1f))
-                    PrimarySaveButton("اشتراک", onClick = ::shareQr, modifier = Modifier.weight(1f))
+                    PrimaryButton("اشتراک", onClick = ::shareQr, modifier = Modifier.weight(1f))
                 }
                 TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
             }
@@ -1477,8 +1481,8 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    PrimarySaveButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
+                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    PrimaryButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -1557,16 +1561,16 @@ fun UserEditorDialog(
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "0") }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
-    var groups by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
-    var templates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+    var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
+    var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
     var active by remember { mutableStateOf(initial?.status != "disabled") }
     var selectedTemplate by remember { mutableStateOf<Int?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var resetUsage by remember { mutableStateOf(false) }
 
     LaunchedEffect(session) { if (session != null) {
-        groups = runCatching { com.mrm.pgmanager.data.api.PanelApi.groups(session) }.getOrDefault(emptyList())
-        templates = runCatching { com.mrm.pgmanager.data.api.PanelApi.userTemplates(session) }.getOrDefault(emptyList())
+        groups = runCatching { PanelApi.groups(session) }.getOrDefault(emptyList())
+        templates = runCatching { PanelApi.userTemplates(session) }.getOrDefault(emptyList())
     } }
     // هر بخش اصلی یک کادر مستقل دارد تا فرم در موبایل سریع‌تر قابل اسکن باشد.
     fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
@@ -1596,7 +1600,7 @@ fun UserEditorDialog(
                             // در حالت ویرایش، نام مانند پنل PasarGuard فقط برای مشاهده است.
                             // نام در حالت ویرایش فقط نمایش داده می‌شود و عمداً بسیار کوتاه است.
                             Box(Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
-                                Text(initial.username, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                MrmText(initial.username, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             }
                         }
                         if (initial != null) {
@@ -1648,8 +1652,8 @@ fun UserEditorDialog(
                         }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Text(t.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MutedCancelButton("انصراف", onDismiss, Modifier.weight(.35f))
-                    PrimarySaveButton("ذخیرهٔ تغییرات", modifier = Modifier.weight(.65f), onClick = {
+                    SecondaryButton("انصراف", onDismiss, Modifier.weight(.35f))
+                    PrimaryButton("ذخیرهٔ تغییرات", modifier = Modifier.weight(.65f), onClick = {
                         val expire = days.toIntOrNull()?.takeIf { it >= 0 }?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) } ?: ""
                         val hwidValue = hwid.toIntOrNull() ?: 0
                         val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds)
@@ -1800,7 +1804,7 @@ fun UserDetailsDialog(
             onResult(currentUser.subUrl)
         } else if (session != null) {
             scope.launch {
-                runCatching { com.mrm.pgmanager.data.api.PanelApi.user(session, currentUser.username) }.onSuccess {
+                runCatching { PanelApi.user(session, currentUser.username) }.onSuccess {
                     currentUser = it
                     onResult(it.subUrl)
                 }.onFailure {
@@ -1814,7 +1818,7 @@ fun UserDetailsDialog(
     var usageConfirm by remember { mutableStateOf(false) }
     var expiryConfirm by remember { mutableStateOf(false) }
     var templatePickerOpen by remember { mutableStateOf(false) }
-    var availableTemplates by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.UserTemplateItem>>(emptyList()) }
+    var availableTemplates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
     var templatesLoading by remember { mutableStateOf(false) }
     var templatesFailed by remember { mutableStateOf(false) }
     // وضعیت باز/بسته بودن منوی کشویی بدهی/فاکتور
@@ -1868,8 +1872,8 @@ fun UserDetailsDialog(
                 ) {
                     Box(Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(RoundedCornerShape(5.dp)).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        com.mrm.pgmanager.ui.components.MrmText(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                        com.mrm.pgmanager.ui.components.MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
+                        MrmText(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                        MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                     }
                     val active = currentUser.status != "disabled"
                     Box(Modifier.height(26.dp).width(50.dp).clip(RoundedCornerShape(8.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
@@ -1988,14 +1992,14 @@ fun UserDetailsDialog(
                     }
                 }
                 // دکمه بستن در پایین پنجره
-                com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(44.dp))
+                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
     if (templatePickerOpen) {
         LaunchedEffect(Unit) {
             templatesLoading = true; templatesFailed = false
-            val result = runCatching { session?.let { com.mrm.pgmanager.data.api.PanelApi.userTemplates(it) } ?: emptyList() }
+            val result = runCatching { session?.let { PanelApi.userTemplates(it) } ?: emptyList() }
             availableTemplates = result.getOrDefault(emptyList())
             templatesFailed = result.isFailure
             templatesLoading = false
@@ -2017,7 +2021,7 @@ fun UserDetailsDialog(
 
 @Composable
 fun BulkApplyTemplateDialog(
-    templates: List<com.mrm.pgmanager.data.model.UserTemplateItem>,
+    templates: List<UserTemplateItem>,
     selectedCount: Int,
     onDismiss: () -> Unit,
     onApply: (templateId: Int, note: String) -> Unit,
@@ -2072,11 +2076,11 @@ fun BulkApplyTemplateDialog(
                 formError?.let { Text(it, color = GlassRed, fontSize = 11.sp) }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(38.dp))
-                    PrimarySaveButton("اعمال تمپلت", onClick = {
+                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    PrimaryButton("اعمال تمپلت", onClick = {
                         if (selectedTemplateId == null) formError = "لطفاً یک تمپلت انتخاب کنید"
                         else onApply(selectedTemplateId!!, note)
-                    }, modifier = Modifier.weight(1f).height(38.dp))
+                    }, modifier = Modifier.weight(1f))
                 }
             }
         }
