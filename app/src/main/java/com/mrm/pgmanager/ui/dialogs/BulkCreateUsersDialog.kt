@@ -104,6 +104,10 @@ fun BulkCreateUsersDialog(
                 progress = i + 1
                 if (i + 1 < count) delay(150)
             }
+            // در حالت ترتیبی، شمارنده جلو می‌رود تا دفعهٔ بعد نام‌های تکراری تولید نشود.
+            if (pattern.sequential && successCount > 0) {
+                store.saveUsernamePattern(pattern.copy(sequentialStart = pattern.sequentialStart + successCount))
+            }
             running = false; done = true
         }
     }
