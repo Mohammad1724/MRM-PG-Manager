@@ -33,9 +33,13 @@ import androidx.core.content.FileProvider
 import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.storage.SessionStore
-import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.theme.GlassGreen
+import com.mrm.pgmanager.ui.components.PrimaryButton
+import com.mrm.pgmanager.ui.components.SecondaryButton
+import com.mrm.pgmanager.ui.components.DangerButton
+import com.mrm.pgmanager.ui.components.GlassButton
+import com.mrm.pgmanager.ui.components.TechnicalContainer
+import com.mrm.pgmanager.ui.components.MrmText
+import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
