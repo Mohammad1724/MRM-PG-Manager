@@ -19,8 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.ui.theme.GlassRed
-import com.mrm.pgmanager.ui.theme.LocalThemeState
-import com.mrm.pgmanager.ui.theme.glassBorder
+import com.mrm.pgmanager.ui.components.PrimaryButton
+import com.mrm.pgmanager.ui.components.SecondaryButton
+import com.mrm.pgmanager.ui.components.MrmText
 
 @Composable
 fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
