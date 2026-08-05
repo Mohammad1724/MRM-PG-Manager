@@ -138,27 +138,29 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
     val theme = LocalThemeState.current
     Box(
         modifier = modifier
-            .height(80.dp)
+            .height(86.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
+            .border(BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
             .padding(14.dp)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { 
-                    RoundedAppIcon(icon, tint = accent, size = 14.dp) 
+                Box(Modifier.size(28.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { 
+                    RoundedAppIcon(icon, tint = accent, size = 16.dp) 
                 }
-                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                Text(label, fontSize = 11.5.sp, color = theme.mutedColor, fontWeight = FontWeight.ExtraBold)
             }
-            com.mrm.pgmanager.ui.components.MrmText(
-                text = value, 
-                fontSize = 19.sp, 
-                fontWeight = FontWeight.ExtraBold, 
-                maxLines = 1, 
-                overflow = TextOverflow.Ellipsis,
-                isTechnical = true
-            )
+            TechnicalContainer {
+                Text(
+                    text = value, 
+                    fontSize = 20.sp, 
+                    fontWeight = FontWeight.ExtraBold, 
+                    color = theme.inkColor,
+                    maxLines = 1, 
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
