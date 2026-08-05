@@ -33,13 +33,8 @@ import androidx.core.content.FileProvider
 import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.storage.SessionStore
-import com.mrm.pgmanager.ui.components.PrimaryButton
-import com.mrm.pgmanager.ui.components.SecondaryButton
-import com.mrm.pgmanager.ui.components.DangerButton
-import com.mrm.pgmanager.ui.components.GlassButton
-import com.mrm.pgmanager.ui.components.TechnicalContainer
-import com.mrm.pgmanager.ui.components.MrmText
-import com.mrm.pgmanager.ui.components.ActionIconButton
+import com.mrm.pgmanager.ui.components.*
+import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
@@ -91,8 +86,6 @@ fun InvoiceDialog(
     }
 
     // ==== محاسبات تاریخ ====
-    // به جای استفاده از تاریخ ساخت حساب (که برای فاکتور این دوره اشتباه است)،
-    // شروع دوره = امروز؛ پایان = تاریخ انقضا. مدت = روزهای باقی‌مانده.
     val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { "نامحدود" }
     val daysRemaining = runCatching {
         val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
@@ -224,7 +217,6 @@ fun InvoiceDialog(
         return
     }
 
-    // ==== حالت پیش‌نمایش (تمام صفحه برای اسکرین‌شات) ====
     if (previewMode) {
         InvoicePreviewCard(
             logoBitmap = logoBitmap,
@@ -251,7 +243,6 @@ fun InvoiceDialog(
         return
     }
 
-    // ==== دیالوگ ویرایش ====
     Dialog(onDismissRequest = onDismiss) {
         Box(
             Modifier
@@ -268,7 +259,6 @@ fun InvoiceDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // هدر
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
                         Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
@@ -286,7 +276,6 @@ fun InvoiceDialog(
 
                 Divider(color = glassBorder(theme.isDark, theme.amoledDark), thickness = 1.dp)
 
-                // اطلاعات ثابت کاربر (فقط نمایشی)
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -303,7 +292,6 @@ fun InvoiceDialog(
                     InfoRow("تاریخ پایان", endJalali, theme, color = GlassRed, bold = true)
                 }
 
-                // فیلدهای مبلغ
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -315,7 +303,6 @@ fun InvoiceDialog(
                 ) {
                     Text("💰 مبالغ", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
-                    // قیمت فعلی
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("قیمت این دوره", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
@@ -327,7 +314,6 @@ fun InvoiceDialog(
                         )
                     }
 
-                    // بدهی قبلی
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("بدهی قبلی", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
@@ -339,7 +325,6 @@ fun InvoiceDialog(
                         )
                     }
 
-                    // مبلغ پرداختی
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("مبلغ واریزی (اختیاری)", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
@@ -353,7 +338,6 @@ fun InvoiceDialog(
 
                     Divider(color = glassBorder(theme.isDark, theme.amoledDark).copy(alpha = 0.5f))
 
-                    // مجموع / وضعیت
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
                             Modifier.fillMaxWidth(),
@@ -390,7 +374,6 @@ fun InvoiceDialog(
                     }
                 }
 
-                // توضیحات یادداشت
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("📝 یادداشت (اختیاری)", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     CompactGlassField(
@@ -402,9 +385,7 @@ fun InvoiceDialog(
                     )
                 }
 
-                // دکمه‌ها
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // پیش‌نمایش
                     SecondaryButton(
                         text = "📸 پیش‌نمایش فاکتور (اسکرین‌شات)",
                         onClick = { previewMode = true },
@@ -412,15 +393,12 @@ fun InvoiceDialog(
                         icon = AppIcon.Qr
                     )
 
-                    // ردیف دکمه‌های فاکتور (متن + PDF)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        // متن فاکتور
                         SecondaryButton(
                             text = "📄 فاکتور متنی",
                             onClick = { textShareMode = true },
                             modifier = Modifier.weight(1f)
                         )
-                        // PDF
                         PrimaryButton(
                             text = "📄 PDF",
                             onClick = {
@@ -464,7 +442,6 @@ fun InvoiceDialog(
                         )
                     }
 
-                    // بستن
                     SecondaryButton(
                         "بستن",
                         onClick = onDismiss,
@@ -484,9 +461,6 @@ private fun InfoRow(label: String, value: String, theme: com.mrm.pgmanager.ui.th
     }
 }
 
-/**
- * کارت تمام‌صفحه فاکتور برای اسکرین‌شات - طراحی ساده و شیک
- */
 @Composable
 private fun InvoicePreviewCard(
     logoBitmap: android.graphics.Bitmap?,
@@ -518,7 +492,6 @@ private fun InvoicePreviewCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // کارت فاکتور - پس‌زمینه سفید/روشن برای خوانایی در اسکرین‌شات (بدون دکمه بستن)
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -529,7 +502,6 @@ private fun InvoicePreviewCard(
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // لوگو/برند
                 if (logoBitmap != null) {
                     Image(
                         bitmap = logoBitmap.asImageBitmap(),
@@ -548,7 +520,6 @@ private fun InvoicePreviewCard(
                     }
                 }
 
-                // نام برند
                 if (sellerName.isNotBlank()) {
                     Text(sellerName, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
                 }
@@ -558,14 +529,12 @@ private fun InvoicePreviewCard(
                     color = Color(0xFF74757B)
                 )
 
-                // خط جداکننده طلایی
                 Box(
                     Modifier.fillMaxWidth(0.8f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFF4C928))
                 )
 
                 Spacer(Modifier.height(4.dp))
 
-                // مشخصات کاربر
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -581,7 +550,6 @@ private fun InvoicePreviewCard(
                     PreviewRow("تاریخ پایان", endDate, color = Color(0xFFC93B3B), bold = true)
                 }
 
-                // مبالغ
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -626,7 +594,6 @@ private fun InvoicePreviewCard(
 
                 Spacer(Modifier.height(4.dp))
 
-                // تاریخ و تشکر
                 Text("با تشکر از انتخاب شما 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
                 Text(
                     "تاریخ صدور: $invoiceDate",
@@ -634,11 +601,10 @@ private fun InvoicePreviewCard(
                     color = Color(0xFFA09C94)
                 )
             }
-            // دکمه بستن در پایین (بیرون کارت سفید تا در اسکرین‌شات دیده نشود)
-            com.mrm.pgmanager.ui.components.MutedCancelButton(
+            SecondaryButton(
                 "بستن",
                 onClick = onClose,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
