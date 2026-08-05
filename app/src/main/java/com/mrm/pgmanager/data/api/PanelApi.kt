@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.data.api
 
+import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
@@ -122,22 +123,45 @@ object PanelApi {
     }
 
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
-        // صفححه‌بندی: تا زمانی که یک صفحه کامل (1000تایی) برنگردد ادامه می‌دهیم
+        // صفحه‌بندی: تا زمانی که یک صفحه کامل (limitتایی) برنگردد ادامه می‌دهیم.
+        // بدون load_sub (سنگین: پنل برای هر کاربر subscription URL می‌سازد)؛ لینک اشتراک فقط در صورت نیاز lazy واکشی می‌شود.
         val all = mutableListOf<PanelUser>()
         var offset = 0
         val limit = 1000
-        while (offset <= 50000) {
-            val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=$offset&limit=$limit&load_sub=true").get().build()
+        while (true) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=$offset&limit=$limit").get().build()
             val chunk = client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) error("Request failed: ${response.code}")
-                val arr = JSONObject(response.body?.string() ?: error("Empty users response")).getJSONArray("users")
+                val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
+                val arr = obj.getJSONArray("users")
                 List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }
             }
             all.addAll(chunk)
             if (chunk.size < limit) break
             offset += limit
+            // محافظ: اگر پنل total را برگرداند و به آن رسیدیم، متوقف شو (جلوگیری از حلقهٔ بی‌نهایت)
+            if (offset > 1_000_000) break
+        }
+        // نام گروه‌ها در پاسخ لیست کاربران نیست (پنل group_names را exclude می‌کند)؛
+        // پس با یک واکشی سبک از /api/groups/simple نگاشت id→name انجام می‌دهیم.
+        val groupMap = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
+        if (groupMap.isNotEmpty()) {
+            all.forEach { u ->
+                if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
+                    u.groupNames = u.groupIds.mapNotNull { groupMap[it] }
+                }
+            }
         }
         all
+    }
+
+    /** واکشی تکی یک کاربر (با subscription_url) — برای دریافت لینک اشتراک فقط در صورت نیاز. */
+    suspend fun user(session: Session, username: String): PanelUser = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, userUrl(session, username)).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("User fetch failed: ${response.code}")
+            parseUser(JSONObject(response.body?.string() ?: error("Empty user response")))
+        }
     }
 
     suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList()) = withContext(Dispatchers.IO) {
@@ -365,15 +389,7 @@ object PanelApi {
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()
-    // expire را برابر «اکنون + N روز» می‌فرستیم (مانند رفتار بومی مارزبان/پاسارگارد).
-    // N = تعداد روز میان «امروز» و «تاریخ هدف». این‌کار اختلافِ زمانی را دقیقاً N روز می‌کند،
-    // پس گردکردنِ کسرِ روز توسط پنل (ceil) دیگر یک روز اضافه نشان نمی‌دهد.
-    // (قبلاً پایانِ روز ارسال می‌شد و چون کسرِ مثبتِ روز وجود داشت، پنل یک روز بیشتر نشان می‌داد.)
-    private fun expireValue(date: String): Any {
-        if (date.isBlank() || date == "null" || date == "0") return 0
-        val target = runCatching { java.time.LocalDate.parse(date.take(10)) }.getOrNull()
-            ?: return "${date}T23:59:59Z"
-        val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), target).coerceAtLeast(0L)
-        return java.time.Instant.now().plusSeconds(days * 86400L).toString()
-    }
+    // تاریخ انقضا را به‌صورت «اکنون + N روز» می‌فرستیم (سازگار با رفتار پنل و بدون خطای گردکردن).
+    // تاریخ امروز/گذشته → 0 (نامحدود) تا کاربر ناخواسته «منقضی» ساخته نشود.
+    private fun expireValue(date: String): Any = DateLogic.expireValue(date)
 }
