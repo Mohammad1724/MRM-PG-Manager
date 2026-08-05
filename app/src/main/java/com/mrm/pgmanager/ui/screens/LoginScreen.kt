@@ -87,53 +87,49 @@ fun LoginScreen(
                             }
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingAppIcon = AppIcon.Link, keyboardType = KeyboardType.Uri)
-                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingAppIcon = AppIcon.User)
-                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingAppIcon = AppIcon.Lock, isPassword = true, keyboardType = KeyboardType.Password)
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+                            UltraPremiumField(value = url, onValueChange = { url = it }, label = "آدرس پنل", placeholder = "https://panel.example.com:443", leadingAppIcon = AppIcon.Link, keyboardType = KeyboardType.Uri, isTechnical = true)
+                            UltraPremiumField(value = username, onValueChange = { username = it }, label = "نام کاربری", placeholder = "نام کاربری", leadingAppIcon = AppIcon.User, isTechnical = true)
+                            UltraPremiumField(value = password, onValueChange = { password = it }, label = "رمز عبور", placeholder = "رمز عبور", leadingAppIcon = AppIcon.Lock, isPassword = true, keyboardType = KeyboardType.Password, isTechnical = true)
                         }
 
                         if (error != null) {
                             Box(
-                                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(GlassRed.copy(0.08f))
-                                    .border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(14.dp)).padding(12.dp)
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GlassRed.copy(0.12f))
+                                    .border(BorderStroke(1.dp, GlassRed.copy(0.35f)), RoundedCornerShape(16.dp)).padding(14.dp)
                             ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 18.dp)
-                                    Text(error!!, color = GlassRed, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 20.dp)
+                                    Text(error!!, color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                                 }
                             }
                         }
 
-                        // دکمهٔ اصلی ورود: همان کپسول توپُرِ اکسنتِ design system (بدون گرادیان).
-                        Box(
-                            Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp))
-                                .background(theme.accentPrimary.copy(alpha = .78f))
-                                .clickable(enabled = !loading) {
-                                    if (loading) return@clickable
-                                    loading = true; error = null
-                                    scope.launch {
-                                        runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { e ->
-                                            error = when {
-                                                e.message?.contains("Credentials required", ignoreCase = true) == true -> "نام کاربری و رمز را وارد کنید."
-                                                e.message?.contains("Invalid URL", ignoreCase = true) == true -> "آدرس پنل نامعتبر است."
-                                                e.message?.contains("Cleartext", ignoreCase = true) == true || e.message?.contains("not permitted", ignoreCase = true) == true -> "این آدرس HTTP است و امن نیست؛ از HTTPS استفاده کنید."
-                                                e is java.net.UnknownHostException -> "سرور پیدا نشد. آدرس پنل را بررسی کنید."
-                                                e is java.net.SocketTimeoutException -> "پاسخی از سرور نگرفت شد (timeout)."
-                                                e.message?.contains("Login failed: 401", ignoreCase = true) == true -> "نام کاربری یا رمز اشتباه است."
-                                                e.message?.contains("Login failed: 404", ignoreCase = true) == true -> "آدرس یا مسیر پنل درست نیست (۴۰۴)."
-                                                e.message?.startsWith("Login failed") == true -> "خطای سرور: ${e.message}"
-                                                else -> "اتصال ناموفق بود: ${e.message ?: "خطای ناشناخته"}"
-                                            }
+                        com.mrm.pgmanager.ui.components.PrimaryButton(
+                            text = "ورود به پنل",
+                            onClick = {
+                                if (loading) return@PrimaryButton
+                                loading = true; error = null
+                                scope.launch {
+                                    runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { e ->
+                                        error = when {
+                                            e.message?.contains("Credentials required", ignoreCase = true) == true -> "نام کاربری و رمز را وارد کنید."
+                                            e.message?.contains("Invalid URL", ignoreCase = true) == true -> "آدرس پنل نامعتبر است."
+                                            e.message?.contains("Cleartext", ignoreCase = true) == true || e.message?.contains("not permitted", ignoreCase = true) == true -> "این آدرس HTTP است و امن نیست؛ از HTTPS استفاده کنید."
+                                            e is java.net.UnknownHostException -> "سرور پیدا نشد. آدرس پنل را بررسی کنید."
+                                            e is java.net.SocketTimeoutException -> "پاسخی از سرور نگرفت شد (timeout)."
+                                            e.message?.contains("Login failed: 401", ignoreCase = true) == true -> "نام کاربری یا رمز اشتباه است."
+                                            e.message?.contains("Login failed: 404", ignoreCase = true) == true -> "آدرس یا مسیر پنل درست نیست (۴۰۴)."
+                                            e.message?.startsWith("Login failed") == true -> "خطای سرور: ${e.message}"
+                                            else -> "اتصال ناموفق بود: ${e.message ?: "خطای ناشناخته"}"
                                         }
-                                        loading = false
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (loading) CircularProgressIndicator(Modifier.size(20.dp), color = Color(0xFF202124), strokeWidth = 2.2.dp)
-                            else Text("ورود به پنل", color = Color(0xFF202124), fontWeight = FontWeight.ExtraBold, fontSize = 15.5.sp)
-                        }
+                                    loading = false
+                                }
+                            },
+                            loading = loading,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         Row(
                             Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
