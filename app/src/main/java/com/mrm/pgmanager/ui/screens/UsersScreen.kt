@@ -136,13 +136,29 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 @Composable
 private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.height(72.dp).clip(RoundedCornerShape(14.dp)).background(glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 11.dp)) {
+    Box(
+        modifier = modifier
+            .height(80.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(theme.cardSurfaceColor)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
+            .padding(14.dp)
+    ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                Box(Modifier.size(23.dp).clip(RoundedCornerShape(7.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { RoundedAppIcon(icon, tint = accent, size = 12.dp) }
-                Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { 
+                    RoundedAppIcon(icon, tint = accent, size = 14.dp) 
+                }
+                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
             }
-            Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            com.mrm.pgmanager.ui.components.MrmText(
+                text = value, 
+                fontSize = 19.sp, 
+                fontWeight = FontWeight.ExtraBold, 
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis,
+                isTechnical = true
+            )
         }
     }
 }
@@ -337,7 +353,14 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
 
     // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
-    Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
+            .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
+    ) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
         Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -345,18 +368,45 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(textDirection = TextDirection.Ltr), modifier = Modifier.weight(1f, fill = false))
+                        com.mrm.pgmanager.ui.components.MrmText(
+                            text = user.username, 
+                            fontSize = 11.5.sp, 
+                            fontWeight = FontWeight.Bold, 
+                            maxLines = 1, 
+                            overflow = TextOverflow.Ellipsis, 
+                            isTechnical = true,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
                         if (debtorInfo != null) DebtorBadge(compact = true)
                         Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
                     }
-                    Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                    com.mrm.pgmanager.ui.components.MrmText(
+                        text = lastSeenShort(user.onlineAt, user.isOnline), 
+                        fontSize = 8.sp, 
+                        color = if (user.isOnline) GlassGreen else theme.mutedColor, 
+                        maxLines = 1,
+                        isTechnical = true
+                    )
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = Color(0xFF3B82F6), size = 11.dp) }
             }
-            Text(if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            com.mrm.pgmanager.ui.components.MrmText(
+                text = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", 
+                fontSize = 10.5.sp, 
+                fontWeight = FontWeight.Bold, 
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis,
+                isTechnical = true
+            )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("${cardStatusText(user)}", fontSize = 9.5.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
-                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                com.mrm.pgmanager.ui.components.MrmText(
+                    text = if (user.dataLimit == 0L) "∞" else "$progressPercent%", 
+                    fontSize = 9.sp, 
+                    fontWeight = FontWeight.Bold, 
+                    color = progressColor,
+                    isTechnical = true
+                )
             }
             Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
                 Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
@@ -524,27 +574,25 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
 
     Box(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark))
-            .border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = 13.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp, vertical = 14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // ردیف هدر: اکشن‌ها و وضعیت عرض ثابت دارند؛ نام تنها بخش انعطاف‌پذیر است.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 OnlineBadge(user)
-                Text(
+                com.mrm.pgmanager.ui.components.MrmText(
                     user.username,
-                    // عرض ثابت، بج وضعیت را بدون فاصلهٔ کش‌دار دقیقاً کنار نام نگه می‌دارد.
                     modifier = Modifier.width(100.dp),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = theme.inkColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(textDirection = TextDirection.Ltr)
+                    isTechnical = true
                 )
                 // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
                 UserStatusBadge(user, Modifier.width(42.dp))
@@ -556,12 +604,12 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("مصرف ترافیک", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
-                    Text(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    com.mrm.pgmanager.ui.components.MrmText(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("اعتبار باقی‌مانده", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
-                    Text(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
-                    Text(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                    com.mrm.pgmanager.ui.components.MrmText(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
+                    com.mrm.pgmanager.ui.components.MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
                 }
             }
 
@@ -585,14 +633,21 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
 
     // ردیف داده‌ای فشرده: سطح سفید، border ظریف و ستون‌های ثابت؛ نزدیک به جدول Users پنل.
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (selected) theme.accentPrimary.copy(.10f) else glassBg(theme.isDark, theme.amoledDark)).border(BorderStroke(if (selected) 1.2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) }).padding(horizontal = 10.dp, vertical = 10.dp)) {
+    Box(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
             Column(Modifier.width(60.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(textDirection = TextDirection.Ltr))
-                Text(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
+                com.mrm.pgmanager.ui.components.MrmText(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                com.mrm.pgmanager.ui.components.MrmText(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
             // بج وضعیت در جای طبیعی خودش، بلافاصله بعد از نام قرار دارد.
             UserStatusBadge(user, Modifier.width(28.dp), compact = true)
@@ -600,8 +655,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             // تنها ستون انعطاف‌پذیر ردیف است: فضای آزاد را می‌گیرد، نوار بلندتر می‌شود
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(traffic, fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                    Text(daysLeftText(user.expire), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1)
+                    com.mrm.pgmanager.ui.components.MrmText(traffic, fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
+                    com.mrm.pgmanager.ui.components.MrmText(daysLeftText(user.expire), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
                 Box(Modifier.fillMaxWidth().offset(y = (-8).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
@@ -957,8 +1012,17 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            Box(modifier = Modifier.padding(bottom = 18.dp).size(52.dp).clip(RoundedCornerShape(26.dp)).background(themeState.accentPrimary.copy(.78f)).semantics { contentDescription = "ساخت کاربر" }.clickable { createMenuOpen = true }, contentAlignment = Alignment.Center) {
-                Text("+", fontSize = 27.sp, fontWeight = FontWeight.Medium, color = Color(0xFF202124))
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 24.dp)
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(themeState.accentPrimary)
+                    .graphicsLayer(shadowElevation = 12f)
+                    .clickable { createMenuOpen = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("+", fontSize = 32.sp, fontWeight = FontWeight.Light, color = Color(0xFF1A1A1A))
             }
         }
     }) { padding ->
