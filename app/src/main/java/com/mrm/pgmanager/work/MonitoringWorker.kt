@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.NotificationHelper
 
 class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -12,25 +13,23 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
         val store = SessionStore(applicationContext)
         val session = store.read() ?: return Result.success()
         val settings = store.readMonitoringSettings()
-        if (!settings.notificationsEnabled) return Result.success()
         return runCatching {
             val stats = PanelApi.systemStats(session)
             // اتصال برقرار شد؛ latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
             store.saveAlertFlag("panel_offline", false)
             store.saveAlertFlag("auth_expired", false)
-            // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود.
+            // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود (حتی اگر اعلان‌ها خاموش باشند).
             store.saveStatsCache(stats)
             // بروزرسانی ویجت پس از کش جدید
             com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(applicationContext)
-            val oldStates = store.readNotificationStates()
             val users = PanelApi.users(session)
             store.saveUsersCache(users)
+            // اعلان‌ها فقط در صورت فعال‌بودن؛ کش/ویجت بالا مستقل از اعلان‌هاست.
+            if (settings.notificationsEnabled) {
+            val oldStates = store.readNotificationStates()
             val newStates = users.associate { user ->
                 val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
-                val nearExpiry = runCatching {
-                    val date = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { java.time.LocalDate.parse(user.expire?.take(10) ?: "") }
-                    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), date).coerceAtLeast(0L) <= settings.nearExpiryDays.toLong()
-                }.getOrDefault(false)
+                val nearExpiry = DateLogic.isNearExpiry(user.expire, settings.nearExpiryDays)
                 user.id to "${user.status}|$usage|$nearExpiry"
             }
             if (oldStates.isNotEmpty()) users.forEach { user ->
@@ -55,6 +54,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
                 store.saveNodeStates(states)
             }
+            } // if notificationsEnabled
 
             // === بدهکاران: قطع خودکار پس از X ساعت ===
             if (settings.debtorAutoDisableEnabled) {
@@ -80,7 +80,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
             // هشدار سلامت سیستم با latch: تا وقتی شرط برقرار است فقط یک‌بار هشدار می‌دهیم؛
             // با برطرف‌شدن شرط، latch آزاد می‌شود تا هشدار بعدی دوباره صادر شود.
-            if (settings.notifySystemHealth) {
+            if (settings.notificationsEnabled && settings.notifySystemHealth) {
                 fun healthAlert(key: String, id: Int, title: String, body: String, condition: Boolean) {
                     if (condition && !store.readAlertFlag(key)) {
                         NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body)
@@ -101,7 +101,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             when {
                 // توکن منقضی شده: اسپم نمی‌کنیم؛ فقط یک‌بار اطلاع و توقف retry.
                 msg.contains("401") -> {
-                    if (!store.readAlertFlag("auth_expired")) {
+                    if (settings.notificationsEnabled && !store.readAlertFlag("auth_expired")) {
                         NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, "نشست منقضی شد", "برای ادامهٔ پایش، برنامه را باز کنید و دوباره وارد شوید")
                         store.saveAlertFlag("auth_expired", true)
                     }
@@ -109,7 +109,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
                 else -> {
                     // آفلاین‌بودن پنل هم با latch اطلاع داده می‌شود، نه هر ۱۵ دقیقه.
-                    if (settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) {
+                    if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) {
                         NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "بررسی دوره‌ای نتوانست به پنل PasarGuard متصل شود")
                         store.saveAlertFlag("panel_offline", true)
                     }
