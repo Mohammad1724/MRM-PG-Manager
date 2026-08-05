@@ -15,6 +15,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +57,16 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
     var offlineAt by remember { mutableStateOf<Long?>(null) }
     var lastWidgetUpdateAt by remember { mutableStateOf(0L) }
+    // پایش خودکار فقط در پیش‌زمینه اجرا می‌شود (صرفه‌جویی در باتری/شبکه و جلوگیری از فشار به پنل).
+    var inForeground by remember { mutableStateOf(true) }
+    val lifecycle = (androidx.compose.ui.platform.LocalContext.current as? LifecycleOwner)?.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            inForeground = event == Lifecycle.Event.ON_RESUME
+        }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
+    }
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var loading by remember { mutableStateOf(true) }
     var manualRefreshing by remember { mutableStateOf(false) }
@@ -84,7 +97,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             capacityAlerted = true
         } else capacityAlerted = false
     }
-    suspend fun load() { loading = true; error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null; store.saveStatsCache(it)
+    suspend fun load(silent: Boolean = false) {
+        if (!silent) loading = true
+        error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
+        // نوشتن کش (رمزنگاری‌شده) روی ترد پس‌زمینه تا UI لَگ نزند
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
         refreshDebtors()
         // ویجت حداکثر هر ۳۰ ثانیه به‌روز شود؛ در هر چرخهٔ رفرش نه (جلوگیری از بار اضافی).
         if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
@@ -108,8 +125,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             }
             lastNodeStates = states
         }; loading = false }
-    // آمار لحظه‌ای سیستم مانند پنل: هر ۵ ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
-    LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) { if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) { load(); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L) } else load() }
+    // آمار لحظه‌ای سیستم مانند پنل: هر N ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
+    // رفرش خودکار بی‌صدا (بدون فلش اندیکاتور) و فقط در پیش‌زمینه اجرا می‌شود.
+    LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) {
+        if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) {
+            if (inForeground) load(silent = true)
+            kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L)
+        } else load()
+    }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -120,9 +143,9 @@ LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
             // دکمه‌های هدر: همان کاشی‌های خاکستریِ خنثیِ پنجرهٔ تنظیمات (خروج = حالت خطر).
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp)
-                ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp)
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp)
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp, contentDescription = "تنظیمات")
+                ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp, contentDescription = "بروزرسانی")
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
             }
         }
         if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
