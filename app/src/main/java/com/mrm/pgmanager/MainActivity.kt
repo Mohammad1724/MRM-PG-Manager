@@ -303,16 +303,16 @@ fun MRMApp() {
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                 ) {
                     Row(
-                        Modifier.clip(RoundedCornerShape(15.dp))
-                            .background(effectiveTheme.searchBgColor)
-                            .border(BorderStroke(1.dp, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), RoundedCornerShape(15.dp))
+                        Modifier.height(52.dp).width(200.dp).clip(RoundedCornerShape(16.dp))
+                            .background(effectiveTheme.cardSurfaceColor.copy(alpha = 0.9f))
+                            .border(BorderStroke(1.2.dp, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), RoundedCornerShape(16.dp))
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
                             val selected = selectedTab == index
-                            Box(Modifier.width(90.dp).height(36.dp).clip(RoundedCornerShape(11.dp)).background(if (selected) effectiveTheme.accentPrimary.copy(.78f) else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
-                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else effectiveTheme.mutedColor)
+                            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(if (selected) effectiveTheme.accentPrimary.copy(.85f) else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
+                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
                             }
                         }
                     }
