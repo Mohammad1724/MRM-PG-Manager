@@ -71,7 +71,7 @@ object NotificationHelper {
 
         val priority = if (channel == CHANNEL_SYSTEM) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
         val notification = NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title).setContentText(message).setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(priority).setAutoCancel(true)
             .setContentIntent(pendingIntent)
