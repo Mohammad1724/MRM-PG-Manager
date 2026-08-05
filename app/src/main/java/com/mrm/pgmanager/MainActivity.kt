@@ -342,9 +342,9 @@ fun AppLockScreen(
                 Text("پنل پاسارگارد قفل است", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text("برای دسترسی به کاربران، هویت خود را تایید کنید", fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
             }
-            PrimarySaveButton("ورود با اثر انگشت / رمز گوشی", onClick = onUnlockClick, modifier = Modifier.fillMaxWidth().height(52.dp))
-            TextButton(onClick = onLogout) {
-                Text("خروج از حساب کاربری", color = GlassRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            com.mrm.pgmanager.ui.components.PrimaryButton("ورود با اثر انگشت / رمز گوشی", onClick = onUnlockClick, modifier = Modifier.fillMaxWidth())
+            androidx.compose.material3.TextButton(onClick = onLogout) {
+                Text("خروج از حساب کاربری", color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
