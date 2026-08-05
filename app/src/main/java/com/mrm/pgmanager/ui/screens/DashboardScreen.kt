@@ -227,23 +227,25 @@ private fun formatDebtorAmountFull(amount: Long): String {
     val t = LocalThemeState.current; val c = accent ?: t.accentPrimary
     Column(
         modifier
-            .height(100.dp)
+            .height(104.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(t.cardSurfaceColor)
-            .border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(18.dp))
+            .border(BorderStroke(1.2.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(18.dp))
             .padding(14.dp), 
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { 
             RoundedAppIcon(icon, tint = c, size = 18.dp)
-            Text(label, fontSize = 11.sp, color = t.mutedColor, fontWeight = FontWeight.Bold) 
+            Text(label, fontSize = 11.5.sp, color = t.mutedColor, fontWeight = FontWeight.ExtraBold) 
         }
-        com.mrm.pgmanager.ui.components.MrmText(
-            text = value, 
-            fontSize = 16.sp, 
-            fontWeight = FontWeight.ExtraBold, 
-            maxLines = 1,
-            isTechnical = true
-        )
+        com.mrm.pgmanager.ui.components.TechnicalContainer {
+            Text(
+                text = value, 
+                fontSize = 17.sp, 
+                fontWeight = FontWeight.ExtraBold, 
+                color = t.inkColor,
+                maxLines = 1
+            )
+        }
     }
 }
