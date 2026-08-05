@@ -8,7 +8,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
+import android.text.StaticLayout
 import android.text.TextPaint
+import android.text.TextUtils
 import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
 import java.io.File
@@ -51,8 +53,7 @@ object PdfInvoiceGenerator {
         logoPath: String? = null,
         sellerName: String = "",
         isFullyPaid: Boolean = false,
-        totalBilled: Long = 0L,
-        remainingDebt: Long = 0L
+        totalBilled: Long = 0L
     ): File {
         val dir = File(context.cacheDir, "invoices").apply { mkdirs() }
         val file = File(dir, "invoice-${user.username}-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.pdf")
@@ -138,16 +139,16 @@ object PdfInvoiceGenerator {
                 color = Color.rgb(0xD4, 0xA8, 0x00); textSize = 28f
                 typeface = Typeface.create(persianTypeface, Typeface.BOLD); textAlign = Paint.Align.CENTER; isAntiAlias = true
             }
-            canvas.drawText(if (sellerName.isNotBlank()) sellerName.take(3) else "MRM", cx, y + logoSize/2 + 10f, phPaint)
+            drawFaCentered(canvas, if (sellerName.isNotBlank()) sellerName.take(3) else "MRM", phPaint, y + logoSize/2 + 10f)
         }
         y += logoSize + 14f
 
         // ==== نام برند ====
         if (sellerName.isNotBlank()) {
-            canvas.drawText(sellerName, cx, y, brandPaint)
+            drawFaCentered(canvas, sellerName, brandPaint, y)
             y += 24f
         }
-        canvas.drawText("فاکتور اشتراک VPN", cx, y, headerPaint)
+        drawFaCentered(canvas, "فاکتور اشتراک VPN", headerPaint, y)
         y += 28f
 
         // ==== خط طلایی ====
@@ -193,9 +194,9 @@ object PdfInvoiceGenerator {
         val leftX = MARGIN + 26f
 
         fun drawRow(label: String, value: String, color: Int = darkColor, bold: Boolean = true) {
-            canvas.drawText(label, rightX, ry, labelPaint)
+            drawFaRight(canvas, label, labelPaint, leftX, rightX, ry)
             val vp = TextPaint(valPaint).apply { this.color = color; this.typeface = if (bold) Typeface.create(persianTypeface, Typeface.BOLD) else persianTypeface }
-            canvas.drawText(value, leftX, ry, vp)
+            drawFaLeft(canvas, value, vp, leftX, rightX, ry)
             ry += rowH
         }
 
@@ -228,34 +229,34 @@ object PdfInvoiceGenerator {
         ry = y + 22f
 
         if (cp > 0L) {
-            canvas.drawText("قیمت این دوره", rightX, ry, labelPaint)
-            canvas.drawText("%,d %s".format(Locale.US, cp, currency), leftX, ry, valPaint)
+            drawFaRight(canvas, "قیمت این دوره", labelPaint, leftX, rightX, ry)
+            drawFaLeft(canvas, "%,d %s".format(Locale.US, cp, currency), valPaint, leftX, rightX, ry)
             ry += rowH
         }
         if (pd > 0L) {
-            canvas.drawText("بدهی قبلی", rightX, ry, labelPaint)
+            drawFaRight(canvas, "بدهی قبلی", labelPaint, leftX, rightX, ry)
             val pdP = TextPaint(valPaint).apply { color = redColor }
-            canvas.drawText("%,d %s".format(Locale.US, pd, currency), leftX, ry, pdP)
+            drawFaLeft(canvas, "%,d %s".format(Locale.US, pd, currency), pdP, leftX, rightX, ry)
             ry += rowH
         }
         if (total > 0L) {
             fillPaint.color = borderGray
             canvas.drawRect(MARGIN + 30f, ry - 4f, PAGE_WIDTH - MARGIN - 30f, ry - 3f, fillPaint)
             ry += 14f
-            canvas.drawText("جمع کل", rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
-            canvas.drawText("%,d %s".format(Locale.US, total, currency), leftX, ry, valPaint)
+            drawFaRight(canvas, "جمع کل", TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT }, leftX, rightX, ry)
+            drawFaLeft(canvas, "%,d %s".format(Locale.US, total, currency), valPaint, leftX, rightX, ry)
             ry += rowH
         }
         if (paid > 0L) {
             val paidP = TextPaint(valPaint).apply { color = greenColor }
-            canvas.drawText("پرداخت شده", rightX, ry, labelPaint)
-            canvas.drawText("%,d %s".format(Locale.US, paid, currency), leftX, ry, paidP)
+            drawFaRight(canvas, "پرداخت شده", labelPaint, leftX, rightX, ry)
+            drawFaLeft(canvas, "%,d %s".format(Locale.US, paid, currency), paidP, leftX, rightX, ry)
             ry += rowH
         }
         if (paid > 0L && remaining > 0L) {
             val remP = TextPaint(valPaint).apply { color = redColor }
-            canvas.drawText("مانده بدهی", rightX, ry, labelPaint)
-            canvas.drawText("%,d %s".format(Locale.US, remaining, currency), leftX, ry, remP)
+            drawFaRight(canvas, "مانده بدهی", labelPaint, leftX, rightX, ry)
+            drawFaLeft(canvas, "%,d %s".format(Locale.US, remaining, currency), remP, leftX, rightX, ry)
             ry += rowH
         }
 
@@ -281,11 +282,11 @@ object PdfInvoiceGenerator {
             !hasAnyAmount -> "بدون مبلغ"
             else -> "%,d %s".format(Locale.US, remaining, currency)
         }
-        canvas.drawText(finalLabel, rightX, ry, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT })
+        drawFaRight(canvas, finalLabel, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT }, leftX, rightX, ry)
         totalTextPaint.color = finalColor
         totalTextPaint.textSize = 16f
         totalTextPaint.typeface = Typeface.create(persianTypeface, Typeface.BOLD)
-        canvas.drawText(finalTextStr, leftX, ry, totalTextPaint)
+        drawFaLeft(canvas, finalTextStr, totalTextPaint, leftX, rightX, ry)
 
         y += priceBoxH + 12f
 
@@ -296,17 +297,17 @@ object PdfInvoiceGenerator {
             fillPaint.color = lightGray
             canvas.drawRoundRect(noteRect, 12f, 12f, fillPaint)
             val noteLabelPaint = TextPaint(labelPaint).apply { color = grayColor; textSize = 10f }
-            canvas.drawText("یادداشت", rightX, y + 20f, noteLabelPaint)
+            drawFaRight(canvas, "یادداشت", noteLabelPaint, MARGIN + 26f, rightX, y + 20f)
             val notePaint = TextPaint(valPaint).apply { textSize = 11f; color = darkColor }
             val truncated = if (notes.length > 80) notes.take(80) + "..." else notes
-            canvas.drawText(truncated, MARGIN + 26f, y + 44f, notePaint)
+            drawFaLeft(canvas, truncated, notePaint, MARGIN + 26f, rightX, y + 44f)
             y += noteH + 18f
         }
 
         // ==== تشکر و تاریخ ====
-        canvas.drawText("با تشکر از انتخاب شما", cx, y, thanksPaint)
+        drawFaCentered(canvas, "با تشکر از انتخاب شما", thanksPaint, y)
         y += 20f
-        canvas.drawText("تاریخ صدور: $invoiceDateJalali", cx, y, smallPaint)
+        drawFaCentered(canvas, "تاریخ صدور: $invoiceDateJalali", smallPaint, y)
 
         document.finishPage(page)
         FileOutputStream(file).use { document.writeTo(it) }
@@ -314,5 +315,59 @@ object PdfInvoiceGenerator {
 
         logoBitmap?.recycle()
         return file
+    }
+
+    // ================= رسم متن فارسی با شکل‌دهی درست =================
+    // drawText اندروید متن فارسی را shape نمی‌کند (حروف جدا از هم/معکوس در PDF).
+    // StaticLayout متن را با shaping و bidi صحیح رسم می‌کند.
+
+    private fun drawFaCentered(canvas: android.graphics.Canvas, text: String, paint: TextPaint, baselineY: Float) {
+        val tp = TextPaint(paint).apply { textAlign = Paint.Align.LEFT }
+        val top = baselineY - tp.fontMetrics.ascent
+        val width = (PAGE_WIDTH - 2 * MARGIN).toInt().coerceAtLeast(1)
+        val layout = StaticLayout.Builder.obtain(text, 0, text.length, tp, width)
+            .setAlignment(android.text.Layout.Alignment.ALIGN_CENTER)
+            .setMaxLines(2)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .build()
+        canvas.save()
+        canvas.translate(MARGIN, top)
+        layout.draw(canvas)
+        canvas.restore()
+    }
+
+    /** متن راست‌چین (برچسب‌ها): انتهای متن روی [rightX] می‌نشیند. */
+    private fun drawFaRight(canvas: android.graphics.Canvas, text: String, paint: TextPaint, leftBound: Float, rightX: Float, baselineY: Float) {
+        val tp = TextPaint(paint).apply { textAlign = Paint.Align.LEFT }
+        val top = baselineY - tp.fontMetrics.ascent
+        val width = (rightX - leftBound).toInt().coerceAtLeast(1)
+        val layout = StaticLayout.Builder.obtain(text, 0, text.length, tp, width)
+            .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL) // متن RTL داخل همین عرض راست‌چین می‌شود
+            .setMaxLines(1)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .build()
+        canvas.save()
+        canvas.translate(leftBound, top)
+        layout.draw(canvas)
+        canvas.restore()
+    }
+
+    /** متن چپ‌چین (مقادیر عددی): ابتدای متن روی [leftX] می‌نشیند. */
+    private fun drawFaLeft(canvas: android.graphics.Canvas, text: String, paint: TextPaint, leftX: Float, rightBound: Float, baselineY: Float) {
+        val tp = TextPaint(paint).apply { textAlign = Paint.Align.LEFT }
+        val top = baselineY - tp.fontMetrics.ascent
+        val width = (rightBound - leftX).toInt().coerceAtLeast(1)
+        val layout = StaticLayout.Builder.obtain(text, 0, text.length, tp, width)
+            .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL) // ارقام LTR داخل همین عرض چپ‌چین می‌شوند
+            .setMaxLines(1)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .build()
+        canvas.save()
+        canvas.translate(leftX, top)
+        layout.draw(canvas)
+        canvas.restore()
     }
 }
