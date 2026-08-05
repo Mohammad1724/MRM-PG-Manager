@@ -84,9 +84,12 @@ fun ConfirmActionDialog(
     message: String,
     confirmLabel: String = "تایید",
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    /** عملیات مخرب (مثل حذف) → قرمز؛ بقیه → اکسنت برنامه. */
+    danger: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val confirmColor = if (danger) GlassRed else theme.accentPrimary
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -94,7 +97,7 @@ fun ConfirmActionDialog(
                 Text(message, fontSize = 12.sp, color = theme.mutedColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(40.dp))
-                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(GlassRed).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(confirmColor).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
                         Text(confirmLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -542,7 +545,7 @@ fun ThemeEditorDialog(
                 restorePassword = info.encrypted
                 restoreResult = null
                 restoreDialogOpen = true
-            }.onFailure { e ->
+            }.onFailure { _ ->
                 // Could be encrypted - ask password
                 restorePreview = null
                 restoreUri = it
@@ -801,7 +804,7 @@ fun ThemeEditorDialog(
                                         "رفتن مستقیم به داشبورد وب پنل PasarGuard",
                                         AppIcon.OpenNew,
                                         theme.accentPrimary
-                                    ) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl))) } }
+                                    ) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(session.baseUrl.trimEnd('/') + "/dashboard/"))) } }
                                 }
                                 // حساب‌های ذخیره‌شده: سوئیچ سریع بین چند پنل بدون خروج از حساب فعلی.
                                 SettingsCard("حساب‌های پنل (چند پنل)", AppIcon.Users) {
@@ -1091,6 +1094,10 @@ fun ThemeEditorDialog(
                                     leadingAppIcon = AppIcon.Lock,
                                     keyboardType = KeyboardType.Password
                                 )
+                                // بکاپ بدون رمز شامل توکن‌های ورود به پنل‌هاست؛ هشدار صریح بده.
+                                if (backupPassword.isBlank()) {
+                                    Text("⚠️ بکاپ بدون رمز شامل توکن‌های ورود همهٔ پنل‌های ذخیره‌شده است. اگر فایل را برای کسی بفرستید، او به پنل‌های شما دسترسی کامل پیدا می‌کند. برای بکاپ امن حتماً رمز بگذارید.", fontSize = 8.5.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                                }
                             }
 
                             SettingsCard("عملیات", AppIcon.Settings) {
@@ -1511,6 +1518,7 @@ fun CompactGlassField(
 
 // === NEW JELLY GLASS USER EDITOR - v5.1 with groups & userlimit ===
 @Composable
+@Suppress("UNUSED_PARAMETER") // onDelete/onResetExpiry/onApplyTemplateToUser برای سازگاری API نگه داشته شده‌اند
 fun UserEditorDialog(
     initial: PanelUser?, onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
@@ -1664,7 +1672,7 @@ private fun IconActionBtn(icon: AppIcon, contentDesc: String, theme: com.mrm.pgm
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, tint = theme.inkColor, size = 16.dp)
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
     }
 }
 
@@ -1771,9 +1779,27 @@ fun UserDetailsDialog(
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var currentUser by remember(user) { mutableStateOf(user) }
     var editOpen by remember { mutableStateOf(false) }
     var qrOpen by remember { mutableStateOf(false) }
+    // دریافت لینک اشتراک به‌صورت lazy (لیست کاربران بدون load_sub واکشی می‌شود تا به پنل فشار نیاید).
+    fun ensureSub(onResult: (String) -> Unit) {
+        if (currentUser.subUrl.isNotBlank()) {
+            onResult(currentUser.subUrl)
+        } else if (session != null) {
+            scope.launch {
+                runCatching { com.mrm.pgmanager.data.api.PanelApi.user(session, currentUser.username) }.onSuccess {
+                    currentUser = it
+                    onResult(it.subUrl)
+                }.onFailure {
+                    android.widget.Toast.makeText(context, "دریافت لینک اشتراک ناموفق بود", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            onResult(currentUser.subUrl)
+        }
+    }
     var usageConfirm by remember { mutableStateOf(false) }
     var expiryConfirm by remember { mutableStateOf(false) }
     var templatePickerOpen by remember { mutableStateOf(false) }
@@ -1887,13 +1913,15 @@ fun UserDetailsDialog(
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    // دکمه‌های آیکون کپی و QR
+                    // دکمه‌های آیکون کپی و QR (لینک اشتراک در صورت نبود، lazy دریافت می‌شود)
                     IconActionBtn(AppIcon.Copy, "کپی", theme, Modifier.size(32.dp)) {
-                        val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", currentUser.subUrl))
-                        android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                        ensureSub { url ->
+                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
+                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    IconActionBtn(AppIcon.Qr, "QR", theme, Modifier.size(32.dp)) { qrOpen = true }
+                    IconActionBtn(AppIcon.Qr, "QR", theme, Modifier.size(32.dp)) { ensureSub { _ -> qrOpen = true } }
                 }
 
                 // === بخش بدهی/فاکتور: منوی کشویی یکپارچه ===
@@ -1971,7 +1999,7 @@ fun UserDetailsDialog(
         )
     }
     if (editOpen) UserEditorDialog(currentUser, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, { expiryConfirm = true }, onApplyTemplateToUser = onApplyTemplate, session = session)
-    if (qrOpen && currentUser.subUrl.isNotBlank()) SubscriptionQrDialog(user, { qrOpen = false })
+    if (qrOpen) SubscriptionQrDialog(currentUser, { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
 }
