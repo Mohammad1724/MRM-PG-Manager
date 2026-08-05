@@ -191,37 +191,29 @@ fun InvoiceDialog(
                         Text(invoiceText, fontSize = 12.sp, color = theme.inkColor, lineHeight = 22.sp)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        Box(
-                            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
-                                .background(theme.accentPrimary.copy(0.78f)).clickable {
-                                    val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clip.setPrimaryClip(ClipData.newPlainText("Invoice", invoiceText))
-                                    android.widget.Toast.makeText(context, "در کلیپ‌بورد کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.Copy, tint = Color(0xFF202124), size = 16.dp)
-                                Text("کپی متن", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
-                            }
-                        }
-                        Box(
-                            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp))
-                                .background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).clickable {
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"; putExtra(Intent.EXTRA_TEXT, invoiceText)
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "اشتراک‌گذاری فاکتور"))
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.OpenNew, tint = theme.inkColor, size = 16.dp)
-                                Text("اشتراک‌گذاری", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                            }
-                        }
+                        PrimaryButton(
+                            text = "کپی متن",
+                            onClick = {
+                                val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clip.setPrimaryClip(ClipData.newPlainText("Invoice", invoiceText))
+                                android.widget.Toast.makeText(context, "در کلیپ‌بورد کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f),
+                            icon = AppIcon.Copy
+                        )
+                        SecondaryButton(
+                            text = "اشتراک‌گذاری",
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"; putExtra(Intent.EXTRA_TEXT, invoiceText)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "اشتراک‌گذاری فاکتور"))
+                            },
+                            modifier = Modifier.weight(1f),
+                            icon = AppIcon.OpenNew
+                        )
                     }
-                    com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth().height(44.dp))
+                    SecondaryButton("بستن", onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -284,7 +276,7 @@ fun InvoiceDialog(
                     }
                     Column {
                         Text("فاکتور اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        Text(user.username, fontSize = 10.sp, color = theme.mutedColor)
+                        com.mrm.pgmanager.ui.components.MrmText(user.username, fontSize = 10.sp, color = theme.mutedColor, isTechnical = true)
                     }
                 }
 
@@ -407,97 +399,72 @@ fun InvoiceDialog(
                 }
 
                 // دکمه‌ها
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     // پیش‌نمایش
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(theme.accentPrimary.copy(0.15f))
-                            .border(BorderStroke(1.2.dp, theme.accentPrimary.copy(0.5f)), RoundedCornerShape(14.dp))
-                            .clickable { previewMode = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoundedAppIcon(AppIcon.Qr, tint = theme.accentPrimary, size = 18.dp)
-                            Text("📸 پیش‌نمایش فاکتور (اسکرین‌شات)", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.accentPrimary)
-                        }
-                    }
+                    SecondaryButton(
+                        text = "📸 پیش‌نمایش فاکتور (اسکرین‌شات)",
+                        onClick = { previewMode = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = AppIcon.Qr
+                    )
 
                     // ردیف دکمه‌های فاکتور (متن + PDF)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         // متن فاکتور
-                        Box(
-                            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
-                                .background(theme.searchBgColor)
-                                .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
-                                .clickable { textShareMode = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.Note, tint = theme.inkColor, size = 17.dp)
-                                Text("📄 فاکتور متنی", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                            }
-                        }
+                        SecondaryButton(
+                            text = "📄 فاکتور متنی",
+                            onClick = { textShareMode = true },
+                            modifier = Modifier.weight(1f)
+                        )
                         // PDF
-                        Box(
-                            Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(14.dp))
-                                .background(if (generatingPdf) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
-                                .clickable(enabled = !generatingPdf) {
-                                    if (generatingPdf) return@clickable
-                                    generatingPdf = true
-                                    scope.launch(Dispatchers.IO) {
-                                        val file = runCatching {
-                                            PdfInvoiceGenerator.generate(
-                                                context = context,
-                                                user = user,
-                                                debtorInfo = debtorInfo,
-                                                currency = currency,
-                                                currentPrice = currentPrice.takeIf { currentPrice > 0L || totalBilled > 0L },
-                                                previousDebt = previousDebt.takeIf { it > 0L },
-                                                paidAmount = paidAmount.takeIf { it > 0L },
-                                                notes = notesText,
-                                                logoPath = logoPath,
-                                                sellerName = sellerName,
-                                                isFullyPaid = isFullyPaid || totalBilled == 0L,
-                                                totalBilled = totalBilled
-                                            )
-                                        }.getOrNull()
-                                        withContext(Dispatchers.Main) {
-                                            generatingPdf = false
-                                            if (file != null) {
-                                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = "application/pdf"
-                                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-                                                context.startActivity(Intent.createChooser(intent, "اشتراک PDF"))
-                                            } else {
-                                                android.widget.Toast.makeText(context, "خطا در ساخت PDF", android.widget.Toast.LENGTH_SHORT).show()
+                        PrimaryButton(
+                            text = "📄 PDF",
+                            onClick = {
+                                if (generatingPdf) return@PrimaryButton
+                                generatingPdf = true
+                                scope.launch(Dispatchers.IO) {
+                                    val file = runCatching {
+                                        PdfInvoiceGenerator.generate(
+                                            context = context,
+                                            user = user,
+                                            debtorInfo = debtorInfo,
+                                            currency = currency,
+                                            currentPrice = currentPrice.takeIf { currentPrice > 0L || totalBilled > 0L },
+                                            previousDebt = previousDebt.takeIf { it > 0L },
+                                            paidAmount = paidAmount.takeIf { it > 0L },
+                                            notes = notesText,
+                                            logoPath = logoPath,
+                                            sellerName = sellerName,
+                                            isFullyPaid = isFullyPaid || totalBilled == 0L,
+                                            totalBilled = totalBilled
+                                        )
+                                    }.getOrNull()
+                                    withContext(Dispatchers.Main) {
+                                        generatingPdf = false
+                                        if (file != null) {
+                                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "application/pdf"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
+                                            context.startActivity(Intent.createChooser(intent, "اشتراک PDF"))
+                                        } else {
+                                            android.widget.Toast.makeText(context, "خطا در ساخت PDF", android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                    ) {
-                            if (generatingPdf) {
-                                CircularProgressIndicator(Modifier.size(20.dp), color = Color(0xFF202124), strokeWidth = 2.dp)
-                            } else {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    RoundedAppIcon(AppIcon.Pdf, tint = Color(0xFF202124), size = 18.dp)
-                                    Text("📄 PDF", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
                                 }
-                            }
-                        }
+                            },
+                            loading = generatingPdf,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
                     // بستن
-                    com.mrm.pgmanager.ui.components.MutedCancelButton(
+                    SecondaryButton(
                         "بستن",
                         onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
