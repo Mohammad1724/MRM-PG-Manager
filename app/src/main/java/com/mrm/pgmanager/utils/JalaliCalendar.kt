@@ -27,7 +27,9 @@ object JalaliCalendar {
         return Date(jy, i + 1, jDayNo + 1)
     }
     fun jalaliToGregorian(jy: Int, jm: Int, jd: Int): String {
-        val jy2 = jy - 979; val jm2 = jm - 1; val jd2 = jd - 1
+        val safeJm = jm.coerceIn(1, 12)
+        val safeJd = jd.coerceIn(1, 31)
+        val jy2 = jy - 979; val jm2 = safeJm - 1; val jd2 = safeJd - 1
         val jDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
         var jDayNo = 365 * jy2 + (jy2 / 33) * 8 + (jy2 % 33 + 3) / 4
         for (i in 0 until jm2) jDayNo += jDaysInMonth[i]
