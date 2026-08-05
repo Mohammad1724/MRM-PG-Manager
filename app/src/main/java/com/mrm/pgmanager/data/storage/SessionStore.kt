@@ -185,10 +185,10 @@ class SessionStore(context: Context) {
 
     fun saveNodeStates(states: Map<Int, Boolean>) = prefs.edit().putString("node_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
 
-    // === کش آفلاین: آخرین داده‌های موفق دریافتی ===
+    // === کش آفلاین: آخرین داده‌های موفق دریافتی (کل لیستِ لودشده، بدون محدودیت ۴۰۰تایی) ===
     fun saveUsersCache(users: List<PanelUser>) {
         val arr = org.json.JSONArray()
-        users.take(400).forEach { u ->
+        users.forEach { u ->
             arr.put(org.json.JSONObject().apply {
                 put("id", u.id); put("username", u.username); put("status", u.status)
                 put("used_traffic", u.usedTraffic); put("data_limit", u.dataLimit)
