@@ -91,99 +91,277 @@ fun PasswordEyeIcon(visible: Boolean) {
     }
 }
 
-// === دکمه‌های یکدست برنامه — همان زبان بصری پنجرهٔ تنظیمات ===
-// سه حالت: primary (کپسول توپُر اکسنت ۷۸٪ + متن تیره)، neutral (کاشی خاکستری searchBg + مرز ظریف)،
-// danger (کاشی قرمز کم‌رنگ + مرز و متن قرمز). انیمیشن فشاری در همه حفظ شده است.
+// === MRM Premium UI Components (2026 Edition) ===
 
 @Composable
-fun ActionIconButton(icon: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false, size: Dp = 42.dp, contentDescription: String? = null) {
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    icon: AppIcon? = null
+) {
+    MrmButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        loading = loading,
+        icon = icon,
+        style = MrmButtonStyle.Primary
+    )
+}
+
+@Composable
+fun SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    icon: AppIcon? = null
+) {
+    MrmButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        loading = loading,
+        icon = icon,
+        style = MrmButtonStyle.Secondary
+    )
+}
+
+@Composable
+fun DangerButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    icon: AppIcon? = null
+) {
+    MrmButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        loading = loading,
+        icon = icon,
+        style = MrmButtonStyle.Danger
+    )
+}
+
+@Composable
+fun ActionIconButton(
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isRed: Boolean = false,
+    size: Dp = 42.dp,
+    contentDescription: String? = null
+) {
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.88f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "iconScale")
+    val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.88f else 1.0f, label = "iconScale")
+    
     Box(
-        modifier = modifier.size(size).graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
+        modifier = modifier
+            .size(size)
+            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
             .clip(RoundedCornerShape(size / 3f))
-            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
+            .background(if (isRed) GlassRed.copy(0.12f) else theme.searchBgColor)
+            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.35f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
-            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(bounded = true), enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { icon() }
 }
 
 @Composable
-fun GlassButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, isRed: Boolean = false) {
-    val theme = LocalThemeState.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val boxScale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.93f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "btnScale")
-    Box(
-        modifier = modifier.height(46.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale, alpha = if (enabled) 1f else 0.55f)
-            .clip(RoundedCornerShape(13.dp))
-            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
-            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean = false, onClick: () -> Unit) {
-    val theme = LocalThemeState.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val boxScale by animateFloatAsState(targetValue = if (isPressed) 0.91f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "miniScale")
-    Box(
-        modifier = modifier.height(26.dp).graphicsLayer(scaleX = boxScale, scaleY = boxScale)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isRed) GlassRed.copy(0.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.30f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, color = if (isRed) GlassRed else theme.inkColor, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 7.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-@Composable
-fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val theme = LocalThemeState.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.94f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "saveScale")
-    // دکمهٔ اصلی: دقیقاً همان کپسول توپُرِ آیتمِ انتخاب‌شدهٔ تنظیمات (بدون مرز).
-    Box(
-        modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
-            .clip(RoundedCornerShape(13.dp))
-            .background(theme.accentPrimary.copy(alpha = .78f))
-            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = text, color = Color(0xFF202124), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
-    }
+fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
+    PrimaryButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading)
 }
 
 @Composable
 fun MutedCancelButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    SecondaryButton(text = text, onClick = onClick, modifier = modifier)
+}
+
+@Composable
+fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean = false, onClick: () -> Unit) {
+    SmallButton(text = text, onClick = onClick, modifier = modifier, isRed = isRed)
+}
+
+sealed class MrmButtonStyle {
+    object Primary : MrmButtonStyle()
+    object Secondary : MrmButtonStyle()
+    object Danger : MrmButtonStyle()
+    object Glass : MrmButtonStyle()
+}
+
+@Composable
+fun MrmButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    icon: AppIcon? = null,
+    style: MrmButtonStyle = MrmButtonStyle.Primary,
+    compact: Boolean = false
+) {
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.94f else 1.0f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow), label = "cancelScale")
-    // دکمهٔ خنثی: همان کاشی خاکستریِ آیتم‌های غیرفعالِ سگمنت تنظیمات.
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled && !loading) 0.96f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "btnScale"
+    )
+
+    val contentAlpha by animateFloatAsState(targetValue = if (enabled && !loading) 1f else 0.5f, label = "btnAlpha")
+    
+    val (backgroundColor, contentColor, borderStroke) = when (style) {
+        MrmButtonStyle.Primary -> {
+            Triple(
+                Brush.linearGradient(listOf(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.85f))),
+                Color(0xFF1A1A1A),
+                null
+            )
+        }
+        MrmButtonStyle.Secondary -> {
+            Triple(
+                Brush.linearGradient(listOf(theme.searchBgColor, theme.searchBgColor)),
+                theme.inkColor,
+                BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark))
+            )
+        }
+        MrmButtonStyle.Danger -> {
+            Triple(
+                Brush.linearGradient(listOf(GlassRed.copy(0.12f), GlassRed.copy(0.08f))),
+                GlassRed,
+                BorderStroke(1.dp, GlassRed.copy(0.35f))
+            )
+        }
+        MrmButtonStyle.Glass -> {
+            Triple(
+                Brush.linearGradient(listOf(Color.White.copy(0.08f), Color.White.copy(0.02f))),
+                theme.inkColor,
+                BorderStroke(1.dp, Color.White.copy(0.15f))
+            )
+        }
+    }
+
     Box(
-        modifier = modifier.height(48.dp).graphicsLayer(scaleX = scale, scaleY = scale)
-            .clip(RoundedCornerShape(13.dp))
-            .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .padding(horizontal = 16.dp),
+        modifier = modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .height(if (compact) 36.dp else 52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .let { 
+                if (style == MrmButtonStyle.Primary && enabled && !loading) {
+                    it.graphicsLayer(shadowElevation = 8f) // Soft shadow for primary
+                } else it
+            }
+            .background(backgroundColor)
+            .let { if (borderStroke != null) it.border(borderStroke, RoundedCornerShape(16.dp)) else it }
+            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(color = contentColor.copy(0.2f)), enabled = enabled && !loading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text, color = theme.mutedColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        // Inner Glow / Illumination effect for Primary
+        if (style == MrmButtonStyle.Primary && enabled && !loading) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx()))
+                }
+                drawContext.canvas.save()
+                drawContext.canvas.clipPath(path)
+                drawRect(
+                    brush = Brush.verticalGradient(listOf(Color.White.copy(0.25f), Color.Transparent), startY = 0f, endY = size.height * 0.4f),
+                    size = size
+                )
+                drawContext.canvas.restore()
+            }
+        }
+
+        Row(
+            modifier = Modifier.padding(horizontal = if (compact) 12.dp else 20.dp).graphicsLayer(alpha = contentAlpha),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (loading) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = contentColor,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                if (icon != null) {
+                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) 16.dp else 20.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    text = text,
+                    color = contentColor,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = if (compact) 11.sp else 14.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+// === Text handling for RTL/LTR consistency ===
+
+@Composable
+fun MrmText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = null,
+    overflow: TextOverflow = TextOverflow.Clip,
+    maxLines: Int = Int.MAX_VALUE,
+    isTechnical: Boolean = false // Usernames, URLs, Tokens, etc.
+) {
+    val theme = LocalThemeState.current
+    val finalColor = if (color == Color.Unspecified) theme.inkColor else color
+    
+    val direction = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content
+    
+    Text(
+        text = text,
+        modifier = modifier,
+        color = finalColor,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        textAlign = textAlign,
+        overflow = overflow,
+        maxLines = maxLines,
+        style = androidx.compose.ui.text.TextStyle(
+            textDirection = direction
+        )
+    )
+}
+
+@Composable
+fun TechnicalContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+    ) {
+        Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
+            content()
+        }
     }
 }
 
@@ -198,61 +376,92 @@ fun UltraPremiumField(
     leadingAppIcon: AppIcon? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isTechnical: Boolean = true // Most fields are URLs, usernames, etc.
 ) {
     val theme = LocalThemeState.current
     var isFocused by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor, modifier = Modifier.padding(start = 4.dp))
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor.copy(0.9f), modifier = Modifier.padding(start = 6.dp))
+        
+        val interactionSource = remember { MutableInteractionSource() }
+        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp)
+                .height(62.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .background(if (theme.isDark) theme.cardSurfaceColor.copy(alpha = 0.92f) else Color.White.copy(alpha = 0.88f))
+                .background(
+                    if (isFocused) {
+                        if (theme.isDark) theme.cardSurfaceColor.copy(0.95f) else Color.White
+                    } else {
+                        if (theme.isDark) theme.cardSurfaceColor.copy(0.7f) else theme.searchBgColor.copy(0.5f)
+                    }
+                )
                 .border(
                     BorderStroke(
-                        width = if (isFocused) 1.8.dp else 1.1.dp,
-                        color = if (isFocused) theme.accentPrimary else if (theme.isDark) Color.White.copy(0.14f) else Color(0xFFD1D3D9)
+                        width = if (isFocused) 2.dp else 1.2.dp,
+                        color = if (isFocused) theme.accentPrimary else if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFDCDDE1)
                     ),
                     RoundedCornerShape(18.dp)
                 )
+                .let {
+                    if (isFocused) it.graphicsLayer(shadowElevation = 4f) else it
+                }
         ) {
             Row(
-                Modifier.fillMaxSize().padding(horizontal = 6.dp),
+                Modifier.fillMaxSize().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Icon wrapper
                 Box(
-                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp))
-                        .background(if (isFocused) theme.accentPrimary.copy(0.16f) else if (theme.isDark) Color.White.copy(0.08f) else Color.Black.copy(0.04f))
-                        .border(BorderStroke(1.dp, if (isFocused) theme.accentPrimary.copy(0.22f) else Color.Transparent), RoundedCornerShape(12.dp)),
+                    Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                        .background(if (isFocused) theme.accentPrimary.copy(0.12f) else if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f)),
                     contentAlignment = Alignment.Center
-                ) { if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 18.dp) else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 17.sp) }
+                ) {
+                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 20.dp)
+                    else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 18.sp)
+                }
 
+                // Input area
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.58f), fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
+                    if (value.isEmpty()) {
+                        Text(
+                            placeholder,
+                            color = theme.mutedColor.copy(0.45f),
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.let { if (isTechnical) it.graphicsLayer(alpha = 0.8f) else it },
+                            style = TextStyle(textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content)
+                        )
+                    }
+                    
                     BasicTextField(
                         value = value,
                         onValueChange = onValueChange,
                         singleLine = true,
+                        interactionSource = interactionSource,
                         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
                         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                        textStyle = TextStyle(color = theme.inkColor, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+                        textStyle = TextStyle(
+                            color = theme.inkColor,
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content
+                        ),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { isFocused = it.isFocused }
                     )
                 }
 
                 if (isPassword) {
-                    // دکمهٔ «چشم»: مخفی/نمایش رمز عبور فعال باقی می‌ماند؛ ظاهرش کاشی خاکستریِ خنثیِ design system است.
-                    Box(
-                        Modifier.size(38.dp).clip(RoundedCornerShape(11.dp))
-                            .background(theme.searchBgColor)
-                            .clickable { passwordVisible = !passwordVisible },
-                        contentAlignment = Alignment.Center
-                    ) { PasswordEyeIcon(visible = passwordVisible) }
+                    ActionIconButton(
+                        icon = { PasswordEyeIcon(visible = passwordVisible) },
+                        onClick = { passwordVisible = !passwordVisible },
+                        size = 38.dp
+                    )
                 } else if (value.isNotEmpty()) {
                     Box(
                         Modifier.size(28.dp).clip(RoundedCornerShape(14.dp))
