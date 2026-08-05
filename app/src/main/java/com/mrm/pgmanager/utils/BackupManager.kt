@@ -47,7 +47,7 @@ object BackupManager {
 
     // ============ Build payload ============
 
-    private fun buildPayload(store: SessionStore): JSONObject {
+    private fun buildPayload(store: SessionStore, includeTokens: Boolean = true): JSONObject {
         val prefs = store.prefs  // needs expose for full dump
         val allPrefs = prefs.all
         val json = JSONObject()
@@ -57,7 +57,7 @@ object BackupManager {
             store.readAccounts().forEach { acc ->
                 put(JSONObject()
                     .put("base", acc.baseUrl)
-                    .put("token", acc.token)
+                    .put("token", if (includeTokens) acc.token else "")
                     .put("username", acc.username))
             }
         })
@@ -206,12 +206,13 @@ object BackupManager {
         appVersion: String = ""
     ): BackupInfo {
         val store = SessionStore(context)
-        val payload = buildPayload(store)
+        val isEncrypted = password.isNotBlank()
+        val payload = buildPayload(store, includeTokens = isEncrypted)
         val meta = JSONObject().apply {
             put("v", BACKUP_VERSION)
             put("ts", System.currentTimeMillis())
             put("app", appVersion)
-            put("encrypted", password.isNotBlank())
+            put("encrypted", isEncrypted)
         }
         val container = JSONObject().apply {
             put("_meta", meta)
