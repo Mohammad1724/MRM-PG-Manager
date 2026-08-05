@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.ui.theme.GlassRed
+import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.ui.components.PrimaryButton
 import com.mrm.pgmanager.ui.components.SecondaryButton
 import com.mrm.pgmanager.ui.components.MrmText
@@ -38,7 +40,6 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
             }
             error?.let { Text(it, fontSize = 10.sp, color = GlassRed, fontWeight = FontWeight.Bold) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // پیش‌تنظیم‌های روز: کاشی خاکستریِ خنثیِ design system.
                 listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { days = value.toString(); error = null }, contentAlignment = Alignment.Center) { Text("$value روز", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) } }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
