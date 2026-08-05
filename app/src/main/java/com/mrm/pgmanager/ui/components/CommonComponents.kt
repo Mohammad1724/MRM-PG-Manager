@@ -91,6 +91,10 @@ fun PasswordEyeIcon(visible: Boolean) {
     }
 }
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material3.ripple
+
 // === MRM Premium UI Components (2026 Edition) ===
 
 @Composable
@@ -154,6 +158,44 @@ fun DangerButton(
 }
 
 @Composable
+fun GlassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+    icon: AppIcon? = null
+) {
+    MrmButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        loading = loading,
+        icon = icon,
+        style = MrmButtonStyle.Glass
+    )
+}
+
+@Composable
+fun SmallButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isRed: Boolean = false
+) {
+    MrmButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        enabled = enabled,
+        style = if (isRed) MrmButtonStyle.Danger else MrmButtonStyle.Secondary,
+        compact = true
+    )
+}
+
+@Composable
 fun ActionIconButton(
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
@@ -176,7 +218,7 @@ fun ActionIconButton(
             .background(if (isRed) GlassRed.copy(0.12f) else theme.searchBgColor)
             .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.35f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
-            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(bounded = true), enabled = enabled, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = ripple(bounded = true), enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { icon() }
 }
@@ -270,7 +312,7 @@ fun MrmButton(
             }
             .background(backgroundColor)
             .let { if (borderStroke != null) it.border(borderStroke, RoundedCornerShape(16.dp)) else it }
-            .clickable(interactionSource = interactionSource, indication = androidx.compose.material.ripple.rememberRipple(color = contentColor.copy(0.25f)), enabled = enabled && !loading, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(0.25f)), enabled = enabled && !loading, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         // High-end glass reflection effect
