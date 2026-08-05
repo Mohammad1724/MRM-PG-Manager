@@ -179,7 +179,8 @@ fun LoginScreen(
                     icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 22.dp) },
                     onClick = { showThemeDialog = true },
                     size = 52.dp,
-                    modifier = Modifier.zIndex(10f)
+                    modifier = Modifier.zIndex(10f),
+                    contentDescription = "تنظیمات"
                 )
             }
 
