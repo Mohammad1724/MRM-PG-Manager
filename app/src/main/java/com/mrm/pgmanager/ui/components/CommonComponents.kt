@@ -49,6 +49,11 @@ import com.mrm.pgmanager.ui.theme.glassBorder
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material3.ripple
+import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.RoundedAppIcon
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -90,10 +95,6 @@ fun PasswordEyeIcon(visible: Boolean) {
         if (!visible) drawLine(color = theme.accentPrimary, start = Offset(w * 0.10f, h * 0.90f), end = Offset(w * 0.90f, h * 0.10f), strokeWidth = 2.8f)
     }
 }
-
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.draw.shadow
-import androidx.compose.material3.ripple
 
 // === MRM Premium UI Components (2026 Edition) ===
 
