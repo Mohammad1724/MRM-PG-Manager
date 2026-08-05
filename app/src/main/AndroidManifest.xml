@@ -6,6 +6,7 @@
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher"
         android:label="MRM PG Manager"
+        android:supportsRtl="true"
         android:theme="@style/Theme.MRMPGManager"
         android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
