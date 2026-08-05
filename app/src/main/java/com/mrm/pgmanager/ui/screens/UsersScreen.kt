@@ -28,6 +28,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -344,7 +345,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 Box(Modifier.size(5.dp).clip(RoundedCornerShape(2.5.dp)).background(onlineDot))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Text(user.username, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(textDirection = TextDirection.Ltr), modifier = Modifier.weight(1f, fill = false))
                         if (debtorInfo != null) DebtorBadge(compact = true)
                         Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
                     }
@@ -542,7 +543,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                     fontWeight = FontWeight.ExtraBold,
                     color = theme.inkColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(textDirection = TextDirection.Ltr)
                 )
                 // بج بلافاصله بعد از نام قرار می‌گیرد؛ جای اکشن‌ها همچنان ثابت است.
                 UserStatusBadge(user, Modifier.width(42.dp))
@@ -589,7 +591,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             OnlineBadge(user)
             // نام و آخرین فعالیت یک ستون واحدند؛ بنابراین فعالیت دقیقاً زیر نام باقی می‌ماند.
             Column(Modifier.width(60.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(textDirection = TextDirection.Ltr))
                 Text(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1)
             }
             // بج وضعیت در جای طبیعی خودش، بلافاصله بعد از نام قرار دارد.
