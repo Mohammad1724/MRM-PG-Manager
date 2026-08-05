@@ -89,16 +89,17 @@ fun ConfirmActionDialog(
     danger: Boolean = false
 ) {
     val theme = LocalThemeState.current
-    val confirmColor = if (danger) GlassRed else theme.accentPrimary
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(20.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor)
-                Text(message, fontSize = 12.sp, color = theme.mutedColor)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MutedCancelButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f).height(40.dp))
-                    Box(Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp)).background(confirmColor).clickable { onConfirm() }, contentAlignment = Alignment.Center) {
-                        Text(confirmLabel, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(24.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
+                Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    if (danger) {
+                        DangerButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+                    } else {
+                        PrimaryButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -125,40 +126,46 @@ fun QuickActionSheet(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(18.dp)).padding(14.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(20.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(16.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(10.dp).clip(RoundedCornerShape(5.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
-                    Spacer(Modifier.width(8.dp))
-                    Column(Modifier.weight(1f)) { Text(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis); Text(lastSeenText(user.onlineAt, user.isOnline), fontSize = 9.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor) }
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 7.dp, vertical = 4.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    QuickActionRow(AppIcon.Template, "تمپلت", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
-                    QuickActionRow(AppIcon.Edit, "ویرایش", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    QuickActionRow(AppIcon.Reset, "ریست حجم", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
-                    QuickActionRow(AppIcon.Calendar, "ریست زمان", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    QuickActionRow(AppIcon.Copy, "کپی لینک", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
-                    QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    QuickActionRow(AppIcon.Note, "فاکتور 🧾", theme.accentPrimary, Modifier.weight(1f)) {
-                        if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
+                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) { 
+                        com.mrm.pgmanager.ui.components.MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                        com.mrm.pgmanager.ui.components.MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                     }
-                    QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) "تسویه بدهی" else "بدهکار", GlassRed, Modifier.weight(1f)) {
-                        if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
+                    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                }
+                
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        QuickActionRow(AppIcon.Template, "تمپلت", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
+                        QuickActionRow(AppIcon.Edit, "ویرایش", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        QuickActionRow(AppIcon.Reset, "ریست حجم", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                        QuickActionRow(AppIcon.Calendar, "ریست زمان", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        QuickActionRow(AppIcon.Copy, "کپی لینک", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
+                        QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        QuickActionRow(AppIcon.Note, "فاکتور 🧾", theme.accentPrimary, Modifier.weight(1f)) {
+                            if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
+                        }
+                        QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) "تسویه بدهی" else "بدهکار", GlassRed, Modifier.weight(1f)) {
+                            if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                        QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
-                    QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
-                }
-                // دکمه بستن
-                com.mrm.pgmanager.ui.components.MutedCancelButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(40.dp))
+                
+                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -284,17 +291,17 @@ fun SettingsCard(
     val theme = LocalThemeState.current
     val ac = accent ?: theme.accentPrimary
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(ac.copy(.16f)), contentAlignment = Alignment.Center) {
-                RoundedAppIcon(icon, tint = theme.inkColor, size = 15.dp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(ac.copy(.12f)), contentAlignment = Alignment.Center) {
+                RoundedAppIcon(icon, tint = ac, size = 16.dp)
             }
-            Text(title, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
         }
         content()
     }
@@ -311,20 +318,20 @@ fun SettingsActionRow(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-            .background(accent.copy(.10f))
-            .border(BorderStroke(1.dp, accent.copy(.26f)), RoundedCornerShape(12.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(accent.copy(.08f))
+            .border(BorderStroke(1.dp, accent.copy(.22f)), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 9.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(9.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(accent.copy(.16f)), contentAlignment = Alignment.Center) {
-            RoundedAppIcon(icon, tint = accent, size = 16.dp)
+        Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) {
+            RoundedAppIcon(icon, tint = accent, size = 18.dp)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-            if (subtitle != null) Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+            if (subtitle != null) Text(subtitle, fontSize = 10.sp, color = theme.mutedColor)
         }
     }
 }
@@ -335,27 +342,27 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
             .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(label, fontSize = 8.5.sp, color = theme.mutedColor)
-            Text(value, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+            com.mrm.pgmanager.ui.components.MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
         if (copyable) {
-            Box(
-                Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(.16f))
-                    .clickable {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
-                        android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                    },
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 13.dp) }
+            ActionIconButton(
+                icon = { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 16.dp) },
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
+                    android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                },
+                size = 36.dp
+            )
         }
     }
 }
@@ -365,21 +372,21 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
 private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        modifier.clip(RoundedCornerShape(12.dp))
-            .background(if (selected) lamp.primary.copy(.12f) else Color.Transparent)
-            .border(BorderStroke(if (selected) 1.4.dp else 1.dp, if (selected) lamp.primary.copy(.7f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+        modifier.clip(RoundedCornerShape(14.dp))
+            .background(if (selected) lamp.primary.copy(.10f) else Color.Transparent)
+            .border(BorderStroke(if (selected) 2.dp else 1.2.dp, if (selected) lamp.primary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
-            Modifier.size(30.dp).clip(RoundedCornerShape(10.dp))
-                .background(Brush.linearGradient(listOf(lamp.primary, lamp.light)))
-                .border(BorderStroke(1.dp, lamp.primary.copy(.5f)), RoundedCornerShape(10.dp)),
+            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(lamp.primary, lamp.primary.copy(alpha = 0.7f))))
+                .border(BorderStroke(1.dp, Color.White.copy(0.3f)), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
-        ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 16.dp) }
-        Text(lamp.labelFa, fontSize = 10.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 18.dp) }
+        Text(lamp.labelFa, fontSize = 11.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -1857,8 +1864,8 @@ fun UserDetailsDialog(
                 ) {
                     Box(Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(RoundedCornerShape(5.dp)).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        Text(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1)
+                        com.mrm.pgmanager.ui.components.MrmText(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                        com.mrm.pgmanager.ui.components.MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                     }
                     val active = currentUser.status != "disabled"
                     Box(Modifier.height(26.dp).width(50.dp).clip(RoundedCornerShape(8.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
