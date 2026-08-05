@@ -16,7 +16,7 @@ data class PanelUser(
     val note: String? = null,
     val hwidLimit: Int? = null,
     val groupIds: List<Int> = emptyList(),
-    val groupNames: List<String> = emptyList()
+    var groupNames: List<String> = emptyList()
 )
 
 data class SystemStats(
