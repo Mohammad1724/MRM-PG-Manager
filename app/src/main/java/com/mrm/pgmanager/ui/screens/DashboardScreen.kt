@@ -138,8 +138,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
+                com.mrm.pgmanager.ui.components.MrmText("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
+                LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
             }
             // دکمه‌های هدر: همان کاشی‌های خاکستریِ خنثیِ پنجرهٔ تنظیمات (خروج = حالت خطر).
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -225,8 +225,25 @@ private fun formatDebtorAmountFull(amount: Long): String {
 
 @Composable private fun DashCard(label: String, value: String, icon: AppIcon, modifier: Modifier, accent: Color? = null) {
     val t = LocalThemeState.current; val c = accent ?: t.accentPrimary
-    Column(modifier.height(92.dp).background(t.cardSurfaceColor, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(icon, tint = c, size = 16.dp); Text(label, fontSize = 10.sp, color = t.mutedColor) }
-        Text(value, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor, maxLines = 1)
+    Column(
+        modifier
+            .height(100.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(t.cardSurfaceColor)
+            .border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(18.dp))
+            .padding(14.dp), 
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { 
+            RoundedAppIcon(icon, tint = c, size = 18.dp)
+            Text(label, fontSize = 11.sp, color = t.mutedColor, fontWeight = FontWeight.Bold) 
+        }
+        com.mrm.pgmanager.ui.components.MrmText(
+            text = value, 
+            fontSize = 16.sp, 
+            fontWeight = FontWeight.ExtraBold, 
+            maxLines = 1,
+            isTechnical = true
+        )
     }
 }
