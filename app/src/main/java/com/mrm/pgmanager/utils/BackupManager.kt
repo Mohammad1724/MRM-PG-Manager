@@ -47,7 +47,7 @@ object BackupManager {
 
     // ============ Build payload ============
 
-    private fun buildPayload(context: Context, store: SessionStore): JSONObject {
+    private fun buildPayload(store: SessionStore): JSONObject {
         val prefs = store.prefs  // needs expose for full dump
         val allPrefs = prefs.all
         val json = JSONObject()
@@ -206,7 +206,7 @@ object BackupManager {
         appVersion: String = ""
     ): BackupInfo {
         val store = SessionStore(context)
-        val payload = buildPayload(context, store)
+        val payload = buildPayload(store)
         val meta = JSONObject().apply {
             put("v", BACKUP_VERSION)
             put("ts", System.currentTimeMillis())
@@ -320,9 +320,15 @@ object BackupManager {
                 ))
                 restored++
             }
-            // قفل برنامه
+            // قفل برنامه — فقط اگر دستگاه بیومتریک/پین فعال دارد، قفل بازیابی شود
+            // (در غیر این صورت کاربر بدون امکان بازکردن قفل گیر نمی‌افتد).
             data.optJSONObject("app_lock")?.let { a ->
-                store.saveAppLock(a.optBoolean("enabled", false))
+                val canAuthenticate = androidx.biometric.BiometricManager.from(context)
+                    .canAuthenticate(
+                        androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                            androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                    ) == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+                store.saveAppLock(a.optBoolean("enabled", false) && canAuthenticate)
                 store.saveAppLockTimeoutSecs(a.optInt("timeout", 0))
                 restored++
             }
@@ -426,9 +432,9 @@ object BackupManager {
                 val b64 = inv.optString("logo_b64", "")
                 if (b64.isNotBlank()) {
                     runCatching {
-                        val bytes = android.util.Base64.decode(b64, android.util.Base64.NO_WRAP)
+                        val logoBytes = android.util.Base64.decode(b64, android.util.Base64.NO_WRAP)
                         val logoFile = File(context.filesDir, "invoice_logo.png")
-                        logoFile.writeBytes(bytes)
+                        logoFile.writeBytes(logoBytes)
                         store.saveInvoiceLogoPath(logoFile.absolutePath)
                         restored++
                     }
