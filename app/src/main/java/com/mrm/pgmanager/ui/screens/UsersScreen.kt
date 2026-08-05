@@ -58,6 +58,7 @@ import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.BuildConfig
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserFilter
