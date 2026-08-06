@@ -13,6 +13,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.BuildConfig
@@ -1047,8 +1050,9 @@ fun UsersScreen(
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
             val fabShape = DsRadius.Xl
-            var fabPressed by remember { mutableStateOf(false) }
-            val fabScale by animateFloatAsState(targetValue = if (fabPressed) 0.90f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
+            val fabInteraction = remember { MutableInteractionSource() }
+            val isFabPressed by fabInteraction.collectIsPressedAsState()
+            val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.90f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
             Box(
                 modifier = Modifier
                     .padding(bottom = 24.dp)
@@ -1058,11 +1062,7 @@ fun UsersScreen(
                     .clip(fabShape)
                     .background(Brush.linearGradient(listOf(themeState.accentPrimary, themeState.accentLight)))
                     .border(BorderStroke(DsBorder.Hairline, Color.White.copy(0.6f)), fabShape)
-                    .combinedClickable(
-                        onClick = { createMenuOpen = true },
-                        onLongClick = { createMenuOpen = true },
-                        onPressChanged = { fabPressed = it }
-                    ),
+                    .clickable(interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
                 RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = DsComponent.IconLg)
