@@ -42,6 +42,13 @@ import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsComponent
+import com.mrm.pgmanager.ui.designsystem.DsElevation
+import com.mrm.pgmanager.ui.designsystem.DsFont
+import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.DsTileRadius
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 
@@ -148,11 +155,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp, contentDescription = "تنظیمات")
                 ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp, contentDescription = "بروزرسانی")
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = Color(0xFFC93B3B), size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = GlassRed, size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
             }
         }
         if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
-        error?.let { Text(it, color = Color(0xFFC93B3B), fontSize = 12.sp) }
+        error?.let { Text(it, color = GlassRed, fontSize = 12.sp) }
         offlineAt?.let { cachedAt ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
@@ -173,8 +180,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             if (debtorCount > 0) {
                 Text("بدهکاران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), Color(0xFFC93B3B))
-                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), Color(0xFFC93B3B))
+                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), GlassRed)
+                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), GlassRed)
                 }
             }
             Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
@@ -199,8 +206,9 @@ private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
 @Composable
 private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoing: Long) {
     val t = LocalThemeState.current
-    Column(Modifier.fillMaxWidth().background(t.cardSurfaceColor, RoundedCornerShape(14.dp)).border(BorderStroke(1.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = t.inkColor)
+    val shape = DsRadius.Lg
+    Column(Modifier.fillMaxWidth().clip(shape).shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = t.accentPrimary.copy(0.12f), spotColor = Color.Black.copy(0.05f)).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Thin, glassBorder(t.isDark, t.amoledDark)), shape).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = DsFont.Bold, color = t.inkColor)
         Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
         Canvas(Modifier.fillMaxWidth().height(150.dp)) {
             val w = size.width; val h = size.height
@@ -228,24 +236,28 @@ private fun formatDebtorAmountFull(amount: Long): String {
 
 @Composable private fun DashCard(label: String, value: String, icon: AppIcon, modifier: Modifier, accent: Color? = null) {
     val t = LocalThemeState.current; val c = accent ?: t.accentPrimary
+    val shape = DsRadius.Lg
     Column(
         modifier
             .height(104.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(shape)
+            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = c.copy(0.16f), spotColor = c.copy(0.10f))
             .background(t.cardSurfaceColor)
-            .border(BorderStroke(1.2.dp, glassBorder(t.isDark, t.amoledDark)), RoundedCornerShape(18.dp))
-            .padding(14.dp), 
+            .border(BorderStroke(DsBorder.Default, glassBorder(t.isDark, t.amoledDark)), shape)
+            .padding(DsSpacing.Card),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { 
-            RoundedAppIcon(icon, tint = c, size = 18.dp)
-            Text(label, fontSize = 11.5.sp, color = t.mutedColor, fontWeight = FontWeight.ExtraBold) 
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(DsComponent.TileMd).clip(DsTileRadius.Small).background(c.copy(0.14f)).border(BorderStroke(DsBorder.Hairline, c.copy(0.3f)), DsTileRadius.Small), contentAlignment = Alignment.Center) {
+                RoundedAppIcon(icon, tint = c, size = DsComponent.IconSm)
+            }
+            Text(label, fontSize = 11.5.sp, color = t.mutedColor, fontWeight = DsFont.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
         com.mrm.pgmanager.ui.components.TechnicalContainer {
             Text(
-                text = value, 
-                fontSize = 17.sp, 
-                fontWeight = FontWeight.ExtraBold, 
+                text = value,
+                fontSize = 17.sp,
+                fontWeight = DsFont.ExtraBold,
                 color = t.inkColor,
                 maxLines = 1
             )
