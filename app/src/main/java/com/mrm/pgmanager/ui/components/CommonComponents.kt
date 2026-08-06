@@ -54,6 +54,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.ripple
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsComponent
+import com.mrm.pgmanager.ui.designsystem.DsElevation
+import com.mrm.pgmanager.ui.designsystem.DsFont
+import com.mrm.pgmanager.ui.designsystem.DsGlass
+import com.mrm.pgmanager.ui.designsystem.DsGradients
+import com.mrm.pgmanager.ui.designsystem.DsMotion
+import com.mrm.pgmanager.ui.designsystem.DsRadius
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -209,17 +218,27 @@ fun ActionIconButton(
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed && enabled) 0.88f else 1.0f, label = "iconScale")
-    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.90f else 1.0f,
+        animationSpec = DsMotion.ScaleSpring,
+        label = "iconScale"
+    )
+    val shape = DsRadius.Md
     Box(
         modifier = modifier
             .size(size)
-            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else 0.55f)
-            .clip(RoundedCornerShape(size / 3f))
-            .background(if (isRed) GlassRed.copy(0.12f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, if (isRed) GlassRed.copy(0.35f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(size / 3f))
+            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = if (enabled) 1f else DsGlass.DisabledAlpha)
+            .shadow(
+                elevation = if (!isPressed) DsElevation.Low.ambient.dp else 0.dp,
+                shape = shape,
+                ambientColor = if (isRed) GlassRed.copy(0.25f) else theme.accentPrimary.copy(0.18f),
+                spotColor = if (isRed) GlassRed.copy(0.30f) else theme.accentPrimary.copy(0.22f)
+            )
+            .clip(shape)
+            .background(if (isRed) GlassRed.copy(0.14f) else theme.searchBgColor)
+            .border(BorderStroke(if (isRed) DsBorder.Default else DsBorder.Thin, if (isRed) GlassRed.copy(0.38f) else glassBorder(theme.isDark, theme.amoledDark)), shape)
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
-            .clickable(interactionSource = interactionSource, indication = ripple(bounded = true), enabled = enabled, onClick = onClick),
+            .clickable(interactionSource = interactionSource, indication = ripple(bounded = true, radius = size), enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) { icon() }
 }
@@ -260,20 +279,21 @@ fun MrmButton(
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    
+
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled && !loading) 0.95f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow),
+        targetValue = if (isPressed && enabled && !loading) 0.96f else 1.0f,
+        animationSpec = spring(dampingRatio = DsMotion.PressBounceDamping, stiffness = DsMotion.PressBounceStiffness),
         label = "btnScale"
     )
 
-    val contentAlpha by animateFloatAsState(targetValue = if (enabled && !loading) 1f else 0.5f, label = "btnAlpha")
-    
+    val contentAlpha by animateFloatAsState(targetValue = if (enabled && !loading) 1f else DsGlass.DisabledAlpha, label = "btnAlpha")
+
+    val shape = DsRadius.Lg
     val (backgroundColor, contentColor, borderStroke) = when (style) {
         MrmButtonStyle.Primary -> {
             Triple(
-                Brush.verticalGradient(listOf(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.82f))),
-                Color(0xFF1A1A1A),
+                DsGradients.accentVertical(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.82f)),
+                DsAccent.OnAccent,
                 null
             )
         }
@@ -281,58 +301,56 @@ fun MrmButton(
             Triple(
                 Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
                 theme.inkColor,
-                BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark))
+                BorderStroke(DsBorder.Default, glassBorder(theme.isDark, theme.amoledDark))
             )
         }
         MrmButtonStyle.Danger -> {
             Triple(
-                Brush.verticalGradient(listOf(GlassRed.copy(0.15f), GlassRed.copy(0.08f))),
+                Brush.verticalGradient(listOf(GlassRed.copy(0.16f), GlassRed.copy(0.07f))),
                 GlassRed,
-                BorderStroke(1.2.dp, GlassRed.copy(0.35f))
+                BorderStroke(DsBorder.Default, GlassRed.copy(0.38f))
             )
         }
         MrmButtonStyle.Glass -> {
             Triple(
-                Brush.verticalGradient(listOf(Color.White.copy(0.12f), Color.White.copy(0.04f))),
+                Brush.verticalGradient(listOf(Color.White.copy(0.14f), Color.White.copy(0.04f))),
                 theme.inkColor,
-                BorderStroke(1.2.dp, Color.White.copy(0.20f))
+                BorderStroke(DsBorder.Default, Color.White.copy(0.22f))
             )
         }
     }
 
+    val active = enabled && !loading
     Box(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale)
-            .height(if (compact) 38.dp else 56.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .let { 
-                if (style == MrmButtonStyle.Primary && enabled && !loading) {
-                    // Premium multi-layer shadow
-                    it.shadow(elevation = 10.dp, shape = RoundedCornerShape(16.dp), ambientColor = theme.accentPrimary.copy(0.5f), spotColor = theme.accentPrimary)
+            .height(if (compact) DsComponent.ButtonCompact else DsComponent.Button)
+            .clip(shape)
+            .let {
+                if (style == MrmButtonStyle.Primary && active) {
+                    // Multi-layer depth: ambient glow + tight spot shadow
+                    it.shadow(
+                        elevation = (if (isPressed) DsElevation.Medium.ambient * 0.4f else DsElevation.High.ambient).dp,
+                        shape = shape,
+                        ambientColor = theme.accentPrimary.copy(0.45f),
+                        spotColor = theme.accentPrimary
+                    )
                 } else it
             }
             .background(backgroundColor)
-            .let { if (borderStroke != null) it.border(borderStroke, RoundedCornerShape(16.dp)) else it }
-            .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(0.25f)), enabled = enabled && !loading, onClick = onClick),
+            .let { if (borderStroke != null) it.border(borderStroke, shape) else it }
+            .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // High-end glass reflection effect
-        if (style == MrmButtonStyle.Primary && enabled && !loading) {
+        // High-end glass reflection effect (primary only)
+        if (style == MrmButtonStyle.Primary && active) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val path = androidx.compose.ui.graphics.Path().apply {
                     addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx()))
                 }
                 drawContext.canvas.save()
                 drawContext.canvas.clipPath(path)
-                // Glossy reflection top
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        0.0f to Color.White.copy(0.35f),
-                        0.4f to Color.White.copy(0.1f),
-                        1.0f to Color.Transparent
-                    ),
-                    size = size
-                )
+                drawRect(brush = DsGradients.gloss(), size = size)
                 drawContext.canvas.restore()
             }
         }
@@ -344,19 +362,19 @@ fun MrmButton(
         ) {
             if (loading) {
                 androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(DsComponent.IconMd),
                     color = contentColor,
                     strokeWidth = 2.5.dp
                 )
             } else {
                 if (icon != null) {
-                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) 18.dp else 22.dp)
+                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)
                     Spacer(Modifier.width(10.dp))
                 }
                 Text(
                     text = text,
                     color = contentColor,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = DsFont.Bold,
                     fontSize = if (compact) 12.sp else 15.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
