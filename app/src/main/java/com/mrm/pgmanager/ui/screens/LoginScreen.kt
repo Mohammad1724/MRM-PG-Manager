@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +35,10 @@ import com.mrm.pgmanager.ui.components.UltraPremiumField
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsElevation
+import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,13 +76,15 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Card - ULTRA TRANSPARENT, no white rectangle
+                // Card - ULTRA TRANSPARENT glass surface with soft elevation
+                val cardShape = DsRadius.Xl
                 Box(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = 390.dp).clip(RoundedCornerShape(18.dp))
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 390.dp).clip(cardShape)
+                        .shadow(elevation = DsElevation.High.ambient.dp, shape = cardShape, ambientColor = theme.accentPrimary.copy(0.16f), spotColor = Color.Black.copy(0.10f))
                         .background(if (theme.isDark) theme.dialogBgColor else Color.White)
-                        .border(BorderStroke(1.dp, if (theme.isDark) Color.White.copy(.16f) else Color(0xFFD7D8DD)), RoundedCornerShape(18.dp))
+                        .border(BorderStroke(DsBorder.Thin, if (theme.isDark) Color.White.copy(.18f) else Color(0xFFD7D8DD)), cardShape)
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(22.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xxl, vertical = DsSpacing.Xxxl), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(22.dp)) {
                         // FIX 1: Logo without any background box - pure transparent
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             AppLogo(height = 64.dp) // No shadow, no background
