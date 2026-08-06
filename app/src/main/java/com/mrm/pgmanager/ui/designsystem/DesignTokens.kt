@@ -111,13 +111,13 @@ object DsMotion {
     const val SpringBouncyDamping = 0.45f
     const val SpringBouncyStiffness = 400f
 
-    val Instant = androidx.compose.animation.core.tween(60)
-    val Fast = androidx.compose.animation.core.tween(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Normal = androidx.compose.animation.core.tween(280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Slow = androidx.compose.animation.core.tween(420, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Shimmer = androidx.compose.animation.core.tween(900)
-    val Pulse = androidx.compose.animation.core.tween(850)
-    val ScaleSpring = androidx.compose.animation.core.spring(dampingRatio = 0.55f, stiffness = 500f)
+    val Instant = androidx.compose.animation.core.tween<Float>(60)
+    val Fast = androidx.compose.animation.core.tween<Float>(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    val Normal = androidx.compose.animation.core.tween<Float>(280, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    val Slow = androidx.compose.animation.core.tween<Float>(420, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+    val Shimmer = androidx.compose.animation.core.tween<Float>(900)
+    val Pulse = androidx.compose.animation.core.tween<Float>(850)
+    val ScaleSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.55f, stiffness = 500f)
 }
 
 /** Gradients reused across surfaces and headers. */
@@ -128,10 +128,8 @@ object DsGradients {
         Brush.verticalGradient(listOf(primary.copy(alpha = 0.16f), light.copy(alpha = 0.05f)))
     fun gloss(): Brush =
         Brush.verticalGradient(
-            listOf(
-                0.0f to Color.White.copy(0.34f),
-                0.42f to Color.White.copy(0.10f),
-                1.0f to Color.Transparent
-            )
+            0.0f to Color.White.copy(0.34f),
+            0.42f to Color.White.copy(0.10f),
+            1.0f to Color.Transparent
         )
 }
