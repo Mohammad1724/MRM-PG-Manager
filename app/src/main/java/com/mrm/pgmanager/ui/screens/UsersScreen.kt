@@ -628,9 +628,9 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             OnlineBadge(user)
-            Column(Modifier.width(60.dp).offset(y = 13.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Column(Modifier.width(64.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 MrmText(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                MrmText(lastSeenShort(user.onlineAt, user.isOnline), modifier = Modifier.offset(y = (-7).dp), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
+                MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
             UserStatusBadge(user, Modifier.width(28.dp), compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
@@ -639,7 +639,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     MrmText(traffic, fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
                     MrmText(daysLeftText(user.expire), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
-                Box(Modifier.fillMaxWidth().offset(y = (-8).dp).height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
+                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
                     Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
                 }
             }
@@ -980,7 +980,7 @@ fun UsersScreen(
                     .clickable { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
-                Text("+", fontSize = 32.sp, fontWeight = FontWeight.Light, color = Color(0xFF1A1A1A))
+                RoundedAppIcon(AppIcon.UserAdd, tint = Color(0xFF1A1A1A), size = 28.dp)
             }
         }
     }) { padding ->
