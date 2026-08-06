@@ -44,7 +44,6 @@ import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsComponent
-import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
@@ -155,11 +154,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp, contentDescription = "تنظیمات")
                 ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp, contentDescription = "بروزرسانی")
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = GlassRed, size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
+                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = com.mrm.pgmanager.ui.theme.GlassRed, size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
             }
         }
         if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
-        error?.let { Text(it, color = GlassRed, fontSize = 12.sp) }
+        error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 12.sp) }
         offlineAt?.let { cachedAt ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
@@ -180,8 +179,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             if (debtorCount > 0) {
                 Text("بدهکاران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), GlassRed)
-                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), GlassRed)
+                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), com.mrm.pgmanager.ui.theme.GlassRed)
+                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), com.mrm.pgmanager.ui.theme.GlassRed)
                 }
             }
             Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
@@ -207,7 +206,7 @@ private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
 private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoing: Long) {
     val t = LocalThemeState.current
     val shape = DsRadius.Lg
-    Column(Modifier.fillMaxWidth().clip(shape).shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = t.accentPrimary.copy(0.12f), spotColor = Color.Black.copy(0.05f)).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Thin, glassBorder(t.isDark, t.amoledDark)), shape).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().clip(shape).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Thin, glassBorder(t.isDark, t.amoledDark)), shape).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = DsFont.Bold, color = t.inkColor)
         Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
         Canvas(Modifier.fillMaxWidth().height(150.dp)) {
@@ -241,7 +240,6 @@ private fun formatDebtorAmountFull(amount: Long): String {
         modifier
             .height(104.dp)
             .clip(shape)
-            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = c.copy(0.16f), spotColor = c.copy(0.10f))
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Default, glassBorder(t.isDark, t.amoledDark)), shape)
             .padding(DsSpacing.Card),
