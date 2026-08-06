@@ -407,7 +407,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
         Column(Modifier.padding(start = 3.dp).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                UserAvatar(user.username, statusColor, Modifier.size(34.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         MrmText(
@@ -466,29 +465,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 }
             }
         }
-    }
-}
-
-/** آواتار کاربر: حرف اول نام در کاشی گرادینتیِ رنگیِ وضعیت. */
-@Composable
-private fun UserAvatar(username: String, statusColor: Color, modifier: Modifier = Modifier) {
-    val theme = LocalThemeState.current
-    val letter = username.take(1).uppercase()
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        statusColor.copy(alpha = 0.32f),
-                        if (theme.isDark) Color.White.copy(0.05f) else Color.White.copy(0.9f)
-                    )
-                )
-            )
-            .border(BorderStroke(1.dp, statusColor.copy(0.35f)), RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(letter, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = statusColor)
     }
 }
 
@@ -642,7 +618,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                UserAvatar(user.username, statusColor, Modifier.size(38.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     MrmText(
                         user.username,
@@ -706,8 +681,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-            UserAvatar(user.username, statusColor, Modifier.size(32.dp))
-            Column(Modifier.width(70.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
