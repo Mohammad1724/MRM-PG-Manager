@@ -21,6 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.DsBlur
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
+import com.mrm.pgmanager.ui.designsystem.DsRadius
 
 enum class LampColor(
     val label: String,
@@ -31,7 +36,7 @@ enum class LampColor(
     val spotLow: Color
 ) {
     // رنگ پیش‌فرض مطابق accent پنل PasarGuard: زرد شفاف و خوانا، نه طلایی گرادینتی.
-    GOLD("PasarGuard Yellow", "زرد پاسارگارد", Color(0xFFF4C928), Color(0xFFFFF3BD), Color(0x55F4C928), Color(0x12F4C928)),
+    GOLD("PasarGuard Yellow", "زرد پاسارگارد", DsAccent.Gold, DsAccent.GoldLight, DsAccent.GoldSpotHigh, DsAccent.GoldSpotLow),
     MAGENTA("Berry Rose", "رز بری", Color(0xFFD64D8C), Color(0xFFFFD9E8), Color(0x66D64D8C), Color(0x14D64D8C)),
     TURQUOISE("Aegean Teal", "تیل اژه", Color(0xFF16A99A), Color(0xFFC8F3ED), Color(0x6616A99A), Color(0x1416A99A)),
     SKY_BLUE("Azure Blue", "آبی آزور", Color(0xFF3B82F6), Color(0xFFD8E8FF), Color(0x663B82F6), Color(0x143B82F6)),
@@ -60,23 +65,23 @@ data class ThemeState(
     val accentLabelFa: String get() = if (customColor != null) "سفارشی" else lamp.labelFa
 
     // پایهٔ تم روشن: سطح‌های خنثی و مرزبندی ملایم مشابه پنل وب PasarGuard.
-    val inkColor: Color get() = if (isDark) Color(0xFFF4F4F6) else Color(0xFF202124)
-    val mutedColor: Color get() = if (isDark) Color(0xFFA09C94) else Color(0xFF74757B)
+    val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
+    val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted
     val cardBgColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF121214)
-        isDark -> Color(0xFF222226)
-        else -> Color(0xFFFFFFFF)
+        isDark -> DsNeutral.SurfaceSoftDark
+        else -> DsNeutral.SurfaceLight
     }
     val cardSurfaceColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF131316)
-        isDark -> Color(0xFF202128)
-        else -> Color(0xFFFFFFFF)
+        isDark -> DsNeutral.SurfaceDark
+        else -> DsNeutral.SurfaceLight
     }
     /** سطحِ نوارهای کرومی (هدر صفحه، تب‌بار شناور). */
     val chromeBgColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF09090B)
         isDark -> Color(0xFF141418)
-        else -> Color(0xFFFFFFFF)
+        else -> DsNeutral.SurfaceLight
     }
     val cardBorderBrush: Brush
         get() = if (isDark) Brush.linearGradient(listOf(Color.White.copy(0.25f), Color.White.copy(0.05f)))
@@ -84,22 +89,23 @@ data class ThemeState(
     val dialogBgColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF080808)
         isDark -> Color(0xFF16161A)
-        else -> Color(0xFFFFFFFF)
+        else -> DsNeutral.SurfaceLight
     }
     val searchBgColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF121212)
-        isDark -> Color(0xFF1F1F24)
-        else -> Color(0xFFF1F2F6)
+        isDark -> DsNeutral.SurfaceMutedDark
+        else -> DsNeutral.SurfaceMutedLight
     }
 }
 
 val LocalThemeState = compositionLocalOf { ThemeState() }
 
-val GlassGreen = Color(0xFF22C55E)
-val GlassAmber = Color(0xFFF59E0B)
-val GlassRed = Color(0xFFEF4444)
-val GlassShape = RoundedCornerShape(20.dp)
-val PremiumCardShape = RoundedCornerShape(18.dp)
+val GlassGreen = DsSemantic.Success
+val GlassAmber = DsSemantic.Warning
+val GlassRed = DsSemantic.Danger
+val GlassViolet = DsSemantic.Violet
+val GlassShape = DsRadius.Xl
+val PremiumCardShape = DsRadius.Lg
 
 fun glassBg(isDark: Boolean, amoled: Boolean = false) = when {
     isDark && amoled -> Color(0xFF0F0F0F).copy(alpha = 0.8f)
@@ -118,7 +124,7 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     val colors = if (themeState.isDark) {
         darkColorScheme(
             primary = themeState.accentPrimary,
-            onPrimary = Color(0xFF1A1A1A),
+            onPrimary = DsAccent.OnAccent,
             secondary = themeState.accentLight,
             background = if (themeState.amoledDark) Color(0xFF000000) else Color(0xFF0D0D10),
             surface = if (themeState.amoledDark) Color(0xFF080808) else Color(0xFF141418),
@@ -131,8 +137,8 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
             primary = themeState.accentPrimary,
             onPrimary = Color.White,
             secondary = themeState.accentLight,
-            background = Color(0xFFF8F9FA),
-            surface = Color.White,
+            background = DsNeutral.BackgroundLight,
+            surface = DsNeutral.SurfaceLight,
             onSurface = themeState.inkColor,
             onBackground = themeState.inkColor,
             error = GlassRed
@@ -147,7 +153,7 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     val bgGradient = when {
         themeState.isDark && themeState.amoledDark -> Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF000000)))
         themeState.isDark -> Brush.verticalGradient(listOf(Color(0xFF0F0F13), Color(0xFF08080A)))
-        else -> Brush.verticalGradient(listOf(Color(0xFFF8F9FA), Color(0xFFF2F3F7)))
+        else -> Brush.verticalGradient(listOf(DsNeutral.BackgroundLight, Color(0xFFF2F3F7)))
     }
 
     val view = LocalView.current
@@ -177,12 +183,12 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
                     Box(
                         Modifier.size(600.dp).align(Alignment.TopStart).offset(x = (-180).dp, y = (-120).dp)
                             .background(Brush.radialGradient(listOf(themeState.accentSpotHigh.copy(alpha = 0.25f), Color.Transparent)), RoundedCornerShape(300.dp))
-                            .blur(40.dp)
+                            .blur(DsBlur.Ambient)
                     )
                     Box(
                         Modifier.size(450.dp).align(Alignment.BottomEnd).offset(x = 140.dp, y = 100.dp)
                             .background(Brush.radialGradient(listOf(themeState.accentLight.copy(alpha = 0.15f), Color.Transparent)), RoundedCornerShape(300.dp))
-                            .blur(45.dp)
+                            .blur(DsBlur.Halo)
                     )
                 }
                 content()
