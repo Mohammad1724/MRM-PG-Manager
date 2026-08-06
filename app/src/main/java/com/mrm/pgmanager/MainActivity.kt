@@ -30,6 +30,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -303,16 +305,42 @@ fun MRMApp() {
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                 ) {
                     Row(
-                        Modifier.height(52.dp).width(200.dp).clip(RoundedCornerShape(16.dp))
-                            .background(effectiveTheme.cardSurfaceColor.copy(alpha = 0.9f))
-                            .border(BorderStroke(1.2.dp, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), RoundedCornerShape(16.dp))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Modifier.height(56.dp).width(224.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Xl)
+                            .shadow(
+                                elevation = com.mrm.pgmanager.ui.designsystem.DsElevation.High.ambient.dp,
+                                shape = com.mrm.pgmanager.ui.designsystem.DsRadius.Xl,
+                                ambientColor = effectiveTheme.accentPrimary.copy(0.28f),
+                                spotColor = Color.Black.copy(0.20f)
+                            )
+                            .background(if (effectiveTheme.isDark) effectiveTheme.cardSurfaceColor.copy(alpha = 0.96f) else effectiveTheme.cardSurfaceColor.copy(alpha = 0.96f))
+                            .border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Thin, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), com.mrm.pgmanager.ui.designsystem.DsRadius.Xl)
+                            .padding(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        listOf("داشبورد", "کاربران").forEachIndexed { index, label ->
+                        listOf("داشبورد" to AppIcon.Gauge, "کاربران" to AppIcon.Users).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
-                            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(if (selected) effectiveTheme.accentPrimary.copy(.85f) else Color.Transparent).clickable { selectedTab = index }, contentAlignment = Alignment.Center) {
-                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
+                            val scale by androidx.compose.animation.core.animateFloatAsState(
+                                targetValue = if (selected) 1f else 0.92f,
+                                animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.ScaleSpring,
+                                label = "navScale"
+                            )
+                            Box(
+                                Modifier.weight(1f).fillMaxHeight().graphicsLayer(scaleX = scale, scaleY = scale)
+                                    .clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg)
+                                    .shadow(
+                                        elevation = if (selected) com.mrm.pgmanager.ui.designsystem.DsElevation.Low.spot.dp else 0.dp,
+                                        shape = com.mrm.pgmanager.ui.designsystem.DsRadius.Lg,
+                                        ambientColor = effectiveTheme.accentPrimary.copy(0.4f),
+                                        spotColor = effectiveTheme.accentPrimary.copy(0.5f)
+                                    )
+                                    .background(if (selected) effectiveTheme.accentPrimary.copy(.9f) else Color.Transparent)
+                                    .clickable { selectedTab = index },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    RoundedAppIcon(icon, tint = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor, size = 18.dp)
+                                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
+                                }
                             }
                         }
                     }
