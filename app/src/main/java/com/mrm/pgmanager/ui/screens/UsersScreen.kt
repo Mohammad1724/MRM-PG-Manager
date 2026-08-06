@@ -89,6 +89,16 @@ import java.time.temporal.ChronoUnit
 
 import com.mrm.pgmanager.ui.theme.glassBg
 import com.mrm.pgmanager.ui.theme.glassBorder
+import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsComponent
+import com.mrm.pgmanager.ui.designsystem.DsElevation
+import com.mrm.pgmanager.ui.designsystem.DsFont
+import com.mrm.pgmanager.ui.designsystem.DsMotion
+import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.DsTileRadius
 
 /** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
 private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit, val danger: Boolean = false)
@@ -135,28 +145,30 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 @Composable
 private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
+    val shape = DsRadius.Lg
     Box(
         modifier = modifier
-            .height(86.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .height(90.dp)
+            .clip(shape)
+            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = accent.copy(0.18f), spotColor = accent.copy(0.12f))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
-            .padding(14.dp)
+            .border(BorderStroke(DsBorder.Default, glassBorder(theme.isDark, theme.amoledDark)), shape)
+            .padding(DsSpacing.Card)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(28.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) { 
-                    RoundedAppIcon(icon, tint = accent, size = 16.dp) 
+                Box(Modifier.size(DsComponent.TileMd).clip(DsTileRadius.Small).background(accent.copy(.14f)).border(BorderStroke(DsBorder.Hairline, accent.copy(0.3f)), DsTileRadius.Small), contentAlignment = Alignment.Center) {
+                    RoundedAppIcon(icon, tint = accent, size = DsComponent.IconSm)
                 }
-                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.ExtraBold)
+                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             TechnicalContainer {
                 Text(
-                    text = value, 
-                    fontSize = 20.sp, 
-                    fontWeight = FontWeight.ExtraBold, 
+                    text = value,
+                    fontSize = 20.sp,
+                    fontWeight = DsFont.ExtraBold,
                     color = theme.inkColor,
-                    maxLines = 1, 
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -175,21 +187,36 @@ private fun SkeletonCard(modifier: Modifier = Modifier) {
 @Composable
 private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Box(modifier = modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundedAppIcon(AppIcon.Search, tint = theme.mutedColor, size = 18.dp)
+    var isFocused by remember { mutableStateOf(false) }
+    val glow by animateFloatAsState(targetValue = if (isFocused) 1f else 0f, animationSpec = DsMotion.Fast, label = "searchGlow")
+    val shape = DsRadius.Lg
+    Box(modifier = modifier
+        .fillMaxWidth()
+        .height(DsComponent.SearchBar)
+        .shadow(elevation = (4 * glow).dp, shape = shape, ambientColor = theme.accentPrimary.copy(0.25f), spotColor = theme.accentPrimary.copy(0.20f))
+        .clip(shape)
+        .background(if (theme.isDark) theme.searchBgColor.copy(alpha = 0.9f) else theme.searchBgColor)
+        .border(BorderStroke(if (isFocused) DsBorder.Focus else DsBorder.Thin, if (isFocused) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
+        .padding(horizontal = DsSpacing.Lg)
+        .onFocusChanged { isFocused = it.isFocused }
+        , contentAlignment = Alignment.CenterStart) {
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+            Box(Modifier.size(DsComponent.TileSm).clip(DsTileRadius.Small).background(theme.accentPrimary.copy(alpha = if (isFocused) 0.14f else 0f)), contentAlignment = Alignment.Center) {
+                RoundedAppIcon(AppIcon.Search, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = DsComponent.IconSm)
+            }
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (query.isEmpty()) Text("جستجو در نام و یادداشت...", color = theme.mutedColor.copy(0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (query.isEmpty()) Text("جستجو در نام و یادداشت...", color = theme.mutedColor.copy(0.7f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
-                    textStyle = TextStyle(color = theme.inkColor, fontSize = 12.5.sp, fontWeight = FontWeight.Medium),
+                    cursorBrush = androidx.compose.ui.graphics.SolidColor(theme.accentPrimary),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 13.5.sp, fontWeight = FontWeight.Medium),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { inner -> Box(contentAlignment = Alignment.CenterStart) { inner() } }
                 )
             }
-            if (query.isNotEmpty()) Box(Modifier.size(24.dp).clip(RoundedCornerShape(12.dp)).background(Color.White.copy(0.14f)).clickable { onQueryChange("") }, contentAlignment = Alignment.Center) { Text("×", color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+            if (query.isNotEmpty()) Box(Modifier.size(DsComponent.TileSm).clip(DsTileRadius.Small).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, glassBorder(theme.isDark, theme.amoledDark)), DsTileRadius.Small).clickable { onQueryChange("") }, contentAlignment = Alignment.Center) { Text("×", color = theme.mutedColor, fontSize = 15.sp, fontWeight = DsFont.Bold) }
         }
     }
 }
@@ -278,25 +305,37 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    // چیپ فیلتر: هم‌سبک با سگمنت تنظیمات — فعال = کپسول اکسنت ۷۸٪ با متن تیره، غیرفعال = کاشی خاکستری.
-    Box(modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (selected) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable(onClick = onClick).padding(horizontal = 9.dp, vertical = 4.5.dp)) {
-        Text(label, color = if (selected) Color(0xFF202124) else theme.inkColor, fontSize = 9.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+    val shape = DsRadius.Sm
+    // چیپ فیلتر با انیمیشن انتخاب: فعال = کپسول اکسنت با سایهٔ نرم و متن تیره، غیرفعال = کاشی شیشه‌ای خنثی.
+    Box(modifier = Modifier
+        .height(DsComponent.MiniChip)
+        .clip(shape)
+        .shadow(elevation = if (selected) DsElevation.Low.spot.dp else 0.dp, shape = shape, ambientColor = theme.accentPrimary.copy(0.35f), spotColor = theme.accentPrimary.copy(0.4f))
+        .background(if (selected) theme.accentPrimary.copy(.82f) else theme.searchBgColor)
+        .border(BorderStroke(DsBorder.Thin, if (selected) theme.accentPrimary.copy(0.5f) else glassBorder(theme.isDark, theme.amoledDark)), shape)
+        .clickable(onClick = onClick)
+        .padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = if (selected) Color(0xFF1C1D21) else theme.inkColor, fontSize = 10.5.sp, fontWeight = if (selected) DsFont.Bold else DsFont.Medium, maxLines = 1)
     }
 }
 
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 2.5.dp)) {
-        Text(label, color = if (selected) Color(0xFF202124) else theme.mutedColor, fontSize = 8.5.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    val shape = DsRadius.Xs
+    Box(modifier = Modifier.clip(shape).background(if (selected) theme.accentPrimary.copy(.82f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text(label, color = if (selected) Color(0xFF1C1D21) else theme.mutedColor, fontSize = 9.sp, fontWeight = if (selected) DsFont.Bold else DsFont.Regular)
     }
 }
 
 @Composable
 private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 7.dp, vertical = 3.dp), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) Color(0xFF202124) else theme.mutedColor, size = 13.dp)
+    val shape = DsRadius.Sm
+    Box(modifier = Modifier.size(DsComponent.TileSm).clip(shape).background(if (selected) theme.accentPrimary.copy(.82f) else Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = if (selected) Color(0xFF1C1D21) else theme.mutedColor, size = 15.dp)
     }
 }
 
@@ -347,31 +386,33 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f)
     val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> Color(0xFF7A42D4); else -> theme.mutedColor }
+    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
     val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
+    val shape = DsRadius.Lg
 
-    // نمای گرید نیز از همان کارت‌های خنثی و مرز ظریف design system جدید استفاده می‌کند.
+    // نمای گرید: کارت شیشه‌ای با سایهٔ نرم و مرز ظریف design system جدید.
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
+            .clip(shape)
+            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.12f), spotColor = Color.Black.copy(0.06f))
+            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
         Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
-        Column(Modifier.padding(start = 3.dp).padding(11.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(start = 3.dp).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                OnlineBadge(user)
+                UserAvatar(user.username, statusColor, Modifier.size(34.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         MrmText(
-                            text = user.username, 
-                            fontSize = 11.5.sp, 
-                            fontWeight = FontWeight.Bold, 
-                            maxLines = 1, 
-                            overflow = TextOverflow.Ellipsis, 
+                            text = user.username,
+                            fontSize = 12.sp,
+                            fontWeight = DsFont.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             isTechnical = true,
                             modifier = Modifier.weight(1f, fill = false)
                         )
@@ -379,14 +420,14 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                         Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
                     }
                     MrmText(
-                        text = lastSeenShort(user.onlineAt, user.isOnline), 
-                        fontSize = 8.sp, 
-                        color = if (user.isOnline) GlassGreen else theme.mutedColor, 
+                        text = lastSeenShort(user.onlineAt, user.isOnline),
+                        fontSize = 8.sp,
+                        color = if (user.isOnline) GlassGreen else theme.mutedColor,
                         maxLines = 1,
                         isTechnical = true
                     )
                 }
-                if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF3B82F6).copy(0.14f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = Color(0xFF3B82F6), size = 11.dp) }
+                if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(DsSemantic.Info.copy(0.16f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = DsSemantic.Info, size = 11.dp) }
             }
             MrmText(
                 text = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", 
@@ -425,6 +466,29 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     }
 }
 
+/** آواتار کاربر: حرف اول نام در کاشی گرادینتیِ رنگیِ وضعیت. */
+@Composable
+private fun UserAvatar(username: String, statusColor: Color, modifier: Modifier = Modifier) {
+    val theme = LocalThemeState.current
+    val letter = username.take(1).uppercase()
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        statusColor.copy(alpha = 0.32f),
+                        if (theme.isDark) Color.White.copy(0.05f) else Color.White.copy(0.9f)
+                    )
+                )
+            )
+            .border(BorderStroke(1.dp, statusColor.copy(0.35f)), RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(letter, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = statusColor)
+    }
+}
+
 @Composable
 private fun OnlineBadge(user: PanelUser) {
     val color = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
@@ -445,7 +509,7 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
         "disabled" -> "غیرفعال" to Color(0xFF8A8A8A)
         "expired" -> "منقضی" to GlassRed
         "limited" -> "محدود" to GlassAmber
-        "on_hold" -> "در انتظار" to Color(0xFF7A42D4)
+        "on_hold" -> "در انتظار" to DsSemantic.Violet
         else -> cardStatusText(user) to theme.mutedColor
     }
     Box(
@@ -560,28 +624,37 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
         else -> GlassRed
     }
     val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
+    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
+    val shape = DsRadius.Xl
 
     Box(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(18.dp))
+            .clip(shape)
+            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.10f), spotColor = Color.Black.copy(0.05f))
+            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = 14.dp, vertical = 14.dp)
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Card)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                OnlineBadge(user)
-                MrmText(
-                    user.username,
-                    modifier = Modifier.width(100.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    isTechnical = true
-                )
+                UserAvatar(user.username, statusColor, Modifier.size(38.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    MrmText(
+                        user.username,
+                        fontSize = 14.sp,
+                        fontWeight = DsFont.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        isTechnical = true
+                    )
+                    Text(
+                        text = lastSeenShort(user.onlineAt, user.isOnline),
+                        fontSize = 8.5.sp,
+                        color = if (user.isOnline) GlassGreen else theme.mutedColor
+                    )
+                }
                 UserStatusBadge(user, Modifier.width(42.dp))
                 if (debtorInfo != null) DebtorBadge()
                 IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = "کپی") { onCopySub(user) }
@@ -616,23 +689,26 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
+    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
+    val shape = DsRadius.Lg
 
     Box(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) theme.accentPrimary.copy(.10f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(16.dp))
+            .clip(shape)
+            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.10f), spotColor = Color.Black.copy(0.05f))
+            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-            OnlineBadge(user)
-            Column(Modifier.width(64.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                MrmText(user.username, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+            UserAvatar(user.username, statusColor, Modifier.size(32.dp))
+            Column(Modifier.width(70.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                MrmText(user.username, fontSize = 11.sp, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
-            UserStatusBadge(user, Modifier.width(28.dp), compact = true)
+            UserStatusBadge(user, Modifier.width(30.dp), compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -718,7 +794,7 @@ fun DebtorEditDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun UsersScreen(
     session: Session,
@@ -970,17 +1046,26 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
+            val fabShape = DsRadius.Xl
+            var fabPressed by remember { mutableStateOf(false) }
+            val fabScale by animateFloatAsState(targetValue = if (fabPressed) 0.90f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
             Box(
                 modifier = Modifier
                     .padding(bottom = 24.dp)
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(themeState.accentPrimary)
-                    .graphicsLayer(shadowElevation = 12f)
-                    .clickable { createMenuOpen = true },
+                    .size(DsComponent.FAB)
+                    .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
+                    .shadow(elevation = DsElevation.High.spot.dp, shape = fabShape, ambientColor = themeState.accentPrimary.copy(0.5f), spotColor = themeState.accentPrimary.copy(0.6f))
+                    .clip(fabShape)
+                    .background(Brush.linearGradient(listOf(themeState.accentPrimary, themeState.accentLight)))
+                    .border(BorderStroke(DsBorder.Hairline, Color.White.copy(0.6f)), fabShape)
+                    .combinedClickable(
+                        onClick = { createMenuOpen = true },
+                        onLongClick = { createMenuOpen = true },
+                        onPressChanged = { fabPressed = it }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                RoundedAppIcon(AppIcon.UserAdd, tint = Color(0xFF1A1A1A), size = 28.dp)
+                RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = DsComponent.IconLg)
             }
         }
     }) { padding ->
