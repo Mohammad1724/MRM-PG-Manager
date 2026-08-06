@@ -164,8 +164,13 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalThemeState provides themeState) {
-        MaterialTheme(colorScheme = colors) {
-            Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
+        // جهت چیدمان را برای کل اپ اجباری چپ‌به‌راست (LTR) می‌کنیم؛
+        // در غیر این صورت Compose از لوکیل دستگاه پیروی می‌کند و در لوکیلِ فارسی کل اپ راست‌چین/میرور می‌شود.
+        androidx.compose.runtime.CompositionLocalProvider(
+            androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+        ) {
+            MaterialTheme(colorScheme = colors) {
+                Box(modifier = Modifier.fillMaxSize().background(bgGradient)) {
                 // در تم روشن، پس‌زمینه کاملاً خنثی و بدون هاله است؛ همان زبان بصری پنل وب.
                 // هاله‌ها فقط برای تم تیره نگه داشته شده‌اند (در AMOLED هم ملایم باقی می‌مانند).
                 if (themeState.isDark) {
@@ -181,6 +186,7 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
                     )
                 }
                 content()
+            }
             }
         }
     }
