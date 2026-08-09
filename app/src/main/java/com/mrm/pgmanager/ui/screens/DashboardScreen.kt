@@ -181,17 +181,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                             }
                             Text("Total Traffic", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TechnicalContainer { Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).border(BorderStroke(0.7.dp, Color(0xFFBBF7D0)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 9.sp, color = Color(0xFF065F46), fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
-                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).border(BorderStroke(0.7.dp, Color(0xFFBFDBFE)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 9.sp, color = Color(0xFF1E3A8A), fontWeight = FontWeight.Bold, maxLines = 1)
-                                }
-                            }
-                        }
+                        TechnicalContainer { Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                 }
                 // Uptime — full width
