@@ -174,7 +174,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%") })
                     // Total Traffic card with in/out badges - same 92dp height as PGStatCard
-                    Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Storage, tint = Color(0xFFCA8A04), size = 15.dp)
@@ -182,13 +182,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                             Text("Total Traffic", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TechnicalContainer { Text("10.1 TB", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 6.dp, vertical = 3.dp)) {
-                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 9.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold)
+                            TechnicalContainer { Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).border(BorderStroke(0.7.dp, Color(0xFFBBF7D0)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 9.sp, color = Color(0xFF065F46), fontWeight = FontWeight.Bold, maxLines = 1)
                                 }
-                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 6.dp, vertical = 3.dp)) {
-                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 9.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold)
+                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).border(BorderStroke(0.7.dp, Color(0xFFBFDBFE)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 9.sp, color = Color(0xFF1E3A8A), fontWeight = FontWeight.Bold, maxLines = 1)
                                 }
                             }
                         }
