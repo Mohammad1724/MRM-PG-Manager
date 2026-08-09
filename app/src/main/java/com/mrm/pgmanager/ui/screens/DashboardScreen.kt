@@ -173,8 +173,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%") })
-                    // Total Traffic card with in/out badges
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Total Traffic card with in/out badges - same 92dp height as PGStatCard
+                    Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Storage, tint = Color(0xFFCA8A04), size = 15.dp)
