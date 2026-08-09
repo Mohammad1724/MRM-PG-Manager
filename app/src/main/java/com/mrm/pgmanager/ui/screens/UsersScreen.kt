@@ -237,11 +237,6 @@ private fun TopBarHeader(
             Text("Control, Update, and Arrange User Accounts", fontSize = 10.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(DsAccent.Gold).clickable { onCreateUser() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("+", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006)); Text("Create User", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
-                }
-            }
             Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
                 if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 14.dp)
             }
