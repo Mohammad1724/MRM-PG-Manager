@@ -136,7 +136,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Dashboard", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                            Text("○", fontSize = 8.sp, color = Color(0xFFCA8A04))
+                            Text("ⓘ", fontSize = 8.sp, color = Color(0xFFCA8A04), fontWeight = FontWeight.Bold)
                         }
                     }
                     Text("PasarGuard Management Dashboard", fontSize = 10.sp, color = theme.mutedColor)
@@ -239,12 +239,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         Text("Monitor Users", fontSize = 9.sp, color = theme.mutedLightColor)
                         listOf(
                             Triple("Users", "${s.totalUsers}", null),
-                            Triple("Active Users", "68", "93%"),
-                            Triple("Online Users", "25", "37%"),
-                            Triple("Expired Users", "1", "1%"),
-                            Triple("Limited Users", "3", "4%"),
+                            Triple("Active Users", "${s.activeUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
+                            Triple("Online Users", "${s.onlineUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
+                            Triple("Expired Users", "${s.expiredUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
+                            Triple("Limited Users", "${s.limitedUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
                             Triple("On Hold Users", "0", null),
-                            Triple("Disabled Users", "1", "1%"),
+                            Triple("Disabled Users", "${s.disabledUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
                         ).forEach { (label, value, pct) ->
                             val dotColor = when(label) {
                                 "Online Users" -> Color(0xFF22C55E); "Expired Users" -> Color(0xFFF97316); "Limited Users" -> Color(0xFFEF4444); "On Hold Users" -> Color(0xFFA855F7); "Disabled Users" -> Color(0xFF6B7280); else -> Color.Transparent
@@ -277,8 +277,20 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                             }
                         }
                         UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = DsAccent.Gold)
-                        Text("Trending down by 63.3% ↘", fontSize = 9.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
-                        Text("Usage During Period: 353.66 GB\nTotal traffic usage across all servers", fontSize = 8.sp, color = theme.mutedLightColor, lineHeight = 10.sp)
+                        run {
+                            val totalPeriod = trafficPoints.sumOf { it.totalTraffic }
+                            val trendingText = if (trafficPoints.size >= 2) {
+                                val first = trafficPoints.first().totalTraffic.toDouble().coerceAtLeast(1.0)
+                                val last = trafficPoints.last().totalTraffic.toDouble()
+                                val diff = ((last - first) / first * 100).toInt()
+                                if (diff >= 0) "Trending up by ${diff}% ↗" else "Trending down by ${-diff}% ↘"
+                            } else "No trend yet"
+                            val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) Color(0xFF16A34A) else Color(0xFFDC2626)
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(trendingText, fontSize = 9.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
+                                Text("Usage During Period: ${formatBytes(totalPeriod)}\nTotal traffic usage across all servers", fontSize = 8.sp, color = theme.mutedLightColor, lineHeight = 10.sp)
+                            }
+                        }
                     }
                 }
 
