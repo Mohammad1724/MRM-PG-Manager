@@ -68,7 +68,7 @@ fun PasarGuardDrawer(
                 Row(
                     Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp))
                         .background(if (sel) Color(0xFFF3F4F6) else Color.Transparent)
-                        .border(if (sel) BorderStroke(0.7.dp, theme.borderSubtle) else null, RoundedCornerShape(8.dp))
+                        .then(if (sel) Modifier.border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)) else Modifier)
                         .clickable { onSelect(item.id); onClose() }
                         .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
