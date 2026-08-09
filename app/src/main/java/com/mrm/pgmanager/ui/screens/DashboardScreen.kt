@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -141,8 +142,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     Text("PasarGuard Management Dashboard", fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).let { if (!manualRefreshing) it else it }
-                        .run { clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } } }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
                         if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = DsAccent.Gold, strokeWidth = 2.dp)
                         else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
                     }
@@ -218,8 +218,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         }
                         Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
-                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text("Active Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
