@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -47,7 +50,8 @@ fun LoginScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     val theme = themeState
 
-    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()) {
+    val focusManager = LocalFocusManager.current
+    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // Top bar minimal
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -77,9 +81,9 @@ fun LoginScreen(
                 Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                PGField(label = "آدرس پنل", value = url, onValueChange = { url = it }, placeholder = "https://panel.example.com:443", icon = AppIcon.Link)
-                PGField(label = "نام کاربری", value = username, onValueChange = { username = it }, placeholder = "نام کاربری", icon = AppIcon.User)
-                PGField(label = "رمز عبور", value = password, onValueChange = { password = it }, placeholder = "رمز عبور", icon = AppIcon.Lock, isPassword = true)
+                PGField(label = "آدرس پنل", value = url, onValueChange = { url = it }, placeholder = "https://panel.example.com:443", icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                PGField(label = "نام کاربری", value = username, onValueChange = { username = it }, placeholder = "نام کاربری", icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                PGField(label = "رمز عبور", value = password, onValueChange = { password = it }, placeholder = "رمز عبور", icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
 
                 if (error != null) {
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0xFFFEE2E2)).border(BorderStroke(1.dp, Color(0xFFFECACA)), RoundedCornerShape(10.dp)).padding(10.dp),
@@ -144,9 +148,10 @@ fun LoginScreen(
 }
 
 @Composable
-private fun PGField(label: String, value: String, onValueChange: (String)->Unit, placeholder: String, icon: AppIcon, isPassword: Boolean = false) {
+private fun PGField(label: String, value: String, onValueChange: (String)->Unit, placeholder: String, icon: AppIcon, isPassword: Boolean = false, imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next, onNext: (() -> Unit)? = null) {
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
         Box(
@@ -159,7 +164,8 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                 androidx.compose.foundation.text.BasicTextField(
                     value = value, onValueChange = onValueChange, singleLine = true,
                     visualTransformation = if (isPassword && !visible) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text, imeAction = imeAction),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { if (onNext != null) onNext() else focusManager.moveFocus(FocusDirection.Down) }, onDone = { focusManager.clearFocus() }),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = theme.inkColor),
                     modifier = Modifier.weight(1f),
                     decorationBox = { inner -> if (value.isEmpty()) Text(placeholder, fontSize = 13.sp, color = theme.mutedLightColor); inner() }
