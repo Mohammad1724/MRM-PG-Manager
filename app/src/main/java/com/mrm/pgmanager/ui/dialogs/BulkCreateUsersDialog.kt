@@ -114,9 +114,9 @@ fun BulkCreateUsersDialog(
 
     Dialog(onDismissRequest = { if (!running) onDismiss() }) {
         Box(
-            Modifier.fillMaxWidth().heightIn(max = 640.dp).clip(RoundedCornerShape(24.dp))
+            Modifier.fillMaxWidth().heightIn(max = 640.dp).clip(RoundedCornerShape(16.dp))
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp))
+                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
                 .padding(16.dp)
         ) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
