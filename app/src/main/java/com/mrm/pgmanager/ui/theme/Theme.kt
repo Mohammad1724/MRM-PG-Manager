@@ -71,6 +71,9 @@ data class ThemeState(
     }
     val borderColor: Color get() = if (isDark) Color.White.copy(0.10f) else DsNeutral.HairlineLight
     val borderSubtle: Color get() = if (isDark) Color.White.copy(0.06f) else DsNeutral.HairlineSubtle
+    // kept for backward-compat: old code used Brush border — now maps to flat borderColor
+    val cardBorderBrush: androidx.compose.ui.graphics.Brush get() = androidx.compose.ui.graphics.Brush.linearGradient(listOf(borderColor, borderColor))
+    val cardBorderColor: Color get() = borderColor
     val backgroundColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF000000)
         isDark -> DsNeutral.BackgroundDark
