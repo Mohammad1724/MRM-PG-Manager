@@ -62,6 +62,7 @@ fun PGStatCard(
     val shape = DsRadius.Lg
     Column(
         modifier
+            .height(92.dp)
             .clip(shape)
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), shape)
