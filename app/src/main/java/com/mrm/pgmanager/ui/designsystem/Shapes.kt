@@ -4,28 +4,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
 /**
- * Corner-radius scale. Every radius in the app maps to one of these.
- * Rule of thumb:
- *   Xs   -> tiny tags, checkboxes, small chips
- *   Sm   -> pills/sort, action chips
- *   Md   -> buttons, small cards, icon tiles
- *   Lg   -> standard cards, fields, FAB
- *   Xl   -> large cards, modals
- *   Xxl  -> bottom sheets, big containers
- *   Full -> circular elements
+ * PasarGuard radius scale — soft, consistent, not overly rounded.
  */
 object DsRadius {
-    val Xs = RoundedCornerShape(6.dp)
-    val Sm = RoundedCornerShape(9.dp)
-    val Md = RoundedCornerShape(12.dp)
-    val Lg = RoundedCornerShape(16.dp)
-    val Xl = RoundedCornerShape(20.dp)
-    val Xxl = RoundedCornerShape(24.dp)
+    val Xs = RoundedCornerShape(6.dp)      // tiny chips, status
+    val Sm = RoundedCornerShape(8.dp)      // small controls, icon tiles
+    val Md = RoundedCornerShape(10.dp)     // inputs, buttons
+    val Lg = RoundedCornerShape(12.dp)     // standard cards
+    val Xl = RoundedCornerShape(14.dp)     // large sections
+    val Xxl = RoundedCornerShape(16.dp)    // modals
     val Full = RoundedCornerShape(50)
 }
 
-/** Icon-tile / control tile radii sized relative to the control. */
 object DsTileRadius {
-    val Small = RoundedCornerShape(10.dp)
-    val Medium = RoundedCornerShape(14.dp)
+    val Small = RoundedCornerShape(8.dp)
+    val Medium = RoundedCornerShape(10.dp)
 }
