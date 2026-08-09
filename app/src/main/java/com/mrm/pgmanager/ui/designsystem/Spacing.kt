@@ -2,12 +2,6 @@ package com.mrm.pgmanager.ui.designsystem
 
 import androidx.compose.ui.unit.dp
 
-/**
- * Spacing & padding scale — every margin, padding and gap in the app
- * should come from this scale so vertical/horizontal rhythm is identical
- * everywhere. Use the named accessors for intent, the numeric base only
- * when you need an off-scale value.
- */
 object DsSpacing {
     val Xxs = 2.dp
     val Xs = 4.dp
@@ -19,15 +13,11 @@ object DsSpacing {
     val Xxxl = 24.dp
     val X4l = 32.dp
 
-    /** Standard screen horizontal gutter. */
-    val Screen = 16.dp
-    /** Standard content card padding. */
-    val Card = 14.dp
-    /** Dialog padding. */
+    val Screen = 14.dp          // horizontal screen gutter - matches PG compact feel
+    val Card = 12.dp            // card internal padding
+    val CardGap = 8.dp          // gap between cards
+    val SectionGap = 12.dp      // gap between sections
     val Dialog = 16.dp
-    /** Input field horizontal padding. */
-    val FieldHorizontal = 14.dp
-
-    /** Bottom content inset that leaves room for the FAB. */
-    val FabClearance = 140.dp
+    val FieldHorizontal = 12.dp
+    val FabClearance = 100.dp
 }
