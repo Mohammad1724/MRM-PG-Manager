@@ -184,11 +184,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             TechnicalContainer { Text("10.1 TB", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 5.dp, vertical = 2.dp)) {
-                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 8.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold)
+                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 6.dp, vertical = 3.dp)) {
+                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 9.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold)
                                 }
-                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 5.dp, vertical = 2.dp)) {
-                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 8.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold)
+                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 6.dp, vertical = 3.dp)) {
+                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 9.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
