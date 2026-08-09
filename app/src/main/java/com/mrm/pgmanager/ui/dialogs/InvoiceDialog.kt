@@ -173,8 +173,8 @@ fun InvoiceDialog(
         val invoiceText = buildTextInvoice()
         Dialog(onDismissRequest = { textShareMode = false }) {
             Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor)
-                    .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(18.dp)
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor)
+                    .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("فاکتور متنی", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
@@ -248,9 +248,9 @@ fun InvoiceDialog(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp))
+                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
                 .padding(18.dp)
         ) {
             Column(
@@ -495,9 +495,9 @@ private fun InvoicePreviewCard(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), RoundedCornerShape(24.dp))
+                    .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), RoundedCornerShape(16.dp))
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
