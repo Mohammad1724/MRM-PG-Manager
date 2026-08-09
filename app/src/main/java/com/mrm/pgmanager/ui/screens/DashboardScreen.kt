@@ -218,10 +218,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         }
                         Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text("Active Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text("Active Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
                             Text("${s.activeUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
