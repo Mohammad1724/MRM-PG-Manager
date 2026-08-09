@@ -217,7 +217,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 @Composable
 private fun TopBarHeader(
     onRefresh: () -> Unit,
-    onLogout: () -> Unit,
+    onCreateUser: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     loading: Boolean
 ) {
@@ -236,15 +236,17 @@ private fun TopBarHeader(
             }
             Text("Control, Update, and Arrange User Accounts", fontSize = 10.sp, color = theme.mutedColor)
         }
-        // Create User yellow button + icons
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(DsAccent.Gold).clickable { onOpenThemeDialog() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(DsAccent.Gold).clickable { onCreateUser() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("+", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006)); Text("Create User", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
                 }
             }
             Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
                 if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 14.dp)
+            }
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { onOpenThemeDialog() }, contentAlignment = Alignment.Center) {
+                RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
             }
         }
     }
@@ -276,29 +278,56 @@ private fun StatsCardsRow(
 @Composable
 private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: UserSort, onSortChange: (UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, debtorCount: Int = 0) {
     val theme = LocalThemeState.current
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            FilterChipItem("همه", currentFilter == UserFilter.ALL, onClick = { onFilterChange(UserFilter.ALL) })
-            FilterChipItem("فعال", currentFilter == UserFilter.ACTIVE, onClick = { onFilterChange(UserFilter.ACTIVE) })
-            FilterChipItem("لب مرز", currentFilter == UserFilter.NEAR_LIMIT, onClick = { onFilterChange(UserFilter.NEAR_LIMIT) })
-            FilterChipItem("منقضی/محدود", currentFilter == UserFilter.EXPIRED, onClick = { onFilterChange(UserFilter.EXPIRED) })
-            FilterChipItem("غیرفعال", currentFilter == UserFilter.DISABLED, onClick = { onFilterChange(UserFilter.DISABLED) })
-            FilterChipItem(if (debtorCount > 0) "بدهکار ($debtorCount)" else "بدهکار", currentFilter == UserFilter.DEBTOR, onClick = { onFilterChange(UserFilter.DEBTOR) })
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("مرتب:", fontSize = 8.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
-                SortPill("نام", currentSort == UserSort.NAME) { onSortChange(UserSort.NAME) }
-                SortPill("مصرف", currentSort == UserSort.USAGE) { onSortChange(UserSort.USAGE) }
-                SortPill("انقضا", currentSort == UserSort.EXPIRY) { onSortChange(UserSort.EXPIRY) }
-                SortPill("ساخت", currentSort == UserSort.CREATED) { onSortChange(UserSort.CREATED) }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var showSortSheet by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Filter dropdown button like PasarGuard panel
+        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showFilterSheet = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 14.dp)
+                    Text(when(currentFilter){ UserFilter.ALL->"همه"; UserFilter.ACTIVE->"فعال"; UserFilter.NEAR_LIMIT->"لب مرز"; UserFilter.EXPIRED->"منقضی/محدود"; UserFilter.DISABLED->"غیرفعال"; UserFilter.DEBTOR->"بدهکار"}, fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                }
+                Text("▾", fontSize = 12.sp, color = theme.mutedColor)
             }
-            Spacer(Modifier.width(4.dp))
-            // کلاستر حالت نمایش: همان کپسول سگمنت‌شدهٔ تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
-            Row(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).padding(2.5.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
-                ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
-                ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+        }
+        // Sort dropdown
+        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showSortSheet = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(when(currentSort){ UserSort.NAME->"نام"; UserSort.USAGE->"مصرف"; UserSort.EXPIRY->"انقضا"; UserSort.CREATED->"ساخت"}, fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                Text("▾", fontSize = 12.sp, color = theme.mutedColor)
+            }
+        }
+        // View mode compact
+        Row(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
+            ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+            ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+        }
+    }
+    if (showFilterSheet) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("فیلتر", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                listOf("همه" to UserFilter.ALL, "فعال" to UserFilter.ACTIVE, "لب مرز" to UserFilter.NEAR_LIMIT, "منقضی/محدود" to UserFilter.EXPIRED, "غیرفعال" to UserFilter.DISABLED, (if(debtorCount>0)"بدهکار ($debtorCount)" else "بدهکار") to UserFilter.DEBTOR).forEach { (label, f) ->
+                    val sel = currentFilter == f
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(1.dp, if(sel) Color(0xFFEAB308) else theme.borderColor), RoundedCornerShape(10.dp)).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
+                    }
+                }
+            }
+        }
+    }
+    if (showSortSheet) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("مرتب‌سازی", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                listOf("نام" to UserSort.NAME, "مصرف" to UserSort.USAGE, "انقضا" to UserSort.EXPIRY, "ساخت" to UserSort.CREATED).forEach { (label, s) ->
+                    val sel = currentSort == s
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(1.dp, if(sel) Color(0xFFEAB308) else theme.borderColor), RoundedCornerShape(10.dp)).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
+                    }
+                }
             }
         }
     }
@@ -1111,7 +1140,7 @@ fun UsersScreen(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
-                TopBarHeader(onRefresh = { load() }, onLogout = onLogout, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
+                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
 
                 Box(
                     Modifier
