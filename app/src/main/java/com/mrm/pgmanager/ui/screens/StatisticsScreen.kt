@@ -113,8 +113,8 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                             }
                             Text("10.1 TB", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("↓ 565.3 GB", fontSize = 8.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 5.dp, vertical = 2.dp))
-                                Text("↑ 9.5 TB", fontSize = 8.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 5.dp, vertical = 2.dp))
+                                Text("↓ 565.3 GB", fontSize = 9.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 5.dp, vertical = 2.dp))
+                                Text("↑ 9.5 TB", fontSize = 9.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 5.dp, vertical = 2.dp))
                             }
                         }
                     }
