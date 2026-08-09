@@ -55,6 +55,8 @@ import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
+import com.mrm.pgmanager.ui.screens.StatisticsScreen
+import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -153,6 +155,7 @@ fun MRMApp() {
     var addingAccount by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
+    var showDrawer by remember { mutableStateOf(false) }
     var showDashboardSettings by remember { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
     var deepLinkUsername by remember { mutableStateOf<String?>(null) }
@@ -219,7 +222,7 @@ fun MRMApp() {
         // pending غیرنال بودن یعنی mainActivity هم غیرنال است (کامپایلر smart-cast می‌کند).
         if (pending != null && session != null) {
             mainActivity.pendingDeepLink = null
-            selectedTab = if (pending.first == NotificationHelper.DEST_USERS) 1 else 0
+            selectedTab = if (pending.first == NotificationHelper.DEST_USERS) 1 else 0 // statistics is tab 2, deep-link still goes to dashboard/users
             deepLinkUsername = pending.second.takeIf { it.isNotBlank() }
         }
     }
@@ -277,9 +280,29 @@ fun MRMApp() {
                     isAppLockEnabled = false
                 }
             }
+            androidx.compose.material3.ModalNavigationDrawer(
+                drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed),
+                gesturesEnabled = true,
+                drawerContent = {
+                    PasarGuardDrawer(
+                        selectedId = listOf("dashboard","users","statistics")[selectedTab.coerceIn(0,2)],
+                        onSelect = { id ->
+                            selectedTab = when(id) { "dashboard"->0; "statistics"->2; else->1 }
+                            // for unimplemented sections keep on dashboard
+                            if (id !in listOf("dashboard","users","statistics")) { /* TODO: hosts/groups etc */ }
+                        },
+                        onClose = { showDrawer = false },
+                        adminName = session?.username ?: "mrm",
+                        traffic = "12.43 TB"
+                    )
+                }
+            ) {
             Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
                 Box(Modifier.fillMaxSize()) {
-                    if (selectedTab == 0) DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false }) else UsersScreen(
+                    when (selectedTab) {
+                        0 -> DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false })
+                        2 -> StatisticsScreen(session!!, onSettings = { showDashboardSettings = true })
+                        else -> UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
                 themeState = effectiveTheme,
@@ -305,19 +328,13 @@ fun MRMApp() {
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                 ) {
                     Row(
-                        Modifier.height(56.dp).width(224.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Xl)
-                            .shadow(
-                                elevation = com.mrm.pgmanager.ui.designsystem.DsElevation.High.ambient.dp,
-                                shape = com.mrm.pgmanager.ui.designsystem.DsRadius.Xl,
-                                ambientColor = effectiveTheme.accentPrimary.copy(0.28f),
-                                spotColor = Color.Black.copy(0.20f)
-                            )
-                            .background(if (effectiveTheme.isDark) effectiveTheme.cardSurfaceColor.copy(alpha = 0.96f) else effectiveTheme.cardSurfaceColor.copy(alpha = 0.96f))
-                            .border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Thin, com.mrm.pgmanager.ui.theme.glassBorder(effectiveTheme.isDark, effectiveTheme.amoledDark)), com.mrm.pgmanager.ui.designsystem.DsRadius.Xl)
-                            .padding(5.dp),
+                        Modifier.height(48.dp).width(300.dp).clip(RoundedCornerShape(14.dp))
+                            .background(effectiveTheme.cardSurfaceColor)
+                            .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(14.dp))
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        listOf("داشبورد" to AppIcon.Gauge, "کاربران" to AppIcon.Users).forEachIndexed { index, (label, icon) ->
+                        listOf("Dashboard" to AppIcon.Gauge, "Users" to AppIcon.Users, "Stats" to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
                             val scale by androidx.compose.animation.core.animateFloatAsState(
                                 targetValue = if (selected) 1f else 0.92f,
@@ -326,14 +343,8 @@ fun MRMApp() {
                             )
                             Box(
                                 Modifier.weight(1f).fillMaxHeight().graphicsLayer(scaleX = scale, scaleY = scale)
-                                    .clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg)
-                                    .shadow(
-                                        elevation = if (selected) com.mrm.pgmanager.ui.designsystem.DsElevation.Low.spot.dp else 0.dp,
-                                        shape = com.mrm.pgmanager.ui.designsystem.DsRadius.Lg,
-                                        ambientColor = effectiveTheme.accentPrimary.copy(0.4f),
-                                        spotColor = effectiveTheme.accentPrimary.copy(0.5f)
-                                    )
-                                    .background(if (selected) effectiveTheme.accentPrimary.copy(.9f) else Color.Transparent)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (selected) com.mrm.pgmanager.ui.designsystem.DsAccent.Gold else Color.Transparent)
                                     .clickable { selectedTab = index },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -346,6 +357,8 @@ fun MRMApp() {
                     }
                 }
                 if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false })
+            }
+            }
             }
         }
     }
@@ -361,9 +374,9 @@ fun AppLockScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(22.dp),
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(if (themeState.isDark) themeState.dialogBgColor.copy(alpha = 0.94f) else Color.White.copy(alpha = 0.92f)).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(32.dp)).padding(32.dp)
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, themeState.borderColor), RoundedCornerShape(16.dp)).padding(24.dp)
         ) {
-            Box(Modifier.size(76.dp).clip(RoundedCornerShape(24.dp)).background(themeState.accentPrimary.copy(alpha = 0.18f)).border(BorderStroke(1.2.dp, themeState.accentPrimary), RoundedCornerShape(24.dp)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(1.dp, Color(0xFFFDE68A)), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
