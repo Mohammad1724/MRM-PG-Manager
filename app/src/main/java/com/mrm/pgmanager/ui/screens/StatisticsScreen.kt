@@ -166,6 +166,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) { Text("⎙", fontSize = 12.sp, color = theme.mutedColor) }
                         PGDropdown(value = onlineFilter, onClick = { onlineFilter = if (onlineFilter == "Online Users") "Active Users" else "Online Users" })
                         PGDropdown(value = "All admins", onClick = {})
+                        Spacer(Modifier.width(12.dp))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Group by node", fontSize = 10.sp, color = theme.mutedColor)
