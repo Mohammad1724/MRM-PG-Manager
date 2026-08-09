@@ -2,6 +2,7 @@ package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +28,7 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
+import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
 
 @Composable
@@ -55,9 +57,7 @@ fun LoginScreen(
                     }
                     Column { Text("MRM", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.inkColor); Text("PASARGUARD", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.SemiBold) }
                 }
-                Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).let { it }, contentAlignment = Alignment.Center) {
-                    // use icon button-like
-                    androidx.compose.foundation.clickable { showThemeDialog = true }
+                Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { showThemeDialog = true }, contentAlignment = Alignment.Center) {
                     RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
                 }
             }
@@ -92,8 +92,7 @@ fun LoginScreen(
                 // Primary yellow button
                 Box(
                     Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).background(themeState.accentPrimary)
-                        .let { if (!loading) it else it }
-                        .run { androidx.compose.foundation.clickable(enabled = !loading) {
+                        .clickable(enabled = !loading) {
                             if (loading) return@clickable
                             loading = true; error = null
                             scope.launch {
@@ -110,7 +109,7 @@ fun LoginScreen(
                                 }
                                 loading = false
                             }
-                        } },
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF422006), strokeWidth = 2.dp)
