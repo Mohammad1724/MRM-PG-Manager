@@ -106,15 +106,19 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("17.3%", fontSize = 9.sp, color = theme.mutedColor) } })
                         // Total Traffic with in/out - same 92dp height
-                        Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                        Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = Color(0xFFCA8A04), size = 12.dp) }
                                 Text("Total Traffic", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text("10.1 TB", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("↓ 565.3 GB", fontSize = 9.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 5.dp, vertical = 2.dp))
-                                Text("↑ 9.5 TB", fontSize = 9.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 5.dp, vertical = 2.dp))
+                            Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).border(BorderStroke(0.7.dp, Color(0xFFBBF7D0)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text("↓ 565.3 GB", fontSize = 9.sp, color = Color(0xFF065F46), fontWeight = FontWeight.Bold, maxLines = 1)
+                                }
+                                Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).border(BorderStroke(0.7.dp, Color(0xFFBFDBFE)), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text("↑ 9.5 TB", fontSize = 9.sp, color = Color(0xFF1E3A8A), fontWeight = FontWeight.Bold, maxLines = 1)
+                                }
                             }
                         }
                     }
