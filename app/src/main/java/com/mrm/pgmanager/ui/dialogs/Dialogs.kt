@@ -104,7 +104,7 @@ fun ConfirmActionDialog(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(24.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(24.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                 Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
@@ -140,7 +140,7 @@ fun QuickActionSheet(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(20.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
@@ -623,9 +623,9 @@ fun ThemeEditorDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
-            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(26.dp))
+            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(16.dp))
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(26.dp))
+                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
                 .padding(16.dp)
         ) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
@@ -1229,7 +1229,7 @@ fun ThemeEditorDialog(
         var restoring by remember { mutableStateOf(false) }
         val ctx = LocalContext.current
         Dialog(onDismissRequest = { if (!restoring) restoreDialogOpen = false }) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(18.dp)) {
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(18.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("بازیابی پشتیبان", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
@@ -1419,7 +1419,7 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(24.dp)).padding(20.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp)).padding(20.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
                 Box(Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
@@ -1462,7 +1462,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
         }
     }
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp)).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -1860,7 +1860,7 @@ fun UserDetailsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(28.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(28.dp))) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("جزئیات کاربر", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
@@ -2038,7 +2038,7 @@ fun BulkApplyTemplateDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), GlassShape).padding(22.dp)
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
