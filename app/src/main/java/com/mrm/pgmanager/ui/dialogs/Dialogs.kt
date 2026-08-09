@@ -1576,14 +1576,14 @@ fun UserEditorDialog(
         templates = runCatching { PanelApi.userTemplates(session) }.getOrDefault(emptyList())
     } }
     // هر بخش اصلی یک کادر مستقل دارد تا فرم در موبایل سریع‌تر قابل اسکن باشد.
-    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-        .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
-        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
-        .padding(8.dp)
+    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+        .background(theme.cardSurfaceColor)
+        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+        .padding(10.dp)
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))) {
             Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp)
@@ -1830,28 +1830,28 @@ fun UserDetailsDialog(
     val percentage = if (currentUser.dataLimit > 0L) ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
     val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
 
-    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-        .background(Color.White.copy(alpha = if (theme.isDark) .075f else .58f))
-        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(20.dp)).padding(15.dp)
+    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+        .background(theme.cardSurfaceColor)
+        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp)).padding(12.dp)
 
     @Composable fun sectionTitle(text: String) = Text(text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
     @Composable fun statTile(label: String, value: String, modifier: Modifier = Modifier) {
-        Column(modifier.height(54.dp).clip(RoundedCornerShape(10.dp)).background(if (theme.isDark) Color.White.copy(.07f) else Color.Black.copy(.035f)).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(modifier.height(54.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Text(label, fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(value, modifier = Modifier.offset(y = (-2).dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
     // دکمهٔ اکشن دیالوگ جزئیات: primary = کپسول اکسنت ۷۸٪ + متن تیره (بدون مرز)، neutral = کاشی خاکستری، destructive = قرمز کم‌رنگ.
     @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, height: androidx.compose.ui.unit.Dp = 44.dp, click: () -> Unit) {
-        val bg = when { primary -> theme.accentPrimary.copy(.78f); destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
+        val bg = when { primary -> com.mrm.pgmanager.ui.designsystem.DsAccent.Gold; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
         val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
         // حالت primary مرز نامرئی دارد (اکسنت با آلفای صفر) تا فقط پس‌زمینهٔ توپُر دیده شود؛ چیدمان ثابت می‌ماند.
         var borderColor = glassBorder(theme.isDark, theme.amoledDark)
         if (destructive) borderColor = GlassRed.copy(.30f)
-        if (primary) borderColor = theme.accentPrimary.copy(0f)
+        if (primary) borderColor = Color(0xFFEAB308)
         Box(
             modifier.height(height).clip(RoundedCornerShape(10.dp)).background(bg)
-                .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(10.dp))
+                .border(BorderStroke(0.7.dp, borderColor), RoundedCornerShape(10.dp))
                 .clickable(onClick = click),
             contentAlignment = Alignment.Center
         ) {
@@ -1860,16 +1860,16 @@ fun UserDetailsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(28.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(28.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("جزئیات کاربر", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                 // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                        .background(if (theme.isDark) Color.White.copy(.07f) else Color.White)
-                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 11.dp, vertical = 5.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 11.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
@@ -1886,8 +1886,8 @@ fun UserDetailsDialog(
                 if (!currentUser.note.isNullOrBlank()) {
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(if (theme.isDark) Color.White.copy(.06f) else Color(0xFFF6F6F8))
-                            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
+                            .background(theme.searchBgColor)
+                            .border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp))
                             .padding(horizontal = 10.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -1903,9 +1903,9 @@ fun UserDetailsDialog(
                 // سه آمار ضروری در یک ردیف؛ محدودیت دستگاه از این نمای خلاصه حذف شده است.
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
-                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp))
-                        .padding(8.dp),
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+                        .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text("وضعیت اشتراک", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
@@ -1916,7 +1916,7 @@ fun UserDetailsDialog(
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("مصرف", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(4.dp)).background(Color.Gray.copy(.18f))) { Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(4.dp))) }
+                        Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) { if (percentage>0) Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(50))) }
                         Text("$percentage%", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = progressColor)
                     }
                 }
@@ -1924,9 +1924,9 @@ fun UserDetailsDialog(
                 // کارت اشتراک - فقط آیکون‌ها بدون متن
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                        .background(if (theme.isDark) Color.White.copy(.075f) else Color.White)
-                        .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 8.dp, vertical = 7.dp),
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
