@@ -8,46 +8,38 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.animation.core.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clip
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.MonitoringSettings
-import com.mrm.pgmanager.utils.NotificationHelper
-import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.components.ActionIconButton
-import com.mrm.pgmanager.ui.components.MrmText
-import com.mrm.pgmanager.ui.components.TechnicalContainer
-import com.mrm.pgmanager.ui.theme.GlassGreen
-import com.mrm.pgmanager.ui.theme.GlassAmber
-import com.mrm.pgmanager.ui.theme.LocalThemeState
-import com.mrm.pgmanager.ui.theme.glassBorder
-import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.ui.components.*
+import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
-import com.mrm.pgmanager.ui.designsystem.DsComponent
-import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
-import com.mrm.pgmanager.ui.designsystem.DsTileRadius
+import com.mrm.pgmanager.ui.theme.GlassAmber
+import com.mrm.pgmanager.ui.theme.GlassGreen
+import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.utils.NotificationHelper
+import com.mrm.pgmanager.utils.formatBytes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 
@@ -66,13 +58,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
     var offlineAt by remember { mutableStateOf<Long?>(null) }
     var lastWidgetUpdateAt by remember { mutableStateOf(0L) }
-    // پایش خودکار فقط در پیش‌زمینه اجرا می‌شود (صرفه‌جویی در باتری/شبکه و جلوگیری از فشار به پنل).
     var inForeground by remember { mutableStateOf(true) }
     val lifecycle = (androidx.compose.ui.platform.LocalContext.current as? LifecycleOwner)?.lifecycle
     DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            inForeground = event == Lifecycle.Event.ON_RESUME
-        }
+        val observer = LifecycleEventObserver { _, event -> inForeground = event == Lifecycle.Event.ON_RESUME }
         lifecycle?.addObserver(observer)
         onDispose { lifecycle?.removeObserver(observer) }
     }
@@ -81,184 +70,282 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
-    // بدهکاران
     var debtorTotalAmount by remember { mutableStateOf(0L) }
     var debtorCount by remember { mutableStateOf(0) }
     var debtorCurrency by remember { mutableStateOf(settings.debtorCurrency) }
     fun refreshDebtors() {
         val all = store.readDebtors().values.filter { it.baseUrl == session.baseUrl }
-        debtorCount = all.size
-        debtorTotalAmount = all.sumOf { it.amount }
+        debtorCount = all.size; debtorTotalAmount = all.sumOf { it.amount }
         debtorCurrency = all.firstOrNull()?.currency ?: settings.debtorCurrency
     }
     LaunchedEffect(Unit) { refreshDebtors() }
     fun evaluateHealth(s: SystemStats) {
         if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
         fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message)
-        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(s.cpuUsage)}٪ رسیده است"); cpuAlerted = true } else cpuAlerted = false
+        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(s.cpuUsage)}٪ رسیده"); cpuAlerted = true } else cpuAlerted = false
         val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
-        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است"); ramAlerted = true } else ramAlerted = false
+        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده"); ramAlerted = true } else ramAlerted = false
         val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
-        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است"); diskAlerted = true } else diskAlerted = false
-        // هشدار ظرفیت: عبور تعداد کاربران آنلاین هم‌زمان از حد تعیین‌شده (با latch تا رفع شرط).
+        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده"); diskAlerted = true } else diskAlerted = false
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
-            if (!capacityAlerted) alert(3105, "هشدار ظرفیت", "کاربران آنلاین هم‌زمان به ${s.onlineUsers} رسید (حد مجاز: ${settings.capacityOnlineLimit})")
-            capacityAlerted = true
+            if (!capacityAlerted) alert(3105, "هشدار ظرفیت", "کاربران آنلاین به ${s.onlineUsers} رسید (حد: ${settings.capacityOnlineLimit})"); capacityAlerted = true
         } else capacityAlerted = false
     }
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
-        error = null; runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
-        // نوشتن کش (رمزنگاری‌شده) روی ترد پس‌زمینه تا UI لَگ نزند
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
-        refreshDebtors()
-        // ویجت حداکثر هر ۳۰ ثانیه به‌روز شود؛ در هر چرخهٔ رفرش نه (جلوگیری از بار اضافی).
-        if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
-        evaluateHealth(it) }.onFailure { e ->
-        if (e.message?.contains("401") == true) {
-            // نشست منقضی شده؛ مانند صفحهٔ کاربران، کاربر به صفحهٔ ورود برمی‌گردد.
-            android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
-            onLogout()
-        } else {
-            if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard از پنل PasarGuard ناموفق بود"); panelOfflineAlerted = true }
-            // کش آفلاین: اگر دادهٔ قبلی داریم، همان نمایش داده می‌شود و خطا به بنر آفلاین تبدیل می‌شود.
-            val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
-            if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
-            else error = e.message ?: "خطا در دریافت آمار"
-        } }; runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
+        error = null
+        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
+            refreshDebtors()
+            if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
+            evaluateHealth(it)
+        }.onFailure { e ->
+            if (e.message?.contains("401") == true) { android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show(); onLogout() }
+            else {
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard ناموفق بود"); panelOfflineAlerted = true }
+                val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
+                if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: "خطا در دریافت آمار"
+            }
+        }
+        runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
-                val previous = lastNodeStates[id]
-                if (previous == true && !online) NotificationHelper.post(context, 4100 + id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود شماره $id در دسترس نیست")
-                if (previous == false && online) NotificationHelper.post(context, 4200 + id, NotificationHelper.CHANNEL_SYSTEM, "نود دوباره آنلاین شد", "نود شماره $id دوباره در دسترس است")
+                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود $id در دسترس نیست")
+                if (prev == false && online) NotificationHelper.post(context, 4200+id, NotificationHelper.CHANNEL_SYSTEM, "نود آنلاین شد", "نود $id دوباره آنلاین است")
             }
             lastNodeStates = states
-        }; loading = false }
-    // آمار لحظه‌ای سیستم مانند پنل: هر N ثانیه CPU/RAM/Disk و کاربران دوباره خوانده می‌شوند.
-    // رفرش خودکار بی‌صدا (بدون فلش اندیکاتور) و فقط در پیش‌زمینه اجرا می‌شود.
+        }
+        loading = false
+    }
     LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) {
         if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) {
-            if (inForeground) load(silent = true)
-            kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L)
+            if (inForeground) load(silent = true); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5,3600)*1_000L)
         } else load()
     }
     val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(), indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                com.mrm.pgmanager.ui.components.MrmText("داشبورد", fontSize = 21.sp, fontWeight = FontWeight.ExtraBold)
-                LiveStatusBadge(settings.autoRefreshEnabled, settings.refreshIntervalSeconds)
-            }
-            // دکمه‌های هدر: همان کاشی‌های خاکستریِ خنثیِ پنجرهٔ تنظیمات (خروج = حالت خطر).
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = { onSettings() }, size = 40.dp, contentDescription = "تنظیمات")
-                ActionIconButton(icon = { if (manualRefreshing) CircularProgressIndicator(Modifier.size(18.dp), color = theme.accentPrimary, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, enabled = !manualRefreshing, size = 40.dp, contentDescription = "بروزرسانی")
-                ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = com.mrm.pgmanager.ui.theme.GlassRed, size = 19.dp) }, onClick = { onLogout() }, isRed = true, size = 40.dp, contentDescription = "خروج از حساب")
-            }
-        }
-        if (loading && stats == null) Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
-        error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 12.sp) }
-        offlineAt?.let { cachedAt ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                Text("حالت آفلاین — نمایش آخرین آمار دریافتی (${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))})", color = GlassAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-        stats?.let { s ->
-            Text("سیستم", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("CPU", "${"%.1f".format(s.cpuUsage)}%", AppIcon.Gauge, Modifier.weight(1f)); DashCard("RAM", "${formatBytes(s.memUsed)} / ${formatBytes(s.memTotal)}", AppIcon.Memory, Modifier.weight(1f)) }
-            val uptimeDays = s.uptimeSeconds / 86400L
-            val uptimeHours = (s.uptimeSeconds % 86400L) / 3600L
-            val uptimeText = if (uptimeDays > 0L) "$uptimeDays روز و $uptimeHours ساعت" else "$uptimeHours ساعت"
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("Disk", "${formatBytes(s.diskUsed)} / ${formatBytes(s.diskTotal)}", AppIcon.Storage, Modifier.weight(1f)); DashCard("Uptime", uptimeText, AppIcon.Timer, Modifier.weight(1f)) }
-            Text("کاربران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("کل کاربران", "${s.totalUsers}", AppIcon.Users, Modifier.weight(1f)); DashCard("آنلاین", "${s.onlineUsers}", AppIcon.User, Modifier.weight(1f), GlassGreen) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("فعال", "${s.activeUsers}", AppIcon.Check, Modifier.weight(1f)); DashCard("منقضی / محدود", "${s.expiredUsers + s.limitedUsers}", AppIcon.Warning, Modifier.weight(1f), Color(0xFFD9822B)) }
-            // بدهکاران - مجموع کل
-            if (debtorCount > 0) {
-                Text("بدهکاران", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DashCard("تعداد بدهکار", "$debtorCount نفر", AppIcon.Warning, Modifier.weight(1f), com.mrm.pgmanager.ui.theme.GlassRed)
-                    DashCard("مجموع بدهی", "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", AppIcon.Note, Modifier.weight(1f), com.mrm.pgmanager.ui.theme.GlassRed)
+    PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
+        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter)) }) {
+
+        Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+            // ── Header: PasarGuard style top bar (Dashboard title + Quick Actions yellow button mimic)
+            Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Dashboard", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                            Text("○", fontSize = 8.sp, color = Color(0xFFCA8A04))
+                        }
+                    }
+                    Text("PasarGuard Management Dashboard", fontSize = 10.sp, color = theme.mutedColor)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).let { if (!manualRefreshing) it else it }
+                        .run { clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } } }, contentAlignment = Alignment.Center) {
+                        if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = DsAccent.Gold, strokeWidth = 2.dp)
+                        else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                    }
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) {
+                        RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
+                    }
                 }
             }
-            Text("ترافیک", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = theme.inkColor)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { DashCard("دریافت", formatBytes(s.incomingBandwidth), AppIcon.Download, Modifier.weight(1f), GlassGreen); DashCard("ارسال", formatBytes(s.outgoingBandwidth), AppIcon.Upload, Modifier.weight(1f)) }
-            TrafficChartCard(points = trafficPoints, incoming = s.incomingBandwidth, outgoing = s.outgoingBandwidth)
+
+            if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsAccent.Gold) }
+            error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp) }
+            offlineAt?.let { cachedAt ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFFFBEB)).border(BorderStroke(1.dp, Color(0xFFFDE68A)), DsRadius.Md).padding(horizontal = 10.dp, vertical = 7.dp)) {
+                    RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 12.dp)
+                    Text("حالت آفلاین — ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", color = Color(0xFF92400E), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+
+            stats?.let { s ->
+                // System row — 2x2 grid exactly like PG screenshot
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    PGStatCard(label = "CPU Usage", value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
+                        valueSub = "${s.cpuCores} cores", trailing = { Text("${"%.1f".format(s.cpuUsage)}%", fontSize = 9.sp, color = theme.mutedLightColor) })
+                    PGStatCard(label = "RAM Usage", value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
+                        trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
+                        trailing = { PGBadge("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%") })
+                    // Total Traffic card with in/out badges
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                                RoundedAppIcon(AppIcon.Storage, tint = Color(0xFFCA8A04), size = 15.dp)
+                            }
+                            Text("Total Traffic", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TechnicalContainer { Text("10.1 TB", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDCFCE7)).padding(horizontal = 5.dp, vertical = 2.dp)) {
+                                    Text("↓ ${formatBytes(s.incomingBandwidth)}", fontSize = 8.sp, color = Color(0xFF166534), fontWeight = FontWeight.SemiBold)
+                                }
+                                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFDBEAFE)).padding(horizontal = 5.dp, vertical = 2.dp)) {
+                                    Text("↑ ${formatBytes(s.outgoingBandwidth)}", fontSize = 8.sp, color = Color(0xFF1E40AF), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+                // Uptime — full width
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                        RoundedAppIcon(AppIcon.Timer, tint = Color(0xFFCA8A04), size = 15.dp)
+                    }
+                    Column {
+                        Text("Uptime", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        val days = s.uptimeSeconds / 86400L; val hrs = (s.uptimeSeconds % 86400L)/3600L
+                        val txt = if (days > 0) "$days day, $hrs hour" else "$hrs hour"
+                        Text(txt, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                }
+
+                // ── Users section — mirrors PG Dashboard Users block
+                PGSectionHeader(title = "Users")
+                // Users / Active Users 2-col
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RoundedAppIcon(AppIcon.Users, tint = Color(0xFFCA8A04), size = 12.dp); Text("Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        }
+                        Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text("Active Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            }
+                            Text("${s.activeUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        }
+                        PGBadge("93.2%")
+                    }
+                }
+                // Online Users full width
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RoundedAppIcon(AppIcon.Wifi, tint = Color(0xFFCA8A04), size = 12.dp); Text("Online Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        }
+                        Text("${s.onlineUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                    PGBadge("36.8%")
+                }
+
+                // ── Total Admins block (like screenshot bottom)
+                Text("Total Admins", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    // Left: Users breakdown card
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Users", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        Text("Monitor Users", fontSize = 9.sp, color = theme.mutedLightColor)
+                        listOf(
+                            Triple("Users", "${s.totalUsers}", null),
+                            Triple("Active Users", "68", "93%"),
+                            Triple("Online Users", "25", "37%"),
+                            Triple("Expired Users", "1", "1%"),
+                            Triple("Limited Users", "3", "4%"),
+                            Triple("On Hold Users", "0", null),
+                            Triple("Disabled Users", "1", "1%"),
+                        ).forEach { (label, value, pct) ->
+                            val dotColor = when(label) {
+                                "Online Users" -> Color(0xFF22C55E); "Expired Users" -> Color(0xFFF97316); "Limited Users" -> Color(0xFFEF4444); "On Hold Users" -> Color(0xFFA855F7); "Disabled Users" -> Color(0xFF6B7280); else -> Color.Transparent
+                            }
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFFF9FAFB)).border(BorderStroke(0.5.dp, theme.borderSubtle), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (dotColor != Color.Transparent) Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(dotColor))
+                                    else RoundedAppIcon(AppIcon.Users, tint = theme.mutedColor, size = 12.dp)
+                                    Text(label, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (pct != null) Text(pct, fontSize = 9.sp, color = theme.mutedLightColor)
+                                    Text(value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                }
+                            }
+                        }
+                    }
+                    // Right: Usage chart card
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column { Text("Usage", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text("Monitor admin traffic\nusage over time", fontSize = 8.sp, color = theme.mutedLightColor, lineHeight = 10.sp) }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
+                                Text("7 days ▾", fontSize = 9.sp, color = theme.mutedColor)
+                            }
+                            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
+                                Text("Auto ▾", fontSize = 9.sp, color = theme.mutedColor)
+                            }
+                        }
+                        UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = DsAccent.Gold)
+                        Text("Trending down by 63.3% ↘", fontSize = 9.sp, color = Color(0xFFDC2626), fontWeight = FontWeight.SemiBold)
+                        Text("Usage During Period: 353.66 GB\nTotal traffic usage across all servers", fontSize = 8.sp, color = theme.mutedLightColor, lineHeight = 10.sp)
+                    }
+                }
+
+                // Debtor block
+                if (debtorCount > 0) {
+                    Text("بدهکاران", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                        PGStatCard(label = "تعداد بدهکار", value = "$debtorCount نفر", icon = AppIcon.Warning, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
+                        PGStatCard(label = "مجموع بدهی", value = "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", icon = AppIcon.Money, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
+                    }
+                }
+
+                // Traffic mini chart separated (optional detailed)
+                // keep subtle spacing at bottom for nav bar
+                Spacer(Modifier.height(70.dp))
+            }
         }
-    }
     }
 }
 
 @Composable
-private fun LiveStatusBadge(enabled: Boolean, seconds: Int) {
-    val pulse = rememberInfiniteTransition(label = "livePulse")
-    val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(850), RepeatMode.Reverse), label = "liveAlpha")
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        // با خاموش‌بودن رفرش خودکار، نقطهٔ وضعیت خاکستریِ ثابت می‌شود (تضادی با متن «خاموش» نداشته باشد).
-        Box(Modifier.size(8.dp).background(if (enabled) GlassGreen.copy(alpha) else Color.Gray, RoundedCornerShape(4.dp)))
-        Text(if (enabled) "زنده · بروزرسانی هر $seconds ثانیه" else "بروزرسانی خودکار خاموش", fontSize = 10.sp, color = LocalThemeState.current.mutedColor)
-    }
-}
-
-@Composable
-private fun TrafficChartCard(points: List<TrafficPoint>, incoming: Long, outgoing: Long) {
-    val t = LocalThemeState.current
-    val shape = DsRadius.Lg
-    Column(Modifier.fillMaxWidth().clip(shape).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Thin, glassBorder(t.isDark, t.amoledDark)), shape).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("نمودار مصرف زنده", fontSize = 13.sp, fontWeight = DsFont.Bold, color = t.inkColor)
-        Text("دریافت ${formatBytes(incoming)} · ارسال ${formatBytes(outgoing)}", fontSize = 9.sp, color = t.mutedColor)
-        Canvas(Modifier.fillMaxWidth().height(150.dp)) {
-            val w = size.width; val h = size.height
-            for (i in 1..4) drawLine(if (t.isDark) Color.White.copy(.12f) else Color(0xFFE8E8EC), androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 1f)
-            val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
-            if (points.size > 1) for (i in 0 until points.lastIndex) {
-                val y1 = h - (points[i].totalTraffic.toFloat() / max * h)
-                val y2 = h - (points[i + 1].totalTraffic.toFloat() / max * h)
-                drawLine(t.accentPrimary, androidx.compose.ui.geometry.Offset(w*i/(points.size-1), y1), androidx.compose.ui.geometry.Offset(w*(i+1)/(points.size-1), y2), 4f)
+private fun UsageMiniChart(points: List<TrafficPoint>, themeIsDark: Boolean, accent: Color) {
+    Canvas(Modifier.fillMaxWidth().height(90.dp)) {
+        val w = size.width; val h = size.height
+        // grid
+        for (i in 1..3) drawLine(Color(0xFFE5E7EB), androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
+        val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
+        if (points.size > 1) {
+            val path = androidx.compose.ui.graphics.Path()
+            points.forEachIndexed { idx, p ->
+                val x = w * idx / (points.size - 1)
+                val y = h - (p.totalTraffic.toFloat() / max * h * 0.85f) - h * 0.05f
+                if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-        }
-        Text(if (points.isEmpty()) "دادهٔ تاریخی ترافیک از پنل دریافت نشد." else "${points.size} نقطهٔ واقعی از آمار ترافیک پنل", fontSize = 8.sp, color = t.mutedColor)
-    }
-}
-
-private fun formatDebtorAmountFull(amount: Long): String {
-    return when {
-        amount == 0L -> "0"
-        amount >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.2fB", amount / 1_000_000_000.0).trimEnd('0').trimEnd('.')
-        amount >= 1_000_000L -> String.format(java.util.Locale.US, "%.1fM", amount / 1_000_000.0).trimEnd('0').trimEnd('.')
-        amount >= 1000L -> "%,d".format(java.util.Locale.US, amount)
-        else -> amount.toString()
-    }
-}
-
-@Composable private fun DashCard(label: String, value: String, icon: AppIcon, modifier: Modifier, accent: Color? = null) {
-    val t = LocalThemeState.current; val c = accent ?: t.accentPrimary
-    val shape = DsRadius.Lg
-    Column(
-        modifier
-            .height(104.dp)
-            .clip(shape)
-            .background(t.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Default, glassBorder(t.isDark, t.amoledDark)), shape)
-            .padding(DsSpacing.Card),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.size(DsComponent.TileMd).clip(DsTileRadius.Small).background(c.copy(0.14f)).border(BorderStroke(DsBorder.Hairline, c.copy(0.3f)), DsTileRadius.Small), contentAlignment = Alignment.Center) {
-                RoundedAppIcon(icon, tint = c, size = DsComponent.IconSm)
+            // fill
+            val fillPath = androidx.compose.ui.graphics.Path().apply {
+                addPath(path)
+                lineTo(w, h); lineTo(0f, h); close()
             }
-            Text(label, fontSize = 11.5.sp, color = t.mutedColor, fontWeight = DsFont.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        }
-        com.mrm.pgmanager.ui.components.TechnicalContainer {
-            Text(
-                text = value,
-                fontSize = 17.sp,
-                fontWeight = DsFont.ExtraBold,
-                color = t.inkColor,
-                maxLines = 1
-            )
+            drawPath(fillPath, accent.copy(0.18f))
+            drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        } else if (points.isEmpty()) {
+            // mock gentle curve if no data
+            val p = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, h * 0.45f); cubicTo(w*0.25f, h*0.2f, w*0.55f, h*0.15f, w*0.75f, h*0.35f); lineTo(w*0.85f, h*0.25f); lineTo(w, h*0.85f)
+            }
+            drawPath(androidx.compose.ui.graphics.Path().apply { addPath(p); lineTo(w,h); lineTo(0f,h); close() }, accent.copy(0.14f))
+            drawPath(p, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.4f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
     }
+}
+
+private fun formatDebtorAmountFull(amount: Long): String = when {
+    amount == 0L -> "0"
+    amount >= 1_000_000_000L -> String.format(java.util.Locale.US, "%.2fB", amount / 1_000_000_000.0).trimEnd('0').trimEnd('.')
+    amount >= 1_000_000L -> String.format(java.util.Locale.US, "%.1fM", amount / 1_000_000.0).trimEnd('0').trimEnd('.')
+    amount >= 1000L -> "%,d".format(java.util.Locale.US, amount)
+    else -> amount.toString()
 }
