@@ -149,31 +149,25 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Lg
+    // PasarGuard: flat white card, HairlineLight border, no shadow
     Box(
         modifier = modifier
-            .height(90.dp)
+            .height(82.dp)
             .clip(shape)
-            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = accent.copy(0.18f), spotColor = accent.copy(0.12f))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Default, glassBorder(theme.isDark, theme.amoledDark)), shape)
-            .padding(DsSpacing.Card)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
+            .padding(12.dp)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.size(DsComponent.TileMd).clip(DsTileRadius.Small).background(accent.copy(.14f)).border(BorderStroke(DsBorder.Hairline, accent.copy(0.3f)), DsTileRadius.Small), contentAlignment = Alignment.Center) {
-                    RoundedAppIcon(icon, tint = accent, size = DsComponent.IconSm)
+                val isGold = accent == theme.accentPrimary || accent == DsAccent.Gold
+                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(if (isGold) Color(0xFFFFFBEB) else accent.copy(0.10f)).border(BorderStroke(0.7.dp, if (isGold) Color(0xFFFDE68A) else accent.copy(0.18f)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                    RoundedAppIcon(icon, tint = if (isGold) Color(0xFFCA8A04) else accent, size = 15.dp)
                 }
-                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             TechnicalContainer {
-                Text(
-                    text = value,
-                    fontSize = 20.sp,
-                    fontWeight = DsFont.ExtraBold,
-                    color = theme.inkColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -191,35 +185,31 @@ private fun SkeletonCard(modifier: Modifier = Modifier) {
 private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     var isFocused by remember { mutableStateOf(false) }
-    val glow by animateFloatAsState(targetValue = if (isFocused) 1f else 0f, animationSpec = DsMotion.Fast, label = "searchGlow")
-    val shape = DsRadius.Lg
+    val shape = RoundedCornerShape(10.dp)
     Box(modifier = modifier
         .fillMaxWidth()
-        .height(DsComponent.SearchBar)
-        .shadow(elevation = (4 * glow).dp, shape = shape, ambientColor = theme.accentPrimary.copy(0.25f), spotColor = theme.accentPrimary.copy(0.20f))
+        .height(40.dp)
         .clip(shape)
-        .background(if (theme.isDark) theme.searchBgColor.copy(alpha = 0.9f) else theme.searchBgColor)
-        .border(BorderStroke(if (isFocused) DsBorder.Focus else DsBorder.Thin, if (isFocused) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
-        .padding(horizontal = DsSpacing.Lg)
+        .background(theme.searchBgColor)
+        .border(BorderStroke(1.dp, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
+        .padding(horizontal = 12.dp)
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
-        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-            Box(Modifier.size(DsComponent.TileSm).clip(DsTileRadius.Small).background(theme.accentPrimary.copy(alpha = if (isFocused) 0.14f else 0f)), contentAlignment = Alignment.Center) {
-                RoundedAppIcon(AppIcon.Search, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = DsComponent.IconSm)
-            }
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RoundedAppIcon(AppIcon.Search, tint = theme.mutedColor, size = 16.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (query.isEmpty()) Text("جستجو در نام و یادداشت...", color = theme.mutedColor.copy(0.7f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (query.isEmpty()) Text("Search", color = theme.mutedColor.copy(0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
                     cursorBrush = androidx.compose.ui.graphics.SolidColor(theme.accentPrimary),
-                    textStyle = TextStyle(color = theme.inkColor, fontSize = 13.5.sp, fontWeight = FontWeight.Medium),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp, fontWeight = FontWeight.Medium),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { inner -> Box(contentAlignment = Alignment.CenterStart) { inner() } }
                 )
             }
-            if (query.isNotEmpty()) Box(Modifier.size(DsComponent.TileSm).clip(DsTileRadius.Small).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, glassBorder(theme.isDark, theme.amoledDark)), DsTileRadius.Small).clickable { onQueryChange("") }, contentAlignment = Alignment.Center) { Text("×", color = theme.mutedColor, fontSize = 15.sp, fontWeight = DsFont.Bold) }
+            if (query.isNotEmpty()) Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(theme.borderSubtle).clickable { onQueryChange("") }, contentAlignment = Alignment.Center) { Text("×", color = theme.mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }
@@ -233,20 +223,29 @@ private fun TopBarHeader(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 4.dp),
+        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("کاربران", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-            Text("مدیریت و نظارت بر حساب‌های کاربری", fontSize = 10.5.sp, color = theme.mutedColor)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Users", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                    Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
+                }
+            }
+            Text("Control, Update, and Arrange User Accounts", fontSize = 10.sp, color = theme.mutedColor)
         }
+        // Create User yellow button + icons
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 19.dp) }, onClick = onOpenThemeDialog, contentDescription = "تنظیمات")
-            ActionIconButton(icon = @Composable { if (loading) CircularProgressIndicator(Modifier.size(14.dp), color = theme.inkColor, strokeWidth = 2.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.inkColor, size = 19.dp) }, onClick = onRefresh, enabled = !loading, contentDescription = "بروزرسانی")
-            ActionIconButton(icon = { RoundedAppIcon(AppIcon.Logout, tint = GlassRed, size = 19.dp) }, onClick = onLogout, isRed = true, contentDescription = "خروج از حساب")
+            Box(Modifier.height(32.dp).clip(RoundedCornerShape(8.dp)).background(DsAccent.Gold).clickable { onOpenThemeDialog() }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("+", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006)); Text("Create User", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
+                }
+            }
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
+                if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 14.dp)
+            }
         }
     }
 }
@@ -308,19 +307,17 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    val shape = DsRadius.Sm
-    // چیپ فیلتر با انیمیشن انتخاب: فعال = کپسول اکسنت با سایهٔ نرم و متن تیره، غیرفعال = کاشی شیشه‌ای خنثی.
+    val shape = RoundedCornerShape(8.dp)
     Box(modifier = Modifier
-        .height(DsComponent.MiniChip)
+        .height(24.dp)
         .clip(shape)
-        .shadow(elevation = if (selected) DsElevation.Low.spot.dp else 0.dp, shape = shape, ambientColor = theme.accentPrimary.copy(0.35f), spotColor = theme.accentPrimary.copy(0.4f))
-        .background(if (selected) theme.accentPrimary.copy(.82f) else theme.searchBgColor)
-        .border(BorderStroke(DsBorder.Thin, if (selected) theme.accentPrimary.copy(0.5f) else glassBorder(theme.isDark, theme.amoledDark)), shape)
+        .background(if (selected) DsAccent.Gold else theme.searchBgColor)
+        .border(BorderStroke(1.dp, if (selected) Color(0xFFEAB308) else theme.borderColor), shape)
         .clickable(onClick = onClick)
-        .padding(horizontal = 12.dp, vertical = 4.dp),
+        .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color(0xFF1C1D21) else theme.inkColor, fontSize = 10.5.sp, fontWeight = if (selected) DsFont.Bold else DsFont.Medium, maxLines = 1)
+        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 10.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
 
@@ -384,27 +381,25 @@ private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modi
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onCopySub: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: DebtorInfo? = null) {
+    // PasarGuard-faithful: compact, no glass, thin progress, subtle status. Matches reference list screenshot.
     val theme = LocalThemeState.current
-    val progressPercent = if (user.dataLimit > 0L) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt() else 0
+    val progressPercent = if (user.dataLimit > 0L) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt().coerceIn(0,100) else 0
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
-    val displayProgress = if (user.dataLimit == 0L) 0.08f else actualProgress.coerceAtLeast(0.08f)
-    val progressColor = when { user.dataLimit <= 0L || progressPercent < 70 -> GlassGreen; progressPercent in 70..89 -> GlassAmber; else -> GlassRed }
-    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
-    val onlineDot = if (user.isOnline) GlassGreen else Color(0xFF9E9E9E)
+    val displayProgress = if (user.dataLimit == 0L) 0f else actualProgress
+    val progressColor = when { user.dataLimit <= 0L -> Color(0xFF9CA3AF); progressPercent < 70 -> Color(0xFF16A34A); progressPercent < 90 -> Color(0xFFD97706); else -> Color(0xFFDC2626) }
     val shape = DsRadius.Lg
+    val statusColor = Color.Transparent
 
     // نمای گرید: کارت شیشه‌ای با سایهٔ نرم و مرز ظریف design system جدید.
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.12f), spotColor = Color.Black.copy(0.06f))
-            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
+            .background(if (selected) Color(0xFFFFFBEB) else theme.cardSurfaceColor)
+            .border(BorderStroke(1.dp, if (selected) Color(0xFFFDE68A) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
-        Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(3.dp).background(statusColor))
-        Column(Modifier.padding(start = 3.dp).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Column(modifier = Modifier.weight(1f)) {
@@ -449,8 +444,9 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                     isTechnical = true
                 )
             }
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(10.dp)).background(trackBg(theme.isDark))) {
-                Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(10.dp)).background(progressColor))
+            // thin PG progress — 4dp, rounded, green fill, neutral track
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+                if (displayProgress > 0f) Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(50)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
@@ -609,11 +605,10 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     Box(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.10f), spotColor = Color.Black.copy(0.05f))
-            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
+            .background(if (selected) Color(0xFFFFFBEB) else theme.cardSurfaceColor)
+            .border(BorderStroke(1.dp, if (selected) Color(0xFFFDE68A) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Card)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -651,8 +646,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(5.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(5.dp)))
+                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+                    if (shownProgress > 0.01f) Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
@@ -692,8 +687,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     MrmText(traffic, fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
                     MrmText(daysLeftText(user.expire), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
-                Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(3.dp)).background(trackBg(theme.isDark))) {
-                    Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(3.dp)))
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+                    if (actualProgress > 0.01f) Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
             }
             IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = "کپی") { onCopySub(user) }
@@ -1030,12 +1025,11 @@ fun UsersScreen(
             Box(
                 modifier = Modifier
                     .padding(bottom = 24.dp)
-                    .size(DsComponent.FAB)
+                    .size(52.dp)
                     .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
-                    .shadow(elevation = DsElevation.High.spot.dp, shape = fabShape, ambientColor = themeState.accentPrimary.copy(0.5f), spotColor = themeState.accentPrimary.copy(0.6f))
-                    .clip(fabShape)
-                    .background(Brush.linearGradient(listOf(themeState.accentPrimary, themeState.accentLight)))
-                    .border(BorderStroke(DsBorder.Hairline, Color.White.copy(0.6f)), fabShape)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(DsAccent.Gold)
+                    .border(BorderStroke(1.dp, Color(0xFFEAB308)), RoundedCornerShape(14.dp))
                     .clickable(interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
