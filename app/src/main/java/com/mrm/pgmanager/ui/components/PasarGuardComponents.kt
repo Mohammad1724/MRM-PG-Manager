@@ -78,7 +78,7 @@ fun PGStatCard(
             ) {
                 RoundedAppIcon(icon, tint = if (accent == DsAccent.Gold) Color(0xFFCA8A04) else accent, size = 15.dp)
             }
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (trailing != null) trailing()
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
