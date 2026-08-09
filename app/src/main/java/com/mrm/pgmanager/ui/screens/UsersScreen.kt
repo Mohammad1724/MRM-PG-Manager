@@ -277,20 +277,23 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showFilterSheet = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.width(110.dp).height(32.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showFilterSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 14.dp)
-                    Text(when(currentFilter){ UserFilter.ALL->"همه"; UserFilter.ACTIVE->"فعال"; UserFilter.NEAR_LIMIT->"لب مرز"; UserFilter.EXPIRED->"منقضی/محدود"; UserFilter.DISABLED->"غیرفعال"; UserFilter.DEBTOR->"بدهکار"}, fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
+                    Text(when(currentFilter){ UserFilter.ALL->"همه"; UserFilter.ACTIVE->"فعال"; UserFilter.NEAR_LIMIT->"لب مرز"; UserFilter.EXPIRED->"منقضی/محدود"; UserFilter.DISABLED->"غیرفعال"; UserFilter.DEBTOR->"بدهکار"}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
-                Text("▾", fontSize = 12.sp, color = theme.mutedColor)
+                Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
-        // Sort dropdown
-        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showSortSheet = true }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+        // Sort dropdown - with icon
+        Box(Modifier.width(110.dp).height(32.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showSortSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(when(currentSort){ UserSort.NAME->"نام"; UserSort.USAGE->"مصرف"; UserSort.EXPIRY->"انقضا"; UserSort.CREATED->"ساخت"}, fontSize = 12.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
-                Text("▾", fontSize = 12.sp, color = theme.mutedColor)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 12.dp)
+                    Text(when(currentSort){ UserSort.NAME->"نام"; UserSort.USAGE->"مصرف"; UserSort.EXPIRY->"انقضا"; UserSort.CREATED->"ساخت"}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                }
+                Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
         // View mode compact
@@ -1048,7 +1051,7 @@ fun UsersScreen(
             val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.90f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
             Box(
                 modifier = Modifier
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = 72.dp, end = 4.dp)
                     .size(52.dp)
                     .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
                     .clip(RoundedCornerShape(14.dp))
