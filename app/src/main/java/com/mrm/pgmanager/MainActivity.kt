@@ -328,7 +328,7 @@ fun MRMApp() {
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                 ) {
                     Row(
-                        Modifier.height(48.dp).width(300.dp).clip(RoundedCornerShape(14.dp))
+                        Modifier.height(48.dp).fillMaxWidth().padding(horizontal = 16.dp).widthIn(max = 400.dp).clip(RoundedCornerShape(14.dp))
                             .background(effectiveTheme.cardSurfaceColor)
                             .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(14.dp))
                             .padding(4.dp),
@@ -337,7 +337,7 @@ fun MRMApp() {
                         listOf("Dashboard" to AppIcon.Gauge, "Users" to AppIcon.Users, "Stats" to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
                             val scale by androidx.compose.animation.core.animateFloatAsState(
-                                targetValue = if (selected) 1f else 0.92f,
+                                targetValue = 1f,
                                 animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.ScaleSpring,
                                 label = "navScale"
                             )
