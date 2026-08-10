@@ -114,6 +114,14 @@ class SessionStore(context: Context) {
 
     fun saveViewMode(mode: ViewMode) = prefs.edit().putString("view_mode", mode.name).apply()
 
+    // === زبان برنامه ===
+    fun readAppLanguage(): String = prefs.getString("app_language", "system") ?: "system"
+
+    fun saveAppLanguage(value: String) {
+        val v = when (value) { "fa", "en", "system" -> value else -> "system" }
+        prefs.edit().putString("app_language", v).apply()
+    }
+
     // === الگوی نام کاربری ===
     fun readUsernamePattern() = UsernamePattern(
         prefix = prefs.getString("uname_prefix", "user")?.ifBlank { "user" } ?: "user",
