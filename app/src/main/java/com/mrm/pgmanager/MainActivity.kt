@@ -52,6 +52,8 @@ import java.util.concurrent.TimeUnit
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
@@ -348,7 +350,7 @@ fun MRMApp() {
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        listOf("Dashboard" to AppIcon.Gauge, "Users" to AppIcon.Users, "Stats" to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
+                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
                             val scale by androidx.compose.animation.core.animateFloatAsState(
                                 targetValue = 1f,
@@ -358,7 +360,7 @@ fun MRMApp() {
                             Box(
                                 Modifier.weight(1f).fillMaxHeight().graphicsLayer(scaleX = scale, scaleY = scale)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (selected) com.mrm.pgmanager.ui.designsystem.DsAccent.Gold else Color.Transparent)
+                                    .background(if (selected) effectiveTheme.accentPrimary else Color.Transparent)
                                     .clickable { selectedTab = index },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -394,12 +396,12 @@ fun AppLockScreen(
                 RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("پنل پاسارگارد قفل است", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                Text("برای دسترسی به کاربران، هویت خود را تایید کنید", fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
+                Text(stringResource(R.string.lock_title), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                Text(stringResource(R.string.lock_subtitle), fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
             }
-            com.mrm.pgmanager.ui.components.PrimaryButton("ورود با اثر انگشت / رمز گوشی", onClick = onUnlockClick, modifier = Modifier.fillMaxWidth())
+            com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.unlock_with_biometric), onClick = onUnlockClick, modifier = Modifier.fillMaxWidth())
             androidx.compose.material3.TextButton(onClick = onLogout) {
-                Text("خروج از حساب کاربری", color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.logout), color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
