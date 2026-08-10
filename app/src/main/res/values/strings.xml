@@ -18,4 +18,98 @@
     <string name="manage_panel">Manage your PasarGuard panel</string>
     <string name="status">Status</string>
     <string name="widget_description">Panel status at a glance: online users and CPU usage of your PasarGuard panel</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard">Dashboard</string>
+    <string name="dashboard_subtitle">PasarGuard Management Dashboard</string>
+    <string name="system">System</string>
+    <string name="cpu_usage">CPU Usage</string>
+    <string name="ram_usage">RAM Usage</string>
+    <string name="disk_usage">Disk Usage</string>
+    <string name="total_traffic">Total Traffic</string>
+    <string name="users_section">Users</string>
+    <string name="active_users">Active Users</string>
+    <string name="online_users">Online Users</string>
+    <string name="expired_users">Expired Users</string>
+    <string name="limited_users">Limited Users</string>
+    <string name="on_hold_users">On Hold Users</string>
+    <string name="disabled_users">Disabled Users</string>
+    <string name="monitor_users">Monitor Users</string>
+    <string name="usage">Usage</string>
+    <string name="monitor_traffic_desc">Monitor admin traffic\nusage over time</string>
+    <string name="days_7">7 days</string>
+    <string name="auto">Auto</string>
+    <string name="trending_up">Trending up by %1$d%% ↗</string>
+    <string name="trending_down">Trending down by %1$d%% ↘</string>
+    <string name="no_trend">No trend yet</string>
+    <string name="usage_during_period">Usage During Period: %1$s</string>
+    <string name="total_traffic_desc">Total traffic usage across all servers</string>
+    <string name="debtors">Debtors</string>
+    <string name="debtor_count">Debtor Count</string>
+    <string name="debtor_total">Total Debt</string>
+    <string name="offline_state">Offline — %1$s</string>
+    <string name="total_admins">Total Admins</string>
+    <string name="uptime">Uptime</string>
+    <string name="download">Download</string>
+    <string name="upload">Upload</string>
+
+    <!-- Statistics -->
+    <string name="statistics">Statistics</string>
+    <string name="statistics_subtitle">Monitor your servers and users</string>
+    <string name="nodes">Nodes</string>
+    <string name="nodes_desc">Select a node to view detailed statistics</string>
+    <string name="traffic_usage">Traffic Usage</string>
+    <string name="traffic_usage_desc">Total traffic usage across all servers</string>
+    <string name="usage_during_period_title">Usage During Period</string>
+    <string name="user_count">User Count</string>
+    <string name="user_count_desc">Online, expired, and limited user activity counts over time</string>
+    <string name="status_history_note">Status changes can skew history. Usage resets clear chart history only if chart-data cleanup is enabled.</string>
+    <string name="group_by_node">Group by node</string>
+    <string name="count_during_period">Count During Period</string>
+    <string name="overall">Overall</string>
+    <string name="more">More</string>
+    <string name="all_admins">All admins</string>
+
+    <!-- Drawer -->
+    <string name="platform">Platform</string>
+    <string name="support_us">Support Us</string>
+    <string name="star_count">★ Star  2,484</string>
+    <string name="up_to_date">Up to date</string>
+    <string name="coming_soon">Soon</string>
+
+    <!-- Users -->
+    <string name="control_users_desc">Control, Update, and Arrange User Accounts</string>
+    <string name="search">Search</string>
+    <string name="all">All</string>
+    <string name="active">Active</string>
+    <string name="near_limit">Near Limit</string>
+    <string name="disabled">Disabled</string>
+    <string name="debtor">Debtor</string>
+    <string name="name">Name</string>
+    <string name="usage_sort">Usage</string>
+    <string name="expiry">Expiry</string>
+    <string name="created">Created</string>
+    <string name="traffic_usage_label">Traffic usage</string>
+    <string name="remaining_credit">Remaining credit</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+    <string name="copy_link">Copy link</string>
+    <string name="show_qr">Show QR</string>
+    <string name="bulk_actions_on">Bulk actions on %1$d users</string>
+    <string name="select_all">Select all</string>
+    <string name="cancel">Cancel</string>
+    <string name="enable">Enable</string>
+    <string name="disable">Disable</string>
+    <string name="reset_usage">Reset usage</string>
+    <string name="apply_template">Apply template</string>
+    <string name="export">Export</string>
+    <string name="delete_all">Delete all</string>
+    <string name="filter">Filter</string>
+    <string name="sort">Sort</string>
+    <string name="no_user_found">No user found</string>
+    <string name="clear_filter_or_create">Clear filter or create new user</string>
+    <string name="create_first_user">Create your first user</string>
+    <string name="clear_filter">Clear filter</string>
+    <string name="create_user">Create user</string>
+    <string name="offline_data">Offline — last data: %1$s</string>
 </resources>
