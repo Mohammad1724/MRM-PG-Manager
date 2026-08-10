@@ -47,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 
+@Composable
 fun ThemeEditorDialog(
     themeState: ThemeState,
     isAppLockEnabled: Boolean = false,
@@ -1037,5 +1038,28 @@ private fun RestoreCheck(label: String, checked: Boolean, onCheckedChange: (Bool
             if (checked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 13.dp)
         }
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+    Row(
+        modifier.clip(DsRadius.Xl)
+            .background(if (selected) lamp.primary.copy(.10f) else Color.Transparent)
+            .border(BorderStroke(if (selected) 2.dp else 1.2.dp, if (selected) lamp.primary else theme.borderColor), DsRadius.Xl)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            Modifier.size(32.dp).clip(DsRadius.Md)
+                .background(Brush.linearGradient(listOf(lamp.primary, lamp.primary.copy(alpha = 0.7f))))
+                .border(BorderStroke(1.dp, Color.White.copy(0.3f)), DsRadius.Md),
+            contentAlignment = Alignment.Center
+        ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 18.dp) }
+        Text(if (isFa) lamp.labelFa else lamp.label, fontSize = 11.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
