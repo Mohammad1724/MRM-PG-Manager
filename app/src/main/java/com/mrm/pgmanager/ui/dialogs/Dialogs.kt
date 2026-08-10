@@ -144,6 +144,7 @@ fun QuickActionSheet(
     onInvoice: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
+    val isFa = java.util.Locale.getDefault().language == "fa"
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -154,37 +155,37 @@ fun QuickActionSheet(
                         MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                         MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                     }
-                    Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") (if (isFa) "غیرفعال" else "Disabled") else (if (isFa) "فعال" else "Active"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
                 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Template, "تمپلت", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
-                        QuickActionRow(AppIcon.Edit, "ویرایش", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
+                        QuickActionRow(AppIcon.Template, if (isFa) "تمپلت" else "Template", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
+                        QuickActionRow(AppIcon.Edit, if (isFa) "ویرایش" else "Edit", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Reset, "ریست حجم", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
-                        QuickActionRow(AppIcon.Calendar, "ریست زمان", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
+                        QuickActionRow(AppIcon.Reset, if (isFa) "ریست حجم" else "Reset Data", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                        QuickActionRow(AppIcon.Calendar, if (isFa) "ریست زمان" else "Reset Time", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Copy, "کپی لینک", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
-                        QuickActionRow(AppIcon.Qr, "نمایش QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                        QuickActionRow(AppIcon.Copy, if (isFa) "کپی لینک" else "Copy Link", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
+                        QuickActionRow(AppIcon.Qr, if (isFa) "نمایش QR" else "Show QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Note, "فاکتور 🧾", theme.accentPrimary, Modifier.weight(1f)) {
+                        QuickActionRow(AppIcon.Note, if (isFa) "فاکتور 🧾" else "Invoice 🧾", theme.accentPrimary, Modifier.weight(1f)) {
                             if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
                         }
-                        QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) "تسویه بدهی" else "بدهکار", GlassRed, Modifier.weight(1f)) {
+                        QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) (if (isFa) "تسویه بدهی" else "Clear Debt") else (if (isFa) "بدهکار" else "Debtor"), GlassRed, Modifier.weight(1f)) {
                             if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.User, if (user.status == "disabled") "فعال‌سازی" else "غیرفعال‌سازی", theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
-                        QuickActionRow(AppIcon.Delete, "حذف کاربر", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
+                        QuickActionRow(AppIcon.User, if (user.status == "disabled") (if (isFa) "فعال‌سازی" else "Enable") else (if (isFa) "غیرفعال‌سازی" else "Disable"), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                        QuickActionRow(AppIcon.Delete, if (isFa) "حذف کاربر" else "Delete User", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                     }
                 }
                 
-                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -387,6 +388,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
 @Composable
 private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
+    val isFa = java.util.Locale.getDefault().language == "fa"
     Row(
         modifier.clip(DsRadius.Xl)
             .background(if (selected) lamp.primary.copy(.10f) else Color.Transparent)
@@ -402,7 +404,7 @@ private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier
                 .border(BorderStroke(1.dp, Color.White.copy(0.3f)), DsRadius.Md),
             contentAlignment = Alignment.Center
         ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 18.dp) }
-        Text(lamp.labelFa, fontSize = 11.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(if (isFa) lamp.labelFa else lamp.label, fontSize = 11.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -650,21 +652,23 @@ fun ThemeEditorDialog(
                         Text(stringResource(R.string.appearance_desc), fontSize = 10.sp, color = theme.mutedColor)
                     }
                 }
-                // تب بخش‌ها به‌صورت سگمنت یکدست (اگر فقط یک بخش باشد، مخفی می‌ماند)
+                // تب بخش‌ها به‌صورت سگمنت یکدست با قابلیت اسکرول افقی (اگر فقط یک بخش باشد، مخفی می‌ماند)
                 if (sections.size > 1) {
                     Row(
                         Modifier.fillMaxWidth().clip(DsRadius.Xl)
                             .background(theme.searchBgColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
+                            .horizontalScroll(rememberScrollState())
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         sections.forEach { label ->
                             val selected = section == label
                             Box(
-                                Modifier.weight(1f).height(34.dp).clip(DsRadius.Md)
+                                Modifier.height(34.dp).clip(DsRadius.Md)
                                     .background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent)
-                                    .clickable { section = label },
+                                    .clickable { section = label }
+                                    .padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.Center
                             ) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1) }
                         }
@@ -675,6 +679,7 @@ fun ThemeEditorDialog(
                     Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
+                    val isFa = java.util.Locale.getDefault().language == "fa"
                     when (section) {
                         stringResource(R.string.appearance) -> {
                             SettingsCard(stringResource(R.string.language), AppIcon.Settings) {
@@ -685,9 +690,9 @@ fun ThemeEditorDialog(
                                 )
                                 Text(stringResource(R.string.language_desc), fontSize = 11.sp, color = theme.mutedColor)
                             }
-                            SettingsCard("حالت نمایش", AppIcon.Palette) {
+                            SettingsCard(if (isFa) "حالت نمایش" else "Display Mode", AppIcon.Palette) {
                                 SegmentedControl(
-                                    options = listOf("روشن", "تیره", "خودکار"),
+                                    options = listOf(if (isFa) "روشن" else "Light", if (isFa) "تیره" else "Dark", if (isFa) "خودکار" else "Auto"),
                                     selectedIndex = if (themeState.followSystem) 2 else if (themeState.isDark) 1 else 0,
                                     onSelect = { index ->
                                         when (index) {
@@ -698,9 +703,9 @@ fun ThemeEditorDialog(
                                     },
                                     icons = listOf(AppIcon.LightMode, AppIcon.DarkMode, AppIcon.AutoMode)
                                 )
-                                Text("در حالت «خودکار» برنامه از حالت روشن/تیرهٔ سیستم پیروی می‌کند.", fontSize = 11.sp, color = theme.mutedColor)
+                                Text(if (isFa) "در حالت «خودکار» برنامه از حالت روشن/تیرهٔ سیستم پیروی می‌کند." else "In 'Auto' mode, the app follows the system light/dark theme.", fontSize = 11.sp, color = theme.mutedColor)
                             }
-                            SettingsCard("رنگ اصلی برنامه", AppIcon.Palette) {
+                            SettingsCard(if (isFa) "رنگ اصلی برنامه" else "Primary App Color", AppIcon.Palette) {
                                 LampColor.values().toList().chunked(2).forEach { rowItems ->
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         rowItems.forEach { lamp ->
@@ -712,7 +717,7 @@ fun ThemeEditorDialog(
                                 }
                             }
                             // انتخاب رنگ کاملاً دلخواه با اسلایدرهای HSV؛ پیش‌نمایش زنده دارد.
-                            SettingsCard("رنگ سفارشی", AppIcon.Palette, accent = themeState.customColor ?: theme.accentPrimary) {
+                            SettingsCard(if (isFa) "رنگ سفارشی" else "Custom Color", AppIcon.Palette, accent = themeState.customColor ?: theme.accentPrimary) {
                                 val activeCustom = themeState.customColor
                                 val seed = remember(activeCustom) {
                                     val out = FloatArray(3)
@@ -730,8 +735,8 @@ fun ThemeEditorDialog(
                                         if (activeCustom != null) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 15.dp)
                                     }
                                     Column(Modifier.weight(1f)) {
-                                        Text(if (activeCustom != null) "رنگ سفارشی فعال است" else "با اسلایدرها رنگ دلخواهت را بساز", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                                        Text("تغییرات با رهاشدن اسلایدر اعمال می‌شود", fontSize = 10.sp, color = theme.mutedColor)
+                                        Text(if (activeCustom != null) (if (isFa) "رنگ سفارشی فعال است" else "Custom color is active") else (if (isFa) "با اسلایدرها رنگ دلخواهت را بساز" else "Create your preferred color with sliders"), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                        Text(if (isFa) "تغییرات با رهاشدن اسلایدر اعمال می‌شود" else "Changes are applied when the slider is released", fontSize = 10.sp, color = theme.mutedColor)
                                     }
                                 }
                                 @Composable fun colorSlider(value: Float, onChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>, label: String, labelFaWidth: androidx.compose.ui.unit.Dp = 46.dp, onDone: () -> Unit = {}) {
@@ -745,37 +750,37 @@ fun ThemeEditorDialog(
                                         )
                                     }
                                 }
-                                colorSlider(hue, { hue = it }, 0f..360f, "رنگ‌مایه") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
-                                colorSlider(sat, { sat = it }, 0.25f..1f, "غلظت") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
-                                colorSlider(valueCmp, { valueCmp = it }, 0.45f..1f, "روشنایی") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
+                                colorSlider(hue, { hue = it }, 0f..360f, if (isFa) "رنگ‌مایه" else "Hue") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
+                                colorSlider(sat, { sat = it }, 0.25f..1f, if (isFa) "غلظت" else "Saturation") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
+                                colorSlider(valueCmp, { valueCmp = it }, 0.45f..1f, if (isFa) "روشنایی" else "Value") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                    Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(preview.copy(.18f)).border(BorderStroke(1.dp, preview.copy(.4f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = preview)) }, contentAlignment = Alignment.Center) { Text("اعمال این رنگ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                                    if (activeCustom != null) Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(GlassRed.copy(.10f)).border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = null)) }, contentAlignment = Alignment.Center) { Text("حذف رنگ سفارشی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(preview.copy(.18f)).border(BorderStroke(1.dp, preview.copy(.4f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = preview)) }, contentAlignment = Alignment.Center) { Text(if (isFa) "اعمال این رنگ" else "Apply this color", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                    if (activeCustom != null) Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(GlassRed.copy(.10f)).border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = null)) }, contentAlignment = Alignment.Center) { Text(if (isFa) "حذف رنگ سفارشی" else "Remove custom color", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
                             }
                             // پیش‌نمایش زنده با تم فعلی
-                            SettingsCard("پیش‌نمایش تم", AppIcon.Palette, accent = themeState.accentPrimary) {
+                            SettingsCard(if (isFa) "پیش‌نمایش تم" else "Theme Preview", AppIcon.Palette, accent = themeState.accentPrimary) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(Modifier.weight(1f).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).padding(10.dp)) {
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                                 Box(Modifier.size(22.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Sm).background(if (theme.isDark) theme.accentPrimary.copy(0.18f) else com.mrm.pgmanager.ui.designsystem.DsAccent.Gold.copy(0.12f)).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.accentPrimary.copy(0.25f)), com.mrm.pgmanager.ui.designsystem.DsRadius.Sm), contentAlignment = Alignment.Center) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Gauge, tint = theme.accentPrimary, size = 12.dp) }
-                                                androidx.compose.material3.Text("نمونه کارت", fontSize = 11.sp, color = theme.inkColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
+                                                androidx.compose.material3.Text(if (isFa) "نمونه کارت" else "Sample Card", fontSize = 11.sp, color = theme.inkColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
                                             }
-                                            androidx.compose.material3.Text("پیش‌نمایش زندهٔ رنگ و حالت تیره/روشن", fontSize = 10.sp, color = theme.mutedColor)
+                                            androidx.compose.material3.Text(if (isFa) "پیش‌نمایش زندهٔ رنگ و حالت تیره/روشن" else "Live color & dark/light preview", fontSize = 10.sp, color = theme.mutedColor)
                                         }
                                     }
                                     Box(Modifier.weight(1f).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).background(theme.searchBgColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).padding(10.dp), contentAlignment = Alignment.Center) {
-                                        androidx.compose.material3.Text("جست‌وجو", fontSize = 11.sp, color = theme.mutedColor)
+                                        androidx.compose.material3.Text(if (isFa) "جست‌وجو" else "Search", fontSize = 11.sp, color = theme.mutedColor)
                                     }
                                 }
-                                androidx.compose.material3.Text("تغییر رنگ بالا بلافاصله روی این کارت‌ها اعمال می‌شود", fontSize = 9.sp, color = theme.mutedColor)
+                                androidx.compose.material3.Text(if (isFa) "تغییر رنگ بالا بلافاصله روی این کارت‌ها اعمال می‌شود" else "Changing the color above instantly applies to these cards", fontSize = 9.sp, color = theme.mutedColor)
                             }
                             if (themeState.isDark) {
-                                SettingsCard("تیرهٔ خالص (AMOLED)", AppIcon.DarkMode) {
+                                SettingsCard(if (isFa) "تیرهٔ خالص (AMOLED)" else "Pure Black (AMOLED)", AppIcon.DarkMode) {
                                     SettingsSwitchRow(
-                                        "پس‌زمینهٔ مشکی مطلق",
-                                        "در حالت تیره، پس‌زمینه کاملاً سیاه می‌شود؛ صرفه‌جویی باتری در نمایشگرهای AMOLED",
+                                        if (isFa) "پس‌زمینهٔ مشکی مطلق" else "Pure Black Background",
+                                        if (isFa) "در حالت تیره، پس‌زمینه کاملاً سیاه می‌شود؛ صرفه‌جویی باتری در نمایشگرهای AMOLED" else "In dark mode, the background becomes completely black; saves battery on AMOLED screens",
                                         themeState.amoledDark
                                     ) { onThemeChange(themeState.copy(amoledDark = it)) }
                                 }
@@ -783,8 +788,8 @@ fun ThemeEditorDialog(
                                 // در حالت روشن، سوییچ AMOLED بی‌معناست — نمایش غیرفعال با توضیح
                                 Box(Modifier.fillMaxWidth().clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Md).padding(10.dp)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.DarkMode, tint = theme.mutedColor, size = 14.dp); androidx.compose.material3.Text("تیرهٔ خالص (AMOLED)", fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = theme.mutedColor) }
-                                        androidx.compose.material3.Text("فقط در حالت تیره فعال است — ابتدا «تیره» را انتخاب کن", fontSize = 10.sp, color = theme.mutedColor)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.DarkMode, tint = theme.mutedColor, size = 14.dp); androidx.compose.material3.Text(if (isFa) "تیرهٔ خالص (AMOLED)" else "Pure Black (AMOLED)", fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = theme.mutedColor) }
+                                        androidx.compose.material3.Text(if (isFa) "فقط در حالت تیره فعال است — ابتدا «تیره» را انتخاب کن" else "Only active in dark mode — choose 'Dark' first", fontSize = 10.sp, color = theme.mutedColor)
                                     }
                                 }
                             }
@@ -1243,6 +1248,7 @@ fun ThemeEditorDialog(
                         AppLogo(height = 17.dp)
                         Text("MRM PG Manager", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     }
+                    val isFa = java.util.Locale.getDefault().language == "fa"
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(
                             Modifier.clip(DsRadius.Sm).background(theme.searchBgColor)
@@ -1251,13 +1257,14 @@ fun ThemeEditorDialog(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 RoundedAppIcon(AppIcon.OpenNew, tint = theme.mutedColor, size = 11.dp)
-                                Text("گیت‌هاب", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                                Text(if (isFa) "گیت‌هاب" else "GitHub", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                             }
                         }
-                        Text("نسخهٔ ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Text(if (isFa) "نسخهٔ ${appVersion.ifBlank { "—" }}" else "Version ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
                 }
-                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                val isFa = java.util.Locale.getDefault().language == "fa"
+                SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
