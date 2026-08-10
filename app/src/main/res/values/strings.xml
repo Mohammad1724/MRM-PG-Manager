@@ -112,4 +112,11 @@
     <string name="clear_filter">Clear filter</string>
     <string name="create_user">Create user</string>
     <string name="offline_data">Offline — last data: %1$s</string>
+
+    <!-- Language -->
+    <string name="language">Language</string>
+    <string name="language_desc">Choose app language</string>
+    <string name="language_system">System default</string>
+    <string name="language_fa">فارسی</string>
+    <string name="language_en">English</string>
 </resources>
