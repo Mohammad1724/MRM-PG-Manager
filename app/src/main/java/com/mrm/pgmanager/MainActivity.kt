@@ -67,6 +67,11 @@ class MainActivity : FragmentActivity() {
     /** دیپ‌لینک دریافتی از اعلان‌ها (مقصد، نام کاربری). توسط MRMApp مصرف و null می‌شود. */
     var pendingDeepLink by androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null)
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val lang = SessionStore(newBase).readAppLanguage()
+        super.attachBaseContext(com.mrm.pgmanager.utils.LocaleHelper.wrap(newBase, lang))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
@@ -145,6 +150,7 @@ fun MRMApp() {
     val store = remember { SessionStore(context) }
     var session by remember { mutableStateOf(store.read()) }
     var themeState by remember { mutableStateOf(store.readTheme()) }
+    var appLanguage by remember { mutableStateOf(store.readAppLanguage()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var monitoringSettings by remember { mutableStateOf(store.readMonitoringSettings()) }
     var isUnlocked by rememberSaveable { mutableStateOf(false) }
@@ -237,6 +243,8 @@ fun MRMApp() {
                 onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
                 themeState = effectiveTheme,
                 onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
+                appLanguage = appLanguage,
+                onLanguageChange = handleLanguageChange,
                 onBack = when {
                     addingAccount && session != null -> { { addingAccount = false } }
                     session == null && store.readAccounts().isNotEmpty() -> { { val acc = store.readAccounts().first(); store.setActive(acc); session = acc } }
@@ -279,6 +287,11 @@ fun MRMApp() {
                     store.saveAppLock(false)
                     isAppLockEnabled = false
                 }
+            }
+            val handleLanguageChange: (String) -> Unit = { lang ->
+                store.saveAppLanguage(lang)
+                appLanguage = lang
+                activity?.recreate()
             }
             androidx.compose.material3.ModalNavigationDrawer(
                 drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed),
@@ -356,7 +369,7 @@ fun MRMApp() {
                         }
                     }
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false })
+                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false }, appLanguage = appLanguage, onLanguageChange = handleLanguageChange)
             }
             }
             }
