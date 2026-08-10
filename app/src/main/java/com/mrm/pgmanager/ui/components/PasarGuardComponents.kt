@@ -60,6 +60,10 @@ fun PGStatCard(
 ) {
     val t = LocalThemeState.current
     val shape = DsRadius.Lg
+    val isGold = accent == DsAccent.Gold
+    val iconBg = if (isGold) { if (t.isDark) Color(0xFF3A3000).copy(0.45f) else Color(0xFFFFFBEB) } else accent.copy(0.10f)
+    val iconBorder = if (isGold) { if (t.isDark) Color(0xFFFACC15).copy(0.22f) else Color(0xFFFDE68A) } else accent.copy(0.18f)
+    val iconTint = if (isGold) { if (t.isDark) DsAccent.Gold else Color(0xFFCA8A04) } else accent
     Column(
         modifier
             .height(92.dp)
@@ -71,14 +75,14 @@ fun PGStatCard(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Box(
-                Modifier.size(28.dp).clip(RoundedCornerShape(8.dp))
-                    .background(if (accent == DsAccent.Gold) Color(0xFFFFFBEB) else accent.copy(0.10f))
-                    .border(BorderStroke(0.7.dp, if (accent == DsAccent.Gold) Color(0xFFFDE68A) else accent.copy(0.18f)), RoundedCornerShape(8.dp)),
+                Modifier.size(28.dp).clip(DsRadius.Sm)
+                    .background(iconBg)
+                    .border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm),
                 contentAlignment = Alignment.Center
             ) {
-                RoundedAppIcon(icon, tint = if (accent == DsAccent.Gold) Color(0xFFCA8A04) else accent, size = 15.dp)
+                RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
             }
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (trailing != null) trailing()
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -125,10 +129,10 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 // ─────────────────────────────────────────────────────────────
 @Composable
 fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null, enabled: Boolean = true) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = DsRadius.Md
     Box(
         modifier
-            .height(40.dp)
+            .height(DsComponent.ButtonCompact)
             .clip(shape)
             .background(if (enabled) DsAccent.Gold else DsNeutral.HairlineLight)
             .clickable(enabled = enabled, onClick = onClick)
@@ -145,9 +149,9 @@ fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
 @Composable
 fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val t = LocalThemeState.current
-    val shape = RoundedCornerShape(10.dp)
+    val shape = DsRadius.Md
     Box(
-        modifier.clip(shape).background(t.cardSurfaceColor).border(BorderStroke(1.dp, t.borderColor), shape).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
+        modifier.clip(shape).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = t.inkColor)
@@ -158,11 +162,11 @@ fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
 //  PGSearchBar — light gray bg, subtle border, rounded
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = "Search", modifier: Modifier = Modifier) {
+fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = "جست‌وجو", modifier: Modifier = Modifier) {
     val t = LocalThemeState.current
-    val shape = RoundedCornerShape(10.dp)
+    val shape = DsRadius.Md
     Box(
-        modifier.fillMaxWidth().height(40.dp).clip(shape).background(t.searchBgColor).border(BorderStroke(1.dp, t.borderColor.copy(0.8f)), shape).padding(horizontal = 12.dp),
+        modifier.fillMaxWidth().height(40.dp).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -186,9 +190,11 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
 //  PGProgressBar — thin rounded track, green fill
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4.dp, track: Color = Color(0xFFF3F4F6), fill: Color = DsSemantic.Success) {
+fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4.dp, track: Color? = null, fill: Color = DsSemantic.Success) {
+    val t = LocalThemeState.current
+    val resolvedTrack = track ?: if (t.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6)
     val shape = RoundedCornerShape(50)
-    Box(modifier.clip(shape).background(track).height(height)) {
+    Box(modifier.clip(shape).background(resolvedTrack).height(height)) {
         Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().clip(shape).background(fill))
     }
 }
