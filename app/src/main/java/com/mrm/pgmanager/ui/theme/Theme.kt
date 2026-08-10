@@ -69,8 +69,8 @@ data class ThemeState(
         isDark -> Color(0xFF141418)
         else -> DsNeutral.SurfaceLight
     }
-    val borderColor: Color get() = if (isDark) Color.White.copy(0.10f) else DsNeutral.HairlineLight
-    val borderSubtle: Color get() = if (isDark) Color.White.copy(0.06f) else DsNeutral.HairlineSubtle
+    val borderColor: Color get() = if (isDark) Color.White.copy(0.14f) else DsNeutral.HairlineLight
+    val borderSubtle: Color get() = if (isDark) Color.White.copy(0.10f) else DsNeutral.HairlineSubtle
     // kept for backward-compat: old code used Brush border — now maps to flat borderColor
     val cardBorderBrush: androidx.compose.ui.graphics.Brush get() = androidx.compose.ui.graphics.Brush.linearGradient(listOf(borderColor, borderColor))
     val cardBorderColor: Color get() = borderColor
@@ -101,7 +101,7 @@ val GlassShape = DsRadius.Lg
 val PremiumCardShape = DsRadius.Lg
 
 fun glassBg(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color(0xFF1E1E24) else Color.White
-fun glassBorder(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color.White.copy(0.10f) else Color(0xFFE5E7EB)
+fun glassBorder(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color.White.copy(0.14f) else Color(0xFFE5E7EB)
 
 @Composable
 fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
@@ -143,13 +143,11 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalThemeState provides themeState) {
-        androidx.compose.runtime.CompositionLocalProvider(
-            androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
-        ) {
-            MaterialTheme(colorScheme = colors) {
-                Box(modifier = Modifier.fillMaxSize().background(themeState.backgroundColor)) {
-                    content()
-                }
+        // جهت کلی اپ تابع زبان سیستم است (فارسی → RTL). محتوای فنی (URL/یوزرنیم/bytes)
+        // به‌صورت موضعی با TechnicalContainer به LTR برمی‌گردد.
+        MaterialTheme(colorScheme = colors) {
+            Box(modifier = Modifier.fillMaxSize().background(themeState.backgroundColor)) {
+                content()
             }
         }
     }
