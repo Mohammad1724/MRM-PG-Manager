@@ -157,7 +157,6 @@ private fun CapsuleMenuItem(
 }
 
 @Composable
-@Composable
 fun UserDetailsDialog(
     user: PanelUser,
     onDismiss: () -> Unit,
