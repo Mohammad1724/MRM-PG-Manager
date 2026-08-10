@@ -233,6 +233,12 @@ fun MRMApp() {
         }
     }
 
+    val handleLanguageChange: (String) -> Unit = { lang ->
+        store.saveAppLanguage(lang)
+        appLanguage = lang
+        activity?.recreate()
+    }
+
     LiquidGlassTheme(themeState = effectiveTheme) {
         // سوئیچ حساب: نشست فعال بدون دست‌خوردن لیست حساب‌ها عوض می‌شود.
         val switchAccount: (com.mrm.pgmanager.data.model.Session) -> Unit = { acc ->
@@ -287,11 +293,6 @@ fun MRMApp() {
                     store.saveAppLock(false)
                     isAppLockEnabled = false
                 }
-            }
-            val handleLanguageChange: (String) -> Unit = { lang ->
-                store.saveAppLanguage(lang)
-                appLanguage = lang
-                activity?.recreate()
             }
             androidx.compose.material3.ModalNavigationDrawer(
                 drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed),
