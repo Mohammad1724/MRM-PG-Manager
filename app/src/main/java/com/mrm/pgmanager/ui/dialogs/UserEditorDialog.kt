@@ -47,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 
+@Composable
 fun UserEditorDialog(
     initial: PanelUser?, onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
