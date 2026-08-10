@@ -146,12 +146,14 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    // تشخیص زبان سیستم: فارسی → RTL، بقیه → LTR (دقیق و وسواسی)
-    val locale = android.os.Build.VERSION.SDK_INT.let {
+    val store = androidx.compose.runtime.remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
+    val savedLang = store.readAppLanguage()
+    val systemLocale = android.os.Build.VERSION.SDK_INT.let {
         if (it >= 24) context.resources.configuration.locales.get(0)
         else @Suppress("DEPRECATION") context.resources.configuration.locale
     } ?: java.util.Locale.getDefault()
-    val isRtl = locale.language == "fa" || locale.language == "ar" || locale.language == "ur"
+    val locale = com.mrm.pgmanager.utils.LocaleHelper.getLocale(savedLang, systemLocale)
+    val isRtl = com.mrm.pgmanager.utils.LocaleHelper.isRtl(savedLang, systemLocale)
     val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
     androidx.compose.runtime.CompositionLocalProvider(
