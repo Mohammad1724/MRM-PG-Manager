@@ -127,7 +127,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
-        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = com.mrm.pgmanager.ui.designsystem.DsAccent.Gold) }) {
+        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
@@ -137,15 +137,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.dashboard), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Box(Modifier.size(18.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) DsAccent.Gold.copy(0.18f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.30f) else Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                            Text("ⓘ", fontSize = 10.sp, color = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), fontWeight = FontWeight.Bold)
+                        Box(Modifier.size(18.dp).clip(RoundedCornerShape(50)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                            Text("ⓘ", fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                     Text(stringResource(R.string.dashboard_subtitle), fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
-                        if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = DsAccent.Gold, strokeWidth = 2.dp)
+                        if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.accentPrimary, strokeWidth = 2.dp)
                         else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
                     }
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) {
@@ -154,13 +154,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 }
             }
 
-            if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsAccent.Gold) }
+            if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
             error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp) }
             offlineAt?.let { cachedAt ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A)), DsRadius.Md).padding(horizontal = 10.dp, vertical = 7.dp)) {
-                    RoundedAppIcon(AppIcon.Warning, tint = if (theme.isDark) DsAccent.Gold else GlassAmber, size = 12.dp)
-                    Text(stringResource(R.string.offline_state, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), color = if (theme.isDark) DsAccent.Gold else Color(0xFF92400E), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Md).padding(horizontal = 10.dp, vertical = 7.dp)) {
+                    RoundedAppIcon(AppIcon.Warning, tint = if (theme.isDark) theme.accentPrimary else GlassAmber, size = 12.dp)
+                    Text(stringResource(R.string.offline_state, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), color = if (theme.isDark) theme.accentPrimary else theme.accentPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
@@ -178,8 +178,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     // Total Traffic card with in/out badges - same 92dp height as PGStatCard
                     Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) {
-                                RoundedAppIcon(AppIcon.Storage, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 15.dp)
+                            Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                                RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 15.dp)
                             }
                             Text(stringResource(R.string.total_traffic), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
                         }
@@ -189,8 +189,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 // Uptime — full width
                 Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                        RoundedAppIcon(AppIcon.Timer, tint = Color(0xFFCA8A04), size = 15.dp)
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                        RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 15.dp)
                     }
                     Column {
                         Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
@@ -206,14 +206,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Users, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            RoundedAppIcon(AppIcon.Users, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
                     Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                                RoundedAppIcon(AppIcon.CheckCircle, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
                             Text("${s.activeUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
@@ -225,7 +225,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Wifi, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            RoundedAppIcon(AppIcon.Wifi, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${s.onlineUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
@@ -278,7 +278,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                                 Text(stringResource(R.string.auto) + " ▾", fontSize = 10.sp, color = theme.mutedColor)
                             }
                         }
-                        UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = DsAccent.Gold)
+                        UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = theme.accentPrimary)
                         run {
                             val totalPeriod = trafficPoints.sumOf { it.totalTraffic }
                             val trendingText = if (trafficPoints.size >= 2) {
