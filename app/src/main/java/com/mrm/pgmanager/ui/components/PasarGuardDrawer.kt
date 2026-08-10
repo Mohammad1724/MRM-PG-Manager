@@ -62,7 +62,7 @@ fun PasarGuardDrawer(
                 Box(Modifier.size(32.dp).clip(DsRadius.Sm).clickable { onClose() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 18.sp, color = theme.mutedColor) }
             }
             Spacer(Modifier.height(6.dp))
-            Text("Platform", fontSize = 10.sp, color = theme.mutedLightColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
+            Text("Platform", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
             PasarGuardDrawerItems.forEach { item ->
                 val sel = item.id == selectedId
                 val isImplemented = item.id in listOf("dashboard","users","statistics")
@@ -75,11 +75,11 @@ fun PasarGuardDrawer(
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(item.icon, tint = if (!isImplemented) theme.mutedLightColor else if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
-                        Text(item.label, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (!isImplemented) theme.mutedLightColor else if (sel) theme.inkColor else theme.mutedColor)
-                        if (!isImplemented) Text("به‌زودی", fontSize = 9.sp, color = theme.mutedLightColor, modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(theme.borderSubtle).padding(horizontal = 4.dp, vertical = 1.dp))
+                        RoundedAppIcon(item.icon, tint = if (!isImplemented) theme.mutedColor else if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
+                        Text(item.label, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (!isImplemented) theme.mutedColor else if (sel) theme.inkColor else theme.mutedColor)
+                        if (!isImplemented) Text("به‌زودی", fontSize = 9.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(theme.borderSubtle).padding(horizontal = 4.dp, vertical = 1.dp))
                     }
-                    if (item.hasSub) Text("›", fontSize = 12.sp, color = theme.mutedLightColor)
+                    if (item.hasSub) Text("›", fontSize = 12.sp, color = theme.mutedColor)
                 }
             }
         }
