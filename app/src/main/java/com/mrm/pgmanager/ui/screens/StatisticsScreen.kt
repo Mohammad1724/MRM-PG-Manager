@@ -62,7 +62,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
     LaunchedEffect(session) { load() }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
-        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = com.mrm.pgmanager.ui.designsystem.DsAccent.Gold) }) {
+        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
@@ -72,8 +72,8 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                 Column {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.statistics), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                            Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
+                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.5.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                            Text("○", fontSize = 7.sp, color = theme.accentPrimary)
                         }
                     }
                     Text(stringResource(R.string.statistics_subtitle), fontSize = 10.sp, color = theme.mutedColor)
@@ -92,14 +92,14 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
             }
 
             if (loading && stats == null) {
-                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DsAccent.Gold) }
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
             }
 
             stats?.let { s ->
                 // ── System
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(AppIcon.Gauge, tint = Color(0xFFCA8A04), size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PGStatCard(label = stringResource(R.string.cpu_usage), value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
@@ -110,7 +110,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         // Total Traffic with in/out - same 92dp height
                         Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 12.dp) }
+                                Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 12.dp) }
                                 Text(stringResource(R.string.total_traffic), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -134,7 +134,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         }
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 12.dp) }
+                        Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
                         Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); Text("1 day, 1 hour", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                 }
@@ -146,7 +146,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("1h","6h","24h","3d","More").forEach { t ->
                             val sel = t == timeRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) DsAccent.Gold else theme.borderColor), RoundedCornerShape(8.dp)).clickable { timeRange = t }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.accentPrimary else theme.borderColor), RoundedCornerShape(8.dp)).clickable { timeRange = t }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                 Text(t, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) Color(0xFF422006) else theme.mutedColor)
                             }
                         }
@@ -158,10 +158,10 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp)); Text("275.46 GB", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
-                    PGChart(points = trafficPoints, accent = DsAccent.Gold, themeIsDark = theme.isDark)
+                    PGChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                            Text("Germany node 🇩🇪", fontSize = 9.sp, color = Color(0xFF92400E), fontWeight = FontWeight.Medium)
+                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
+                            Text("Germany node 🇩🇪", fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
