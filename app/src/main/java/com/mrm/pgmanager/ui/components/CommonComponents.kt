@@ -212,7 +212,7 @@ fun ActionIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isRed: Boolean = false,
-    size: Dp = 42.dp,
+    size: Dp = 44.dp,
     contentDescription: String? = null
 ) {
     val theme = LocalThemeState.current
@@ -236,7 +236,7 @@ fun ActionIconButton(
             )
             .clip(shape)
             .background(if (isRed) GlassRed.copy(0.14f) else theme.searchBgColor)
-            .border(BorderStroke(if (isRed) DsBorder.Default else DsBorder.Thin, if (isRed) GlassRed.copy(0.38f) else glassBorder(theme.isDark, theme.amoledDark)), shape)
+            .border(BorderStroke(DsBorder.Hairline, if (isRed) GlassRed.copy(0.38f) else theme.borderColor), shape)
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
             .clickable(interactionSource = interactionSource, indication = ripple(bounded = true, radius = size), enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -452,49 +452,43 @@ fun UltraPremiumField(
     
     val focusGlow by animateFloatAsState(targetValue = if (isFocused) 1f else 0f, label = "fieldGlow")
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(label, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor.copy(alpha = 0.9f), modifier = Modifier.padding(start = 6.dp))
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor, modifier = Modifier.padding(start = 4.dp))
         
         val interactionSource = remember { MutableInteractionSource() }
         
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .height(46.dp)
+                .clip(DsRadius.Md)
                 .let {
                     if (isFocused) {
-                        it.shadow(elevation = (6 * focusGlow).dp, shape = RoundedCornerShape(18.dp), spotColor = theme.accentPrimary.copy(alpha = 0.4f))
+                        it.shadow(elevation = (3 * focusGlow).dp, shape = DsRadius.Md, spotColor = theme.accentPrimary.copy(alpha = 0.25f))
                     } else it
                 }
-                .background(
-                    if (isFocused) {
-                        if (theme.isDark) theme.cardSurfaceColor.copy(0.98f) else Color.White
-                    } else {
-                        if (theme.isDark) theme.cardSurfaceColor.copy(0.65f) else theme.searchBgColor.copy(0.45f)
-                    }
-                )
+                .background(theme.searchBgColor)
                 .border(
                     BorderStroke(
-                        width = if (isFocused) 2.dp else 1.2.dp,
-                        color = if (isFocused) theme.accentPrimary else if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFDCDDE1)
+                        width = if (isFocused) DsBorder.Focus else DsBorder.Hairline,
+                        color = if (isFocused) theme.accentPrimary else theme.borderColor
                     ),
-                    RoundedCornerShape(18.dp)
+                    DsRadius.Md
                 )
         ) {
             Row(
-                Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                Modifier.fillMaxSize().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Animated Icon wrapper
+                // Icon wrapper — توکن‌محور، هم‌اندازه با PGField
                 Box(
-                    Modifier.size(44.dp).clip(RoundedCornerShape(14.dp))
-                        .background(if (isFocused) theme.accentPrimary.copy(0.12f) else if (theme.isDark) Color.White.copy(0.06f) else Color.Black.copy(0.04f)),
+                    Modifier.size(32.dp).clip(DsRadius.Sm)
+                        .background(if (isFocused) theme.accentPrimary.copy(0.12f) else theme.borderSubtle),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 22.dp)
-                    else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 18.sp)
+                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 18.dp)
+                    else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 16.sp)
                 }
 
                 // Input area with direction handling
@@ -502,8 +496,8 @@ fun UltraPremiumField(
                     if (value.isEmpty()) {
                         Text(
                             placeholder,
-                            color = theme.mutedColor.copy(0.45f),
-                            fontSize = 15.sp,
+                            color = theme.mutedLightColor,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             style = TextStyle(textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content)
                         )
@@ -518,8 +512,8 @@ fun UltraPremiumField(
                         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                         textStyle = TextStyle(
                             color = theme.inkColor,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
                             textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content
                         ),
                         modifier = Modifier.fillMaxWidth().onFocusChanged { isFocused = it.isFocused }
@@ -530,13 +524,13 @@ fun UltraPremiumField(
                     ActionIconButton(
                         icon = { PasswordEyeIcon(visible = passwordVisible) },
                         onClick = { passwordVisible = !passwordVisible },
-                        size = 40.dp
+                        size = 36.dp
                     )
                 } else if (value.isNotEmpty()) {
                     ActionIconButton(
-                        icon = { Text("×", color = theme.mutedColor, fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                        icon = { Text("×", color = theme.mutedColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
                         onClick = { onValueChange("") },
-                        size = 32.dp
+                        size = 36.dp
                     )
                 }
             }
@@ -560,20 +554,20 @@ fun BulkActionsBar(
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(if (theme.isDark) theme.dialogBgColor.copy(alpha = 0.96f) else theme.cardSurfaceColor.copy(alpha = 0.96f))
-            .border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp))
+            .clip(DsRadius.Lg)
+            .background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .padding(10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 17.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 16.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor) }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { onSelectAll() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
-                        Text("انتخاب همه", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    Box(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { onSelectAll() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                        Text("انتخاب همه", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
                     }
-                    Box(Modifier.clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.10f)).border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(8.dp)).clickable { onClear() }.padding(horizontal = 8.dp, vertical = 3.dp)) {
-                        Text("× لغو", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                    Box(Modifier.clip(DsRadius.Sm).background(GlassRed.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.30f)), DsRadius.Sm).clickable { onClear() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                        Text("× لغو", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlassRed)
                     }
                 }
             }
@@ -583,6 +577,10 @@ fun BulkActionsBar(
                 BulkActionChip("ریست حجم", AppIcon.Reset, theme.accentPrimary) { onResetUsage() }
                 BulkActionChip("اعمال تمپلت", AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
                 BulkActionChip("خروجی", AppIcon.Download, GlassGreen) { onExport() }
+                // حذف با فاصله بصری جدا — خطر کلیک اشتباه کمتر
+                Spacer(Modifier.width(4.dp))
+                Box(Modifier.width(1.dp).height(24.dp).background(theme.borderSubtle).align(Alignment.CenterVertically))
+                Spacer(Modifier.width(4.dp))
                 BulkActionChip("حذف همه", AppIcon.Delete, GlassRed) { onDelete() }
             }
         }
@@ -591,17 +589,16 @@ fun BulkActionsBar(
 
 @Composable
 private fun BulkActionChip(label: String, icon: AppIcon, color: Color, onClick: () -> Unit) {
-    // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (bg یک دهم + مرز یک چهارم).
     Box(
         Modifier
-            .height(30.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .height(32.dp)
+            .clip(DsRadius.Sm)
             .background(color.copy(alpha = 0.10f))
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.26f)), RoundedCornerShape(10.dp))
+            .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.26f)), DsRadius.Sm)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = color, size = 15.dp); Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = color, size = 14.dp); Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color) }
     }
 }
