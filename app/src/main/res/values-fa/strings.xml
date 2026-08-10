@@ -18,4 +18,98 @@
     <string name="manage_panel">مدیریت پنل پاسارگارد</string>
     <string name="status">وضعیت</string>
     <string name="widget_description">وضعیت پنل در یک نگاه: کاربران آنلاین، مصرف RAM/CPU، بدهکاران و دکمه بروزرسانی دستی</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard">داشبورد</string>
+    <string name="dashboard_subtitle">داشبورد مدیریت پاسارگارد</string>
+    <string name="system">سیستم</string>
+    <string name="cpu_usage">مصرف CPU</string>
+    <string name="ram_usage">مصرف RAM</string>
+    <string name="disk_usage">مصرف دیسک</string>
+    <string name="total_traffic">ترافیک کل</string>
+    <string name="users_section">کاربران</string>
+    <string name="active_users">کاربران فعال</string>
+    <string name="online_users">کاربران آنلاین</string>
+    <string name="expired_users">کاربران منقضی</string>
+    <string name="limited_users">کاربران محدود</string>
+    <string name="on_hold_users">کاربران در انتظار</string>
+    <string name="disabled_users">کاربران غیرفعال</string>
+    <string name="monitor_users">پایش کاربران</string>
+    <string name="usage">مصرف</string>
+    <string name="monitor_traffic_desc">پایش مصرف ترافیک مدیر\nدر طول زمان</string>
+    <string name="days_7">۷ روز</string>
+    <string name="auto">خودکار</string>
+    <string name="trending_up">٪%1$d افزایش ↗</string>
+    <string name="trending_down">٪%1$d کاهش ↘</string>
+    <string name="no_trend">بدون روند</string>
+    <string name="usage_during_period">مصرف دوره: %1$s</string>
+    <string name="total_traffic_desc">مجموع مصرف ترافیک تمام سرورها</string>
+    <string name="debtors">بدهکاران</string>
+    <string name="debtor_count">تعداد بدهکار</string>
+    <string name="debtor_total">مجموع بدهی</string>
+    <string name="offline_state">حالت آفلاین — %1$s</string>
+    <string name="total_admins">کل ادمین‌ها</string>
+    <string name="uptime">آپ‌تایم</string>
+    <string name="download">دانلود</string>
+    <string name="upload">آپلود</string>
+
+    <!-- Statistics -->
+    <string name="statistics">آمار</string>
+    <string name="statistics_subtitle">پایش سرورها و کاربران</string>
+    <string name="nodes">نودها</string>
+    <string name="nodes_desc">یک نود را برای آمار دقیق انتخاب کن</string>
+    <string name="traffic_usage">مصرف ترافیک</string>
+    <string name="traffic_usage_desc">مجموع مصرف ترافیک تمام سرورها</string>
+    <string name="usage_during_period_title">مصرف دوره</string>
+    <string name="user_count">تعداد کاربران</string>
+    <string name="user_count_desc">تعداد کاربران آنلاین، منقضی و محدود در طول زمان</string>
+    <string name="status_history_note">تغییر وضعیت‌ها تاریخچه را منحرف می‌کند. ریست مصرف فقط در صورت فعال بودن پاکسازی نمودار، تاریخچه را پاک می‌کند.</string>
+    <string name="group_by_node">گروه‌بندی بر اساس نود</string>
+    <string name="count_during_period">تعداد دوره</string>
+    <string name="overall">کلی</string>
+    <string name="more">بیشتر</string>
+    <string name="all_admins">همه ادمین‌ها</string>
+
+    <!-- Drawer -->
+    <string name="platform">پلتفرم</string>
+    <string name="support_us">حمایت از ما</string>
+    <string name="star_count">★ ستاره  ۲٬۴۸۴</string>
+    <string name="up_to_date">به‌روز</string>
+    <string name="coming_soon">به‌زودی</string>
+
+    <!-- Users -->
+    <string name="control_users_desc">کنترل، بروزرسانی و مدیریت حساب‌های کاربری</string>
+    <string name="search">جست‌وجو</string>
+    <string name="all">همه</string>
+    <string name="active">فعال</string>
+    <string name="near_limit">لب مرز</string>
+    <string name="disabled">غیرفعال</string>
+    <string name="debtor">بدهکار</string>
+    <string name="name">نام</string>
+    <string name="usage_sort">مصرف</string>
+    <string name="expiry">انقضا</string>
+    <string name="created">ساخت</string>
+    <string name="traffic_usage_label">مصرف ترافیک</string>
+    <string name="remaining_credit">اعتبار باقی‌مانده</string>
+    <string name="online">آنلاین</string>
+    <string name="offline">آفلاین</string>
+    <string name="copy_link">کپی لینک</string>
+    <string name="show_qr">نمایش QR</string>
+    <string name="bulk_actions_on">عملیات گروهی روی %1$d کاربر</string>
+    <string name="select_all">انتخاب همه</string>
+    <string name="cancel">لغو</string>
+    <string name="enable">فعال‌سازی</string>
+    <string name="disable">غیرفعال‌سازی</string>
+    <string name="reset_usage">ریست حجم</string>
+    <string name="apply_template">اعمال تمپلت</string>
+    <string name="export">خروجی</string>
+    <string name="delete_all">حذف همه</string>
+    <string name="filter">فیلتر</string>
+    <string name="sort">مرتب‌سازی</string>
+    <string name="no_user_found">کاربری یافت نشد</string>
+    <string name="clear_filter_or_create">فیلتر را پاک کن یا کاربر جدید بساز</string>
+    <string name="create_first_user">اولین کاربرت رو بساز</string>
+    <string name="clear_filter">پاک‌کردن فیلتر</string>
+    <string name="create_user">ساخت کاربر</string>
+    <string name="offline_data">آفلاین — آخرین داده: %1$s</string>
 </resources>
