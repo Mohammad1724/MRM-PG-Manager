@@ -314,7 +314,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
                 Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.all) to UserFilter.ALL, stringResource(R.string.active) to UserFilter.ACTIVE, stringResource(R.string.near_limit) to UserFilter.NEAR_LIMIT, stringResource(R.string.expired) to UserFilter.EXPIRED, stringResource(R.string.disabled) to UserFilter.DISABLED, (if(debtorCount>0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
                     }
                 }
@@ -327,7 +327,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor)), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
                     }
                 }
@@ -343,8 +343,8 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
     Box(modifier = Modifier
         .height(32.dp)
         .clip(shape)
-        .background(if (selected) DsAccent.Gold else theme.searchBgColor)
-        .border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else theme.borderColor), shape)
+        .background(if (selected) theme.accentPrimary else theme.searchBgColor)
+        .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else theme.borderColor), shape)
         .clickable(onClick = onClick)
         .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
@@ -357,7 +357,7 @@ private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clip(shape).background(if (selected) DsAccent.Gold else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
+    Box(modifier = Modifier.clip(shape).background(if (selected) theme.accentPrimary else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
         Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
@@ -366,7 +366,7 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) DsAccent.Gold else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) theme.accentPrimary else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         RoundedAppIcon(icon, tint = if (selected) Color(0xFF422006) else theme.mutedColor, size = 18.dp)
     }
 }
@@ -375,8 +375,8 @@ private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) 
 private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val isDark = theme.isDark
-    val bg = if (selected) DsAccent.Gold else if (isDark) Color(0xFF383842) else Color.White
-    val borderCol = if (selected) DsAccent.GoldDeep else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
+    val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
+    val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
         modifier = modifier
             .size(18.dp)
@@ -427,8 +427,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
+            .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -637,8 +637,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     Box(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
+            .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
@@ -699,8 +699,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     Box(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
+            .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
@@ -1060,8 +1060,8 @@ fun UsersScreen(
                     .size(52.dp)
                     .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
                     .clip(fabShape)
-                    .background(DsAccent.Gold)
-                    .border(BorderStroke(DsBorder.Hairline, DsAccent.GoldDeep), fabShape)
+                    .background(themeState.accentPrimary)
+                    .border(BorderStroke(DsBorder.Hairline, themeState.accentPrimary), fabShape)
                     .clickable(interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
