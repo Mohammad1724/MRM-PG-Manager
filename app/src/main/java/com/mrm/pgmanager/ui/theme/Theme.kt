@@ -107,7 +107,11 @@ fun glassBg(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color
 fun glassBorder(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color.White.copy(0.14f) else Color(0xFFE5E7EB)
 
 @Composable
-fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
+fun LiquidGlassTheme(
+    themeState: ThemeState,
+    drawBackground: Boolean = true,
+    content: @Composable () -> Unit
+) {
     val colors = if (themeState.isDark) {
         darkColorScheme(
             primary = themeState.accentPrimary,
@@ -161,8 +165,14 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
         LocalLayoutDirection provides layoutDirection
     ) {
         MaterialTheme(colorScheme = colors) {
-            Box(modifier = Modifier.fillMaxSize().background(themeState.backgroundColor)) {
-                content()
+            if (drawBackground) {
+                Box(modifier = Modifier.fillMaxSize().background(themeState.backgroundColor)) {
+                    content()
+                }
+            } else {
+                Box(modifier = Modifier, contentAlignment = Alignment.Center) {
+                    content()
+                }
             }
         }
     }
