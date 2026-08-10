@@ -149,7 +149,6 @@ private fun cardStatusText(user: PanelUser): String = when (user.status) {
 private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Lg
-    // PasarGuard: flat white card, HairlineLight border, no shadow
     Box(
         modifier = modifier
             .height(82.dp)
@@ -161,10 +160,13 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val isGold = accent == theme.accentPrimary || accent == DsAccent.Gold
-                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(if (isGold) Color(0xFFFFFBEB) else accent.copy(0.10f)).border(BorderStroke(0.7.dp, if (isGold) Color(0xFFFDE68A) else accent.copy(0.18f)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                    RoundedAppIcon(icon, tint = if (isGold) Color(0xFFCA8A04) else accent, size = 15.dp)
+                val iconBg = if (isGold) { if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else accent.copy(0.10f)
+                val iconBorder = if (isGold) { if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A) } else accent.copy(0.18f)
+                val iconTint = if (isGold) { if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04) } else accent
+                Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(iconBg).border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                    RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
                 }
-                Text(label, fontSize = 10.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             TechnicalContainer {
                 Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -177,21 +179,21 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
 private fun SkeletonCard(modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmer")
-    val alpha by infinite.animateFloat(initialValue = 0.18f, targetValue = 0.42f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
-    Box(modifier = modifier.clip(RoundedCornerShape(20.dp)).background(theme.cardBgColor.copy(alpha = alpha)).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(20.dp)).height(120.dp))
+    val alpha by infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
+    Box(modifier = modifier.clip(DsRadius.Lg).background(theme.cardBgColor.copy(alpha = alpha)).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).height(120.dp))
 }
 
 @Composable
 private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     var isFocused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(10.dp)
+    val shape = DsRadius.Md
     Box(modifier = modifier
         .fillMaxWidth()
         .height(40.dp)
         .clip(shape)
         .background(theme.searchBgColor)
-        .border(BorderStroke(1.dp, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
+        .border(BorderStroke(DsBorder.Hairline, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
         .padding(horizontal = 12.dp)
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
@@ -230,7 +232,7 @@ private fun TopBarHeader(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Users", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.18f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.30f) else Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
                     Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
                 }
             }
@@ -422,8 +424,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected) Color(0xFFFFFBEB) else theme.cardSurfaceColor)
-            .border(BorderStroke(1.dp, if (selected) Color(0xFFFDE68A) else theme.borderColor), shape)
+            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -445,7 +447,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                     }
                     MrmText(
                         text = lastSeenShort(user.onlineAt, user.isOnline),
-                        fontSize = 8.sp,
+                        fontSize = 10.sp,
                         color = if (user.isOnline) GlassGreen else theme.mutedColor,
                         maxLines = 1,
                         isTechnical = true
@@ -455,7 +457,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
             }
             MrmText(
                 text = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", 
-                fontSize = 10.5.sp, 
+                fontSize = 11.sp, 
                 fontWeight = FontWeight.Bold, 
                 maxLines = 1, 
                 overflow = TextOverflow.Ellipsis,
@@ -472,18 +474,18 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 )
             }
             // thin PG progress — 4dp, rounded, green fill, neutral track
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
                 if (displayProgress > 0f) Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(50)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = "نمایش QR") { onQrClick(user) }
                 Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                    Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
+                    Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
                 }
                 if (user.groupNames.isNotEmpty()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                        Text(user.groupNames.first(), fontSize = 8.5.sp, color = Color(0xFF8B5CF6), maxLines = 1)
+                        Text(user.groupNames.first(), fontSize = 10.sp, color = Color(0xFF8B5CF6), maxLines = 1)
                     }
                 }
             }
@@ -520,7 +522,7 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
             .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(if (compact) 5.dp else 7.dp))
             .padding(horizontal = if (compact) 3.dp else 7.dp),
         contentAlignment = Alignment.Center
-    ) { Text(label, fontSize = if (compact) 7.sp else 8.5.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    ) { Text(label, fontSize = if (compact) 9.sp else 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 @Composable
@@ -530,7 +532,7 @@ private fun RowAction(label: String, modifier: Modifier = Modifier, height: andr
         .background(theme.searchBgColor)
         .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(6.dp))
         .clickable(onClick = onClick).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
-        Text(label, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
 
@@ -632,8 +634,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     Box(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .background(if (selected) Color(0xFFFFFBEB) else theme.cardSurfaceColor)
-            .border(BorderStroke(1.dp, if (selected) Color(0xFFFDE68A) else theme.borderColor), shape)
+            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
@@ -651,7 +653,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                     )
                     Text(
                         text = lastSeenShort(user.onlineAt, user.isOnline),
-                        fontSize = 8.5.sp,
+                        fontSize = 10.sp,
                         color = if (user.isOnline) GlassGreen else theme.mutedColor
                     )
                 }
@@ -662,18 +664,18 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("مصرف ترافیک", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text("مصرف ترافیک", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("اعتبار باقی‌مانده", fontSize = 8.5.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text("اعتبار باقی‌مانده", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
-                    MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
+                    MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
                 }
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
                     if (shownProgress > 0.01f) Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
@@ -705,16 +707,16 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 8.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
+                MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
             UserStatusBadge(user, Modifier.width(30.dp), compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    MrmText(traffic, fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
-                    MrmText(daysLeftText(user.expire), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
+                    MrmText(traffic, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
+                    MrmText(daysLeftText(user.expire), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) {
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
                     if (actualProgress > 0.01f) Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
             }
@@ -1089,7 +1091,7 @@ fun UsersScreen(
             ) {
                 when {
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(20.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, GlassRed.copy(0.18f)), RoundedCornerShape(20.dp)).padding(18.dp)) {
+                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
