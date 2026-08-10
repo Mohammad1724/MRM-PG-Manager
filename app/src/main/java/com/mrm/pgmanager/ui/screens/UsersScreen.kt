@@ -162,10 +162,10 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val isGold = accent == theme.accentPrimary || accent == themeState.accentPrimary
-                val iconBg = if (isGold) { if (theme.isDark) themeState.accentPrimary.copy(0.15f) else themeState.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
-                val iconBorder = if (isGold) { if (theme.isDark) themeState.accentPrimary.copy(0.22f) else themeState.accentPrimary.copy(alpha = 0.24f) } else accent.copy(0.18f)
-                val iconTint = if (isGold) { if (theme.isDark) themeState.accentPrimary else themeState.accentPrimary } else accent
+                val isGold = accent == theme.accentPrimary
+                val iconBg = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.15f) else theme.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
+                val iconBorder = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.22f) else theme.accentPrimary.copy(alpha = 0.24f) } else accent.copy(0.18f)
+                val iconTint = if (isGold) { theme.accentPrimary } else accent
                 Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(iconBg).border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm), contentAlignment = Alignment.Center) {
                     RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
                 }
@@ -235,8 +235,8 @@ private fun TopBarHeader(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Users", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) themeState.accentPrimary.copy(0.18f) else themeState.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) themeState.accentPrimary.copy(0.30f) else themeState.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                    Text("○", fontSize = 7.sp, color = themeState.accentPrimary)
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) theme.accentPrimary.copy(0.18f) else theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) theme.accentPrimary.copy(0.30f) else theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                    Text("○", fontSize = 7.sp, color = theme.accentPrimary)
                 }
             }
             Text(stringResource(R.string.control_users_desc), fontSize = 10.sp, color = theme.mutedColor)
@@ -1104,7 +1104,7 @@ fun UsersScreen(
                         isRefreshing = loading,
                         state = ptrState,
                         containerColor = themeState.cardSurfaceColor,
-                        color = com.mrm.pgmanager.ui.designsystem.themeState.accentPrimary,
+                        color = themeState.accentPrimary,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = listTopPad)
                     )
                 }
