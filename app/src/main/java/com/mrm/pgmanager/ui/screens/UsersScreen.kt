@@ -371,45 +371,6 @@ private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) 
     }
 }
 
-@Composable
-private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
-    val theme = LocalThemeState.current
-    val isDark = theme.isDark
-    val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
-    val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
-    Box(
-        modifier = modifier
-            .size(18.dp)
-            .clip(DsRadius.Xs)
-            .background(bg)
-            .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
-            .semantics { contentDescription = if (selected) "لغو انتخاب" else "انتخاب" }
-            .clickable { onToggle() },
-        contentAlignment = Alignment.Center
-    ) {
-        if (selected) {
-            // تیک با Canvas رسم می‌شود تا به baseline فونت وابسته نباشد و دقیقاً وسط مربع بماند.
-            Canvas(Modifier.fillMaxSize()) {
-                val stroke = Stroke(width = size.minDimension * .14f, cap = StrokeCap.Round)
-                drawLine(
-                    color = Color.White,
-                    start = Offset(size.width * .23f, size.height * .52f),
-                    end = Offset(size.width * .43f, size.height * .71f),
-                    strokeWidth = stroke.width,
-                    cap = stroke.cap
-                )
-                drawLine(
-                    color = Color.White,
-                    start = Offset(size.width * .43f, size.height * .71f),
-                    end = Offset(size.width * .78f, size.height * .30f),
-                    strokeWidth = stroke.width,
-                    cap = stroke.cap
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onCopySub: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: DebtorInfo? = null) {
