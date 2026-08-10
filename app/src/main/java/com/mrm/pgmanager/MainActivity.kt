@@ -74,6 +74,19 @@ class MainActivity : FragmentActivity() {
         super.attachBaseContext(com.mrm.pgmanager.utils.LocaleHelper.wrap(newBase, lang))
     }
 
+    override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
+        if (overrideConfiguration != null) {
+            val uiMode = overrideConfiguration.uiMode
+            try {
+                overrideConfiguration.setTo(baseContext.resources.configuration)
+            } catch (e: Exception) {
+                // Safe guard during early initialization
+            }
+            overrideConfiguration.uiMode = uiMode
+        }
+        super.applyOverrideConfiguration(overrideConfiguration)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
@@ -160,11 +173,11 @@ fun MRMApp() {
     var appLockTimeout by remember { mutableStateOf(store.readAppLockTimeoutSecs()) }
     var lastStoppedAt by remember { mutableStateOf(0L) }
     // حالت «افزودن حساب»: صفحهٔ ورود بدون پاک‌کردن نشست فعلی نمایش داده می‌شود.
-    var addingAccount by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(0) }
+    var addingAccount by rememberSaveable { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
     var showDrawer by remember { mutableStateOf(false) }
-    var showDashboardSettings by remember { mutableStateOf(false) }
+    var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
     var deepLinkUsername by remember { mutableStateOf<String?>(null) }
     val tabScrollConnection = remember {
