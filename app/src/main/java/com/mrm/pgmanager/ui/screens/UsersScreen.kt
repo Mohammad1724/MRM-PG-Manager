@@ -660,7 +660,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                         color = if (user.isOnline) GlassGreen else theme.mutedColor
                     )
                 }
-                UserStatusBadge(user, Modifier.width(42.dp))
+                UserStatusBadge(user, Modifier.widthIn(min = 42.dp))
                 if (debtorInfo != null) DebtorBadge()
                 IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = "کپی") { onCopySub(user) }
                 IconCardAction(AppIcon.Qr, Modifier.size(34.dp), contentDesc = "QR") { onQrClick(user) }
@@ -710,7 +710,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                 MrmText(user.username, fontSize = 11.sp, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
             }
-            UserStatusBadge(user, Modifier.width(30.dp), compact = true)
+            UserStatusBadge(user, Modifier.widthIn(min = 30.dp), compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
