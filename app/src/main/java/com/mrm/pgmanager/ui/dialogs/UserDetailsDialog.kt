@@ -217,3 +217,187 @@ fun UserDetailsDialog(
         Column(modifier.height(54.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), DsRadius.Sm).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Text(label, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(value, modifier = Modifier.offset(y = (-2).dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+    // دکمهٔ اکشن دیالوگ جزئیات: primary = کپسول اکسنت ۷۸٪ + متن تیره (بدون مرز)، neutral = کاشی خاکستری، destructive = قرمز کم‌رنگ.
+    @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, height: androidx.compose.ui.unit.Dp = 44.dp, click: () -> Unit) {
+        val bg = when { primary -> theme.accentPrimary; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
+        val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
+        // حالت primary مرز نامرئی دارد (اکسنت با آلفای صفر) تا فقط پس‌زمینهٔ توپُر دیده شود؛ چیدمان ثابت می‌ماند.
+        var borderColor = theme.borderColor
+        if (destructive) borderColor = GlassRed.copy(.30f)
+        if (primary) borderColor = theme.accentPrimary
+        Box(
+            modifier.height(height).clip(DsRadius.Md).background(bg)
+                .border(BorderStroke(0.7.dp, borderColor), DsRadius.Md)
+                .clickable(onClick = click),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text, fontSize = if (height <= 30.dp) 9.sp else 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
+            Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.user_details), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+
+                // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
+                Row(
+                    Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
+                        .padding(horizontal = 11.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Box(Modifier.size(28.dp).clip(DsRadius.Xl).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(DsRadius.Xs).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        MrmText(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                        MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
+                    }
+                    val active = currentUser.status != "disabled"
+                    Box(Modifier.height(26.dp).width(50.dp).clip(DsRadius.Sm).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
+                }
+
+                // توضیحات/یادداشت کاربر مستقیماً در پنجرهٔ جزئیات قابل مشاهده است.
+                if (!currentUser.note.isNullOrBlank()) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(DsRadius.Md)
+                            .background(theme.searchBgColor)
+                            .border(BorderStroke(0.7.dp, theme.borderSubtle), DsRadius.Md)
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        RoundedAppIcon(AppIcon.Note, tint = theme.mutedColor, size = 16.dp)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text("توضیحات", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                            Text(currentUser.note.orEmpty(), fontSize = 11.sp, color = theme.inkColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+
+                // سه آمار ضروری در یک ردیف؛ محدودیت دستگاه از این نمای خلاصه حذف شده است.
+                Column(
+                    Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(stringResource(R.string.user_status), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        statTile("مصرف‌شده", formatBytes(currentUser.usedTraffic), Modifier.weight(1f))
+                        statTile("حجم کل", traffic, Modifier.weight(1f))
+                        statTile("زمان باقی‌مانده", detailDaysText(currentUser.expire), Modifier.weight(1f))
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("مصرف", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) { if (percentage>0) Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(50))) }
+                        Text("$percentage%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                    }
+                }
+
+                // کارت اشتراک - فقط آیکون‌ها بدون متن
+                Row(
+                    Modifier.fillMaxWidth().clip(DsRadius.Md)
+                        .background(theme.cardSurfaceColor)
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Md)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Text("اشتراک", modifier = Modifier.weight(1f), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    // دکمه‌های آیکون کپی و QR (لینک اشتراک در صورت نبود، lazy دریافت می‌شود)
+                    IconActionBtn(AppIcon.Copy, "کپی", theme, Modifier.size(32.dp)) {
+                        ensureSub { url ->
+                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
+                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    IconActionBtn(AppIcon.Qr, "QR", theme, Modifier.size(32.dp)) { ensureSub { _ -> qrOpen = true } }
+                }
+
+                // === بخش بدهی/فاکتور: منوی کشویی یکپارچه ===
+                if (debtorInfo != null) {
+                    CapsuleActionMenu(
+                        label = "بخش مالی · ${debtorInfo.amount} ${debtorInfo.currency}",
+                        expanded = debtorMenuExpanded,
+                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded },
+                        isDebtor = true
+                    ) {
+                        // اطلاعات بدهی
+                        Text(
+                            "از ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(debtorInfo.markedAt))}" +
+                                    if (debtorInfo.notes.isNotBlank()) " - ${debtorInfo.notes}" else " - بدون یادداشت",
+                            fontSize = 10.sp, color = theme.mutedColor
+                        )
+                        if (debtorInfo.autoDisabled) {
+                            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(GlassRed.copy(0.14f)).padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 14.dp)
+                                Text("به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 10.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        CapsuleMenuItem(AppIcon.CheckCircle, "تسویه بدهی", GlassGreen, primary = true) { onClearDebt?.invoke() }
+                        CapsuleMenuItem(AppIcon.Edit, "ویرایش بدهی", GlassRed, danger = true) { onMarkDebtor?.invoke() }
+                        CapsuleMenuItem(AppIcon.Receipt, "صدور فاکتور", theme.accentPrimary) { onInvoice?.invoke() }
+                    }
+                } else {
+                    CapsuleActionMenu(
+                        label = "بخش مالی",
+                        expanded = debtorMenuExpanded,
+                        onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
+                    ) {
+                        CapsuleMenuItem(AppIcon.Warning, "ثبت بدهکار", GlassRed, danger = true) { onMarkDebtor?.invoke() }
+                        CapsuleMenuItem(AppIcon.Receipt, "صدور فاکتور", theme.accentPrimary) { onInvoice?.invoke() }
+                    }
+                }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    action("تمپلت‌ها", Modifier.weight(1f)) { templatePickerOpen = true }
+                    action("ویرایش کاربر", Modifier.weight(2f), primary = true) { editOpen = true }
+                }
+
+                Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    sectionTitle(stringResource(R.string.quick_actions))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        action("ریست حجم", Modifier.weight(1f)) { usageConfirm = true }
+                        action("ریست زمان", Modifier.weight(1f)) { expiryConfirm = true }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        action(if (currentUser.status == "disabled") "فعال‌کردن" else "غیرفعال‌کردن", Modifier.weight(1f)) { onToggle() }
+                        action("حذف کاربر", Modifier.weight(1f), destructive = true) { onDelete() }
+                    }
+                }
+                // دکمه بستن در پایین پنجره
+                SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+            }
+        }
+      }
+    }
+    if (templatePickerOpen) {
+        LaunchedEffect(Unit) {
+            templatesLoading = true; templatesFailed = false
+            val result = runCatching { session?.let { PanelApi.userTemplates(it) } ?: emptyList() }
+            availableTemplates = result.getOrDefault(emptyList())
+            templatesFailed = result.isFailure
+            templatesLoading = false
+        }
+        BulkApplyTemplateDialog(
+            templates = availableTemplates,
+            selectedCount = 1,
+            onDismiss = { templatePickerOpen = false },
+            onApply = { templateId, note -> templatePickerOpen = false; onApplyTemplate?.invoke(templateId, note) },
+            isLoading = templatesLoading,
+            loadFailed = templatesFailed
+        )
+    }
+    if (editOpen) UserEditorDialog(currentUser, { editOpen = false }, onSave, onToggle, onDelete, onResetUsage, { expiryConfirm = true }, onApplyTemplateToUser = onApplyTemplate, session = session)
+    if (qrOpen) SubscriptionQrDialog(currentUser, { qrOpen = false })
+    if (usageConfirm) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
+    if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
+}
