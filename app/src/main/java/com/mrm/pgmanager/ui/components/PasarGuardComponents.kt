@@ -55,15 +55,16 @@ fun PGStatCard(
     icon: AppIcon,
     modifier: Modifier = Modifier,
     valueSub: String? = null,
-    accent: Color = DsAccent.Gold,
+    accent: Color = Color.Unspecified,
     trailing: @Composable (() -> Unit)? = null
 ) {
     val t = LocalThemeState.current
+    val resolvedAccent = if (accent == Color.Unspecified) t.accentPrimary else accent
     val shape = DsRadius.Lg
-    val isGold = accent == DsAccent.Gold
-    val iconBg = if (isGold) { if (t.isDark) Color(0xFF3A3000).copy(0.45f) else Color(0xFFFFFBEB) } else accent.copy(0.10f)
-    val iconBorder = if (isGold) { if (t.isDark) Color(0xFFFACC15).copy(0.22f) else Color(0xFFFDE68A) } else accent.copy(0.18f)
-    val iconTint = if (isGold) { if (t.isDark) DsAccent.Gold else Color(0xFFCA8A04) } else accent
+    val isGold = resolvedAccent == DsAccent.Gold || resolvedAccent == t.accentPrimary
+    val iconBg = if (isGold) { if (t.isDark) t.accentPrimary.copy(0.15f) else t.accentPrimary.copy(0.10f) } else resolvedAccent.copy(0.10f)
+    val iconBorder = if (isGold) { if (t.isDark) t.accentPrimary.copy(0.25f) else t.accentPrimary.copy(0.22f) } else resolvedAccent.copy(0.18f)
+    val iconTint = if (isGold) { t.accentPrimary } else resolvedAccent
     Column(
         modifier
             .height(92.dp)
@@ -97,13 +98,15 @@ fun PGStatCard(
 }
 
 @Composable
-fun PGBadge(text: String, color: Color = DsAccent.Gold) {
+fun PGBadge(text: String, color: Color = Color.Unspecified) {
+    val t = LocalThemeState.current
+    val resolvedColor = if (color == Color.Unspecified) t.accentPrimary else color
     Box(
-        Modifier.clip(RoundedCornerShape(6.dp)).background(color.copy(0.12f))
-            .border(BorderStroke(0.5.dp, color.copy(0.18f)), RoundedCornerShape(6.dp))
+        Modifier.clip(RoundedCornerShape(6.dp)).background(resolvedColor.copy(0.12f))
+            .border(BorderStroke(0.5.dp, resolvedColor.copy(0.18f)), RoundedCornerShape(6.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        Text(text, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF92400E))
+        Text(text, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = resolvedColor)
     }
 }
 
@@ -129,12 +132,13 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 // ─────────────────────────────────────────────────────────────
 @Composable
 fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null, enabled: Boolean = true) {
+    val t = LocalThemeState.current
     val shape = DsRadius.Md
     Box(
         modifier
             .height(DsComponent.ButtonCompact)
             .clip(shape)
-            .background(if (enabled) DsAccent.Gold else DsNeutral.HairlineLight)
+            .background(if (enabled) t.accentPrimary else DsNeutral.HairlineLight)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
