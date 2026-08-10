@@ -78,6 +78,8 @@ import com.mrm.pgmanager.ui.theme.ThemeState
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.glassBorder
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.utils.JalaliCalendar
@@ -419,7 +421,9 @@ fun ThemeEditorDialog(
     appLockTimeout: Int = 0,
     onLockTimeoutChange: (Int) -> Unit = {},
     onSwitchAccount: (Session) -> Unit = {},
-    onAddAccount: () -> Unit = {}
+    onAddAccount: () -> Unit = {},
+    appLanguage: String = "system",
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -672,6 +676,14 @@ fun ThemeEditorDialog(
                 ) {
                     when (section) {
                         "ظاهر" -> {
+                            SettingsCard(stringResource(R.string.language), AppIcon.Settings) {
+                                SegmentedControl(
+                                    options = listOf(stringResource(R.string.language_system), stringResource(R.string.language_fa), stringResource(R.string.language_en)),
+                                    selectedIndex = when (appLanguage) { "fa" -> 1; "en" -> 2; else -> 0 },
+                                    onSelect = { idx -> val lang = when (idx) { 1 -> "fa"; 2 -> "en"; else -> "system" }; onLanguageChange(lang) }
+                                )
+                                Text(stringResource(R.string.language_desc), fontSize = 11.sp, color = theme.mutedColor)
+                            }
                             SettingsCard("حالت نمایش", AppIcon.Palette) {
                                 SegmentedControl(
                                     options = listOf("روشن", "تیره", "خودکار"),
