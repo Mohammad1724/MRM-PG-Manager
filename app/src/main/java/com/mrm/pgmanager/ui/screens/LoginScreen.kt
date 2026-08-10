@@ -31,6 +31,8 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
 
@@ -75,9 +77,9 @@ fun LoginScreen(
                 Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                PGField(label = "آدرس پنل", value = url, onValueChange = { url = it }, placeholder = "https://panel.example.com:443", icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
-                PGField(label = "نام کاربری", value = username, onValueChange = { username = it }, placeholder = "نام کاربری", icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
-                PGField(label = "رمز عبور", value = password, onValueChange = { password = it }, placeholder = "رمز عبور", icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
+                PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                PGField(label = stringResource(R.string.username), value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                PGField(label = stringResource(R.string.password), value = password, onValueChange = { password = it }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
 
                 if (error != null) {
                     Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEE2E2)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFECACA)), DsRadius.Md).padding(10.dp),
@@ -111,7 +113,7 @@ fun LoginScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF422006), strokeWidth = 2.dp)
-                    else Text("ورود به پنل", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
+                    else Text(stringResource(R.string.sign_in), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
                 }
 
                 // info row
