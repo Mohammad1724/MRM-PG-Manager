@@ -52,6 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.ripple
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsAccent
@@ -561,27 +563,27 @@ fun BulkActionsBar(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 16.dp); Text("عملیات گروهی روی $selectedCount کاربر", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 16.dp); Text(stringResource(R.string.bulk_actions_on, selectedCount), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor) }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { onSelectAll() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text("انتخاب همه", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
+                        Text(stringResource(R.string.select_all), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
                     }
                     Box(Modifier.clip(DsRadius.Sm).background(GlassRed.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.30f)), DsRadius.Sm).clickable { onClear() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text("× لغو", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlassRed)
+                        Text("× " + stringResource(R.string.cancel), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlassRed)
                     }
                 }
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                BulkActionChip("فعال‌سازی", AppIcon.Check, GlassGreen) { onEnable() }
-                BulkActionChip("غیرفعال‌سازی", AppIcon.User, Color(0xFF7A7886)) { onDisable() }
-                BulkActionChip("ریست حجم", AppIcon.Reset, theme.accentPrimary) { onResetUsage() }
-                BulkActionChip("اعمال تمپلت", AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
-                BulkActionChip("خروجی", AppIcon.Download, GlassGreen) { onExport() }
+                BulkActionChip(stringResource(R.string.enable), AppIcon.Check, GlassGreen) { onEnable() }
+                BulkActionChip(stringResource(R.string.disable), AppIcon.User, Color(0xFF7A7886)) { onDisable() }
+                BulkActionChip(stringResource(R.string.reset_usage), AppIcon.Reset, theme.accentPrimary) { onResetUsage() }
+                BulkActionChip(stringResource(R.string.apply_template), AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
+                BulkActionChip(stringResource(R.string.export), AppIcon.Download, GlassGreen) { onExport() }
                 // حذف با فاصله بصری جدا — خطر کلیک اشتباه کمتر
                 Spacer(Modifier.width(4.dp))
                 Box(Modifier.width(1.dp).height(24.dp).background(theme.borderSubtle).align(Alignment.CenterVertically))
                 Spacer(Modifier.width(4.dp))
-                BulkActionChip("حذف همه", AppIcon.Delete, GlassRed) { onDelete() }
+                BulkActionChip(stringResource(R.string.delete_all), AppIcon.Delete, GlassRed) { onDelete() }
             }
         }
     }
