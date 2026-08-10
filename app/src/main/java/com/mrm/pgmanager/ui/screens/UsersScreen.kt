@@ -49,6 +49,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -200,7 +202,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RoundedAppIcon(AppIcon.Search, contentDescription = "جستجو", tint = theme.mutedColor, size = 16.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (query.isEmpty()) Text("Search", color = theme.mutedColor.copy(0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (query.isEmpty()) Text(stringResource(R.string.search), color = theme.mutedColor.copy(0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
@@ -236,7 +238,7 @@ private fun TopBarHeader(
                     Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
                 }
             }
-            Text("Control, Update, and Arrange User Accounts", fontSize = 10.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.control_users_desc), fontSize = 10.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
@@ -283,7 +285,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
-                    Text(when(currentFilter){ UserFilter.ALL->"همه"; UserFilter.ACTIVE->"فعال"; UserFilter.NEAR_LIMIT->"لب مرز"; UserFilter.EXPIRED->"منقضی/محدود"; UserFilter.DISABLED->"غیرفعال"; UserFilter.DEBTOR->"بدهکار"}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
@@ -293,7 +295,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 12.dp)
-                    Text(when(currentSort){ UserSort.NAME->"نام"; UserSort.USAGE->"مصرف"; UserSort.EXPIRY->"انقضا"; UserSort.CREATED->"ساخت"}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                    Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1)
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
@@ -308,7 +310,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     if (showFilterSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("فیلتر", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf("همه" to UserFilter.ALL, "فعال" to UserFilter.ACTIVE, "لب مرز" to UserFilter.NEAR_LIMIT, "منقضی/محدود" to UserFilter.EXPIRED, "غیرفعال" to UserFilter.DISABLED, (if(debtorCount>0)"بدهکار ($debtorCount)" else "بدهکار") to UserFilter.DEBTOR).forEach { (label, f) ->
                     val sel = currentFilter == f
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
@@ -321,7 +323,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     if (showSortSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("مرتب‌سازی", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf("نام" to UserSort.NAME, "مصرف" to UserSort.USAGE, "انقضا" to UserSort.EXPIRY, "ساخت" to UserSort.CREATED).forEach { (label, s) ->
                     val sel = currentSort == s
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
@@ -481,7 +483,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = "نمایش QR") { onQrClick(user) }
                 Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                    Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
+                    Text(if (user.isOnline) stringResource(R.string.online) else stringResource(R.string.offline), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
                 }
                 if (user.groupNames.isNotEmpty()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
@@ -664,11 +666,11 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("مصرف ترافیک", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(stringResource(R.string.traffic_usage_label), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("اعتبار باقی‌مانده", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(stringResource(R.string.remaining_credit), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
                 }
             }
@@ -1103,13 +1105,13 @@ fun UsersScreen(
                             Box(Modifier.size(56.dp).clip(DsRadius.Md).background(themeState.searchBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Md), contentAlignment = Alignment.Center) {
                                 com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Search, tint = themeState.mutedColor, size = 28.dp)
                             }
-                            Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
-                            Text(if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) "فیلتر یا جست‌وجو را پاک کن یا کاربر جدید بساز" else "اولین کاربرت رو بساز", fontSize = 11.sp, color = themeState.mutedColor, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Text(stringResource(R.string.no_user_found), fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
+                            Text(if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user), fontSize = 11.sp, color = themeState.mutedColor, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
-                                    com.mrm.pgmanager.ui.components.SecondaryButton("پاک‌کردن فیلتر", onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                                    com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
                                 }
-                                com.mrm.pgmanager.ui.components.PrimaryButton("ساخت کاربر", onClick = { createUser = true })
+                                com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true })
                             }
                         }
                     }
@@ -1193,7 +1195,7 @@ fun UsersScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                        Text("حالت آفلاین — آخرین دادهٔ دریافتی: ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
+                        Text(stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
                     }
                 }
             }
