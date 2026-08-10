@@ -28,11 +28,11 @@
 
         <ImageView
             android:id="@+id/w_refresh"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:src="@drawable/ic_widget_refresh"
             android:contentDescription="بروزرسانی"
-            android:padding="5dp"
+            android:padding="6dp"
             android:background="@drawable/widget_refresh_bg"
             android:scaleType="fitCenter"
             android:clickable="true"
@@ -64,7 +64,7 @@
                 android:layout_height="wrap_content"
                 android:text="آنلاین"
                 android:textColor="#B9BAC0"
-                android:textSize="8sp" />
+                android:textSize="9sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -96,7 +96,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#8B8C93"
-                android:textSize="7.5sp"
+                android:textSize="9sp"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -117,7 +117,7 @@
                 android:layout_height="wrap_content"
                 android:text="RAM"
                 android:textColor="#B9BAC0"
-                android:textSize="8sp" />
+                android:textSize="9sp" />
 
             <TextView
                 android:id="@+id/w_ram_val"
@@ -134,7 +134,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#8B8C93"
-                android:textSize="7.5sp"
+                android:textSize="9sp"
                 android:maxLines="1" />
         </LinearLayout>
 
@@ -154,7 +154,7 @@
                 android:layout_height="wrap_content"
                 android:text="CPU"
                 android:textColor="#B9BAC0"
-                android:textSize="8sp" />
+                android:textSize="9sp" />
 
             <TextView
                 android:id="@+id/w_cpu_val"
@@ -171,7 +171,7 @@
                 android:layout_height="wrap_content"
                 android:text=""
                 android:textColor="#8B8C93"
-                android:textSize="7.5sp"
+                android:textSize="9sp"
                 android:maxLines="1" />
         </LinearLayout>
     </LinearLayout>
@@ -184,6 +184,6 @@
         android:gravity="end"
         android:text=""
         android:textColor="#8B8C93"
-        android:textSize="7.5sp"
+        android:textSize="9sp"
         android:maxLines="1" />
 </LinearLayout>
