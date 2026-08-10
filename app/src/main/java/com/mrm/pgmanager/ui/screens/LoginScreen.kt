@@ -41,6 +41,8 @@ fun LoginScreen(
     onLoggedIn: (Session) -> Unit,
     themeState: ThemeState,
     onThemeChange: (ThemeState) -> Unit,
+    appLanguage: String = "system",
+    onLanguageChange: (String) -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
@@ -139,7 +141,7 @@ fun LoginScreen(
         }
         // clickable overlay for settings icon (since we placed icon but not click)
         // Actually handle via Row click above — add invisible clickable
-        if (showThemeDialog) com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME)
+        if (showThemeDialog) com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME, appLanguage = appLanguage, onLanguageChange = onLanguageChange)
     }
 }
 
