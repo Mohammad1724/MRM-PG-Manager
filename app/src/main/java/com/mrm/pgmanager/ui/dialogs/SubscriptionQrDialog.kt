@@ -47,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 
+@Composable
 fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
