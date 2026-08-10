@@ -132,7 +132,7 @@ fun LoginScreen(
             }
 
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("v${BuildConfig.VERSION_NAME}", fontSize = 10.sp, color = theme.mutedLightColor)
+                Text("v${BuildConfig.VERSION_NAME}", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
         // clickable overlay for settings icon (since we placed icon but not click)
