@@ -52,21 +52,15 @@ fun LoginScreen(
 
     val focusManager = LocalFocusManager.current
     Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Top bar minimal
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(themeState.accentPrimary), contentAlignment = Alignment.Center) {
-                        Text("M", color = Color.White, fontWeight = FontWeight.Black, fontSize = 15.sp)
-                    }
-                    Column { Text("MRM", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.inkColor); Text("PASARGUARD", fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.SemiBold) }
-                }
-                Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { showThemeDialog = true }, contentAlignment = Alignment.Center) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Top bar minimal — فقط تنظیمات تم، لوگوی تکراری حذف شد
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(36.dp).clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showThemeDialog = true }, contentAlignment = Alignment.Center) {
                     RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
             // Logo centered
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -78,7 +72,7 @@ fun LoginScreen(
 
             // Card — white, subtle border, same as PG
             Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl).padding(16.dp),
+                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 PGField(label = "آدرس پنل", value = url, onValueChange = { url = it }, placeholder = "https://panel.example.com:443", icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
@@ -86,16 +80,16 @@ fun LoginScreen(
                 PGField(label = "رمز عبور", value = password, onValueChange = { password = it }, placeholder = "رمز عبور", icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
 
                 if (error != null) {
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Color(0xFFFEE2E2)).border(BorderStroke(1.dp, Color(0xFFFECACA)), RoundedCornerShape(10.dp)).padding(10.dp),
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEE2E2)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFECACA)), DsRadius.Md).padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 16.dp)
                         Text(error!!, color = GlassRed, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                     }
                 }
 
-                // Primary yellow button
+                // Primary yellow button — توکن‌محور
                 Box(
-                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).background(themeState.accentPrimary)
+                    Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(themeState.accentPrimary)
                         .clickable(enabled = !loading) {
                             if (loading) return@clickable
                             loading = true; error = null
@@ -121,12 +115,12 @@ fun LoginScreen(
                 }
 
                 // info row
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp),
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 14.dp)
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("قفل اثرانگشت / پین", fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
-                        Text("بعد از ورود: تنظیمات → امنیت → قفل برنامه", fontSize = 9.sp, color = theme.mutedColor)
+                        Text("قفل اثرانگشت / پین", fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
+                        Text("بعد از ورود: تنظیمات → امنیت → قفل برنامه", fontSize = 10.sp, color = theme.mutedColor)
                     }
                 }
             }
@@ -155,7 +149,7 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
         Box(
-            Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp))
+            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                 .padding(horizontal = 12.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -168,11 +162,11 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { if (onNext != null) onNext() else focusManager.moveFocus(FocusDirection.Down) }, onDone = { focusManager.clearFocus() }),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = theme.inkColor),
                     modifier = Modifier.weight(1f),
-                    decorationBox = { inner -> if (value.isEmpty()) Text(placeholder, fontSize = 13.sp, color = theme.mutedLightColor); inner() }
+                    decorationBox = { inner -> if (value.isEmpty()) Text(placeholder, fontSize = 13.sp, color = theme.mutedColor); inner() }
                 )
                 if (isPassword) {
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(6.dp)).clickable { visible = !visible }, contentAlignment = Alignment.Center) {
-                        Text(if (visible) "◯" else "◎", fontSize = 12.sp, color = theme.mutedColor)
+                    Box(Modifier.size(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { visible = !visible }, contentAlignment = Alignment.Center) {
+                        PasswordEyeIcon(visible = visible)
                     }
                 }
             }
