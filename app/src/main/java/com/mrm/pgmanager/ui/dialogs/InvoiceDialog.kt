@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,6 +38,8 @@ import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.PdfInvoiceGenerator
@@ -173,16 +176,16 @@ fun InvoiceDialog(
         val invoiceText = buildTextInvoice()
         Dialog(onDismissRequest = { textShareMode = false }) {
             Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor)
-                    .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(18.dp)
+                Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("فاکتور متنی", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     val scroll = rememberScrollState()
                     Column(
-                        Modifier.fillMaxWidth().heightIn(max = 280.dp).clip(RoundedCornerShape(14.dp))
+                        Modifier.fillMaxWidth().heightIn(max = 280.dp).clip(DsRadius.Xl)
                             .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
-                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                             .verticalScroll(scroll).padding(14.dp)
                     ) {
                         Text(invoiceText, fontSize = 12.sp, color = theme.inkColor, lineHeight = 22.sp)
@@ -248,9 +251,9 @@ fun InvoiceDialog(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
                 .padding(18.dp)
         ) {
             Column(
@@ -261,9 +264,9 @@ fun InvoiceDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.size(38.dp).clip(RoundedCornerShape(12.dp))
+                        Modifier.size(38.dp).clip(DsRadius.Lg)
                             .background(theme.accentPrimary.copy(0.18f))
-                            .border(BorderStroke(1.dp, theme.accentPrimary.copy(0.32f)), RoundedCornerShape(12.dp)),
+                            .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.32f)), DsRadius.Lg),
                         contentAlignment = Alignment.Center
                     ) {
                         RoundedAppIcon(AppIcon.Receipt, tint = theme.accentPrimary, size = 20.dp)
@@ -274,14 +277,14 @@ fun InvoiceDialog(
                     }
                 }
 
-                Divider(color = glassBorder(theme.isDark, theme.amoledDark), thickness = 1.dp)
+                Divider(color = theme.borderColor, thickness = 1.dp)
 
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(DsRadius.Xl)
                         .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
-                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -295,9 +298,9 @@ fun InvoiceDialog(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(DsRadius.Xl)
                         .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
-                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -336,7 +339,7 @@ fun InvoiceDialog(
                         )
                     }
 
-                    Divider(color = glassBorder(theme.isDark, theme.amoledDark).copy(alpha = 0.5f))
+                    Divider(color = theme.borderColor.copy(alpha = 0.5f))
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
@@ -495,9 +498,9 @@ private fun InvoicePreviewCard(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(DsRadius.Xxl)
                     .background(Color.White)
-                    .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), RoundedCornerShape(16.dp))
+                    .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), DsRadius.Xxl)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -506,14 +509,14 @@ private fun InvoicePreviewCard(
                     Image(
                         bitmap = logoBitmap.asImageBitmap(),
                         contentDescription = "Logo",
-                        modifier = Modifier.size(90.dp).clip(RoundedCornerShape(18.dp)),
+                        modifier = Modifier.size(90.dp).clip(DsRadius.Xxl),
                         contentScale = ContentScale.Fit
                     )
                 } else {
                     Box(
-                        Modifier.size(90.dp).clip(RoundedCornerShape(18.dp))
+                        Modifier.size(90.dp).clip(DsRadius.Xxl)
                             .background(Color(0xFFFFF8E1))
-                            .border(BorderStroke(1.dp, Color(0xFFF4C928).copy(alpha = 0.4f)), RoundedCornerShape(18.dp)),
+                            .border(BorderStroke(DsBorder.Hairline, Color(0xFFF4C928).copy(alpha = 0.4f)), DsRadius.Xxl),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(if (sellerName.isNotBlank()) sellerName.take(3) else "MRM", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFD4A800))
@@ -538,7 +541,7 @@ private fun InvoicePreviewCard(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(DsRadius.Xxl)
                         .background(Color(0xFFF8F8FA))
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -553,7 +556,7 @@ private fun InvoicePreviewCard(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(DsRadius.Xxl)
                         .background(Color(0xFFF8F8FA))
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -586,7 +589,7 @@ private fun InvoicePreviewCard(
                 }
 
                 if (notes.isNotBlank()) {
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF8F8FA)).padding(12.dp)) {
+                    Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(Color(0xFFF8F8FA)).padding(12.dp)) {
                         Text("📝 یادداشت", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
                         Text(notes, fontSize = 11.sp, color = Color(0xFF202124))
                     }
@@ -597,7 +600,7 @@ private fun InvoicePreviewCard(
                 Text("با تشکر از انتخاب شما 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
                 Text(
                     "تاریخ صدور: $invoiceDate",
-                    fontSize = 9.sp,
+                    fontSize = 10.sp,
                     color = Color(0xFFA09C94)
                 )
             }
