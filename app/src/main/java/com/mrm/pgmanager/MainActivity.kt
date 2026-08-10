@@ -345,7 +345,9 @@ fun MRMApp() {
                 onSwitchAccount = switchAccount,
                 onAddAccount = { addingAccount = true },
                 deepLinkUsername = deepLinkUsername,
-                onDeepLinkHandled = { deepLinkUsername = null }
+                onDeepLinkHandled = { deepLinkUsername = null },
+                appLanguage = appLanguage,
+                onLanguageChange = handleLanguageChange
             )
                 }
                 // تب‌بار پایین: دقیقاً همان کپسول سگمنت‌شدهٔ تب‌های تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
