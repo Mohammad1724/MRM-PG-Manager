@@ -166,7 +166,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 // System row — 2x2 grid exactly like PG screenshot
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     PGStatCard(label = "CPU Usage", value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
-                        valueSub = "${s.cpuCores} cores", trailing = { Text("${"%.1f".format(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedLightColor) })
+                        valueSub = "${s.cpuCores} cores", trailing = { Text("${"%.1f".format(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
                     PGStatCard(label = "RAM Usage", value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
                 }
@@ -236,7 +236,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     // Left: Users breakdown card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("Users", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                        Text("Monitor Users", fontSize = 10.sp, color = theme.mutedLightColor)
+                        Text("Monitor Users", fontSize = 10.sp, color = theme.mutedColor)
                         listOf(
                             Triple("Users", "${s.totalUsers}", null),
                             Triple("Active Users", "${s.activeUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
@@ -257,7 +257,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                                     Text(label, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    if (pct != null) Text(pct, fontSize = 10.sp, color = theme.mutedLightColor)
+                                    if (pct != null) Text(pct, fontSize = 10.sp, color = theme.mutedColor)
                                     Text(value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 }
                             }
@@ -266,7 +266,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     // Right: Usage chart card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column { Text("Usage", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text("Monitor admin traffic\nusage over time", fontSize = 8.sp, color = theme.mutedLightColor, lineHeight = 10.sp) }
+                            Column { Text("Usage", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text("Monitor admin traffic\nusage over time", fontSize = 8.sp, color = theme.mutedColor, lineHeight = 10.sp) }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
@@ -288,7 +288,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                             val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) Color(0xFF16A34A) else Color(0xFFDC2626)
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(trendingText, fontSize = 10.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
-                                Text("Usage During Period: ${formatBytes(totalPeriod)}\nTotal traffic usage across all servers", fontSize = 10.sp, color = theme.mutedLightColor, lineHeight = 10.sp)
+                                Text("Usage During Period: ${formatBytes(totalPeriod)}\nTotal traffic usage across all servers", fontSize = 10.sp, color = theme.mutedColor, lineHeight = 10.sp)
                             }
                         }
                     }
