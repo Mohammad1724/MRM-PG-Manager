@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,8 @@ import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.glassBorder
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -114,20 +117,20 @@ fun BulkCreateUsersDialog(
 
     Dialog(onDismissRequest = { if (!running) onDismiss() }) {
         Box(
-            Modifier.fillMaxWidth().heightIn(max = 640.dp).clip(RoundedCornerShape(16.dp))
+            Modifier.fillMaxWidth().imePadding().heightIn(max = 640.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
                 .padding(16.dp)
         ) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                 // هدر
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(GlassGreen.copy(.16f)).border(BorderStroke(1.dp, GlassGreen.copy(.32f)), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(38.dp).clip(DsRadius.Lg).background(GlassGreen.copy(.16f)).border(BorderStroke(DsBorder.Hairline, GlassGreen.copy(.32f)), DsRadius.Lg), contentAlignment = Alignment.Center) {
                         RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 19.dp)
                     }
                     Column(Modifier.weight(1f)) {
                         Text("ساخت گروهی کاربر", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        Text("تولید چند کاربر هم‌زمان با نام یکدست", fontSize = 9.5.sp, color = theme.mutedColor)
+                        Text("تولید چند کاربر هم‌زمان با نام یکدست", fontSize = 11.sp, color = theme.mutedColor)
                     }
                 }
 
@@ -143,7 +146,7 @@ fun BulkCreateUsersDialog(
                         )
                         if (pattern.sequential) SettingsStepper("شروع شمارش از", pattern.sequentialStart, "عدد", 1..999000) { pattern = pattern.copy(sequentialStart = it) }
                         else SettingsStepper("تعداد ارقام", pattern.randomDigits, "رقم", 3..6) { pattern = pattern.copy(randomDigits = it) }
-                        Text("نمونه‌ها: ${if (pattern.sequential) "${pattern.sequentialName(0)} ، ${pattern.sequentialName(1)}" else "${pattern.randomName()} ، ${pattern.randomName()}"}", fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("نمونه‌ها: ${if (pattern.sequential) "${pattern.sequentialName(0)} ، ${pattern.sequentialName(1)}" else "${pattern.randomName()} ، ${pattern.randomName()}"}", fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     // کارت مشخصات
                     SettingsCard("مشخصات اشتراک", AppIcon.Template) {
@@ -164,7 +167,7 @@ fun BulkCreateUsersDialog(
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
-                                    Box(Modifier.height(30.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.height(30.dp).clip(DsRadius.Sm).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (picked) theme.searchBgColor else theme.borderColor), DsRadius.Sm).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                         Text(t.name, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (picked) Color(0xFF202124) else theme.inkColor, maxLines = 1)
                                     }
                                 }
@@ -203,8 +206,8 @@ fun BulkCreateUsersDialog(
                             }
                             if (errors.isNotEmpty()) {
                                 Text("${errors.size} خطا:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
-                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(RoundedCornerShape(10.dp)).background(GlassRed.copy(.06f)).border(BorderStroke(1.dp, GlassRed.copy(.20f)), RoundedCornerShape(10.dp)).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 9.5.sp, isTechnical = true) }
+                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 11.sp, isTechnical = true) }
                                 }
                             }
                         }
