@@ -47,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 import java.time.LocalDate
 
+@Composable
 fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit, onDateSelected: (String) -> Unit) {
     val theme = LocalThemeState.current
     val today = JalaliCalendar.todayJalali()
