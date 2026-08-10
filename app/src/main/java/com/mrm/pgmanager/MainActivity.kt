@@ -71,7 +71,15 @@ class MainActivity : FragmentActivity() {
 
     override fun attachBaseContext(newBase: android.content.Context) {
         val lang = SessionStore(newBase).readAppLanguage()
-        super.attachBaseContext(com.mrm.pgmanager.utils.LocaleHelper.wrap(newBase, lang))
+        val wrapped = com.mrm.pgmanager.utils.LocaleHelper.wrap(newBase, lang)
+        val sysLocale = if (android.os.Build.VERSION.SDK_INT >= 24) {
+            wrapped.resources.configuration.locales.get(0)
+        } else {
+            @Suppress("DEPRECATION")
+            wrapped.resources.configuration.locale
+        }
+        java.util.Locale.setDefault(sysLocale)
+        super.attachBaseContext(wrapped)
     }
 
     override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
