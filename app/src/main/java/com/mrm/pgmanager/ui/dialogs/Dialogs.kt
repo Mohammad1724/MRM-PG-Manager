@@ -429,7 +429,8 @@ fun ThemeEditorDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { SessionStore(context) }
-    var section by remember { mutableStateOf("ظاهر") }
+    var section by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { section = androidx.compose.ui.res.stringResource(com.mrm.pgmanager.R.string.appearance) }
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var bulkCreateOpen by remember { mutableStateOf(false) }
@@ -468,7 +469,7 @@ fun ThemeEditorDialog(
         }
     }
     // در صفحهٔ ورود (بدون نشست) فقط تنظیمات ظاهری معنا دارد؛ بقیهٔ تب‌ها پنهان می‌مانند.
-    val sections = remember(session) { if (session == null) listOf("ظاهر", "پشتیبان") else listOf("ظاهر", "پایش", "اعلان‌ها", "اتصال", "کاربران", "فاکتور", "پشتیبان", "امنیت") }
+    val sections = remember(session) { if (session == null) listOf(stringResource(R.string.appearance), stringResource(R.string.backup_title)) else listOf(stringResource(R.string.appearance), stringResource(R.string.monitoring_title), stringResource(R.string.notifications_title), stringResource(R.string.connection_title), stringResource(R.string.users_title), stringResource(R.string.invoice_title), stringResource(R.string.backup_title), stringResource(R.string.security_title)) }
 
     // === انتخاب لوگو برای فاکتور ===
     var invoiceLogoPath by remember { mutableStateOf(store.readInvoiceLogoPath()) }
@@ -645,8 +646,8 @@ fun ThemeEditorDialog(
                         contentAlignment = Alignment.Center
                     ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 20.dp) }
                     Column(Modifier.weight(1f)) {
-                        Text("تنظیمات", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        Text("شخصی‌سازی، پایش و امنیت حساب مدیر", fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.settings_title), fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        Text(stringResource(R.string.appearance_desc), fontSize = 10.sp, color = theme.mutedColor)
                     }
                 }
                 // تب بخش‌ها به‌صورت سگمنت یکدست (اگر فقط یک بخش باشد، مخفی می‌ماند)
@@ -675,7 +676,7 @@ fun ThemeEditorDialog(
                     verticalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
                     when (section) {
-                        "ظاهر" -> {
+                        stringResource(R.string.appearance) -> {
                             SettingsCard(stringResource(R.string.language), AppIcon.Settings) {
                                 SegmentedControl(
                                     options = listOf(stringResource(R.string.language_system), stringResource(R.string.language_fa), stringResource(R.string.language_en)),
@@ -788,7 +789,7 @@ fun ThemeEditorDialog(
                                 }
                             }
                         }
-                        "پایش" -> {
+                        stringResource(R.string.monitoring_title) -> {
                             SettingsCard("پایش خودکار", AppIcon.Tune) {
                                 SettingsSwitchRow(
                                     "بروزرسانی خودکار داشبورد",
@@ -820,7 +821,7 @@ fun ThemeEditorDialog(
                                 ) { onMonitoringChange(com.mrm.pgmanager.data.model.MonitoringSettings()) }
                             }
                         }
-                        "اعلان‌ها" -> {
+                        stringResource(R.string.notifications_title) -> {
                             val master = monitoringSettings.notificationsEnabled
                             SettingsCard("کلی", AppIcon.Bell) {
                                 SettingsSwitchRow("فعال‌سازی اعلان‌ها", "کلید اصلیٔ همهٔ هشدارهای برنامه", master) { onMonitoringChange(monitoringSettings.copy(notificationsEnabled = it)) }
@@ -851,7 +852,7 @@ fun ThemeEditorDialog(
                                 SettingsStepper("حداکثر آنلاین مجاز", monitoringSettings.capacityOnlineLimit, "کاربر", 10..10000, step = 10, enabled = master && monitoringSettings.notifyCapacity) { onMonitoringChange(monitoringSettings.copy(capacityOnlineLimit = it)) }
                             }
                         }
-                        "اتصال" -> {
+                        stringResource(R.string.connection_title) -> {
                             if (session == null) {
                                 SettingsCard("اتصال به پنل", AppIcon.Wifi) {
                                     Text("برای مشاهدهٔ اطلاعات اتصال و تست آن، ابتدا وارد حساب کاربری شوید.", fontSize = 10.5.sp, color = theme.mutedColor)
@@ -941,7 +942,7 @@ fun ThemeEditorDialog(
                                 }
                             }
                         }
-                        "کاربران" -> {
+                        stringResource(R.string.users_title) -> {
                             var pattern by remember { mutableStateOf(store.readUsernamePattern()) }
                             fun savePattern(p: com.mrm.pgmanager.data.model.UsernamePattern) { pattern = p; store.saveUsernamePattern(p) }
                             SettingsCard("الگوی نام خودکار", AppIcon.User) {
@@ -1000,7 +1001,7 @@ fun ThemeEditorDialog(
                                 SettingsActionRow(if (exportBusy) "در حال آماده‌سازی..." else "خروجی JSON", "مناسب برنامه‌نویسی و بکاپ", AppIcon.Download, theme.accentPrimary) { startExport("json") { name -> jsonLauncher.launch(name) } }
                             }
                         }
-                        "فاکتور" -> {
+                        stringResource(R.string.invoice_title) -> {
                             SettingsCard("لوگوی فاکتور", AppIcon.Image, accent = theme.accentPrimary) {
                                 Text("تصویری که بالای فاکتورهای متنی و PDF نمایش داده می‌شود.", fontSize = 11.sp, color = theme.mutedColor)
                                 // پیش‌نمایش لوگو
@@ -1069,7 +1070,7 @@ fun ThemeEditorDialog(
                                 )
                             }
                         }
-                        "پشتیبان" -> {
+                        stringResource(R.string.backup_title) -> {
                             SettingsCard("پوشه ذخیره‌سازی", AppIcon.Folder) {
                                 Text("پشتیبان‌ها در پوشه‌ای که انتخاب می‌کنید روی حافظهٔ گوشی ذخیره می‌شوند.", fontSize = 11.sp, color = theme.mutedColor)
                                 Box(
@@ -1201,7 +1202,7 @@ fun ThemeEditorDialog(
                                 }
                             }
                         }
-                        "امنیت" -> {
+                        stringResource(R.string.security_title) -> {
                             SettingsCard("قفل برنامه", AppIcon.Lock, accent = GlassGreen) {
                                 SettingsSwitchRow(
                                     "قفل امنیتی برنامه",
@@ -1630,11 +1631,11 @@ fun UserEditorDialog(
             Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp)
-                    Text(if (initial == null) "ایجاد کاربر" else "ویرایش کاربر", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(if (initial == null) stringResource(R.string.create_user_title) else stringResource(R.string.edit_user_title), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 }
                 // اطلاعات پایه
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("اطلاعات پایه", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.basic_info), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (initial == null) {
                             // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
@@ -1656,7 +1657,7 @@ fun UserEditorDialog(
                 }
                 // حجم و زمان
                 Column(card(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    Text("حجم و زمان اشتراک", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.volume_and_time), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     // حجم کل مستقیماً قابل تعیین است؛ کادر +GB فقط مقدار افزایشی را به آن اضافه می‌کند.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم کل (GB)", Modifier.weight(1.35f), KeyboardType.Decimal, "", fieldHeight = 34.dp)
@@ -1674,7 +1675,7 @@ fun UserEditorDialog(
                 }
                 // دسترسی و یادداشت
                 Column(card(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.access_and_details), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CompactGlassField(if (hwid == "0" || hwid.isEmpty()) "" else hwid, { v -> hwid = v.filter(Char::isDigit).ifBlank { "0" } }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
                         Box(Modifier.weight(.48f).height(30.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { hwid = "0" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 10.sp, color = theme.mutedColor) }
@@ -1684,12 +1685,12 @@ fun UserEditorDialog(
                 }
                 // گروه‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("گروه‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.groups_title), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     if (groups.isEmpty()) Text("گروهی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { groups.forEach { g -> val picked = groupIds.contains(g.id); Box(Modifier.height(32.dp).clip(DsRadius.Sm).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else theme.borderColor), DsRadius.Sm).clickable { groupIds = if (picked) groupIds - g.id else groupIds + g.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { if (picked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 12.dp); Text(g.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } } }
                 }
                 // تمپلت‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("تمپلت‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.templates_title), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(DsRadius.Sm).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else theme.borderColor), DsRadius.Sm).clickable {
                             selectedTemplate = t.id
                             // انتخاب تمپلت، مقادیر واقعی آن را فوراً در فیلدهای فرم نشان می‌دهد.
@@ -1699,7 +1700,7 @@ fun UserEditorDialog(
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SecondaryButton("انصراف", onDismiss, Modifier.weight(.35f))
-                    PrimaryButton("ذخیرهٔ تغییرات", modifier = Modifier.weight(.65f), onClick = {
+                    PrimaryButton(stringResource(R.string.save_changes), modifier = Modifier.weight(.65f), onClick = {
                         val expire = days.toIntOrNull()?.takeIf { it >= 0 }?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) } ?: ""
                         val hwidValue = hwid.toIntOrNull() ?: 0
                         val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds)
@@ -1905,7 +1906,7 @@ fun UserDetailsDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("جزئیات کاربر", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Text(stringResource(R.string.user_details), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                 // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
                 Row(
@@ -1951,7 +1952,7 @@ fun UserDetailsDialog(
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("وضعیت اشتراک", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.user_status), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         statTile("مصرف‌شده", formatBytes(currentUser.usedTraffic), Modifier.weight(1f))
                         statTile("حجم کل", traffic, Modifier.weight(1f))
@@ -2027,7 +2028,7 @@ fun UserDetailsDialog(
                 }
 
                 Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    sectionTitle("عملیات سریع")
+                    sectionTitle(stringResource(R.string.quick_actions))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         action("ریست حجم", Modifier.weight(1f)) { usageConfirm = true }
                         action("ریست زمان", Modifier.weight(1f)) { expiryConfirm = true }
