@@ -144,7 +144,7 @@ fun QuickActionSheet(
     onInvoice: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
-    val isFa = java.util.Locale.getDefault().language == "fa"
+    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -388,7 +388,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
 @Composable
 private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    val isFa = java.util.Locale.getDefault().language == "fa"
+    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
     Row(
         modifier.clip(DsRadius.Xl)
             .background(if (selected) lamp.primary.copy(.10f) else Color.Transparent)
@@ -679,7 +679,7 @@ fun ThemeEditorDialog(
                     Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
-                    val isFa = java.util.Locale.getDefault().language == "fa"
+                    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
                     when (section) {
                         stringResource(R.string.appearance) -> {
                             SettingsCard(stringResource(R.string.language), AppIcon.Settings) {
@@ -1248,7 +1248,7 @@ fun ThemeEditorDialog(
                         AppLogo(height = 17.dp)
                         Text("MRM PG Manager", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     }
-                    val isFa = java.util.Locale.getDefault().language == "fa"
+                    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(
                             Modifier.clip(DsRadius.Sm).background(theme.searchBgColor)
@@ -1263,7 +1263,7 @@ fun ThemeEditorDialog(
                         Text(if (isFa) "نسخهٔ ${appVersion.ifBlank { "—" }}" else "Version ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
                 }
-                val isFa = java.util.Locale.getDefault().language == "fa"
+                val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
                 SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
