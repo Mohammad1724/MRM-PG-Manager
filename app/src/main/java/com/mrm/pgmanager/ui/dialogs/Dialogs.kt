@@ -109,16 +109,18 @@ fun ConfirmActionDialog(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(24.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
-                Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    if (danger) {
-                        DangerButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
-                    } else {
-                        PrimaryButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(24.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
+                    Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                        if (danger) {
+                            DangerButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+                        } else {
+                            PrimaryButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -146,46 +148,48 @@ fun QuickActionSheet(
     val theme = LocalThemeState.current
     val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) { 
-                        MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                        MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
-                    }
-                    Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") (if (isFa) "غیرفعال" else "Disabled") else (if (isFa) "فعال" else "Active"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                }
-                
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Template, if (isFa) "تمپلت" else "Template", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
-                        QuickActionRow(AppIcon.Edit, if (isFa) "ویرایش" else "Edit", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Reset, if (isFa) "ریست حجم" else "Reset Data", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
-                        QuickActionRow(AppIcon.Calendar, if (isFa) "ریست زمان" else "Reset Time", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Copy, if (isFa) "کپی لینک" else "Copy Link", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
-                        QuickActionRow(AppIcon.Qr, if (isFa) "نمایش QR" else "Show QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.Note, if (isFa) "فاکتور 🧾" else "Invoice 🧾", theme.accentPrimary, Modifier.weight(1f)) {
-                            if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) { 
+                            MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                            MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                         }
-                        QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) (if (isFa) "تسویه بدهی" else "Clear Debt") else (if (isFa) "بدهکار" else "Debtor"), GlassRed, Modifier.weight(1f)) {
-                            if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
+                        Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") (if (isFa) "غیرفعال" else "Disabled") else (if (isFa) "فعال" else "Active"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    }
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            QuickActionRow(AppIcon.Template, if (isFa) "تمپلت" else "Template", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
+                            QuickActionRow(AppIcon.Edit, if (isFa) "ویرایش" else "Edit", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            QuickActionRow(AppIcon.Reset, if (isFa) "ریست حجم" else "Reset Data", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                            QuickActionRow(AppIcon.Calendar, if (isFa) "ریست زمان" else "Reset Time", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            QuickActionRow(AppIcon.Copy, if (isFa) "کپی لینک" else "Copy Link", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
+                            QuickActionRow(AppIcon.Qr, if (isFa) "نمایش QR" else "Show QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            QuickActionRow(AppIcon.Note, if (isFa) "فاکتور 🧾" else "Invoice 🧾", theme.accentPrimary, Modifier.weight(1f)) {
+                                if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
+                            }
+                            QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) (if (isFa) "تسویه بدهی" else "Clear Debt") else (if (isFa) "بدهکار" else "Debtor"), GlassRed, Modifier.weight(1f)) {
+                                if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            QuickActionRow(AppIcon.User, if (user.status == "disabled") (if (isFa) "فعال‌سازی" else "Enable") else (if (isFa) "غیرفعال‌سازی" else "Disable"), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                            QuickActionRow(AppIcon.Delete, if (isFa) "حذف کاربر" else "Delete User", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        QuickActionRow(AppIcon.User, if (user.status == "disabled") (if (isFa) "فعال‌سازی" else "Enable") else (if (isFa) "غیرفعال‌سازی" else "Disable"), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
-                        QuickActionRow(AppIcon.Delete, if (isFa) "حذف کاربر" else "Delete User", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
-                    }
+                    
+                    SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
                 }
-                
-                SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -632,18 +636,19 @@ fun ThemeEditorDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
-                .background(theme.dialogBgColor)
-                .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)
-                .padding(16.dp)
-        ) {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
-                // هدر: آیکون اکسنت + عنوان + دکمهٔ بستن
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        Modifier.size(40.dp).clip(DsRadius.Xl)
-                            .background(theme.accentPrimary.copy(.16f))
+        LiquidGlassTheme(themeState = themeState) {
+            Box(
+                Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
+                    .background(theme.dialogBgColor)
+                    .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)
+                    .padding(16.dp)
+            ) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+                    // هدر: آیکون اکسنت + عنوان + دکمهٔ بستن
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            Modifier.size(40.dp).clip(DsRadius.Xl)
+                                .background(theme.accentPrimary.copy(.16f))
                             .border(BorderStroke(1.dp, theme.accentPrimary.copy(.32f)), DsRadius.Xl),
                         contentAlignment = Alignment.Center
                     ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 20.dp) }
@@ -1267,6 +1272,7 @@ fun ThemeEditorDialog(
                 SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
+      }
     }
     if (bulkCreateOpen && session != null) {
         BulkCreateUsersDialog(session = session, onDismiss = { bulkCreateOpen = false })
@@ -1470,22 +1476,24 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
-                Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
-                    if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                    else Text("QR خطا", fontSize = 12.sp)
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
+                    Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
+                        if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                        else Text("QR خطا", fontSize = 12.sp)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        SecondaryButton("کپی", onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                        }, modifier = Modifier.weight(1f))
+                        PrimaryButton("اشتراک", onClick = ::shareQr, modifier = Modifier.weight(1f))
+                    }
+                    TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    SecondaryButton("کپی", onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                        android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                    }, modifier = Modifier.weight(1f))
-                    PrimaryButton("اشتراک", onClick = ::shareQr, modifier = Modifier.weight(1f))
-                }
-                TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
             }
         }
     }
@@ -1513,30 +1521,32 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
         }
     }
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
-                    TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.accentPrimary) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
-                    Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
-                    Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
-                }
-                LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
-                    items((1..daysInMonth).toList()) { day ->
-                        val sel = day == d
-                        // روز انتخاب‌شده = کپسول اکسنت ۷۸٪ و متن تیره؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
-                        Box(Modifier.aspectRatio(1f).clip(DsRadius.Md).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
-                            Text("$day", color = if (sel) Color(0xFF202124) else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.accentPrimary) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
+                        Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
+                    }
+                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
+                        items((1..daysInMonth).toList()) { day ->
+                            val sel = day == d
+                            // روز انتخاب‌شده = کپسول اکسنت ۷۸٪ و متن تیره؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
+                            Box(Modifier.aspectRatio(1f).clip(DsRadius.Md).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                                Text("$day", color = if (sel) Color(0xFF202124) else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                            }
                         }
                     }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    PrimaryButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                        PrimaryButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -1560,7 +1570,7 @@ fun CompactGlassField(
         // فیلد استاندارد فرم: سطح خاکستری روشن و border خنثی، نزدیک به ورودی‌های پنل وب.
         modifier = modifier.fillMaxWidth().height(fieldHeight).clip(DsRadius.Md)
             .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), DsRadius.Md)
+            .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Md)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -1634,7 +1644,8 @@ fun UserEditorDialog(
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
             Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp)
@@ -1688,7 +1699,7 @@ fun UserEditorDialog(
                         Box(Modifier.weight(.48f).height(30.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { hwid = "0" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 10.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Sm).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), DsRadius.Lg).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
+                    Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Sm).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Lg).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
                 }
                 // گروه‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1716,6 +1727,7 @@ fun UserEditorDialog(
                 }
             }
         }
+      }
     }
     if (showCalendar) ShamsiCalendarPickerDialog(JalaliCalendar.todayJalali().toString(), { showCalendar = false }) { shamsi -> days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("") }
     if (resetUsage) ConfirmActionDialog("ریست حجم مصرف‌شده؟", "مصرف این کاربر صفر می‌شود.", onDismiss = { resetUsage = false }, onConfirm = { resetUsage = false; onResetUsage?.invoke() })
@@ -1911,7 +1923,8 @@ fun UserDetailsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
+        LiquidGlassTheme(themeState = theme) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.user_details), fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
@@ -2049,6 +2062,7 @@ fun UserDetailsDialog(
                 SecondaryButton("بستن", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
             }
         }
+      }
     }
     if (templatePickerOpen) {
         LaunchedEffect(Unit) {
@@ -2088,9 +2102,10 @@ fun BulkApplyTemplateDialog(
     var formError by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
-        ) {
+        LiquidGlassTheme(themeState = theme) {
+            Box(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
+            ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text("یک تمپلت آماده انتخاب کنید تا تنظیمات آن روی هر $selectedCount کاربر انتخابی اعمال شود:", color = theme.mutedColor, fontSize = 11.5.sp)
@@ -2138,5 +2153,6 @@ fun BulkApplyTemplateDialog(
                 }
             }
         }
+      }
     }
 }
