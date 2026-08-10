@@ -139,11 +139,12 @@ private fun DebtorBadge(compact: Boolean = false) {
 }
 
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
+@Composable
 private fun cardStatusText(user: PanelUser): String = when (user.status) {
-    "disabled" -> "غیرفعال"
-    "expired" -> "منقضی"
-    "limited" -> "محدود"
-    "on_hold" -> "در انتظار"
+    "disabled" -> stringResource(R.string.disabled)
+    "expired" -> stringResource(R.string.expired)
+    "limited" -> stringResource(R.string.limited)
+    "on_hold" -> stringResource(R.string.on_hold_users)
     else -> daysLeftText(user.expire)
 }
 
@@ -262,13 +263,13 @@ private fun StatsCardsRow(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = AppIcon.User, label = "کاربران آنلاین", value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            StatGlassCard(icon = AppIcon.Check, label = "کاربران فعال", value = "$activeUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.User, label = stringResource(R.string.online_users), value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Check, label = stringResource(R.string.active_users), value = "$activeUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = AppIcon.Users, label = "همهٔ کاربران", value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Users, label = stringResource(R.string.users_section), value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
             if (debtorCount > 0) {
-                StatGlassCard(icon = AppIcon.Warning, label = "بدهکار", value = "$debtorCount", accent = GlassRed, modifier = Modifier.weight(1f))
+                StatGlassCard(icon = AppIcon.Warning, label = stringResource(R.string.debtor), value = "$debtorCount", accent = GlassRed, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -311,7 +312,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                listOf("همه" to UserFilter.ALL, "فعال" to UserFilter.ACTIVE, "لب مرز" to UserFilter.NEAR_LIMIT, "منقضی/محدود" to UserFilter.EXPIRED, "غیرفعال" to UserFilter.DISABLED, (if(debtorCount>0)"بدهکار ($debtorCount)" else "بدهکار") to UserFilter.DEBTOR).forEach { (label, f) ->
+                listOf(stringResource(R.string.all) to UserFilter.ALL, stringResource(R.string.active) to UserFilter.ACTIVE, stringResource(R.string.near_limit) to UserFilter.NEAR_LIMIT, stringResource(R.string.expired) to UserFilter.EXPIRED, stringResource(R.string.disabled) to UserFilter.DISABLED, (if(debtorCount>0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR).forEach { (label, f) ->
                     val sel = currentFilter == f
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
@@ -324,7 +325,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                listOf("نام" to UserSort.NAME, "مصرف" to UserSort.USAGE, "انقضا" to UserSort.EXPIRY, "ساخت" to UserSort.CREATED).forEach { (label, s) ->
+                listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED).forEach { (label, s) ->
                     val sel = currentSort == s
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
@@ -458,7 +459,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(DsSemantic.Info.copy(0.16f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = DsSemantic.Info, size = 11.dp) }
             }
             MrmText(
-                text = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", 
+                text = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / " + stringResource(R.string.unlimited) else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}", 
                 fontSize = 11.sp, 
                 fontWeight = FontWeight.Bold, 
                 maxLines = 1, 
@@ -511,11 +512,11 @@ private fun OnlineBadge(user: PanelUser) {
 private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, compact: Boolean = false) {
     val theme = LocalThemeState.current
     val (label, color) = when (user.status) {
-        "active" -> "فعال" to GlassGreen
-        "disabled" -> "غیرفعال" to Color(0xFF8A8A8A)
-        "expired" -> "منقضی" to GlassRed
-        "limited" -> "محدود" to GlassAmber
-        "on_hold" -> "در انتظار" to DsSemantic.Violet
+        "active" -> stringResource(R.string.active) to GlassGreen
+        "disabled" -> stringResource(R.string.disabled) to Color(0xFF8A8A8A)
+        "expired" -> stringResource(R.string.expired) to GlassRed
+        "limited" -> stringResource(R.string.limited) to GlassAmber
+        "on_hold" -> stringResource(R.string.on_hold_users) to DsSemantic.Violet
         else -> cardStatusText(user) to theme.mutedColor
     }
     Box(
@@ -629,7 +630,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
         progressPercent < 90 -> GlassAmber
         else -> GlassRed
     }
-    val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
+    val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / " + stringResource(R.string.unlimited) else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
     val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
     val shape = DsRadius.Lg
 
