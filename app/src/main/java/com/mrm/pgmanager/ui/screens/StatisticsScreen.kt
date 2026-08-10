@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,12 +71,12 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Statistics", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Text(stringResource(R.string.statistics), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.5.dp, Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
                             Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
                         }
                     }
-                    Text("Monitor your servers and users", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.statistics_subtitle), fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { refreshing = true; load(true); refreshing = false } }, contentAlignment = Alignment.Center) {
                     if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
@@ -84,7 +86,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
             // ── Nodes selector
             Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column { Text("Nodes", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text("Select a node to view detailed statistics", fontSize = 10.sp, color = theme.mutedColor) }
+                    Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 10.sp, color = theme.mutedColor) }
                     PGDropdown(value = selectedNode, onClick = {})
                 }
             }
@@ -97,19 +99,19 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                 // ── System
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(AppIcon.Gauge, tint = Color(0xFFCA8A04), size = 14.dp); Text("System", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        RoundedAppIcon(AppIcon.Gauge, tint = Color(0xFFCA8A04), size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = "CPU Usage", value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
-                        PGStatCard(label = "RAM Usage", value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
+                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
+                        PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
+                        PGStatCard(label = stringResource(R.string.disk_usage), value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
                         // Total Traffic with in/out - same 92dp height
                         Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 12.dp) }
-                                Text("Total Traffic", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.total_traffic), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
@@ -119,28 +121,28 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF064E3B).copy(0.45f) else Color(0xFFDCFCE7)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF10B981).copy(0.30f) else Color(0xFFBBF7D0)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Download, tint = if (theme.isDark) Color(0xFF6EE7B7) else Color(0xFF065F46), size = 14.dp) }
-                                Text("Download", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.download), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text(formatBytes(s.incomingBandwidth), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
                         }
                         Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF1E3A8A).copy(0.35f) else Color(0xFFDBEAFE)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF60A5FA).copy(0.30f) else Color(0xFFBFDBFE)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Upload, tint = if (theme.isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A), size = 14.dp) }
-                                Text("Upload", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                                Text(stringResource(R.string.upload), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
                             Text(formatBytes(s.outgoingBandwidth), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
                         }
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 12.dp) }
-                        Column { Text("Uptime", fontSize = 10.sp, color = theme.mutedColor); Text("1 day, 1 hour", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); Text("1 day, 1 hour", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                 }
 
                 // ── Traffic Usage
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Traffic Usage", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                    Text("Total traffic usage across all servers", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    Text(stringResource(R.string.traffic_usage_desc), fontSize = 10.sp, color = theme.mutedColor)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("1h","6h","24h","3d","More").forEach { t ->
                             val sel = t == timeRange
@@ -166,9 +168,9 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
 
                 // ── User Count
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("User Count", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                    Text("Online, expired, and limited user activity counts over time", fontSize = 10.sp, color = theme.mutedColor)
-                    Text("Status changes can skew history. Usage resets clear chart history only if chart-data cleanup is enabled.", fontSize = 8.sp, color = theme.mutedColor, lineHeight = 10.sp)
+                    Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    Text(stringResource(R.string.user_count_desc), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.status_history_note), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("1h","6h","24h","3d","More").forEach { t ->
                             Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
@@ -182,12 +184,12 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         Spacer(Modifier.width(12.dp))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Group by node", fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.group_by_node), fontSize = 10.sp, color = theme.mutedColor)
                         Box(Modifier.width(36.dp).height(20.dp).clip(RoundedCornerShape(50)).background(Color(0xFFE5E7EB)).padding(2.dp)) {
                             Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color.White))
                         }
                     }
-                    Text("Count During Period", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.count_during_period), fontSize = 10.sp, color = theme.mutedColor)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                             RoundedAppIcon(AppIcon.Wifi, tint = theme.mutedColor, size = 12.dp); Text("66", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
