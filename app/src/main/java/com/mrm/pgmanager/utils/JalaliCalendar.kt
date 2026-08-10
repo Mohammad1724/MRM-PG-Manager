@@ -88,26 +88,39 @@ private fun parseOnlineMillis(raw: String?): Long? {
 
 /** متنِ «آخرین آنلاین» به فارسی: آنلاین / X دقیقه پیش / X ساعت پیش / X روز پیش / ... */
 fun lastSeenText(onlineAt: String?, isOnline: Boolean): String {
-    if (isOnline) return "آنلاین"
-    val millis = parseOnlineMillis(onlineAt) ?: return "آخرین آنلاین: نامشخص"
+    val isFa = java.util.Locale.getDefault().language == "fa"
+    if (isOnline) return if (isFa) "آنلاین" else "Online"
+    val millis = parseOnlineMillis(onlineAt) ?: return if (isFa) "آخرین آنلاین: نامشخص" else "Last seen: Unknown"
     val diffMin = (System.currentTimeMillis() - millis) / 60000L
-    if (diffMin <= 0L) return "آنلاین"
-    return when {
-        diffMin < 1L -> "هم‌اکنون"
-        diffMin < 60L -> "${faNum(diffMin)} دقیقه پیش"
-        diffMin < 1440L -> "${faNum(diffMin / 60L)} ساعت پیش"
-        diffMin < 1440L * 30L -> "${faNum(diffMin / 1440L)} روز پیش"
-        diffMin < 1440L * 365L -> "${faNum(diffMin / (1440L * 30L))} ماه پیش"
-        else -> "${faNum(diffMin / (1440L * 365L))} سال پیش"
+    if (diffMin <= 0L) return if (isFa) "آنلاین" else "Online"
+    return if (isFa) {
+        when {
+            diffMin < 1L -> "هم‌اکنون"
+            diffMin < 60L -> "${faNum(diffMin)} دقیقه پیش"
+            diffMin < 1440L -> "${faNum(diffMin / 60L)} ساعت پیش"
+            diffMin < 1440L * 30L -> "${faNum(diffMin / 1440L)} روز پیش"
+            diffMin < 1440L * 365L -> "${faNum(diffMin / (1440L * 30L))} ماه پیش"
+            else -> "${faNum(diffMin / (1440L * 365L))} سال پیش"
+        }
+    } else {
+        when {
+            diffMin < 1L -> "Just now"
+            diffMin < 60L -> "$diffMin minutes ago"
+            diffMin < 1440L -> "${diffMin / 60L} hours ago"
+            diffMin < 1440L * 30L -> "${diffMin / 1440L} days ago"
+            diffMin < 1440L * 365L -> "${diffMin / (1440L * 30L)} months ago"
+            else -> "${diffMin / (1440L * 365L)} years ago"
+        }
     }
 }
 
 /** فرمتِ کوتاهِ «آخرین آنلاین»: آنلاین / 4m / 4h / 4d / 4w / 3mo / 1y */
 fun lastSeenShort(onlineAt: String?, isOnline: Boolean): String {
-    if (isOnline) return "آنلاین"
+    val isFa = java.util.Locale.getDefault().language == "fa"
+    if (isOnline) return if (isFa) "آنلاین" else "Online"
     val millis = parseOnlineMillis(onlineAt) ?: return ""
     val diffMin = (System.currentTimeMillis() - millis) / 60000L
-    if (diffMin <= 0L) return "آنلاین"
+    if (diffMin <= 0L) return if (isFa) "آنلاین" else "Online"
     return when {
         diffMin < 60L -> "${diffMin}m"
         diffMin < 1440L -> "${diffMin / 60L}h"
