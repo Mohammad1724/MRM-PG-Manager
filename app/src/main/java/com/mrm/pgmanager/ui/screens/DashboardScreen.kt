@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -134,12 +136,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Dashboard", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Text(stringResource(R.string.dashboard), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         Box(Modifier.size(18.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) DsAccent.Gold.copy(0.18f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.30f) else Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
                             Text("ⓘ", fontSize = 10.sp, color = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text("PasarGuard Management Dashboard", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.dashboard_subtitle), fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
@@ -158,20 +160,20 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A)), DsRadius.Md).padding(horizontal = 10.dp, vertical = 7.dp)) {
                     RoundedAppIcon(AppIcon.Warning, tint = if (theme.isDark) DsAccent.Gold else GlassAmber, size = 12.dp)
-                    Text("حالت آفلاین — ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", color = if (theme.isDark) DsAccent.Gold else Color(0xFF92400E), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.offline_state, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), color = if (theme.isDark) DsAccent.Gold else Color(0xFF92400E), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
             }
 
             stats?.let { s ->
                 // System row — 2x2 grid exactly like PG screenshot
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = "CPU Usage", value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
+                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
                         valueSub = "${s.cpuCores} cores", trailing = { Text("${"%.1f".format(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
-                    PGStatCard(label = "RAM Usage", value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
+                    PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = "Disk Usage", value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
+                    PGStatCard(label = stringResource(R.string.disk_usage), value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%") })
                     // Total Traffic card with in/out badges - same 92dp height as PGStatCard
                     Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -179,7 +181,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                             Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Storage, tint = if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04), size = 15.dp)
                             }
-                            Text("Total Traffic", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
+                            Text(stringResource(R.string.total_traffic), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
                         }
                         TechnicalContainer { Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
@@ -191,7 +193,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         RoundedAppIcon(AppIcon.Timer, tint = Color(0xFFCA8A04), size = 15.dp)
                     }
                     Column {
-                        Text("Uptime", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         val days = s.uptimeSeconds / 86400L; val hrs = (s.uptimeSeconds % 86400L)/3600L
                         val txt = if (days > 0) "$days day, $hrs hour" else "$hrs hour"
                         Text(txt, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -204,14 +206,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Users, tint = Color(0xFFCA8A04), size = 12.dp); Text("Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            RoundedAppIcon(AppIcon.Users, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
                     Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text("Active Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                                RoundedAppIcon(AppIcon.CheckCircle, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
                             Text("${s.activeUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
@@ -223,7 +225,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Wifi, tint = Color(0xFFCA8A04), size = 12.dp); Text("Online Users", fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            RoundedAppIcon(AppIcon.Wifi, tint = Color(0xFFCA8A04), size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${s.onlineUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
@@ -231,20 +233,20 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                 }
 
                 // ── Total Admins block (like screenshot bottom)
-                Text("Total Admins", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                Text(stringResource(R.string.total_admins), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     // Left: Users breakdown card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Users", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                        Text("Monitor Users", fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.users_section), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        Text(stringResource(R.string.monitor_users), fontSize = 10.sp, color = theme.mutedColor)
                         listOf(
-                            Triple("Users", "${s.totalUsers}", null),
-                            Triple("Active Users", "${s.activeUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
-                            Triple("Online Users", "${s.onlineUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
-                            Triple("Expired Users", "${s.expiredUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
-                            Triple("Limited Users", "${s.limitedUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
-                            Triple("On Hold Users", "0", null),
-                            Triple("Disabled Users", "${s.disabledUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.users_section), "${s.totalUsers}", null),
+                            Triple(stringResource(R.string.active_users), "${s.activeUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.online_users), "${s.onlineUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.expired_users), "${s.expiredUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.limited_users), "${s.limitedUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.on_hold_users), "0", null),
+                            Triple(stringResource(R.string.disabled_users), "${s.disabledUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
                         ).forEach { (label, value, pct) ->
                             val dotColor = when(label) {
                                 "Online Users" -> Color(0xFF22C55E); "Expired Users" -> Color(0xFFF97316); "Limited Users" -> Color(0xFFEF4444); "On Hold Users" -> Color(0xFFA855F7); "Disabled Users" -> Color(0xFF6B7280); else -> Color.Transparent
@@ -266,14 +268,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     // Right: Usage chart card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column { Text("Usage", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text("Monitor admin traffic\nusage over time", fontSize = 8.sp, color = theme.mutedColor, lineHeight = 10.sp) }
+                            Column { Text(stringResource(R.string.usage), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.monitor_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp) }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
-                                Text("7 days ▾", fontSize = 10.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.days_7) + " ▾", fontSize = 10.sp, color = theme.mutedColor)
                             }
                             Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
-                                Text("Auto ▾", fontSize = 10.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.auto) + " ▾", fontSize = 10.sp, color = theme.mutedColor)
                             }
                         }
                         UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = DsAccent.Gold)
@@ -283,12 +285,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                                 val first = trafficPoints.first().totalTraffic.toDouble().coerceAtLeast(1.0)
                                 val last = trafficPoints.last().totalTraffic.toDouble()
                                 val diff = ((last - first) / first * 100).toInt()
-                                if (diff >= 0) "Trending up by ${diff}% ↗" else "Trending down by ${-diff}% ↘"
-                            } else "No trend yet"
+                                if (diff >= 0) stringResource(R.string.trending_up, diff) else stringResource(R.string.trending_down, -diff)
+                            } else stringResource(R.string.no_trend)
                             val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) Color(0xFF16A34A) else Color(0xFFDC2626)
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(trendingText, fontSize = 10.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
-                                Text("Usage During Period: ${formatBytes(totalPeriod)}\nTotal traffic usage across all servers", fontSize = 10.sp, color = theme.mutedColor, lineHeight = 10.sp)
+                                Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
                             }
                         }
                     }
@@ -296,7 +298,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
 
                 // Debtor block
                 if (debtorCount > 0) {
-                    Text("بدهکاران", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    Text(stringResource(R.string.debtors), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                         PGStatCard(label = "تعداد بدهکار", value = "$debtorCount نفر", icon = AppIcon.Warning, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
                         PGStatCard(label = "مجموع بدهی", value = "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", icon = AppIcon.Money, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
