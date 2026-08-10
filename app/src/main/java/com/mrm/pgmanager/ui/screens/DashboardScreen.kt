@@ -316,7 +316,7 @@ private fun UsageMiniChart(points: List<TrafficPoint>, themeIsDark: Boolean, acc
     Canvas(Modifier.fillMaxWidth().height(90.dp)) {
         val w = size.width; val h = size.height
         // grid
-        for (i in 1..3) drawLine(theme.borderColor, androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
+        for (i in 1..3) drawLine(if (themeIsDark) Color.White.copy(0.08f) else Color(0xFFE5E7EB), androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
         val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
         if (points.size > 1) {
             val path = androidx.compose.ui.graphics.Path()
