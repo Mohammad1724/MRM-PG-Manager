@@ -54,50 +54,52 @@ fun PasarGuardDrawer(
             // Brand header
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(0.7.dp, Color(0xFFFDE68A)), RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
-                        Text("PG", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                    Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(if (theme.isDark) com.mrm.pgmanager.ui.designsystem.DsAccent.Gold.copy(0.18f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) com.mrm.pgmanager.ui.designsystem.DsAccent.Gold.copy(0.30f) else Color(0xFFFDE68A)), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                        Text("PG", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (theme.isDark) com.mrm.pgmanager.ui.designsystem.DsAccent.Gold else Color(0xFF92400E))
                     }
-                    Column { Text("PasarGuard", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor); Text("v5.2.1 • Up to date", fontSize = 9.sp, color = Color(0xFF22C55E)) }
+                    Column { Text("PasarGuard", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor); Text("v${com.mrm.pgmanager.BuildConfig.VERSION_NAME} • به‌روز", fontSize = 10.sp, color = Color(0xFF22C55E)) }
                 }
-                Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).clickable { onClose() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 16.sp, color = theme.mutedColor) }
+                Box(Modifier.size(32.dp).clip(DsRadius.Sm).clickable { onClose() }, contentAlignment = Alignment.Center) { Text("×", fontSize = 18.sp, color = theme.mutedColor) }
             }
             Spacer(Modifier.height(6.dp))
-            Text("Platform", fontSize = 9.sp, color = theme.mutedLightColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
+            Text("Platform", fontSize = 10.sp, color = theme.mutedLightColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
             PasarGuardDrawerItems.forEach { item ->
                 val sel = item.id == selectedId
+                val isImplemented = item.id in listOf("dashboard","users","statistics")
                 Row(
-                    Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp))
-                        .background(if (sel) Color(0xFFF3F4F6) else Color.Transparent)
-                        .then(if (sel) Modifier.border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)) else Modifier)
-                        .clickable { onSelect(item.id); onClose() }
+                    Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Sm)
+                        .background(if (sel) theme.searchBgColor else Color.Transparent)
+                        .then(if (sel) Modifier.border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm) else Modifier)
+                        .clickable(enabled = isImplemented) { onSelect(item.id); onClose() }
                         .padding(horizontal = 10.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(item.icon, tint = if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
-                        Text(item.label, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.inkColor else theme.mutedColor)
+                        RoundedAppIcon(item.icon, tint = if (!isImplemented) theme.mutedLightColor else if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
+                        Text(item.label, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (!isImplemented) theme.mutedLightColor else if (sel) theme.inkColor else theme.mutedColor)
+                        if (!isImplemented) Text("به‌زودی", fontSize = 9.sp, color = theme.mutedLightColor, modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(theme.borderSubtle).padding(horizontal = 4.dp, vertical = 1.dp))
                     }
                     if (item.hasSub) Text("›", fontSize = 12.sp, color = theme.mutedLightColor)
                 }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 6.dp)) {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("◎", fontSize = 12.sp, color = theme.mutedColor)
-                Text("Support Us", fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RoundedAppIcon(AppIcon.Bell, tint = theme.mutedColor, size = 14.dp)
+                Text("حمایت از ما", fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Text("★ Star  2,484", fontSize = 10.sp, color = theme.inkColor)
+                Box(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Text("★ Star  2,484", fontSize = 11.sp, color = theme.inkColor)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(26.dp).clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) { Text("A", fontSize = 10.sp, color = theme.mutedColor) }
-                    Box(Modifier.size(26.dp).clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) { Text("☀", fontSize = 10.sp, color = theme.mutedColor) }
+                    Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Palette, tint = theme.mutedColor, size = 14.dp) }
+                    Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(if (theme.isDark) AppIcon.DarkMode else AppIcon.LightMode, tint = theme.mutedColor, size = 14.dp) }
                 }
             }
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column { Text(adminName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(traffic, fontSize = 9.sp, color = theme.mutedColor) }
-                Text("⌃", fontSize = 10.sp, color = theme.mutedColor)
+            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column { Text(adminName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(traffic, fontSize = 10.sp, color = theme.mutedColor) }
+                RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 12.dp)
             }
         }
     }
