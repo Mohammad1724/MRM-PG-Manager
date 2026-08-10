@@ -430,7 +430,7 @@ fun ThemeEditorDialog(
     val scope = rememberCoroutineScope()
     val store = remember { SessionStore(context) }
     var section by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) { section = androidx.compose.ui.res.stringResource(com.mrm.pgmanager.R.string.appearance) }
+    LaunchedEffect(Unit) { section = context.getString(com.mrm.pgmanager.R.string.appearance) }
     var testing by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var bulkCreateOpen by remember { mutableStateOf(false) }
@@ -469,7 +469,7 @@ fun ThemeEditorDialog(
         }
     }
     // در صفحهٔ ورود (بدون نشست) فقط تنظیمات ظاهری معنا دارد؛ بقیهٔ تب‌ها پنهان می‌مانند.
-    val sections = remember(session) { if (session == null) listOf(stringResource(R.string.appearance), stringResource(R.string.backup_title)) else listOf(stringResource(R.string.appearance), stringResource(R.string.monitoring_title), stringResource(R.string.notifications_title), stringResource(R.string.connection_title), stringResource(R.string.users_title), stringResource(R.string.invoice_title), stringResource(R.string.backup_title), stringResource(R.string.security_title)) }
+    val sections = if (session == null) listOf(context.getString(R.string.appearance), context.getString(R.string.backup_title)) else listOf(context.getString(R.string.appearance), context.getString(R.string.monitoring_title), context.getString(R.string.notifications_title), context.getString(R.string.connection_title), context.getString(R.string.users_title), context.getString(R.string.invoice_title), context.getString(R.string.backup_title), context.getString(R.string.security_title))
 
     // === انتخاب لوگو برای فاکتور ===
     var invoiceLogoPath by remember { mutableStateOf(store.readInvoiceLogoPath()) }
