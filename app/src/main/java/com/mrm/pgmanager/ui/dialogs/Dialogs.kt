@@ -764,7 +764,7 @@ fun ThemeEditorDialog(
                                     Box(Modifier.weight(1f).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).padding(10.dp)) {
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Box(Modifier.size(22.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Sm).background(if (theme.isDark) theme.accentPrimary.copy(0.18f) else com.mrm.pgmanager.ui.designsystem.DsAccent.Gold.copy(0.12f)).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.accentPrimary.copy(0.25f)), com.mrm.pgmanager.ui.designsystem.DsRadius.Sm), contentAlignment = Alignment.Center) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Gauge, tint = theme.accentPrimary, size = 12.dp) }
+                                                Box(Modifier.size(22.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Sm).background(if (theme.isDark) theme.accentPrimary.copy(0.18f) else theme.accentPrimary.copy(0.12f)).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.accentPrimary.copy(0.25f)), com.mrm.pgmanager.ui.designsystem.DsRadius.Sm), contentAlignment = Alignment.Center) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Gauge, tint = theme.accentPrimary, size = 12.dp) }
                                                 androidx.compose.material3.Text(if (isFa) "نمونه کارت" else "Sample Card", fontSize = 11.sp, color = theme.inkColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
                                             }
                                             androidx.compose.material3.Text(if (isFa) "پیش‌نمایش زندهٔ رنگ و حالت تیره/روشن" else "Live color & dark/light preview", fontSize = 10.sp, color = theme.mutedColor)
@@ -1894,12 +1894,12 @@ fun UserDetailsDialog(
     }
     // دکمهٔ اکشن دیالوگ جزئیات: primary = کپسول اکسنت ۷۸٪ + متن تیره (بدون مرز)، neutral = کاشی خاکستری، destructive = قرمز کم‌رنگ.
     @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, height: androidx.compose.ui.unit.Dp = 44.dp, click: () -> Unit) {
-        val bg = when { primary -> com.mrm.pgmanager.ui.designsystem.DsAccent.Gold; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
+        val bg = when { primary -> theme.accentPrimary; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
         val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
         // حالت primary مرز نامرئی دارد (اکسنت با آلفای صفر) تا فقط پس‌زمینهٔ توپُر دیده شود؛ چیدمان ثابت می‌ماند.
         var borderColor = theme.borderColor
         if (destructive) borderColor = GlassRed.copy(.30f)
-        if (primary) borderColor = Color(0xFFEAB308)
+        if (primary) borderColor = theme.accentPrimary
         Box(
             modifier.height(height).clip(DsRadius.Md).background(bg)
                 .border(BorderStroke(0.7.dp, borderColor), DsRadius.Md)
