@@ -162,10 +162,10 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val isGold = accent == theme.accentPrimary || accent == DsAccent.Gold
-                val iconBg = if (isGold) { if (theme.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else accent.copy(0.10f)
-                val iconBorder = if (isGold) { if (theme.isDark) DsAccent.Gold.copy(0.22f) else Color(0xFFFDE68A) } else accent.copy(0.18f)
-                val iconTint = if (isGold) { if (theme.isDark) DsAccent.Gold else Color(0xFFCA8A04) } else accent
+                val isGold = accent == theme.accentPrimary || accent == themeState.accentPrimary
+                val iconBg = if (isGold) { if (theme.isDark) themeState.accentPrimary.copy(0.15f) else themeState.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
+                val iconBorder = if (isGold) { if (theme.isDark) themeState.accentPrimary.copy(0.22f) else themeState.accentPrimary.copy(alpha = 0.24f) } else accent.copy(0.18f)
+                val iconTint = if (isGold) { if (theme.isDark) themeState.accentPrimary else themeState.accentPrimary } else accent
                 Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(iconBg).border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm), contentAlignment = Alignment.Center) {
                     RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
                 }
@@ -235,8 +235,8 @@ private fun TopBarHeader(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Users", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.18f) else Color(0xFFFFFBEB)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.30f) else Color(0xFFFDE68A)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                    Text("○", fontSize = 7.sp, color = Color(0xFFCA8A04))
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) themeState.accentPrimary.copy(0.18f) else themeState.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) themeState.accentPrimary.copy(0.30f) else themeState.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                    Text("○", fontSize = 7.sp, color = themeState.accentPrimary)
                 }
             }
             Text(stringResource(R.string.control_users_desc), fontSize = 10.sp, color = theme.mutedColor)
@@ -525,7 +525,22 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
             .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(if (compact) 5.dp else 7.dp))
             .padding(horizontal = if (compact) 3.dp else 7.dp),
         contentAlignment = Alignment.Center
-    ) { Text(label, fontSize = if (compact) 9.sp else 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    ) { 
+        Text(
+            text = label, 
+            fontSize = if (compact) 9.sp else 10.sp, 
+            fontWeight = FontWeight.Bold, 
+            color = color, 
+            maxLines = 1, 
+            overflow = TextOverflow.Ellipsis,
+            style = androidx.compose.ui.text.TextStyle(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                    includeFontPadding = false
+                ),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        ) 
+    }
 }
 
 @Composable
@@ -1089,7 +1104,7 @@ fun UsersScreen(
                         isRefreshing = loading,
                         state = ptrState,
                         containerColor = themeState.cardSurfaceColor,
-                        color = com.mrm.pgmanager.ui.designsystem.DsAccent.Gold,
+                        color = com.mrm.pgmanager.ui.designsystem.themeState.accentPrimary,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = listTopPad)
                     )
                 }
