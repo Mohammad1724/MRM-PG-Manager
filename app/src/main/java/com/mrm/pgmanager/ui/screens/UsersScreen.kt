@@ -812,7 +812,9 @@ fun UsersScreen(
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {},
     deepLinkUsername: String? = null,
-    onDeepLinkHandled: () -> Unit = {}
+    onDeepLinkHandled: () -> Unit = {},
+    appLanguage: String = "system",
+    onLanguageChange: (String) -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -1326,7 +1328,9 @@ fun UsersScreen(
             appLockTimeout = appLockTimeout,
             onLockTimeoutChange = onLockTimeoutChange,
             onSwitchAccount = { acc -> showThemeDialog = false; onSwitchAccount(acc) },
-            onAddAccount = { showThemeDialog = false; onAddAccount() }
+            onAddAccount = { showThemeDialog = false; onAddAccount() },
+            appLanguage = appLanguage,
+            onLanguageChange = onLanguageChange
         )
     }
     selectedUser?.let { user ->
