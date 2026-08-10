@@ -112,4 +112,11 @@
     <string name="clear_filter">پاک‌کردن فیلتر</string>
     <string name="create_user">ساخت کاربر</string>
     <string name="offline_data">آفلاین — آخرین داده: %1$s</string>
+
+    <!-- Language -->
+    <string name="language">زبان</string>
+    <string name="language_desc">زبان برنامه را انتخاب کنید</string>
+    <string name="language_system">خودکار (سیستم)</string>
+    <string name="language_fa">فارسی</string>
+    <string name="language_en">English</string>
 </resources>
