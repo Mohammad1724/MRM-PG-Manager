@@ -14,6 +14,7 @@
     <string name="used">Used</string>
     <string name="limit">Limit</string>
     <string name="expired">Expired</string>
+    <string name="limited">Limited</string>
     <string name="unlimited">Unlimited</string>
     <string name="manage_panel">Manage your PasarGuard panel</string>
     <string name="status">Status</string>
