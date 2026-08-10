@@ -301,7 +301,7 @@ fun MrmButton(
             Triple(
                 Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
                 theme.inkColor,
-                BorderStroke(DsBorder.Default, glassBorder(theme.isDark, theme.amoledDark))
+                BorderStroke(DsBorder.Hairline, theme.borderColor)
             )
         }
         MrmButtonStyle.Danger -> {
