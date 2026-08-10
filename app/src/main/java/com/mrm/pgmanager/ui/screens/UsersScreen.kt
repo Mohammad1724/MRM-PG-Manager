@@ -239,10 +239,10 @@ private fun TopBarHeader(
             Text("Control, Update, and Arrange User Accounts", fontSize = 10.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
                 if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 14.dp)
             }
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { onOpenThemeDialog() }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { onOpenThemeDialog() }, contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
             }
         }
@@ -279,7 +279,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.width(110.dp).height(32.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showFilterSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.width(110.dp).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
@@ -289,7 +289,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.width(110.dp).height(32.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).clickable { showSortSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.width(110.dp).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 12.dp)
@@ -299,7 +299,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             }
         }
         // View mode compact
-        Row(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(10.dp)).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
             ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
             ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
@@ -307,11 +307,11 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     }
     if (showFilterSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("فیلتر", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf("همه" to UserFilter.ALL, "فعال" to UserFilter.ACTIVE, "لب مرز" to UserFilter.NEAR_LIMIT, "منقضی/محدود" to UserFilter.EXPIRED, "غیرفعال" to UserFilter.DISABLED, (if(debtorCount>0)"بدهکار ($debtorCount)" else "بدهکار") to UserFilter.DEBTOR).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(1.dp, if(sel) Color(0xFFEAB308) else theme.borderColor), RoundedCornerShape(10.dp)).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
                     }
                 }
@@ -320,11 +320,11 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     }
     if (showSortSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("مرتب‌سازی", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf("نام" to UserSort.NAME, "مصرف" to UserSort.USAGE, "انقضا" to UserSort.EXPIRY, "ساخت" to UserSort.CREATED).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(1.dp, if(sel) Color(0xFFEAB308) else theme.borderColor), RoundedCornerShape(10.dp)).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) DsAccent.Gold else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) DsAccent.GoldDeep else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
                     }
                 }
@@ -336,26 +336,26 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
 @Composable
 private fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    val shape = RoundedCornerShape(8.dp)
+    val shape = DsRadius.Sm
     Box(modifier = Modifier
-        .height(24.dp)
+        .height(32.dp)
         .clip(shape)
         .background(if (selected) DsAccent.Gold else theme.searchBgColor)
-        .border(BorderStroke(1.dp, if (selected) Color(0xFFEAB308) else theme.borderColor), shape)
+        .border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else theme.borderColor), shape)
         .clickable(onClick = onClick)
-        .padding(horizontal = 10.dp),
+        .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 10.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
 
 @Composable
 private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    val shape = DsRadius.Xs
-    Box(modifier = Modifier.clip(shape).background(if (selected) theme.accentPrimary.copy(.82f) else Color.Transparent).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)) {
-        Text(label, color = if (selected) Color(0xFF1C1D21) else theme.mutedColor, fontSize = 9.sp, fontWeight = if (selected) DsFont.Bold else DsFont.Regular)
+    val shape = DsRadius.Sm
+    Box(modifier = Modifier.clip(shape).background(if (selected) DsAccent.Gold else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
+        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
 
@@ -363,8 +363,8 @@ private fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.size(DsComponent.TileSm).clip(shape).background(if (selected) theme.accentPrimary.copy(.82f) else Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) Color(0xFF1C1D21) else theme.mutedColor, size = 15.dp)
+    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) DsAccent.Gold else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) DsAccent.GoldDeep else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = if (selected) Color(0xFF422006) else theme.mutedColor, size = 18.dp)
     }
 }
 
@@ -372,14 +372,14 @@ private fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) 
 private fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val isDark = theme.isDark
-    val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
-    val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
+    val bg = if (selected) DsAccent.Gold else if (isDark) Color(0xFF383842) else Color.White
+    val borderCol = if (selected) DsAccent.GoldDeep else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
         modifier = modifier
-            .size(14.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .size(18.dp)
+            .clip(DsRadius.Xs)
             .background(bg)
-            .border(BorderStroke(1.dp, borderCol), RoundedCornerShape(4.dp))
+            .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
             .semantics { contentDescription = if (selected) "لغو انتخاب" else "انتخاب" }
             .clickable { onToggle() },
         contentAlignment = Alignment.Center
@@ -464,7 +464,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 isTechnical = true
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${cardStatusText(user)}", fontSize = 9.5.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
+                Text("${cardStatusText(user)}", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
                 MrmText(
                     text = if (user.dataLimit == 0L) "∞" else "$progressPercent%", 
                     fontSize = 9.sp, 
@@ -480,7 +480,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = "نمایش QR") { onQrClick(user) }
-                Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(0.8.dp, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), RoundedCornerShape(7.dp)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
                     Text(if (user.isOnline) "آنلاین" else "آفلاین", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
                 }
                 if (user.groupNames.isNotEmpty()) {
@@ -501,7 +501,7 @@ private fun OnlineBadge(user: PanelUser) {
             .size(9.dp)
             .clip(RoundedCornerShape(4.5.dp))
             .background(color)
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.55f)), RoundedCornerShape(4.5.dp))
+            .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.55f)), DsRadius.Xs)
     )
 }
 
@@ -530,7 +530,7 @@ private fun RowAction(label: String, modifier: Modifier = Modifier, height: andr
     val theme = LocalThemeState.current
     Box(modifier = modifier.height(height).clip(RoundedCornerShape(6.dp))
         .background(theme.searchBgColor)
-        .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(6.dp))
+        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
         .clickable(onClick = onClick).padding(horizontal = 5.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
@@ -545,7 +545,7 @@ private fun copySubscription(context: Context, user: PanelUser) {
 @Composable
 private fun LargeRowAction(label: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onClick).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
     }
 }
@@ -571,7 +571,7 @@ private fun UserCardAction(
             .height(34.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -583,9 +583,9 @@ private fun UserCardAction(
 private fun IconCardAction(icon: AppIcon, modifier: Modifier = Modifier, contentDesc: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(
-        modifier.clip(RoundedCornerShape(8.dp))
+        modifier.clip(DsRadius.Sm)
             .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -597,9 +597,9 @@ private fun IconCardAction(icon: AppIcon, modifier: Modifier = Modifier, content
 private fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, contentDesc: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(
-        modifier.clip(RoundedCornerShape(6.dp))
+        modifier.clip(DsRadius.Sm)
             .background(theme.searchBgColor)
-            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(6.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -610,8 +610,8 @@ private fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, contentD
 @Composable
 private fun IconGridAction(icon: AppIcon, contentDesc: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.size(22.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(7.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 13.dp)
+    Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 14.dp)
     }
 }
 
@@ -629,7 +629,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
     }
     val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / نامحدود" else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
     val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
-    val shape = DsRadius.Xl
+    val shape = DsRadius.Lg
 
     Box(
         Modifier.fillMaxWidth()
@@ -645,8 +645,8 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     MrmText(
                         user.username,
-                        fontSize = 14.sp,
-                        fontWeight = DsFont.ExtraBold,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         isTechnical = true
@@ -670,7 +670,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("اعتبار باقی‌مانده", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
-                    MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
                 }
             }
 
@@ -678,7 +677,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
                     if (shownProgress > 0.01f) Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
-                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
         }
     }
@@ -697,9 +696,8 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     Box(
         Modifier.fillMaxWidth()
             .clip(shape)
-            .shadow(elevation = DsElevation.Low.ambient.dp, shape = shape, ambientColor = statusColor.copy(0.10f), spotColor = Color.Black.copy(0.05f))
-            .background(if (selected) theme.accentPrimary.copy(.12f) else theme.cardSurfaceColor)
-            .border(BorderStroke(if (selected) DsBorder.Focus else DsBorder.Thin, if (selected) theme.accentPrimary else glassBorder(theme.isDark, theme.amoledDark)), shape)
+            .background(if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.15f) else Color(0xFFFFFBEB) } else theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) { if (LocalThemeState.current.isDark) DsAccent.Gold.copy(0.25f) else Color(0xFFFDE68A) } else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
             .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
@@ -740,13 +738,13 @@ fun DebtorEditDialog(
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     val amountLong = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), RoundedCornerShape(22.dp)).padding(18.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (existing != null) "ویرایش بدهی ${user.username}" else "ثبت بدهکار برای ${user.username}", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 if (existing != null) {
                     Text("ثبت شده: ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))}", fontSize = 10.sp, color = theme.mutedColor)
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                         androidx.compose.foundation.text.BasicTextField(
@@ -763,7 +761,7 @@ fun DebtorEditDialog(
                         )
                     }
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                     androidx.compose.foundation.text.BasicTextField(
                         value = notes,
                         onValueChange = { notes = it.take(200) },
@@ -1047,18 +1045,18 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         if (selectedUserIds.isEmpty()) {
-            val fabShape = DsRadius.Xl
+            val fabShape = DsRadius.Lg
             val fabInteraction = remember { MutableInteractionSource() }
             val isFabPressed by fabInteraction.collectIsPressedAsState()
-            val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.90f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
+            val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.95f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
             Box(
                 modifier = Modifier
                     .padding(bottom = 72.dp, end = 4.dp)
                     .size(52.dp)
                     .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(fabShape)
                     .background(DsAccent.Gold)
-                    .border(BorderStroke(1.dp, Color(0xFFEAB308)), RoundedCornerShape(14.dp))
+                    .border(BorderStroke(DsBorder.Hairline, DsAccent.GoldDeep), fabShape)
                     .clickable(interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
@@ -1098,12 +1096,13 @@ fun UsersScreen(
                             SecondaryButton("تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(RoundedCornerShape(24.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, glassBorder(themeState.isDark, themeState.amoledDark)), RoundedCornerShape(24.dp)).padding(28.dp), contentAlignment = Alignment.Center) {
+                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Lg).padding(28.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
                         }
                     }
-                    else -> when (viewMode) {
+                    else -> androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
+                        when (mode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             items(processedUsers, key = { it.id }) { user ->
                                 LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
@@ -1118,6 +1117,7 @@ fun UsersScreen(
                             items(processedUsers, key = { it.id }) { user ->
                                 LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username])
                             }
+                        }
                         }
                     }
                 }
@@ -1135,7 +1135,7 @@ fun UsersScreen(
                         }
                     }
                     .background(themeState.chromeBgColor)
-                    .border(BorderStroke(1.dp, glassBorder(themeState.isDark, themeState.amoledDark)))
+                    .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
                     .padding(top = topInsets)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
@@ -1176,12 +1176,12 @@ fun UsersScreen(
                 FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it; store.saveViewMode(it) }, debtorCount = debtorCount)
                 offlineAt?.let { cachedAt ->
                     Row(
-                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(RoundedCornerShape(10.dp)).background(GlassAmber.copy(.12f)).border(BorderStroke(1.dp, GlassAmber.copy(.30f)), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 6.dp),
+                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                        Text("حالت آفلاین — آخرین دادهٔ دریافتی: ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
+                        Text("حالت آفلاین — آخرین دادهٔ دریافتی: ${java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
                     }
                 }
             }
@@ -1359,7 +1359,7 @@ fun UsersScreen(
     }
     if (createMenuOpen) {
         Dialog(onDismissRequest = { createMenuOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(themeState.dialogBgColor).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(22.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("ساخت کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 SettingsActionRow("ساخت تکی", "یک کاربر جدید با فرم کامل", AppIcon.UserAdd, themeState.accentPrimary) { createMenuOpen = false; createUser = true }
                 SettingsActionRow("ساخت گروهی", "چند کاربر هم‌زمان با الگوی نام، از تمپلت یا دستی", AppIcon.Users, GlassGreen) { createMenuOpen = false; bulkCreateOpen = true }
@@ -1372,7 +1372,7 @@ fun UsersScreen(
     }
     if (exportChooserOpen) {
         Dialog(onDismissRequest = { exportChooserOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(themeState.dialogBgColor).border(BorderStroke(1.2.dp, themeState.cardBorderBrush), RoundedCornerShape(22.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("خروجی ${selectedUserIds.size} کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text("فرمت فایل را انتخاب کن؛ سپس محل ذخیره‌سازی پرسیده می‌شود.", fontSize = 10.sp, color = themeState.mutedColor)
                 SettingsActionRow("خروجی CSV", "مناسب اکسل و گزارش‌گیری", AppIcon.Download, GlassGreen) { exportChooserOpen = false; beginExport("csv") }
@@ -1389,7 +1389,7 @@ fun UsersScreen(
     deleteUser?.let { user ->
         val theme = LocalThemeState.current
         Dialog(onDismissRequest = { deleteUser = null }) {
-            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.2.dp, theme.cardBorderBrush), GlassShape).padding(22.dp)) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text("حذف ${user.username}؟", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Text("غیرقابل بازگشت", color = theme.mutedColor, fontSize = 13.sp)
