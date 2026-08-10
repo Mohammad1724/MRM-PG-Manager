@@ -12,7 +12,10 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.view.WindowCompat
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
@@ -142,9 +145,19 @@ fun LiquidGlassTheme(themeState: ThemeState, content: @Composable () -> Unit) {
         }
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(LocalThemeState provides themeState) {
-        // جهت کلی اپ تابع زبان سیستم است (فارسی → RTL). محتوای فنی (URL/یوزرنیم/bytes)
-        // به‌صورت موضعی با TechnicalContainer به LTR برمی‌گردد.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // تشخیص زبان سیستم: فارسی → RTL، بقیه → LTR (دقیق و وسواسی)
+    val locale = android.os.Build.VERSION.SDK_INT.let {
+        if (it >= 24) context.resources.configuration.locales.get(0)
+        else @Suppress("DEPRECATION") context.resources.configuration.locale
+    } ?: java.util.Locale.getDefault()
+    val isRtl = locale.language == "fa" || locale.language == "ar" || locale.language == "ur"
+    val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalThemeState provides themeState,
+        LocalLayoutDirection provides layoutDirection
+    ) {
         MaterialTheme(colorScheme = colors) {
             Box(modifier = Modifier.fillMaxSize().background(themeState.backgroundColor)) {
                 content()
