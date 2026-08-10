@@ -1083,6 +1083,8 @@ fun UsersScreen(
                     PullToRefreshDefaults.Indicator(
                         isRefreshing = loading,
                         state = ptrState,
+                        containerColor = themeState.cardSurfaceColor,
+                        color = com.mrm.pgmanager.ui.designsystem.DsAccent.Gold,
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = listTopPad)
                     )
                 }
@@ -1097,8 +1099,18 @@ fun UsersScreen(
                         }
                     }
                     processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Lg).padding(28.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(Modifier.size(56.dp).clip(DsRadius.Md).background(themeState.searchBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Md), contentAlignment = Alignment.Center) {
+                                com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Search, tint = themeState.mutedColor, size = 28.dp)
+                            }
                             Text("کاربری یافت نشد", fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
+                            Text(if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) "فیلتر یا جست‌وجو را پاک کن یا کاربر جدید بساز" else "اولین کاربرت رو بساز", fontSize = 11.sp, color = themeState.mutedColor, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
+                                    com.mrm.pgmanager.ui.components.SecondaryButton("پاک‌کردن فیلتر", onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                                }
+                                com.mrm.pgmanager.ui.components.PrimaryButton("ساخت کاربر", onClick = { createUser = true })
+                            }
                         }
                     }
                     else -> androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
