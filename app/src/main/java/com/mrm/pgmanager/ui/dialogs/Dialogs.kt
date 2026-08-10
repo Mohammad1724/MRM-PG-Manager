@@ -740,12 +740,40 @@ fun ThemeEditorDialog(
                                     if (activeCustom != null) Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(GlassRed.copy(.10f)).border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = null)) }, contentAlignment = Alignment.Center) { Text("حذف رنگ سفارشی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
                             }
-                            SettingsCard("تیرهٔ خالص (AMOLED)", AppIcon.DarkMode) {
-                                SettingsSwitchRow(
-                                    "پس‌زمینهٔ مشکی مطلق",
-                                    "در حالت تیره، پس‌زمینه کاملاً سیاه می‌شود؛ صرفه‌جویی باتری در نمایشگرهای AMOLED",
-                                    themeState.amoledDark
-                                ) { onThemeChange(themeState.copy(amoledDark = it)) }
+                            // پیش‌نمایش زنده با تم فعلی
+                            SettingsCard("پیش‌نمایش تم", AppIcon.Palette, accent = themeState.accentPrimary) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Box(Modifier.weight(1f).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).padding(10.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Box(Modifier.size(22.dp).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Sm).background(if (theme.isDark) theme.accentPrimary.copy(0.18f) else com.mrm.pgmanager.ui.designsystem.DsAccent.Gold.copy(0.12f)).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.accentPrimary.copy(0.25f)), com.mrm.pgmanager.ui.designsystem.DsRadius.Sm), contentAlignment = Alignment.Center) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Gauge, tint = theme.accentPrimary, size = 12.dp) }
+                                                androidx.compose.material3.Text("نمونه کارت", fontSize = 11.sp, color = theme.inkColor, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
+                                            }
+                                            androidx.compose.material3.Text("پیش‌نمایش زندهٔ رنگ و حالت تیره/روشن", fontSize = 10.sp, color = theme.mutedColor)
+                                        }
+                                    }
+                                    Box(Modifier.weight(1f).clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).background(theme.searchBgColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Lg).padding(10.dp), contentAlignment = Alignment.Center) {
+                                        androidx.compose.material3.Text("جست‌وجو", fontSize = 11.sp, color = theme.mutedColor)
+                                    }
+                                }
+                                androidx.compose.material3.Text("تغییر رنگ بالا بلافاصله روی این کارت‌ها اعمال می‌شود", fontSize = 9.sp, color = theme.mutedColor)
+                            }
+                            if (themeState.isDark) {
+                                SettingsCard("تیرهٔ خالص (AMOLED)", AppIcon.DarkMode) {
+                                    SettingsSwitchRow(
+                                        "پس‌زمینهٔ مشکی مطلق",
+                                        "در حالت تیره، پس‌زمینه کاملاً سیاه می‌شود؛ صرفه‌جویی باتری در نمایشگرهای AMOLED",
+                                        themeState.amoledDark
+                                    ) { onThemeChange(themeState.copy(amoledDark = it)) }
+                                }
+                            } else {
+                                // در حالت روشن، سوییچ AMOLED بی‌معناست — نمایش غیرفعال با توضیح
+                                Box(Modifier.fillMaxWidth().clip(com.mrm.pgmanager.ui.designsystem.DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(com.mrm.pgmanager.ui.designsystem.DsBorder.Hairline, theme.borderColor), com.mrm.pgmanager.ui.designsystem.DsRadius.Md).padding(10.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) { com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.DarkMode, tint = theme.mutedColor, size = 14.dp); androidx.compose.material3.Text("تیرهٔ خالص (AMOLED)", fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, color = theme.mutedColor) }
+                                        androidx.compose.material3.Text("فقط در حالت تیره فعال است — ابتدا «تیره» را انتخاب کن", fontSize = 10.sp, color = theme.mutedColor)
+                                    }
+                                }
                             }
                         }
                         "پایش" -> {
