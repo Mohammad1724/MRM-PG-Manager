@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -74,6 +75,8 @@ import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassShape
 import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -104,7 +107,7 @@ fun ConfirmActionDialog(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(24.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(24.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                 Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
@@ -140,16 +143,16 @@ fun QuickActionSheet(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(20.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(RoundedCornerShape(6.dp)).background(if (user.isOnline) GlassGreen else Color.Gray)) }
+                    Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) { 
                         MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                         MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                     }
-                    Box(Modifier.clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") "غیرفعال" else "فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
                 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -188,7 +191,7 @@ fun QuickActionSheet(
 @Composable
 private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (مرز یک‌چهارم رنگ).
-    Box(modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), RoundedCornerShape(10.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(modifier.height(38.dp).clip(DsRadius.Md).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             RoundedAppIcon(icon, tint = color, size = 16.dp)
             Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
@@ -207,7 +210,7 @@ fun SettingsSwitchRow(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+        Modifier.fillMaxWidth().clip(DsRadius.Lg)
             .clickable(enabled = enabled) { onChange(!checked) }
             .padding(vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -215,7 +218,7 @@ fun SettingsSwitchRow(
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
-            if (subtitle != null) Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+            if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = theme.mutedColor)
         }
         Switch(checked = checked, onCheckedChange = { if (enabled) onChange(it) }, enabled = enabled)
     }
@@ -236,19 +239,19 @@ fun SettingsStepper(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(label, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
         Box(
-            Modifier.size(30.dp).clip(RoundedCornerShape(9.dp))
+            Modifier.size(30.dp).clip(DsRadius.Sm)
                 .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
                 .clickable(enabled = enabled) { onChange((value - step).coerceIn(range)) },
             contentAlignment = Alignment.Center
         ) { Text("−", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
         Box(
-            Modifier.width(66.dp).height(30.dp).clip(RoundedCornerShape(9.dp))
+            Modifier.width(66.dp).height(30.dp).clip(DsRadius.Sm)
                 .background(theme.searchBgColor)
-                .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)),
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm),
             contentAlignment = Alignment.Center
         ) { Text("$value $unit", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Box(
-            Modifier.size(30.dp).clip(RoundedCornerShape(9.dp))
+            Modifier.size(30.dp).clip(DsRadius.Sm)
                 .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
                 .clickable(enabled = enabled) { onChange((value + step).coerceIn(range)) },
             contentAlignment = Alignment.Center
@@ -267,9 +270,9 @@ fun SegmentedControl(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Xl)
             .background(theme.searchBgColor.copy(alpha = 0.6f))
-            .border(BorderStroke(1.2.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.2.dp, theme.borderColor), DsRadius.Xl)
             .padding(4.dp)
             .graphicsLayer(alpha = if (enabled) 1f else 0.55f),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -277,7 +280,7 @@ fun SegmentedControl(
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
-                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(10.dp))
+                Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Md)
                     .background(if (selected) theme.accentPrimary.copy(.85f) else Color.Transparent)
                     .clickable(enabled = enabled) { onSelect(index) },
                 contentAlignment = Alignment.Center
@@ -304,12 +307,12 @@ fun SettingsCard(
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(20.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), RoundedCornerShape(20.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(10.dp)).background(ac.copy(.12f)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(32.dp).clip(DsRadius.Md).background(ac.copy(.12f)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(icon, tint = ac, size = 16.dp)
             }
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
@@ -329,15 +332,15 @@ fun SettingsActionRow(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(DsRadius.Xl)
             .background(accent.copy(.08f))
-            .border(BorderStroke(1.dp, accent.copy(.22f)), RoundedCornerShape(14.dp))
+            .border(BorderStroke(1.dp, accent.copy(.22f)), DsRadius.Xl)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(accent.copy(.12f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(36.dp).clip(DsRadius.Md).background(accent.copy(.12f)), contentAlignment = Alignment.Center) {
             RoundedAppIcon(icon, tint = accent, size = 18.dp)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -353,15 +356,15 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(DsRadius.Xl)
             .background(theme.searchBgColor)
-            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, fontSize = 9.5.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+            Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
             MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
         if (copyable) {
@@ -383,18 +386,18 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
 private fun LampColorItem(lamp: LampColor, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        modifier.clip(RoundedCornerShape(14.dp))
+        modifier.clip(DsRadius.Xl)
             .background(if (selected) lamp.primary.copy(.10f) else Color.Transparent)
-            .border(BorderStroke(if (selected) 2.dp else 1.2.dp, if (selected) lamp.primary else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+            .border(BorderStroke(if (selected) 2.dp else 1.2.dp, if (selected) lamp.primary else theme.borderColor), DsRadius.Xl)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
-            Modifier.size(32.dp).clip(RoundedCornerShape(10.dp))
+            Modifier.size(32.dp).clip(DsRadius.Md)
                 .background(Brush.linearGradient(listOf(lamp.primary, lamp.primary.copy(alpha = 0.7f))))
-                .border(BorderStroke(1.dp, Color.White.copy(0.3f)), RoundedCornerShape(10.dp)),
+                .border(BorderStroke(1.dp, Color.White.copy(0.3f)), DsRadius.Md),
             contentAlignment = Alignment.Center
         ) { if (selected) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 18.dp) }
         Text(lamp.labelFa, fontSize = 11.5.sp, fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -623,18 +626,18 @@ fun ThemeEditorDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
-            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(RoundedCornerShape(16.dp))
+            Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)
-                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))
+                .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)
                 .padding(16.dp)
         ) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(13.dp)) {
                 // هدر: آیکون اکسنت + عنوان + دکمهٔ بستن
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.size(40.dp).clip(RoundedCornerShape(13.dp))
+                        Modifier.size(40.dp).clip(DsRadius.Xl)
                             .background(theme.accentPrimary.copy(.16f))
-                            .border(BorderStroke(1.dp, theme.accentPrimary.copy(.32f)), RoundedCornerShape(13.dp)),
+                            .border(BorderStroke(1.dp, theme.accentPrimary.copy(.32f)), DsRadius.Xl),
                         contentAlignment = Alignment.Center
                     ) { RoundedAppIcon(AppIcon.Settings, tint = theme.inkColor, size = 20.dp) }
                     Column(Modifier.weight(1f)) {
@@ -645,16 +648,16 @@ fun ThemeEditorDialog(
                 // تب بخش‌ها به‌صورت سگمنت یکدست (اگر فقط یک بخش باشد، مخفی می‌ماند)
                 if (sections.size > 1) {
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(13.dp))
+                        Modifier.fillMaxWidth().clip(DsRadius.Xl)
                             .background(theme.searchBgColor)
-                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(13.dp))
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         sections.forEach { label ->
                             val selected = section == label
                             Box(
-                                Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp))
+                                Modifier.weight(1f).height(34.dp).clip(DsRadius.Md)
                                     .background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent)
                                     .clickable { section = label },
                                 contentAlignment = Alignment.Center
@@ -682,7 +685,7 @@ fun ThemeEditorDialog(
                                     },
                                     icons = listOf(AppIcon.LightMode, AppIcon.DarkMode, AppIcon.AutoMode)
                                 )
-                                Text("در حالت «خودکار» برنامه از حالت روشن/تیرهٔ سیستم پیروی می‌کند.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("در حالت «خودکار» برنامه از حالت روشن/تیرهٔ سیستم پیروی می‌کند.", fontSize = 11.sp, color = theme.mutedColor)
                             }
                             SettingsCard("رنگ اصلی برنامه", AppIcon.Palette) {
                                 LampColor.values().toList().chunked(2).forEach { rowItems ->
@@ -710,17 +713,17 @@ fun ThemeEditorDialog(
                                 var valueCmp by remember(activeCustom) { mutableStateOf(seed[2].coerceIn(0.45f, 1f)) }
                                 val preview = Color.hsv(hue, sat, valueCmp)
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(Brush.linearGradient(listOf(preview, preview.copy(alpha = .6f)))).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.size(38.dp).clip(DsRadius.Lg).background(Brush.linearGradient(listOf(preview, preview.copy(alpha = .6f)))).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg), contentAlignment = Alignment.Center) {
                                         if (activeCustom != null) RoundedAppIcon(AppIcon.Check, tint = Color.White, size = 15.dp)
                                     }
                                     Column(Modifier.weight(1f)) {
                                         Text(if (activeCustom != null) "رنگ سفارشی فعال است" else "با اسلایدرها رنگ دلخواهت را بساز", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                                        Text("تغییرات با رهاشدن اسلایدر اعمال می‌شود", fontSize = 9.sp, color = theme.mutedColor)
+                                        Text("تغییرات با رهاشدن اسلایدر اعمال می‌شود", fontSize = 10.sp, color = theme.mutedColor)
                                     }
                                 }
                                 @Composable fun colorSlider(value: Float, onChange: (Float) -> Unit, range: ClosedFloatingPointRange<Float>, label: String, labelFaWidth: androidx.compose.ui.unit.Dp = 46.dp, onDone: () -> Unit = {}) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Text(label, fontSize = 9.sp, color = theme.mutedColor, modifier = Modifier.width(labelFaWidth))
+                                        Text(label, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.width(labelFaWidth))
                                         Slider(
                                             value = value, onValueChange = onChange, valueRange = range,
                                             onValueChangeFinished = onDone,
@@ -733,8 +736,8 @@ fun ThemeEditorDialog(
                                 colorSlider(sat, { sat = it }, 0.25f..1f, "غلظت") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
                                 colorSlider(valueCmp, { valueCmp = it }, 0.45f..1f, "روشنایی") { onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, valueCmp))) }
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                    Box(Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(9.dp)).background(preview.copy(.18f)).border(BorderStroke(1.dp, preview.copy(.4f)), RoundedCornerShape(9.dp)).clickable { onThemeChange(themeState.copy(customColor = preview)) }, contentAlignment = Alignment.Center) { Text("اعمال این رنگ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                                    if (activeCustom != null) Box(Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(9.dp)).background(GlassRed.copy(.10f)).border(BorderStroke(1.dp, GlassRed.copy(.3f)), RoundedCornerShape(9.dp)).clickable { onThemeChange(themeState.copy(customColor = null)) }, contentAlignment = Alignment.Center) { Text("حذف رنگ سفارشی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(preview.copy(.18f)).border(BorderStroke(1.dp, preview.copy(.4f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = preview)) }, contentAlignment = Alignment.Center) { Text("اعمال این رنگ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                    if (activeCustom != null) Box(Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm).background(GlassRed.copy(.10f)).border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = null)) }, contentAlignment = Alignment.Center) { Text("حذف رنگ سفارشی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
                             }
                             SettingsCard("تیرهٔ خالص (AMOLED)", AppIcon.DarkMode) {
@@ -794,7 +797,7 @@ fun ThemeEditorDialog(
                             SettingsCard("بدهکاران", AppIcon.Warning, accent = GlassRed) {
                                 SettingsSwitchRow("اعلان ثبت بدهکار", checked = monitoringSettings.notifyDebtor, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyDebtor = it)) }
                                 SettingsSwitchRow("اعلان قطع خودکار بدهکار", checked = monitoringSettings.notifyDebtorOverdue, enabled = master) { onMonitoringChange(monitoringSettings.copy(notifyDebtorOverdue = it)) }
-                                Text("وقتی کاربری به عنوان بدهکار ثبت می‌شود یا پس از مهلت به صورت خودکار قطع می‌شود، اعلان دریافت می‌کنی.", fontSize = 9.sp, color = theme.mutedColor)
+                                Text("وقتی کاربری به عنوان بدهکار ثبت می‌شود یا پس از مهلت به صورت خودکار قطع می‌شود، اعلان دریافت می‌کنی.", fontSize = 10.sp, color = theme.mutedColor)
                             }
                             SettingsCard("سلامت سیستم و اتصال", AppIcon.Warning, accent = GlassRed) {
                                 val healthEnabled = master && monitoringSettings.notifySystemHealth
@@ -832,9 +835,9 @@ fun ThemeEditorDialog(
                                     } else accounts.forEach { acc ->
                                         val isActive = acc.baseUrl == session.baseUrl && acc.username == session.username
                                         Row(
-                                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                                 .background(if (isActive) theme.accentPrimary.copy(.10f) else theme.searchBgColor)
-                                                .border(BorderStroke(1.dp, if (isActive) theme.accentPrimary.copy(.35f) else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+                                                .border(BorderStroke(1.dp, if (isActive) theme.accentPrimary.copy(.35f) else theme.borderColor), DsRadius.Lg)
                                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -844,12 +847,12 @@ fun ThemeEditorDialog(
                                                 MrmText(acc.baseUrl, fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                                             }
                                             if (isActive) {
-                                                Box(Modifier.clip(RoundedCornerShape(7.dp)).background(theme.accentPrimary.copy(.20f)).padding(horizontal = 8.dp, vertical = 4.dp)) { Text("فعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                                                Box(Modifier.clip(DsRadius.Sm).background(theme.accentPrimary.copy(.20f)).padding(horizontal = 8.dp, vertical = 4.dp)) { Text("فعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                                             } else {
-                                                Box(Modifier.clip(RoundedCornerShape(7.dp)).background(GlassGreen.copy(.16f)).clickable {
+                                                Box(Modifier.clip(DsRadius.Sm).background(GlassGreen.copy(.16f)).clickable {
                                                     store.setActive(acc); accounts = store.readAccounts(); onSwitchAccount(acc)
-                                                }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text("اتصال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassGreen) }
-                                                Box(Modifier.size(24.dp).clip(RoundedCornerShape(7.dp)).background(GlassRed.copy(.12f)).clickable {
+                                                }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text("اتصال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassGreen) }
+                                                Box(Modifier.size(24.dp).clip(DsRadius.Sm).background(GlassRed.copy(.12f)).clickable {
                                                     store.removeAccount(acc.baseUrl, acc.username); accounts = store.readAccounts()
                                                 }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 12.dp) }
                                             }
@@ -864,7 +867,7 @@ fun ThemeEditorDialog(
                                     Text("نکته: اگر پنل راه‌اندازی مجدد شود، نشست حساب‌ها منقضی می‌شود و هنگام اتصال باید دوباره وارد شوید.", fontSize = 8.5.sp, color = theme.mutedColor)
                                 }
                                 SettingsCard("تست اتصال", AppIcon.CheckCircle, accent = GlassGreen) {
-                                    Text("برقراری ارتباط با پنل و دریافت آمار سیستم، برای اطمینان از سلامت دسترسی.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                    Text("برقراری ارتباط با پنل و دریافت آمار سیستم، برای اطمینان از سلامت دسترسی.", fontSize = 11.sp, color = theme.mutedColor)
                                     PrimarySaveButton(
                                         text = if (testing) "در حال بررسی اتصال..." else "تست اتصال به پنل",
                                         enabled = !testing,
@@ -884,9 +887,9 @@ fun ThemeEditorDialog(
                                     testResult?.let { (ok, message) ->
                                         val color = if (ok) GlassGreen else GlassRed
                                         Row(
-                                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                                 .background(color.copy(.10f))
-                                                .border(BorderStroke(1.dp, color.copy(.30f)), RoundedCornerShape(12.dp))
+                                                .border(BorderStroke(1.dp, color.copy(.30f)), DsRadius.Lg)
                                                 .padding(horizontal = 10.dp, vertical = 9.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -902,7 +905,7 @@ fun ThemeEditorDialog(
                             var pattern by remember { mutableStateOf(store.readUsernamePattern()) }
                             fun savePattern(p: com.mrm.pgmanager.data.model.UsernamePattern) { pattern = p; store.saveUsernamePattern(p) }
                             SettingsCard("الگوی نام خودکار", AppIcon.User) {
-                                Text("در ساخت کاربر جدید (تکی یا گروهی)، نام‌ها با این الگو تولید می‌شوند.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("در ساخت کاربر جدید (تکی یا گروهی)، نام‌ها با این الگو تولید می‌شوند.", fontSize = 11.sp, color = theme.mutedColor)
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text("حالت تولید", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                     SegmentedControl(options = listOf("تصادفی", "ترتیبی"), selectedIndex = if (pattern.sequential) 1 else 0) { savePattern(pattern.copy(sequential = it == 1)) }
@@ -915,10 +918,10 @@ fun ThemeEditorDialog(
                                 )
                                 if (pattern.sequential) SettingsStepper("شروع شمارش از", pattern.sequentialStart, "عدد", 1..999000) { savePattern(pattern.copy(sequentialStart = it)) }
                                 else SettingsStepper("تعداد ارقام", pattern.randomDigits, "رقم", 3..6) { savePattern(pattern.copy(randomDigits = it)) }
-                                Text("نمونه: ${if (pattern.sequential) pattern.sequentialName(0) else pattern.randomName()}", fontSize = 9.5.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold)
+                                Text("نمونه: ${if (pattern.sequential) pattern.sequentialName(0) else pattern.randomName()}", fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold)
                             }
                             SettingsCard("بدهکاران - قطع خودکار", AppIcon.Warning, accent = GlassRed) {
-                                Text("وقتی کاربری به عنوان بدهکار ثبت شد، پس از مدت تعیین‌شده به صورت خودکار غیرفعال می‌شود. با تسویه بدهی، دوباره فعال می‌گردد.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("وقتی کاربری به عنوان بدهکار ثبت شد، پس از مدت تعیین‌شده به صورت خودکار غیرفعال می‌شود. با تسویه بدهی، دوباره فعال می‌گردد.", fontSize = 11.sp, color = theme.mutedColor)
                                 SettingsSwitchRow(
                                     "قطع خودکار بدهکار",
                                     "فعال‌سازی قطع خودکار پس از بدهکار شدن",
@@ -952,19 +955,19 @@ fun ThemeEditorDialog(
                                 ) { bulkCreateOpen = true }
                             }
                             SettingsCard("خروجی کاربران", AppIcon.Download, accent = theme.accentPrimary) {
-                                Text("فهرست کامل کاربران پنل را به‌صورت فایل CSV یا JSON ذخیره و اشتراک‌گذاری کن.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("فهرست کامل کاربران پنل را به‌صورت فایل CSV یا JSON ذخیره و اشتراک‌گذاری کن.", fontSize = 11.sp, color = theme.mutedColor)
                                 SettingsActionRow(if (exportBusy) "در حال آماده‌سازی..." else "خروجی CSV", "مناسب اکسل و گزارش‌گیری", AppIcon.Download, GlassGreen) { startExport("csv") { name -> csvLauncher.launch(name) } }
                                 SettingsActionRow(if (exportBusy) "در حال آماده‌سازی..." else "خروجی JSON", "مناسب برنامه‌نویسی و بکاپ", AppIcon.Download, theme.accentPrimary) { startExport("json") { name -> jsonLauncher.launch(name) } }
                             }
                         }
                         "فاکتور" -> {
                             SettingsCard("لوگوی فاکتور", AppIcon.Image, accent = theme.accentPrimary) {
-                                Text("تصویری که بالای فاکتورهای متنی و PDF نمایش داده می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("تصویری که بالای فاکتورهای متنی و PDF نمایش داده می‌شود.", fontSize = 11.sp, color = theme.mutedColor)
                                 // پیش‌نمایش لوگو
                                 Box(
-                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                                    Modifier.fillMaxWidth().clip(DsRadius.Xl)
                                         .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
-                                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -972,7 +975,7 @@ fun ThemeEditorDialog(
                                         Image(
                                             bitmap = invoiceLogoBitmap!!.asImageBitmap(),
                                             contentDescription = "Logo Preview",
-                                            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(14.dp)),
+                                            modifier = Modifier.size(96.dp).clip(DsRadius.Xl),
                                             contentScale = ContentScale.Fit
                                         )
                                     } else {
@@ -984,7 +987,7 @@ fun ThemeEditorDialog(
                                 }
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(
-                                        Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(12.dp))
+                                        Modifier.weight(1f).height(42.dp).clip(DsRadius.Lg)
                                             .background(theme.accentPrimary.copy(0.78f))
                                             .clickable { invoiceLogoLauncher.launch("image/*") },
                                         contentAlignment = Alignment.Center
@@ -996,9 +999,9 @@ fun ThemeEditorDialog(
                                     }
                                     if (invoiceLogoPath != null) {
                                         Box(
-                                            Modifier.height(42.dp).width(42.dp).clip(RoundedCornerShape(12.dp))
+                                            Modifier.height(42.dp).width(42.dp).clip(DsRadius.Lg)
                                                 .background(GlassRed.copy(0.10f))
-                                                .border(BorderStroke(1.dp, GlassRed.copy(0.30f)), RoundedCornerShape(12.dp))
+                                                .border(BorderStroke(1.dp, GlassRed.copy(0.30f)), DsRadius.Lg)
                                                 .clickable {
                                                     store.clearInvoiceLogo()
                                                     invoiceLogoPath = null
@@ -1013,7 +1016,7 @@ fun ThemeEditorDialog(
                                 Text("پیشنهاد: تصویر مربعی با پس‌زمینه شفاف (PNG) و حداکثر ۴۰۰x۴۰۰ پیکسل.", fontSize = 8.5.sp, color = theme.mutedColor)
                             }
                             SettingsCard("نام فروشنده/برند", AppIcon.Receipt) {
-                                Text("این نام زیر لوگو و بالای فاکتور نمایش داده می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("این نام زیر لوگو و بالای فاکتور نمایش داده می‌شود.", fontSize = 11.sp, color = theme.mutedColor)
                                 CompactGlassField(
                                     value = invoiceSeller,
                                     onValueChange = { v ->
@@ -1028,11 +1031,11 @@ fun ThemeEditorDialog(
                         }
                         "پشتیبان" -> {
                             SettingsCard("پوشه ذخیره‌سازی", AppIcon.Folder) {
-                                Text("پشتیبان‌ها در پوشه‌ای که انتخاب می‌کنید روی حافظهٔ گوشی ذخیره می‌شوند.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("پشتیبان‌ها در پوشه‌ای که انتخاب می‌کنید روی حافظهٔ گوشی ذخیره می‌شوند.", fontSize = 11.sp, color = theme.mutedColor)
                                 Box(
-                                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(12.dp))
+                                    Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Lg)
                                         .background(theme.searchBgColor)
-                                        .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+                                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
                                         .clickable { pickBackupDir.launch(null) }
                                         .padding(horizontal = 12.dp),
                                     contentAlignment = Alignment.CenterStart
@@ -1052,22 +1055,22 @@ fun ThemeEditorDialog(
                                 }
                                 if (backupFolderUri != null) {
                                     Box(
-                                        Modifier.fillMaxWidth().height(32.dp).clip(RoundedCornerShape(8.dp))
+                                        Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Sm)
                                             .background(GlassRed.copy(0.08f))
-                                            .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), RoundedCornerShape(8.dp))
+                                            .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), DsRadius.Sm)
                                             .clickable {
                                                 store.saveBackupUri(null)
                                                 backupFolderUri = null
                                             }.padding(horizontal = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("لغو انتخاب پوشه", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                                        Text("لغو انتخاب پوشه", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                                     }
                                 }
                             }
 
                             SettingsCard("پشتیبان‌گیری خودکار", AppIcon.Backup, accent = theme.accentPrimary) {
-                                Text("در بازه‌های زمانی تعیین‌شده از همهٔ تنظیمات و حساب‌ها یک کپی امن در پوشهٔ انتخابی گرفته می‌شود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("در بازه‌های زمانی تعیین‌شده از همهٔ تنظیمات و حساب‌ها یک کپی امن در پوشهٔ انتخابی گرفته می‌شود.", fontSize = 11.sp, color = theme.mutedColor)
                                 SettingsSwitchRow("فعال‌سازی پشتیبان خودکار", "", backupEnabled) { v ->
                                     backupEnabled = v
                                     store.saveBackupEnabled(v)
@@ -1104,7 +1107,7 @@ fun ThemeEditorDialog(
                             }
 
                             SettingsCard("رمزگذاری", AppIcon.Lock, accent = GlassGreen) {
-                                Text("با تعیین رمز، فایل بکاپ با AES-256 رمزنگاری می‌شود و بدون رمز روی دستگاه دیگری قابل بازیابی نیست. برای بکاپ ساده و بدون رمز این فیلد را خالی بگذارید.", fontSize = 9.5.sp, color = theme.mutedColor)
+                                Text("با تعیین رمز، فایل بکاپ با AES-256 رمزنگاری می‌شود و بدون رمز روی دستگاه دیگری قابل بازیابی نیست. برای بکاپ ساده و بدون رمز این فیلد را خالی بگذارید.", fontSize = 11.sp, color = theme.mutedColor)
                                 CompactGlassField(
                                     value = backupPassword,
                                     onValueChange = { v -> backupPassword = v.take(64); store.saveBackupPassword(v) },
@@ -1120,11 +1123,11 @@ fun ThemeEditorDialog(
 
                             SettingsCard("عملیات", AppIcon.Settings) {
                                 if (backupLastMsg.isNotBlank()) {
-                                    Text(backupLastMsg, fontSize = 9.sp, color = theme.mutedColor)
+                                    Text(backupLastMsg, fontSize = 10.sp, color = theme.mutedColor)
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                                     Box(
-                                        Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(12.dp))
+                                        Modifier.weight(1f).height(46.dp).clip(DsRadius.Lg)
                                             .background(if (backupBusy) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f))
                                             .clickable(enabled = !backupBusy) { performBackup(manual = true) },
                                         contentAlignment = Alignment.Center
@@ -1139,9 +1142,9 @@ fun ThemeEditorDialog(
                                         }
                                     }
                                     Box(
-                                        Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(12.dp))
+                                        Modifier.weight(1f).height(46.dp).clip(DsRadius.Lg)
                                             .background(theme.searchBgColor)
-                                            .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp))
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
                                             .clickable { pickRestoreFile.launch(arrayOf("*/*")) },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1168,7 +1171,7 @@ fun ThemeEditorDialog(
                                 Text(
                                     if (isAppLockEnabled) "قفل فعال است؛ هنگام هر بار ورود، هویت شما تأیید می‌شود."
                                     else "با فعال‌سازی، هر بار ورود به برنامه نیازمند تأیید هویت خواهد بود.",
-                                    fontSize = 9.5.sp, color = theme.mutedColor
+                                    fontSize = 11.sp, color = theme.mutedColor
                                 )
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text("مهلت قفل خودکار پس از خروج", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isAppLockEnabled) theme.inkColor else theme.mutedColor)
@@ -1201,13 +1204,13 @@ fun ThemeEditorDialog(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Box(
-                            Modifier.clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor)
+                            Modifier.clip(DsRadius.Sm).background(theme.searchBgColor)
                                 .clickable { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/Mohammad1724/MRM-PG-Manager"))) } }
                                 .padding(horizontal = 7.dp, vertical = 4.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 RoundedAppIcon(AppIcon.OpenNew, tint = theme.mutedColor, size = 11.dp)
-                                Text("گیت‌هاب", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                                Text("گیت‌هاب", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                             }
                         }
                         Text("نسخهٔ ${appVersion.ifBlank { "—" }}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
@@ -1229,15 +1232,15 @@ fun ThemeEditorDialog(
         var restoring by remember { mutableStateOf(false) }
         val ctx = LocalContext.current
         Dialog(onDismissRequest = { if (!restoring) restoreDialogOpen = false }) {
-            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp)).padding(18.dp)) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("بازیابی پشتیبان", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                     if (restorePreview != null) {
                         val info = restorePreview!!
                         val sdf = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
-                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(12.dp)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("اطلاعات فایل:", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("اطلاعات فایل:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                             Text("• تاریخ ساخت: ${sdf.format(java.util.Date(info.createdAt))}", fontSize = 10.sp, color = theme.inkColor)
                             Text("• نسخه اپ: ${info.appVersion.ifBlank { "-" }}", fontSize = 10.sp, color = theme.inkColor)
                             Text("• تعداد حساب: ${info.accountsCount}", fontSize = 10.sp, color = theme.inkColor)
@@ -1275,7 +1278,7 @@ fun ThemeEditorDialog(
                             if (!restoring) {
                                 SecondaryButton("انصراف", onClick = { restoreDialogOpen = false }, modifier = Modifier.fillMaxWidth())
                             } else {
-                                Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(theme.searchBgColor.copy(0.5f)), contentAlignment = Alignment.Center) {
+                                Box(Modifier.fillMaxWidth().height(52.dp).clip(DsRadius.Xxl).background(theme.searchBgColor.copy(0.5f)), contentAlignment = Alignment.Center) {
                                     Text("انصراف", color = theme.mutedColor.copy(0.5f), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
                             }
@@ -1331,16 +1334,16 @@ fun ThemeEditorDialog(
 private fun RestoreCheck(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor)
-            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp))
+        Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(Modifier.size(20.dp).clip(RoundedCornerShape(6.dp))
+        Box(Modifier.size(20.dp).clip(DsRadius.Xs)
             .background(if (checked) theme.accentPrimary.copy(0.78f) else Color.Transparent)
-            .border(BorderStroke(1.dp, if (checked) theme.accentPrimary else theme.mutedColor.copy(0.4f)), RoundedCornerShape(6.dp)),
+            .border(BorderStroke(1.dp, if (checked) theme.accentPrimary else theme.mutedColor.copy(0.4f)), DsRadius.Xs),
             contentAlignment = Alignment.Center
         ) {
             if (checked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 13.dp)
@@ -1419,10 +1422,10 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp)).padding(20.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
-                Box(Modifier.size(220.dp).clip(RoundedCornerShape(16.dp)).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
                     if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                     else Text("QR خطا", fontSize = 12.sp)
                 }
@@ -1462,7 +1465,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
         }
     }
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.cardBorderBrush), RoundedCornerShape(16.dp)).padding(18.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -1470,15 +1473,15 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
-                    Box(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp)).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(9.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
+                    Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
+                    Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                    Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                 }
                 LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
                     items((1..daysInMonth).toList()) { day ->
                         val sel = day == d
                         // روز انتخاب‌شده = کپسول اکسنت ۷۸٪ و متن تیره؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
-                        Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.aspectRatio(1f).clip(DsRadius.Md).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
                             Text("$day", color = if (sel) Color(0xFF202124) else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                         }
                     }
@@ -1507,9 +1510,9 @@ fun CompactGlassField(
     val theme = LocalThemeState.current
     Box(
         // فیلد استاندارد فرم: سطح خاکستری روشن و border خنثی، نزدیک به ورودی‌های پنل وب.
-        modifier = modifier.fillMaxWidth().height(fieldHeight).clip(RoundedCornerShape(10.dp))
+        modifier = modifier.fillMaxWidth().height(fieldHeight).clip(DsRadius.Md)
             .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(10.dp))
+            .border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), DsRadius.Md)
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -1527,7 +1530,7 @@ fun CompactGlassField(
                 )
             }
             if (value.isNotEmpty()) Box(
-                Modifier.size(20.dp).clip(RoundedCornerShape(10.dp)).background(Color.Black.copy(0.06f)).clickable { onValueChange("") },
+                Modifier.size(20.dp).clip(DsRadius.Md).background(Color.Black.copy(0.06f)).clickable { onValueChange("") },
                 contentAlignment = Alignment.Center
             ) { Text("×", fontSize = 12.sp, color = theme.mutedColor) }
         }
@@ -1576,14 +1579,14 @@ fun UserEditorDialog(
         templates = runCatching { PanelApi.userTemplates(session) }.getOrDefault(emptyList())
     } }
     // هر بخش اصلی یک کادر مستقل دارد تا فرم در موبایل سریع‌تر قابل اسکن باشد.
-    fun card() = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+    fun card() = Modifier.fillMaxWidth().clip(DsRadius.Lg)
         .background(theme.cardSurfaceColor)
-        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
         .padding(10.dp)
     fun addDays(value: Int) { days = ((days.toIntOrNull() ?: 0) + value).toString() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
             Column(Modifier.fillMaxWidth().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RoundedAppIcon(AppIcon.Edit, tint = theme.inkColor, size = 18.dp)
@@ -1596,18 +1599,18 @@ fun UserEditorDialog(
                         if (initial == null) {
                             // هنگام ساخت کاربر، تولید نام تصادفی دوباره در دسترس است.
                             CompactGlassField(username, { username = it }, "نام کاربری", Modifier.weight(1f), KeyboardType.Ascii, "")
-                            Box(Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(theme.accentPrimary.copy(.18f)).clickable { username = store.readUsernamePattern().randomName() }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(42.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(.18f)).clickable { username = store.readUsernamePattern().randomName() }, contentAlignment = Alignment.Center) {
                                 RoundedAppIcon(AppIcon.Random, tint = theme.inkColor, size = 19.dp)
                             }
                         } else {
                             // در حالت ویرایش، نام مانند پنل PasarGuard فقط برای مشاهده است.
                             // نام در حالت ویرایش فقط نمایش داده می‌شود و عمداً بسیار کوتاه است.
-                            Box(Modifier.weight(1f).height(26.dp).clip(RoundedCornerShape(7.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(7.dp)).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+                            Box(Modifier.weight(1f).height(26.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), DsRadius.Sm).padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
                                 MrmText(initial.username, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             }
                         }
                         if (initial != null) {
-                            Box(Modifier.height(26.dp).clip(RoundedCornerShape(7.dp)).background(if (active) GlassGreen.copy(.14f) else GlassRed.copy(.12f)).border(BorderStroke(1.dp, if (active) GlassGreen else GlassRed), RoundedCornerShape(7.dp)).clickable { active = !active }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
+                            Box(Modifier.height(26.dp).clip(DsRadius.Sm).background(if (active) GlassGreen.copy(.14f) else GlassRed.copy(.12f)).border(BorderStroke(1.dp, if (active) GlassGreen else GlassRed), DsRadius.Sm).clickable { active = !active }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
                         }
                     }
                 }
@@ -1618,14 +1621,14 @@ fun UserEditorDialog(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم کل (GB)", Modifier.weight(1.35f), KeyboardType.Decimal, "", fieldHeight = 34.dp)
                         CompactGlassField(addGb, { addGb = it.filter { c -> c.isDigit() || c == '.' } }, "+ GB", Modifier.weight(.65f), KeyboardType.Decimal, "", fieldHeight = 34.dp)
-                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.size(34.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(.18f)).clickable { val add = addGb.toDoubleOrNull() ?: 0.0; if (add > 0) { limitGb = ((limitGb.toDoubleOrNull() ?: 0.0) + add).toString(); addGb = "" } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 18.dp) }
                     }
                     // زمان کل نیز مستقل قابل ویرایش است و +روز به مقدار فعلی افزوده می‌شود.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         CompactGlassField(days, { days = it.filter(Char::isDigit) }, "زمان کل", Modifier.weight(1.15f), KeyboardType.Number, "", fieldHeight = 34.dp)
-                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.18f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Calendar, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.size(34.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(.18f)).clickable { showCalendar = true }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Calendar, tint = theme.inkColor, size = 18.dp) }
                         CompactGlassField(addDaysInput, { addDaysInput = it.filter(Char::isDigit) }, "+ روز", Modifier.weight(.65f), KeyboardType.Number, "", fieldHeight = 34.dp)
-                        Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(theme.accentPrimary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.size(34.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(.18f)).clickable { val add = addDaysInput.toIntOrNull() ?: 0; if (add > 0) { days = ((days.toIntOrNull() ?: 0) + add).toString(); addDaysInput = "" } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.inkColor, size = 18.dp) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf(7, 30, 60, 90).forEach { value -> MiniGlassButton("+$value روز", Modifier.weight(1f)) { days = ((days.toIntOrNull() ?: 0) + value).toString() } } }
                 }
@@ -1634,20 +1637,20 @@ fun UserEditorDialog(
                     Text("دسترسی و جزئیات", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CompactGlassField(if (hwid == "0" || hwid.isEmpty()) "" else hwid, { v -> hwid = v.filter(Char::isDigit).ifBlank { "0" } }, "محدودیت دستگاه", Modifier.weight(.52f), KeyboardType.Number, "", leadingAppIcon = AppIcon.Device, fieldHeight = 30.dp)
-                        Box(Modifier.weight(.48f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp)).clickable { hwid = "0" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 9.sp, color = theme.mutedColor) }
+                        Box(Modifier.weight(.48f).height(30.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { hwid = "0" }.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) { Text("نامحدود", fontSize = 10.sp, color = theme.mutedColor) }
                     }
                     Text("یادداشت داخلی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                    Box(Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(9.dp)).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), RoundedCornerShape(12.dp)).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
+                    Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Sm).background(Color.White.copy(alpha = if (theme.isDark) .06f else .70f)).border(BorderStroke(1.dp, tileBorderColor(theme.isDark)), DsRadius.Lg).padding(10.dp)) { BasicTextField(note, { note = it.take(500) }, textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp), modifier = Modifier.fillMaxSize()) }
                 }
                 // گروه‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("گروه‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (groups.isEmpty()) Text("گروهی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { groups.forEach { g -> val picked = groupIds.contains(g.id); Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable { groupIds = if (picked) groupIds - g.id else groupIds + g.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { if (picked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 12.dp); Text(g.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } } }
+                    if (groups.isEmpty()) Text("گروهی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { groups.forEach { g -> val picked = groupIds.contains(g.id); Box(Modifier.height(32.dp).clip(DsRadius.Sm).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else theme.borderColor), DsRadius.Sm).clickable { groupIds = if (picked) groupIds - g.id else groupIds + g.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) { if (picked) RoundedAppIcon(AppIcon.Check, tint = Color(0xFF202124), size = 12.dp); Text(g.name, fontSize = 10.sp, color = if (picked) Color(0xFF202124) else theme.inkColor) } } } }
                 }
                 // تمپلت‌ها
                 Column(card(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("تمپلت‌ها", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(RoundedCornerShape(9.dp)).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(9.dp)).clickable {
+                    if (templates.isEmpty()) Text("تمپلتی یافت نشد", fontSize = 10.sp, color = theme.mutedColor) else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { templates.forEach { t -> val picked = selectedTemplate == t.id; Box(Modifier.height(32.dp).clip(DsRadius.Sm).background(if (picked) theme.accentPrimary.copy(.78f) else theme.searchBgColor).border(BorderStroke(1.dp, if (picked) theme.searchBgColor else theme.borderColor), DsRadius.Sm).clickable {
                             selectedTemplate = t.id
                             // انتخاب تمپلت، مقادیر واقعی آن را فوراً در فیلدهای فرم نشان می‌دهد.
                             t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
@@ -1684,9 +1687,9 @@ private fun detailDaysText(expire: String?): String {
 @Composable
 private fun IconActionBtn(icon: AppIcon, contentDesc: String, theme: com.mrm.pgmanager.ui.theme.ThemeState, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier.clip(RoundedCornerShape(8.dp))
+        modifier.clip(DsRadius.Sm)
             .background(theme.searchBgColor)
-            .border(BorderStroke(0.8.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(8.dp))
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -1708,9 +1711,9 @@ private fun CapsuleActionMenu(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // دکمه سربرگ کشویی - هماهنگ با دکمه‌های کپسولی settings
         Box(
-            Modifier.fillMaxWidth().height(46.dp).clip(RoundedCornerShape(14.dp))
+            Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Xl)
                 .background(headerColor.copy(0.10f))
-                .border(BorderStroke(1.2.dp, headerColor.copy(0.30f)), RoundedCornerShape(14.dp))
+                .border(BorderStroke(1.2.dp, headerColor.copy(0.30f)), DsRadius.Xl)
                 .clickable { onToggleExpand() }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart
@@ -1733,9 +1736,9 @@ private fun CapsuleActionMenu(
             exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(140)) + androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(160))
         ) {
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+                Modifier.fillMaxWidth().clip(DsRadius.Xl)
                     .background(if (theme.isDark) Color.White.copy(0.06f) else Color.White)
-                    .border(BorderStroke(1.dp, glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(14.dp))
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                     .padding(10.dp),
                 verticalArrangement = Arrangement.spacedBy(7.dp),
                 content = actions
@@ -1763,11 +1766,11 @@ private fun CapsuleMenuItem(
         primary -> Color(0xFF202124)
         else -> accent
     }
-    var borderColor = glassBorder(LocalThemeState.current.isDark, LocalThemeState.current.amoledDark)
+    var borderColor = LocalThemeState.current.borderColor
     if (danger || primary) borderColor = accent.copy(if (primary) 0f else 0.30f)
     Box(
-        Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(12.dp)).background(bg)
-            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(12.dp))
+        Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Lg).background(bg)
+            .border(BorderStroke(DsBorder.Hairline, borderColor), DsRadius.Lg)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart
@@ -1830,14 +1833,14 @@ fun UserDetailsDialog(
     val percentage = if (currentUser.dataLimit > 0L) ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
     val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
 
-    fun section() = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+    fun section() = Modifier.fillMaxWidth().clip(DsRadius.Lg)
         .background(theme.cardSurfaceColor)
-        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp)).padding(12.dp)
+        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg).padding(12.dp)
 
     @Composable fun sectionTitle(text: String) = Text(text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
     @Composable fun statTile(label: String, value: String, modifier: Modifier = Modifier) {
-        Column(modifier.height(54.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(8.dp)).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Text(label, fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(modifier.height(54.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), DsRadius.Sm).padding(horizontal = 9.dp, vertical = 7.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Text(label, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(value, modifier = Modifier.offset(y = (-2).dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
@@ -1846,12 +1849,12 @@ fun UserDetailsDialog(
         val bg = when { primary -> com.mrm.pgmanager.ui.designsystem.DsAccent.Gold; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
         val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
         // حالت primary مرز نامرئی دارد (اکسنت با آلفای صفر) تا فقط پس‌زمینهٔ توپُر دیده شود؛ چیدمان ثابت می‌ماند.
-        var borderColor = glassBorder(theme.isDark, theme.amoledDark)
+        var borderColor = theme.borderColor
         if (destructive) borderColor = GlassRed.copy(.30f)
         if (primary) borderColor = Color(0xFFEAB308)
         Box(
-            modifier.height(height).clip(RoundedCornerShape(10.dp)).background(bg)
-                .border(BorderStroke(0.7.dp, borderColor), RoundedCornerShape(10.dp))
+            modifier.height(height).clip(DsRadius.Md).background(bg)
+                .border(BorderStroke(0.7.dp, borderColor), DsRadius.Md)
                 .clickable(onClick = click),
             contentAlignment = Alignment.Center
         ) {
@@ -1860,41 +1863,41 @@ fun UserDetailsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(RoundedCornerShape(16.dp)).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(16.dp))) {
+        Box(Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)) {
             Column(Modifier.fillMaxWidth().padding(17.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("جزئیات کاربر", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                 // هدر کاربر عمداً فشرده است: فقط یک ردیف کوتاه برای هویت، فعالیت و وضعیت.
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    Modifier.fillMaxWidth().clip(DsRadius.Lg)
                         .background(theme.cardSurfaceColor)
-                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
                         .padding(horizontal = 11.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
-                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(14.dp)).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(RoundedCornerShape(5.dp)).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
+                    Box(Modifier.size(28.dp).clip(DsRadius.Xl).background(if (currentUser.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(9.dp).clip(DsRadius.Xs).background(if (currentUser.isOnline) GlassGreen else Color.Gray)) }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                         MrmText(currentUser.username, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                        MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 8.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
+                        MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                     }
                     val active = currentUser.status != "disabled"
-                    Box(Modifier.height(26.dp).width(50.dp).clip(RoundedCornerShape(8.dp)).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
+                    Box(Modifier.height(26.dp).width(50.dp).clip(DsRadius.Sm).background((if (active) GlassGreen else GlassRed).copy(.13f)), contentAlignment = Alignment.Center) { Text(if (active) "فعال" else "غیرفعال", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (active) GlassGreen else GlassRed) }
                 }
 
                 // توضیحات/یادداشت کاربر مستقیماً در پنجرهٔ جزئیات قابل مشاهده است.
                 if (!currentUser.note.isNullOrBlank()) {
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                        Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(theme.searchBgColor)
-                            .border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp))
+                            .border(BorderStroke(0.7.dp, theme.borderSubtle), DsRadius.Md)
                             .padding(horizontal = 10.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(7.dp)
                     ) {
                         RoundedAppIcon(AppIcon.Note, tint = theme.mutedColor, size = 16.dp)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text("توضیحات", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                            Text("توضیحات", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                             Text(currentUser.note.orEmpty(), fontSize = 11.sp, color = theme.inkColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
                         }
                     }
@@ -1902,9 +1905,9 @@ fun UserDetailsDialog(
 
                 // سه آمار ضروری در یک ردیف؛ محدودیت دستگاه از این نمای خلاصه حذف شده است.
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    Modifier.fillMaxWidth().clip(DsRadius.Lg)
                         .background(theme.cardSurfaceColor)
-                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(12.dp))
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -1915,17 +1918,17 @@ fun UserDetailsDialog(
                         statTile("زمان باقی‌مانده", detailDaysText(currentUser.expire), Modifier.weight(1f))
                     }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("مصرف", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                        Text("مصرف", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                         Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(Color(0xFFF3F4F6))) { if (percentage>0) Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(50))) }
-                        Text("$percentage%", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                        Text("$percentage%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
                     }
                 }
 
                 // کارت اشتراک - فقط آیکون‌ها بدون متن
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                    Modifier.fillMaxWidth().clip(DsRadius.Md)
                         .background(theme.cardSurfaceColor)
-                        .border(BorderStroke(0.7.dp, theme.borderColor), RoundedCornerShape(10.dp))
+                        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Md)
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -1957,10 +1960,10 @@ fun UserDetailsDialog(
                             fontSize = 10.sp, color = theme.mutedColor
                         )
                         if (debtorInfo.autoDisabled) {
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(GlassRed.copy(0.14f)).padding(8.dp),
+                            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(GlassRed.copy(0.14f)).padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 14.dp)
-                                Text("به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                                Text("به صورت خودکار به دلیل بدهی قطع شده است", fontSize = 10.sp, color = GlassRed, fontWeight = FontWeight.Bold)
                             }
                         }
                         CapsuleMenuItem(AppIcon.CheckCircle, "تسویه بدهی", GlassGreen, primary = true) { onClearDebt?.invoke() }
@@ -2057,9 +2060,9 @@ fun BulkApplyTemplateDialog(
                             val sel = selectedTemplateId == t.id
                             // ردیف انتخاب تمپلت: انتخاب‌شده = کپسول اکسنت ۷۸٪ + متن تیره، بقیه = کاشی خاکستری.
                             Box(
-                                Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(10.dp))
+                                Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
                                     .background(if (sel) theme.accentPrimary.copy(.78f) else theme.searchBgColor)
-                                    .border(BorderStroke(1.dp, if (sel) theme.searchBgColor else glassBorder(theme.isDark, theme.amoledDark)), RoundedCornerShape(10.dp))
+                                    .border(BorderStroke(1.dp, if (sel) theme.searchBgColor else theme.borderColor), DsRadius.Md)
                                     .clickable { selectedTemplateId = t.id }.padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
