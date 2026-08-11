@@ -14,19 +14,22 @@ object DateLogic {
     /**
      * مقدار `expire` که به پنل فرستاده می‌شود.
      * - خالی / "null" / "0" → 0 (نامحدود طبق قرارداد پنل)
-     * - تاریخ گذشته → ISO همان تاریخ به پایان روز
-     * - تاریخ امروز → ۱ روز کامل از اکنون
-     * - تاریخ آینده → `now + N روز` (ISO)
+     * - در غیر این صورت: **پایانِ همان روزِ انتخاب‌شده** به وقتِ محلیِ دستگاه،
+     *   که به UTC تبدیل و به‌صورت ISO-8601 فرستاده می‌شود.
+     *
+     * نکته: پنل `expire` را به‌صورت datetime آگاه از timezone می‌پذیرد
+     * (`AwareDatetime`)، بنابراین ارسالِ لحظهٔ دقیق درست‌تر از «now + N روز» است.
+     * با این کار، انتخابِ «امروز» یعنی «تا آخرِ امشب» — نه ۲۴ ساعت از این لحظه.
      */
     fun expireValue(date: String?): Any {
         if (date.isNullOrBlank() || date == "null" || date == "0") return 0
-        val target = runCatching { LocalDate.parse(date.take(10)) }.getOrNull()
-            ?: return "${date}T23:59:59Z"
-        val days = ChronoUnit.DAYS.between(LocalDate.now(), target)
-        if (days < 0L) return "${date}T23:59:59Z"
-        if (days == 0L) return Instant.now().plusSeconds(86400L).toString()
-        return Instant.now().plusSeconds(days * 86400L).toString()
+        val target = runCatching { LocalDate.parse(date.take(10)) }.getOrNull() ?: return 0
+        return endOfDayUtcIso(target)
     }
+
+    /** پایانِ روزِ داده‌شده (23:59:59 محلی) به‌صورت ISO-8601 در UTC. */
+    fun endOfDayUtcIso(date: LocalDate): String =
+        date.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toString()
 
     /** تعداد روزهای باقی‌مانده تا انقضا؛ null برای «نامحدود/نامشخص»، صفر یا منفی برای «منقضی». */
     fun remainingDays(expire: String?): Long? {
