@@ -60,7 +60,7 @@ fun ConfirmActionDialog(
 ) {
     val theme = LocalThemeState.current
     Dialog(onDismissRequest = onDismiss) {
-        LiquidGlassTheme(themeState = theme) {
+        LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(24.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
