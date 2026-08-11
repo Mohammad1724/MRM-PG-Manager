@@ -90,7 +90,7 @@ fun UserEditorDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        LiquidGlassTheme(themeState = theme) {
+        LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
                 Modifier
                     .fillMaxWidth()
