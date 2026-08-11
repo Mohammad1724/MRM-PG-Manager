@@ -30,6 +30,10 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
+      # چند ثانیه طول می‌کشد و خطاهای منابع را قبل از بیلدِ کندِ Gradle می‌گیرد
+      - name: Validate string resources
+        run: python3 tools/check-resources.py
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
