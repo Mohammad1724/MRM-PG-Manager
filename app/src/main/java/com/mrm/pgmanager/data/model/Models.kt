@@ -41,6 +41,35 @@ data class SystemStats(
 data class TrafficPoint(val timestamp: String, val totalTraffic: Long)
 
 data class Group(val id: Int, val name: String)
+
+/** نودِ پنل — برای فیلترِ نمودارهای آمار. */
+data class PanelNode(val id: Int, val name: String)
+
+/** نتیجهٔ ساخت گروهیِ سمت‌سرور. */
+data class BulkCreateResult(val created: Int, val subscriptionUrls: List<String> = emptyList())
+
+/**
+ * بازهٔ زمانیِ نمودارهای آمار.
+ * `period` باید یکی از مقادیرِ مجازِ پنل باشد: minute | hour | day | month
+ */
+enum class StatsRange(val label: String, val period: String, private val seconds: Long) {
+    LAST_1H("1h", "minute", 3_600L),
+    LAST_6H("6h", "hour", 21_600L),
+    LAST_24H("24h", "hour", 86_400L),
+    LAST_3D("3d", "hour", 259_200L),
+    LAST_7D("7d", "day", 604_800L),
+    LAST_30D("30d", "day", 2_592_000L);
+
+    /** زمانِ شروع به‌صورت ISO-8601 در UTC. */
+    fun startIso(): String = java.time.Instant.now().minusSeconds(seconds).toString()
+}
+
+/** متریکِ نمودار «تعداد کاربران» — مطابق `UserCountMetric` در پنل. */
+enum class CountMetric(val apiName: String, val label: String) {
+    ONLINE("online", "کاربران آنلاین"),
+    EXPIRED("expired", "کاربران منقضی"),
+    LIMITED("limited", "کاربران محدود")
+}
 data class UserTemplateItem(
     val id: Int,
     val name: String,
