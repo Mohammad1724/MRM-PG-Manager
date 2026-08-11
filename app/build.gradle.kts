@@ -68,4 +68,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     // تست‌های واحد (JVM)
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    // org.json در JVM tests استاب است؛ پیاده‌سازی واقعی لازم داریم.
+    testImplementation("org.json:json:20240303")
 }
