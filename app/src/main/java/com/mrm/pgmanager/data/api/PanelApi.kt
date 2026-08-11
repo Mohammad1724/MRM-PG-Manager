@@ -1,10 +1,14 @@
 package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.utils.DateLogic
+import com.mrm.pgmanager.data.model.BulkCreateResult
+import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
+import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.StatsRange
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
 import kotlinx.coroutines.Dispatchers
@@ -46,9 +50,16 @@ object PanelApi {
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     private fun baseUrl(input: String): String {
-        val prepared = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
-        val uri = URI(prepared)
-        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
+        val trimmed = input.trim()
+        require(trimmed.isNotBlank()) { "آدرس پنل را وارد کنید" }
+        val prepared = if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed else "https://$trimmed"
+        val uri = runCatching { URI(prepared) }.getOrNull()
+            ?: error("آدرس پنل معتبر نیست")
+        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "آدرس پنل معتبر نیست" }
+        // اپ با usesCleartextTraffic=false ساخته شده؛ http بدونِ پیامِ واضح در لایهٔ شبکه fail می‌شد.
+        require(!uri.scheme.equals("http", ignoreCase = true)) {
+            "اتصال http پشتیبانی نمی‌شود؛ لطفاً از https استفاده کنید"
+        }
         // مسیر رو به‌طور پیش‌فرض حذف می‌کنیم (کاربر معمولاً آدرسِ داشبورد/کامل وارد می‌کند و این از 405 جلوگیری می‌کند).
         // فقط اگر آدرسِ کاملِ API (دارای /api) داده شده باشد، پیشوندِ قبل از /api را نگه می‌داریم (پشتیبانی از subpath).
         val rawPath = uri.rawPath.orEmpty()
@@ -107,8 +118,23 @@ object PanelApi {
         }
     }
 
-    suspend fun trafficUsage(session: Session): List<TrafficPoint> = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${session.baseUrl}/api/users/usage?period=day").get().build()
+    /**
+     * مصرفِ ترافیک همهٔ کاربران در یک بازهٔ زمانی.
+     * پنل `period` را از میان minute/hour/day/month می‌پذیرد و `start`/`end` را
+     * به‌صورت ISO-8601 آگاه از timezone. اگر `nodeId` بدهیم فقط همان نود لحاظ می‌شود.
+     */
+    suspend fun trafficUsage(
+        session: Session,
+        range: StatsRange = StatsRange.LAST_24H,
+        nodeId: Int? = null
+    ): List<TrafficPoint> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/users/usage")
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+            if (nodeId != null) { append("&node_id="); append(nodeId) }
+        }
+        val request = requestBuilder(session, url).get().build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Traffic usage failed: ${response.code}")
             val root = JSONObject(response.body?.string() ?: "{}")
@@ -120,6 +146,59 @@ object PanelApi {
             }
             totals.entries.sortedBy { it.key }.map { TrafficPoint(it.key, it.value) }
         }
+    }
+
+    /**
+     * نمودارِ تعدادِ کاربران بر اساس یک متریک (online / expired / limited).
+     * اندپوینت: `GET /api/users/counts/{metric}` — پاسخ همان ساختارِ usage است
+     * ولی به‌جای total_traffic فیلدِ count دارد.
+     */
+    suspend fun userCountMetric(
+        session: Session,
+        metric: CountMetric = CountMetric.ONLINE,
+        range: StatsRange = StatsRange.LAST_24H
+    ): List<TrafficPoint> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/users/counts/"); append(metric.apiName)
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+        }
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("User count failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val stats = root.optJSONObject("stats") ?: return@use emptyList()
+            val totals = linkedMapOf<String, Long>()
+            stats.keys().forEach { key ->
+                val arr = stats.optJSONArray(key) ?: return@forEach
+                for (i in 0 until arr.length()) {
+                    val p = arr.optJSONObject(i) ?: continue
+                    val time = p.optString("period_start")
+                    // پنل بسته به متریک ممکن است count یا total را برگرداند.
+                    val v = if (p.has("count")) p.optLong("count") else p.optLong("total")
+                    totals[time] = maxOf(totals[time] ?: 0L, v)
+                }
+            }
+            totals.entries.sortedBy { it.key }.map { TrafficPoint(it.key, it.value) }
+        }
+    }
+
+    /** فهرست نودها برای فیلترِ نمودارها. */
+    suspend fun nodes(session: Session): List<PanelNode> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<PanelNode>()
+                val body = res.body?.string() ?: "{}"
+                val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
+                    ?: runCatching { org.json.JSONArray(body) }.getOrNull()
+                    ?: return@runCatching emptyList<PanelNode>()
+                List(arr.length()) { i ->
+                    val n = arr.getJSONObject(i)
+                    PanelNode(id = n.optInt("id"), name = n.optString("name", "Node #${n.optInt("id")}"))
+                }
+            }
+        }.getOrDefault(emptyList())
     }
 
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
@@ -312,20 +391,8 @@ object PanelApi {
     }
 
     suspend fun userTemplates(session: Session): List<UserTemplateItem> = withContext(Dispatchers.IO) {
-        // ابتدا endpoint ساده؛ در صورتِ ناموفق‌بودن یا خالی‌بودن، fallback می‌زند.
-        val simple: List<UserTemplateItem>? = runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/user_templates/simple").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching null
-                val obj = JSONObject(res.body?.string() ?: "{}")
-                val arr = obj.optJSONArray("templates") ?: obj.optJSONArray("items") ?: return@runCatching null
-                List(arr.length()) { i ->
-                    val t = arr.getJSONObject(i)
-                    UserTemplateItem(t.optInt("id"), t.optString("name", "تمپلت #${t.optInt("id")}"))
-                }
-            }
-        }.getOrNull()
-        // برای فرم ویرایش، جزئیات حجم و مدت تمپلت لازم است؛ endpoint کامل را ترجیح می‌دهیم.
+        // فقط endpoint کامل صدا زده می‌شود: فرم ویرایش به data_limit و expire_duration نیاز دارد
+        // که در پاسخِ /simple وجود ندارد. (قبلاً هر دو صدا زده می‌شد و نتیجهٔ simple دور ریخته می‌شد.)
         val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
         client.newCall(reqFull).execute().use { res ->
             if (!res.isSuccessful) error("بارگذاریِ تمپلت‌ها ناموفق بود: ${res.code}")
@@ -349,6 +416,55 @@ object PanelApi {
             if (note.isNotBlank()) put("note", note)
         }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user/from_template").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    /**
+     * ساخت گروهیِ کاربران از روی تمپلت — **سمت سرور** (`POST /api/users/bulk/from_template`).
+     * به‌جای N درخواستِ جداگانه، یک درخواست می‌فرستد؛ خیلی سریع‌تر و بدون
+     * ریسکِ نیمه‌کاره ماندن.
+     *
+     * @param count تعداد کاربر (پنل حداکثر ۵۰۰ را می‌پذیرد)
+     * @param sequential true → نام‌های ترتیبی با پیشوندِ [username]؛ false → نامِ تصادفی
+     * @param startNumber شمارهٔ شروع در حالتِ ترتیبی
+     * @return تعداد ساخته‌شده به‌همراه لینک‌های اشتراک
+     */
+    suspend fun bulkCreateUsersFromTemplate(
+        session: Session,
+        templateId: Int,
+        count: Int,
+        sequential: Boolean,
+        username: String? = null,
+        startNumber: Int? = null,
+        note: String = ""
+    ): BulkCreateResult = withContext(Dispatchers.IO) {
+        require(count in 1..500) { "تعداد باید بین ۱ تا ۵۰۰ باشد" }
+        val body = JSONObject().apply {
+            put("user_template_id", templateId)
+            put("count", count)
+            put("strategy", if (sequential) "sequence" else "random")
+            // قرارداد پنل: در حالتِ random باید username تهی باشد.
+            if (sequential) {
+                put("username", username ?: error("نامِ پایه برای حالتِ ترتیبی لازم است"))
+                if (startNumber != null) put("start_number", startNumber)
+            } else {
+                put("username", JSONObject.NULL)
+            }
+            if (note.isNotBlank()) put("note", note)
+        }
+        val request = requestBuilder(session, "${session.baseUrl}/api/users/bulk/from_template")
+            .post(body.toString().toRequestBody(jsonType)).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val details = response.body?.string()?.take(250).orEmpty()
+                error("Bulk create failed: ${response.code} $details")
+            }
+            val o = JSONObject(response.body?.string() ?: "{}")
+            val urls = o.optJSONArray("subscription_urls")
+            BulkCreateResult(
+                created = o.optInt("created", urls?.length() ?: 0),
+                subscriptionUrls = if (urls == null) emptyList() else List(urls.length()) { urls.optString(it) }
+            )
+        }
     }
 
     suspend fun modifyUserFromTemplate(session: Session, username: String, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
