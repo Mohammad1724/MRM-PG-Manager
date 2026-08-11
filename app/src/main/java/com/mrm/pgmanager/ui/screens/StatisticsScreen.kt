@@ -181,7 +181,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                             }
                         }
                     }
-                    Text(stringResource(R.string.usage_during_period), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.usage_in_range), fontSize = 10.sp, color = theme.mutedColor)
                     val periodTotal = remember(trafficPoints) { trafficPoints.sumOf { it.totalTraffic } }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp))
