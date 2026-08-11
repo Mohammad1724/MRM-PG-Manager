@@ -167,8 +167,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             stats?.let { s ->
                 // System row — 2x2 grid exactly like PG screenshot
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
-                        valueSub = "${s.cpuCores} cores", trailing = { Text("${"%.1f".format(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
+                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
+                        valueSub = "${s.cpuCores} cores", trailing = { Text("${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
                     PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
                 }
@@ -196,7 +196,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                         Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         val days = s.uptimeSeconds / 86400L; val hrs = (s.uptimeSeconds % 86400L)/3600L
                         val txt = if (days > 0) "$days day, $hrs hour" else "$hrs hour"
-                        Text(txt, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        MrmText(txt, isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
