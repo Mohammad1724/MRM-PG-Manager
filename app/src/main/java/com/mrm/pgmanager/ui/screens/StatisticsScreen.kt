@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -27,7 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.model.CountMetric
+import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.StatsRange
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.ui.components.*
@@ -37,6 +42,8 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.formatPercent
+import com.mrm.pgmanager.utils.formatUptime
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,20 +53,32 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
     val scope = rememberCoroutineScope()
     var stats by remember { mutableStateOf<SystemStats?>(null) }
     var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
+    var countPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
+    var nodes by remember { mutableStateOf<List<PanelNode>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
-    var selectedNode by remember { mutableStateOf("Overall") }
-    var timeRange by remember { mutableStateOf("More") }
-    var adminFilter by remember { mutableStateOf("All admins") }
-    var onlineFilter by remember { mutableStateOf("Online Users") }
+
+    // فیلترهای واقعی (قبلاً رشتهٔ ثابت و بی‌اثر بودند)
+    var selectedNode by remember { mutableStateOf<PanelNode?>(null) }
+    var nodeMenuOpen by remember { mutableStateOf(false) }
+    var trafficRange by remember { mutableStateOf(StatsRange.LAST_24H) }
+    var countRange by remember { mutableStateOf(StatsRange.LAST_24H) }
+    var countMetric by remember { mutableStateOf(CountMetric.ONLINE) }
+    var metricMenuOpen by remember { mutableStateOf(false) }
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }
-        runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
+        runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
+            .onSuccess { trafficPoints = it }
+        runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
+            .onSuccess { countPoints = it }
         loading = false
     }
-    LaunchedEffect(session) { load() }
+
+    LaunchedEffect(session) { runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it } }
+    // با تغییرِ هر فیلتر، داده دوباره از پنل گرفته می‌شود.
+    LaunchedEffect(session, trafficRange, selectedNode, countRange, countMetric) { load(silent = stats != null) }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
@@ -87,7 +106,18 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 10.sp, color = theme.mutedColor) }
-                    PGDropdown(value = selectedNode, onClick = {})
+                    Box {
+                        PGDropdown(value = selectedNode?.name ?: stringResource(R.string.all_nodes), onClick = { nodeMenuOpen = true })
+                        DropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.all_nodes)) },
+                                onClick = { selectedNode = null; nodeMenuOpen = false }
+                            )
+                            nodes.forEach { n ->
+                                DropdownMenuItem(text = { Text(n.name) }, onClick = { selectedNode = n; nodeMenuOpen = false })
+                            }
+                        }
+                    }
                 }
             }
 
@@ -102,7 +132,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
+                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${formatPercent(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
                         PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -135,7 +165,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
-                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText("1 day, 1 hour", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText(formatUptime(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
 
@@ -144,24 +174,23 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 10.sp, color = theme.mutedColor)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("1h","6h","24h","3d","More").forEach { t ->
-                            val sel = t == timeRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.accentPrimary else theme.borderColor), RoundedCornerShape(8.dp)).clickable { timeRange = t }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                Text(t, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) Color(0xFF422006) else theme.mutedColor)
+                        StatsRange.entries.forEach { r ->
+                            val sel = r == trafficRange
+                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.accentPrimary else theme.borderColor), RoundedCornerShape(8.dp)).clickable { trafficRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) Color(0xFF422006) else theme.mutedColor)
                             }
                         }
-                        PGDropdown(value = "Auto", onClick = {})
-                        Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Calendar, tint = theme.mutedColor, size = 14.dp) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { PGDropdown(value = adminFilter, onClick = {}); Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 14.dp) } }
-                    Text("Usage During Period", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.usage_during_period), fontSize = 10.sp, color = theme.mutedColor)
+                    val periodTotal = remember(trafficPoints) { trafficPoints.sumOf { it.totalTraffic } }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp)); Text("275.46 GB", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp))
+                        MrmText(formatBytes(periodTotal), isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    PGChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark)
+                    PGChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                            Text("Germany node 🇩🇪", fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
+                            Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -172,30 +201,31 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                     Text(stringResource(R.string.user_count_desc), fontSize = 10.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("1h","6h","24h","3d","More").forEach { t ->
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                Text(t, fontSize = 10.sp, color = theme.mutedColor)
+                        StatsRange.entries.forEach { r ->
+                            val sel = r == countRange
+                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.accentPrimary else theme.borderColor), RoundedCornerShape(8.dp)).clickable { countRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) Color(0xFF422006) else theme.mutedColor)
                             }
                         }
-                        PGDropdown(value = "Auto", onClick = {})
-                        Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) { Text("⎙", fontSize = 12.sp, color = theme.mutedColor) }
-                        PGDropdown(value = onlineFilter, onClick = { onlineFilter = if (onlineFilter == "Online Users") "Active Users" else "Online Users" })
-                        PGDropdown(value = "All admins", onClick = {})
+                        Box {
+                            PGDropdown(value = countMetric.label, onClick = { metricMenuOpen = true })
+                            DropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
+                                CountMetric.entries.forEach { m ->
+                                    DropdownMenuItem(text = { Text(m.label) }, onClick = { countMetric = m; metricMenuOpen = false })
+                                }
+                            }
+                        }
                         Spacer(Modifier.width(12.dp))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.group_by_node), fontSize = 10.sp, color = theme.mutedColor)
-                        Box(Modifier.width(36.dp).height(20.dp).clip(RoundedCornerShape(50)).background(Color(0xFFE5E7EB)).padding(2.dp)) {
-                            Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color.White))
-                        }
-                    }
                     Text(stringResource(R.string.count_during_period), fontSize = 10.sp, color = theme.mutedColor)
+                    val peakCount = remember(countPoints) { countPoints.maxOfOrNull { it.totalTraffic } ?: 0L }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Wifi, tint = theme.mutedColor, size = 12.dp); Text("66", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                            RoundedAppIcon(AppIcon.Wifi, tint = theme.mutedColor, size = 12.dp)
+                            MrmText("$peakCount", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    PGChart(points = trafficPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, isOrange = true)
+                    PGChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
                     Spacer(Modifier.height(56.dp))
                 }
             }
@@ -212,32 +242,75 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
     }
 }
 
-@Composable private fun PGChart(points: List<TrafficPoint>, accent: Color, themeIsDark: Boolean, isOrange: Boolean = false) {
-    val grid = Color(0xFFE5E7EB)
+/**
+ * نمودار خطیِ داده‌های واقعی. اگر داده‌ای نباشد، به‌جای کشیدنِ منحنیِ جعلی
+ * پیامِ «داده‌ای موجود نیست» نشان می‌دهد.
+ * برچسب‌های محور X از خودِ `period_start` ساخته می‌شوند (نه تاریخِ ثابت).
+ */
+@Composable private fun PGChart(
+    points: List<TrafficPoint>,
+    accent: Color,
+    themeIsDark: Boolean,
+    valueFormatter: (Long) -> String = { it.toString() }
+) {
+    val theme = LocalThemeState.current
+    val grid = if (themeIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+
+    if (points.isEmpty()) {
+        Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.no_chart_data), fontSize = 10.sp, color = theme.mutedColor)
+        }
+        return
+    }
+
+    val maxValue = remember(points) { points.maxOf { it.totalTraffic }.coerceAtLeast(1L) }
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(valueFormatter(maxValue), fontSize = 8.sp, color = theme.mutedColor)
+        Text(valueFormatter(0L), fontSize = 8.sp, color = theme.mutedColor)
+    }
     Canvas(Modifier.fillMaxWidth().height(110.dp)) {
         val w = size.width; val h = size.height
-        // grid horizontal 4 lines
         for (i in 1..4) drawLine(grid, androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 0.7f)
-        val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
         if (points.size > 1) {
             val path = androidx.compose.ui.graphics.Path()
-            points.forEachIndexed { idx, pt -> val x = w * idx / (points.size - 1); val y = h - (pt.totalTraffic.toFloat() / max * h * 0.78f) - h * 0.08f; if (idx==0) path.moveTo(x,y) else path.lineTo(x,y) }
-            val fill = androidx.compose.ui.graphics.Path().apply { addPath(path); lineTo(w,h); lineTo(0f,h); close() }
-            drawPath(fill, accent.copy(0.14f)); drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.8f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        } else {
-            // mock subtle hill like reference
-            val p = androidx.compose.ui.graphics.Path().apply {
-                moveTo(0f, h*0.38f); cubicTo(w*0.18f, h*0.18f, w*0.38f, h*0.14f, w*0.52f, h*0.16f); cubicTo(w*0.66f, h*0.18f, w*0.78f, h*0.22f, w*0.92f, h*0.45f); lineTo(w, h*0.95f)
+            points.forEachIndexed { idx, pt ->
+                val x = w * idx / (points.size - 1)
+                val y = h - (pt.totalTraffic.toFloat() / maxValue * h * 0.78f) - h * 0.08f
+                if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-            drawPath(androidx.compose.ui.graphics.Path().apply { addPath(p); lineTo(w,h); lineTo(0f,h); close() }, accent.copy(0.12f))
-            drawPath(p, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            val fill = androidx.compose.ui.graphics.Path().apply { addPath(path); lineTo(w, h); lineTo(0f, h); close() }
+            drawPath(fill, accent.copy(0.14f))
+            drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.8f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        } else {
+            // تک‌نقطه: یک خطِ افقی در ارتفاعِ همان مقدار
+            val only = points.first()
+            val y = h - (only.totalTraffic.toFloat() / maxValue * h * 0.78f) - h * 0.08f
+            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(w, y), 1.8f)
         }
-        // x labels
-        val labels = listOf("08/03","08/04","08/05","08/06","08/07","08/08","08/0")
-        // labels drawn as overlay text outside canvas — handled by caller if needed
     }
-    // x-axis labels row (outside canvas for readability)
+    // برچسب‌های محور X از دادهٔ واقعی (حداکثر ۵ برچسب برای جلوگیری از شلوغی)
+    val labels = remember(points) { pickAxisLabels(points) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        listOf("08/03","08/04","08/05","08/06","08/07","08/08","08/0").forEach { Text(it, fontSize = 8.sp, color = Color(0xFF9CA3AF)) }
+        labels.forEach { Text(it, fontSize = 8.sp, color = theme.mutedColor) }
+    }
+}
+
+/** حداکثر ۵ برچسبِ زمانی از نقاطِ نمودار، با فرمتِ کوتاهِ MM/dd یا HH:mm. */
+private fun pickAxisLabels(points: List<TrafficPoint>): List<String> {
+    if (points.isEmpty()) return emptyList()
+    val spanHours = runCatching {
+        val first = java.time.Instant.parse(points.first().timestamp)
+        val last = java.time.Instant.parse(points.last().timestamp)
+        java.time.Duration.between(first, last).toHours()
+    }.getOrDefault(24L)
+    val pattern = if (spanHours <= 48L) "HH:mm" else "MM/dd"
+    val fmt = java.time.format.DateTimeFormatter.ofPattern(pattern)
+        .withZone(java.time.ZoneId.systemDefault())
+
+    val step = (points.size / 5).coerceAtLeast(1)
+    return points.filterIndexed { i, _ -> i % step == 0 }.take(5).map { p ->
+        runCatching { fmt.format(java.time.Instant.parse(p.timestamp)) }
+            .getOrDefault(p.timestamp.take(10))
     }
 }
