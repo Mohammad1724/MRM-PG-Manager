@@ -102,7 +102,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${"%.1f".format(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
+                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
                         PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,7 +113,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 12.dp) }
                                 Text(stringResource(R.string.total_traffic), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            MrmText(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), isTechnical = true, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     // Bandwidth - separate card
@@ -123,19 +123,19 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF064E3B).copy(0.45f) else Color(0xFFDCFCE7)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF10B981).copy(0.30f) else Color(0xFFBBF7D0)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Download, tint = if (theme.isDark) Color(0xFF6EE7B7) else Color(0xFF065F46), size = 14.dp) }
                                 Text(stringResource(R.string.download), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text(formatBytes(s.incomingBandwidth), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
+                            MrmText(formatBytes(s.incomingBandwidth), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                         Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF1E3A8A).copy(0.35f) else Color(0xFFDBEAFE)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF60A5FA).copy(0.30f) else Color(0xFFBFDBFE)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Upload, tint = if (theme.isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A), size = 14.dp) }
                                 Text(stringResource(R.string.upload), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                             }
-                            Text(formatBytes(s.outgoingBandwidth), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1)
+                            MrmText(formatBytes(s.outgoingBandwidth), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
-                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); Text("1 day, 1 hour", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText("1 day, 1 hour", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
 
