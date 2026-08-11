@@ -144,4 +144,7 @@
     <string name="create_user_title">ایجاد کاربر</string>
     <string name="user_status">وضعیت اشتراک</string>
     <string name="quick_actions">عملیات سریع</string>
+    <string name="all_nodes">همهٔ نودها</string>
+    <string name="usage_during_period">مصرف در این بازه</string>
+    <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
 </resources>
