@@ -1182,8 +1182,8 @@ fun UsersScreen(
             if (selectedUserIds.isNotEmpty()) {
                 Box(
                     Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 68.dp, start = 12.dp, end = 12.dp)
+                        .align(Alignment.TopCenter)
+                        .padding(top = 110.dp)
                 ) {
                     BulkActionsBar(
                         selectedCount = selectedUserIds.size,
