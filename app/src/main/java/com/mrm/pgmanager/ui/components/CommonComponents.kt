@@ -553,37 +553,81 @@ fun BulkActionsBar(
     onExport: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
+    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+    var expanded by remember { mutableStateOf(false) }
+
     Box(
         Modifier
-            .fillMaxWidth()
-            .clip(DsRadius.Lg)
+            .wrapContentSize()
+            .clip(RoundedCornerShape(50.dp))
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(10.dp)
+            .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(50.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 16.dp); Text(stringResource(R.string.bulk_actions_on, selectedCount), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor) }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { onSelectAll() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text(stringResource(R.string.select_all), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
-                    }
-                    Box(Modifier.clip(DsRadius.Sm).background(GlassRed.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.30f)), DsRadius.Sm).clickable { onClear() }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text("× " + stringResource(R.string.cancel), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlassRed)
-                    }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Target count text
+            Text(
+                text = if (isFa) "$selectedCount کاربر" else "$selectedCount Targets",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = theme.inkColor
+            )
+
+            // Vertical divider
+            Box(Modifier.width(1.dp).height(16.dp).background(theme.borderColor))
+
+            // Trash action (Delete)
+            IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+                RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 15.dp)
+            }
+
+            // More actions (...)
+            Box(contentAlignment = Alignment.TopStart) {
+                IconButton(onClick = { expanded = true }, modifier = Modifier.size(26.dp)) {
+                    Text("•••", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, textAlign = TextAlign.Center)
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(theme.cardSurfaceColor)
+                ) {
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) "فعال‌سازی" else "Enable", color = theme.inkColor) } },
+                        onClick = { onEnable(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) "غیرفعال‌سازی" else "Disable", color = theme.inkColor) } },
+                        onClick = { onDisable(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) "ریست حجم" else "Reset Usage", color = theme.inkColor) } },
+                        onClick = { onResetUsage(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) "اعمال تمپلت" else "Apply Template", color = theme.inkColor) } },
+                        onClick = { onApplyTemplate(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) "خروجی گرفتن" else "Export", color = theme.inkColor) } },
+                        onClick = { onExport(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 14.dp); Text(if (isFa) "انتخاب همه" else "Select All", color = theme.inkColor) } },
+                        onClick = { onSelectAll(); expanded = false }
+                    )
                 }
             }
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                BulkActionChip(stringResource(R.string.enable), AppIcon.Check, GlassGreen) { onEnable() }
-                BulkActionChip(stringResource(R.string.disable), AppIcon.User, Color(0xFF7A7886)) { onDisable() }
-                BulkActionChip(stringResource(R.string.reset_usage), AppIcon.Reset, theme.accentPrimary) { onResetUsage() }
-                BulkActionChip(stringResource(R.string.apply_template), AppIcon.Template, Color(0xFF8B5CF6)) { onApplyTemplate() }
-                BulkActionChip(stringResource(R.string.export), AppIcon.Download, GlassGreen) { onExport() }
-                // حذف با فاصله بصری جدا — خطر کلیک اشتباه کمتر
-                Spacer(Modifier.width(4.dp))
-                Box(Modifier.width(1.dp).height(24.dp).background(theme.borderSubtle).align(Alignment.CenterVertically))
-                Spacer(Modifier.width(4.dp))
-                BulkActionChip(stringResource(R.string.delete_all), AppIcon.Delete, GlassRed) { onDelete() }
+
+            // Vertical divider
+            Box(Modifier.width(1.dp).height(16.dp).background(theme.borderColor))
+
+            // Close button (Clear selection)
+            IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
+                Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
             }
         }
     }
