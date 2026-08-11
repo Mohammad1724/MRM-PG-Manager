@@ -282,21 +282,29 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.width(110.dp).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
-                    Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
+                    // برچسبِ ثابت «فیلتر» تا کارکردِ دکمه معلوم باشد + مقدارِ فعلی زیرِ آن
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        Text(stringResource(R.string.filter), fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.width(110.dp).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 12.dp)
-                    Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
+                    // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
+                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                        Text(stringResource(R.string.sort), fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
@@ -400,7 +408,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                         MrmText(
                             text = user.username,
                             fontSize = 12.sp,
-                            fontWeight = DsFont.Bold,
+                            fontWeight = FontWeight.Normal,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             isTechnical = true,
@@ -409,13 +417,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                         if (debtorInfo != null) DebtorBadge(compact = true)
                         Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
                     }
-                    MrmText(
-                        text = lastSeenShort(user.onlineAt, user.isOnline),
-                        fontSize = 10.sp,
-                        color = if (user.isOnline) GlassGreen else theme.mutedColor,
-                        maxLines = 1,
-                        isTechnical = true
-                    )
+                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(DsSemantic.Info.copy(0.16f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = DsSemantic.Info, size = 11.dp) }
             }
@@ -445,7 +447,7 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = "نمایش QR") { onQrClick(user) }
                 Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                    Text(if (user.isOnline) stringResource(R.string.online) else stringResource(R.string.offline), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (user.isOnline) GlassGreen else Color.Gray)
+                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
                 }
                 if (user.groupNames.isNotEmpty()) {
                     Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
@@ -454,6 +456,36 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 }
             }
         }
+    }
+}
+
+/**
+ * اگر کاربر آنلاین باشد فقط آیکونِ آنلاین نشان داده می‌شود (بدون کلمهٔ «آنلاین»)؛
+ * در غیر این صورت زمانِ آخرین بازدید نمایش داده می‌شود.
+ */
+@Composable
+private fun OnlineOrLastSeen(
+    user: PanelUser,
+    fontSize: androidx.compose.ui.unit.TextUnit = 10.sp,
+    iconSize: androidx.compose.ui.unit.Dp = 12.dp
+) {
+    val theme = LocalThemeState.current
+    if (user.isOnline) {
+        RoundedAppIcon(
+            AppIcon.Wifi,
+            contentDescription = stringResource(R.string.online),
+            tint = GlassGreen,
+            size = iconSize
+        )
+    } else {
+        val seen = lastSeenShort(user.onlineAt, false)
+        MrmText(
+            text = if (seen.isBlank()) "—" else seen,
+            fontSize = fontSize,
+            color = theme.mutedColor,
+            maxLines = 1,
+            isTechnical = true
+        )
     }
 }
 
@@ -469,38 +501,40 @@ private fun OnlineBadge(user: PanelUser) {
     )
 }
 
+/**
+ * وضعیت کاربر به‌صورت آیکونِ گرد — به‌جای بجِ متنی که فضای زیادی می‌گرفت.
+ * هر وضعیت شکلِ آیکونِ متفاوتی دارد (نه فقط رنگ) تا برای کاربرانِ کوررنگ هم قابل تشخیص باشد.
+ * توضیحِ متنی در `contentDescription` می‌ماند تا TalkBack بخواند و با نگه‌داشتنِ انگشت هم دیده شود.
+ */
 @Composable
 private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, compact: Boolean = false) {
     val theme = LocalThemeState.current
-    val (label, color) = when (user.status) {
-        "active" -> stringResource(R.string.active) to GlassGreen
-        "disabled" -> stringResource(R.string.disabled) to Color(0xFF8A8A8A)
-        "expired" -> stringResource(R.string.expired) to GlassRed
-        "limited" -> stringResource(R.string.limited) to GlassAmber
-        "on_hold" -> stringResource(R.string.on_hold_users) to DsSemantic.Violet
-        else -> cardStatusText(user) to theme.mutedColor
+    val (icon, color) = when (user.status) {
+        "active" -> AppIcon.StatusActive to GlassGreen
+        "disabled" -> AppIcon.StatusDisabled to Color(0xFF8A8A8A)
+        "expired" -> AppIcon.StatusExpired to GlassRed
+        "limited" -> AppIcon.StatusLimited to GlassAmber
+        "on_hold" -> AppIcon.StatusOnHold to DsSemantic.Violet
+        else -> AppIcon.StatusActive to theme.mutedColor
     }
+    val label = when (user.status) {
+        "active" -> stringResource(R.string.active)
+        "disabled" -> stringResource(R.string.disabled)
+        "expired" -> stringResource(R.string.expired)
+        "limited" -> stringResource(R.string.limited)
+        "on_hold" -> stringResource(R.string.on_hold_users)
+        else -> cardStatusText(user)
+    }
+    val box = if (compact) 18.dp else 22.dp
     Box(
-        modifier.height(if (compact) 17.dp else 22.dp).clip(RoundedCornerShape(if (compact) 5.dp else 7.dp))
+        modifier
+            .size(box)
+            .clip(RoundedCornerShape(50))
             .background(color.copy(alpha = 0.13f))
-            .border(BorderStroke(if (compact) 0.7.dp else 0.8.dp, color.copy(alpha = 0.25f)), RoundedCornerShape(if (compact) 5.dp else 7.dp))
-            .padding(horizontal = if (compact) 3.dp else 7.dp),
+            .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.28f)), RoundedCornerShape(50)),
         contentAlignment = Alignment.Center
-    ) { 
-        Text(
-            text = label, 
-            fontSize = if (compact) 9.sp else 10.sp, 
-            fontWeight = FontWeight.Bold, 
-            color = color, 
-            maxLines = 1, 
-            overflow = TextOverflow.Ellipsis,
-            style = androidx.compose.ui.text.TextStyle(
-                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                    includeFontPadding = false
-                ),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-        ) 
+    ) {
+        RoundedAppIcon(icon, contentDescription = label, tint = color, size = if (compact) 11.dp else 13.dp)
     }
 }
 
@@ -625,18 +659,14 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                     MrmText(
                         user.username,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Normal,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         isTechnical = true
                     )
-                    Text(
-                        text = lastSeenShort(user.onlineAt, user.isOnline),
-                        fontSize = 10.sp,
-                        color = if (user.isOnline) GlassGreen else theme.mutedColor
-                    )
+                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 13.dp)
                 }
-                UserStatusBadge(user, Modifier.widthIn(min = 42.dp))
+                UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
                 IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = "کپی") { onCopySub(user) }
                 IconCardAction(AppIcon.Qr, Modifier.size(34.dp), contentDesc = "QR") { onQrClick(user) }
@@ -683,10 +713,10 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                MrmText(user.username, fontSize = 11.sp, fontWeight = DsFont.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                MrmText(lastSeenShort(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, maxLines = 1, isTechnical = true)
+                MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 11.dp)
             }
-            UserStatusBadge(user, Modifier.widthIn(min = 30.dp), compact = true)
+            UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
