@@ -62,7 +62,7 @@ fun BulkApplyTemplateDialog(
     var formError by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
-        LiquidGlassTheme(themeState = theme) {
+        LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
             ) {
