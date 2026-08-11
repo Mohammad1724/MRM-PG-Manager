@@ -144,4 +144,7 @@
     <string name="create_user_title">Create User</string>
     <string name="user_status">Subscription Status</string>
     <string name="quick_actions">Quick Actions</string>
+    <string name="all_nodes">All nodes</string>
+    <string name="usage_during_period">Usage During Period</string>
+    <string name="no_chart_data">No data for this period</string>
 </resources>
