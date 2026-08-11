@@ -95,6 +95,34 @@ fun BulkCreateUsersDialog(
         running = true; done = false; progress = 0; successCount = 0; errors.clear()
         job = scope.launch {
             val isoExpire = if (!useTemplate) days.toIntOrNull()?.takeIf { it > 0 }?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: "" else ""
+
+            // مسیرِ سریع: اگر از تمپلت می‌سازیم، پنل خودش می‌تواند دسته‌ای بسازد
+            // (یک درخواست به‌جای N درخواست). در صورتِ خطا به حلقهٔ تکی برمی‌گردیم.
+            if (useTemplate && selectedTemplate != null) {
+                val bulk = runCatching {
+                    PanelApi.bulkCreateUsersFromTemplate(
+                        session = session,
+                        templateId = selectedTemplate!!,
+                        count = count,
+                        sequential = pattern.sequential,
+                        username = if (pattern.sequential) pattern.prefix else null,
+                        startNumber = if (pattern.sequential) pattern.sequentialStart else null,
+                        note = note
+                    )
+                }
+                if (bulk.isSuccess) {
+                    val res = bulk.getOrThrow()
+                    successCount = res.created
+                    progress = count
+                    if (pattern.sequential && successCount > 0) {
+                        store.saveUsernamePattern(pattern.copy(sequentialStart = pattern.sequentialStart + successCount))
+                    }
+                    running = false; done = true
+                    return@launch
+                }
+                // شکست خورد → ادامه با روشِ تکی تا کاربر بدونِ نتیجه نماند.
+            }
+
             // در حالت ترتیبی، شمارش از «شروع شمارش» فعلی با گام قابل‌پیگیری پیش می‌رود.
             for (i in 0 until count) {
                 if (!isActive) break
