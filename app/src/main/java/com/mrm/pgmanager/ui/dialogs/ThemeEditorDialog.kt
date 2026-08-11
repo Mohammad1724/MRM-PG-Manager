@@ -271,7 +271,7 @@ fun ThemeEditorDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        LiquidGlassTheme(themeState = themeState) {
+        LiquidGlassTheme(themeState = themeState, drawBackground = false) {
             Box(
                 Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
                     .background(theme.dialogBgColor)
