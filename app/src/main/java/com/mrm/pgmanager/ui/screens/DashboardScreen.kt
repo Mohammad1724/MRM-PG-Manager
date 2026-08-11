@@ -43,6 +43,7 @@ import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.formatPercent
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 
@@ -167,8 +168,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
             stats?.let { s ->
                 // System row — 2x2 grid exactly like PG screenshot
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
-                        valueSub = "${s.cpuCores} cores", trailing = { Text("${String.format(java.util.Locale.US, \"%.1f\", s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
+                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${formatPercent(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
+                        valueSub = "${s.cpuCores} cores", trailing = { Text("${formatPercent(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
                     PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
                         trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
                 }
