@@ -49,6 +49,13 @@ import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.DataUsage
+import androidx.compose.material.icons.rounded.HistoryToggleOff
+import androidx.compose.material.icons.rounded.PauseCircle
+import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.size
@@ -59,7 +66,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder }
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder,
+    // وضعیت کاربر
+    StatusActive, StatusDisabled, StatusExpired, StatusLimited, StatusOnHold,
+    // نوار ابزار
+    Sort, Filter }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -110,6 +121,14 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Backup -> Icons.Rounded.Backup
     AppIcon.Restore -> Icons.Rounded.FileDownload
     AppIcon.Folder -> Icons.Rounded.Folder
+    // وضعیت کاربر — هرکدام شکلِ متمایز دارد تا فقط با رنگ تشخیص داده نشود
+    AppIcon.StatusActive -> Icons.Rounded.CheckCircle
+    AppIcon.StatusDisabled -> Icons.Rounded.Block
+    AppIcon.StatusExpired -> Icons.Rounded.HistoryToggleOff
+    AppIcon.StatusLimited -> Icons.Rounded.DataUsage
+    AppIcon.StatusOnHold -> Icons.Rounded.PauseCircle
+    AppIcon.Sort -> Icons.Rounded.SwapVert
+    AppIcon.Filter -> Icons.Rounded.FilterList
 }
 
 @Composable
