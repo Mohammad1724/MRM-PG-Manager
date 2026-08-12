@@ -275,6 +275,18 @@ private fun StatsCardsRow(
     }
 }
 
+/**
+ * سبکِ متنِ فشرده برای دکمه‌های دوسطریِ فیلتر/مرتب‌سازی.
+ * فاصلهٔ اضافیِ بالا و پایینِ فونت حذف می‌شود تا دو سطر روی هم نیفتند.
+ */
+private val CompactLabelStyle = TextStyle(
+    platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+    lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+        alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+        trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
+    )
+)
+
 @Composable
 private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: UserSort, onSortChange: (UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, debtorCount: Int = 0) {
     val theme = LocalThemeState.current
@@ -282,28 +294,29 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.weight(1f).height(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(46.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
-                    // برچسبِ ثابت «فیلتر» تا کارکردِ دکمه معلوم باشد + مقدارِ فعلی زیرِ آن
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        Text(stringResource(R.string.filter), fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    // برچسبِ ثابت «فیلتر» + مقدارِ فعلی زیرِ آن.
+                    // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(stringResource(R.string.filter), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.weight(1f).height(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(46.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f, fill = false), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
                     // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
-                    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                        Text(stringResource(R.string.sort), fontSize = 8.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(stringResource(R.string.sort), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
@@ -525,16 +538,20 @@ private fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, comp
         "on_hold" -> stringResource(R.string.on_hold_users)
         else -> cardStatusText(user)
     }
-    val box = if (compact) 18.dp else 22.dp
+    // آیکونِ کلید (ToggleOn/Off) پهن است، پس کادر بیضی‌شکل است نه دایره تا آیکون بریده نشود
+    val h = if (compact) 18.dp else 22.dp
+    val w = if (compact) 24.dp else 28.dp
+    val shape = RoundedCornerShape(50)
     Box(
         modifier
-            .size(box)
-            .clip(RoundedCornerShape(50))
+            .width(w)
+            .height(h)
+            .clip(shape)
             .background(color.copy(alpha = 0.13f))
-            .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.28f)), RoundedCornerShape(50)),
+            .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.28f)), shape),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, contentDescription = label, tint = color, size = if (compact) 11.dp else 13.dp)
+        RoundedAppIcon(icon, contentDescription = label, tint = color, size = if (compact) 13.dp else 15.dp)
     }
 }
 
@@ -887,6 +904,8 @@ fun UsersScreen(
     val fallbackTotalDp = 242.dp
     val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
     val scrollOffset = remember { mutableStateOf(0f) }
+    // با اسکرول به پایین دکمهٔ «کاربر جدید» پنهان و با اسکرول به بالا دوباره ظاهر می‌شود
+    val fabVisible = remember { mutableStateOf(true) }
 
     fun load(resetHeader: Boolean = true, silent: Boolean = false) {
         scope.launch {
@@ -1029,6 +1048,11 @@ fun UsersScreen(
     val nestedScrollConnection = remember(headerHeight) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // جهتِ اسکرول را بگیر و دکمهٔ شناور را پنهان/آشکار کن
+                // (مستقل از هدر، چون هدر بعد از چند پیکسل جمع می‌شود و دیگر رویداد نمی‌دهد)
+                if (available.y < -2f) fabVisible.value = false
+                else if (available.y > 2f) fabVisible.value = true
+
                 if (headerHeight <= 0f) return Offset.Zero
 
                 val delta = -available.y
@@ -1060,15 +1084,26 @@ fun UsersScreen(
             val fabInteraction = remember { MutableInteractionSource() }
             val isFabPressed by fabInteraction.collectIsPressedAsState()
             val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.95f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
+            // هنگام اسکرول به پایین، دکمه به‌آرامی کوچک و محو می‌شود تا جلوی ردیف‌ها را نگیرد
+            val fabShown by animateFloatAsState(
+                targetValue = if (fabVisible.value) 1f else 0f,
+                animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
+                label = "fabShown"
+            )
             Box(
                 modifier = Modifier
                     .padding(bottom = 72.dp, end = 4.dp)
                     .size(52.dp)
-                    .graphicsLayer(scaleX = fabScale, scaleY = fabScale)
+                    .graphicsLayer(
+                        scaleX = fabScale * fabShown,
+                        scaleY = fabScale * fabShown,
+                        alpha = fabShown
+                    )
                     .clip(fabShape)
                     .background(themeState.accentPrimary)
                     .border(BorderStroke(DsBorder.Hairline, themeState.accentPrimary), fabShape)
-                    .clickable(interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
+                    // وقتی دکمه محو است نباید لمس را بگیرد
+                    .clickable(enabled = fabVisible.value, interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
                 RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = DsComponent.IconLg)
