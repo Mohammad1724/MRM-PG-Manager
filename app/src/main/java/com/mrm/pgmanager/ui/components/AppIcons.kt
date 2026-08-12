@@ -49,11 +49,11 @@ import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WarningAmber
-import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.DataUsage
-import androidx.compose.material.icons.rounded.HistoryToggleOff
+import androidx.compose.material.icons.rounded.EventBusy
 import androidx.compose.material.icons.rounded.PauseCircle
-import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.ToggleOff
+import androidx.compose.material.icons.rounded.ToggleOn
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material3.Icon
@@ -121,10 +121,10 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Backup -> Icons.Rounded.Backup
     AppIcon.Restore -> Icons.Rounded.FileDownload
     AppIcon.Folder -> Icons.Rounded.Folder
-    // وضعیت کاربر — هرکدام شکلِ متمایز دارد تا فقط با رنگ تشخیص داده نشود
-    AppIcon.StatusActive -> Icons.Rounded.CheckCircle
-    AppIcon.StatusDisabled -> Icons.Rounded.Block
-    AppIcon.StatusExpired -> Icons.Rounded.HistoryToggleOff
+    // وضعیت اشتراک — کلید روشن/خاموش، نه تیک؛ تا با «آنلاین بودن» اشتباه گرفته نشود
+    AppIcon.StatusActive -> Icons.Rounded.ToggleOn
+    AppIcon.StatusDisabled -> Icons.Rounded.ToggleOff
+    AppIcon.StatusExpired -> Icons.Rounded.EventBusy
     AppIcon.StatusLimited -> Icons.Rounded.DataUsage
     AppIcon.StatusOnHold -> Icons.Rounded.PauseCircle
     AppIcon.Sort -> Icons.Rounded.SwapVert
