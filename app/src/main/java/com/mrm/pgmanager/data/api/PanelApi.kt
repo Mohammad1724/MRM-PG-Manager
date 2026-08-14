@@ -119,6 +119,43 @@ object PanelApi {
     }
 
     /**
+     * مصرفِ ترافیکِ **یک کاربرِ مشخص** در یک بازهٔ زمانی.
+     * اندپوینت: `GET /api/user/{username}/usage` (پیشوندِ روتر مفرد است).
+     * پاسخ همان ساختارِ usageِ گروهی است: `{stats: {user_id: [{period_start, total_traffic}]}}`
+     * ولی چون فقط یک کاربر است، معمولاً یک کلید بیشتر ندارد.
+     *
+     * برخلافِ [trafficUsage] اینجا کلیدها را جمع نمی‌کنیم بلکه همه را در یک سری ادغام
+     * می‌کنیم تا اگر پنل به تفکیکِ نود پاسخ داد هم درست کار کند.
+     */
+    suspend fun userTrafficUsage(
+        session: Session,
+        username: String,
+        range: StatsRange = StatsRange.LAST_7D
+    ): List<TrafficPoint> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(userUrl(session, username)); append("/usage")
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+        }
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("User usage failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val stats = root.optJSONObject("stats") ?: return@use emptyList()
+            val totals = linkedMapOf<String, Long>()
+            stats.keys().forEach { key ->
+                val arr = stats.optJSONArray(key) ?: return@forEach
+                for (i in 0 until arr.length()) {
+                    val p = arr.optJSONObject(i) ?: continue
+                    val time = p.optString("period_start")
+                    totals[time] = (totals[time] ?: 0L) + p.optLong("total_traffic")
+                }
+            }
+            totals.entries.sortedBy { it.key }.map { TrafficPoint(it.key, it.value) }
+        }
+    }
+
+    /**
      * مصرفِ ترافیک همهٔ کاربران در یک بازهٔ زمانی.
      * پنل `period` را از میان minute/hour/day/month می‌پذیرد و `start`/`end` را
      * به‌صورت ISO-8601 آگاه از timezone. اگر `nodeId` بدهیم فقط همان نود لحاظ می‌شود.
