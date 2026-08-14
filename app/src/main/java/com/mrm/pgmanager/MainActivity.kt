@@ -58,9 +58,7 @@ import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
-import com.mrm.pgmanager.ui.screens.RenewalsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
-import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -341,7 +339,6 @@ fun MRMApp() {
                     when (selectedTab) {
                         0 -> DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false })
                         2 -> StatisticsScreen(session!!, onSettings = { showDashboardSettings = true })
-                        3 -> RenewalsScreen(session!!, onLogout = { store.clear(); session = null; isUnlocked = false })
                         else -> UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
@@ -376,7 +373,7 @@ fun MRMApp() {
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer, stringResource(R.string.renewals) to AppIcon.Calendar).forEachIndexed { index, (label, icon) ->
+                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
                             val scale by androidx.compose.animation.core.animateFloatAsState(
                                 targetValue = 1f,
