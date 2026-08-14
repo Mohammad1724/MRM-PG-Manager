@@ -48,6 +48,60 @@ class PanelApiContractTest {
         assertEquals(100L, points[0].totalTraffic)
     }
 
+    // ── usage یک کاربرِ مشخص ─────────────────────────────────
+
+    @Test fun `userTrafficUsage hits singular user route with encoded start`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"stats":{"42":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":500}]}}"""))
+        val points = PanelApi.userTrafficUsage(session, "ali", StatsRange.LAST_7D)
+        val path = server.takeRequest().path!!
+
+        // پیشوندِ روترِ پنل مفرد است: /api/user/{username}/usage
+        assertTrue("must use singular /api/user prefix", path.startsWith("/api/user/ali/usage"))
+        assertTrue(path.contains("period=day"))
+        // «:» موجود در ISO باید encode شده باشد
+        assertFalse(path.substringAfter("start=").contains(":"))
+        assertEquals(1, points.size)
+        assertEquals(500L, points[0].totalTraffic)
+    }
+
+    @Test fun `userTrafficUsage encodes special characters in username`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"stats":{}}"""))
+        PanelApi.userTrafficUsage(session, "a b+c", StatsRange.LAST_24H)
+        val path = server.takeRequest().path!!
+
+        assertFalse("raw space must not reach the panel", path.contains("a b+c"))
+        assertTrue(path.startsWith("/api/user/"))
+    }
+
+    @Test fun `userTrafficUsage merges multiple series into one`() = runBlocking {
+        // اگر پنل به تفکیکِ نود پاسخ دهد، نقاطِ هم‌زمان باید جمع شوند نه اینکه یکی گم شود.
+        server.enqueue(MockResponse().setBody(
+            """{"stats":{"1":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":100}],""" +
+            """"2":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":50}]}}"""
+        ))
+        val points = PanelApi.userTrafficUsage(session, "ali")
+
+        assertEquals(1, points.size)
+        assertEquals(150L, points[0].totalTraffic)
+    }
+
+    @Test fun `userTrafficUsage returns points sorted by time`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"stats":{"1":[{"period_start":"2026-08-12T00:00:00Z","total_traffic":3},""" +
+            """{"period_start":"2026-08-10T00:00:00Z","total_traffic":1},""" +
+            """{"period_start":"2026-08-11T00:00:00Z","total_traffic":2}]}}"""
+        ))
+        val points = PanelApi.userTrafficUsage(session, "ali")
+
+        assertEquals(listOf(1L, 2L, 3L), points.map { it.totalTraffic })
+    }
+
+    @Test fun `userTrafficUsage returns empty list when no stats`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"period":"day","start":"x","end":"y"}"""))
+        val points = PanelApi.userTrafficUsage(session, "ali")
+        assertTrue(points.isEmpty())
+    }
+
     @Test fun `trafficUsage passes node filter through`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"stats":{}}"""))
         PanelApi.trafficUsage(session, StatsRange.LAST_30D, nodeId = 7)
