@@ -51,29 +51,26 @@ import java.time.LocalDate
 fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val qrBitmap = remember(user.subUrl) {
-        runCatching {
-            val writerClass = Class.forName("com.google.zxing.qrcode.QRCodeWriter")
-            val formatClass = Class.forName("com.google.zxing.BarcodeFormat")
-            val hintClass = Class.forName("com.google.zxing.EncodeHintType")
-            val qrCodeFormat = formatClass.getField("QR_CODE").get(null)
-            val marginHint = hintClass.getField("MARGIN").get(null)
-            val writer = writerClass.getDeclaredConstructor().newInstance()
-            val encodeMethod = writerClass.getMethod("encode", String::class.java, formatClass, Int::class.java, Int::class.java, Map::class.java)
-            val bitMatrix = encodeMethod.invoke(writer, user.subUrl, qrCodeFormat, 512, 512, mapOf(marginHint to 1))
-            val matrixClass = bitMatrix!!.javaClass
-            val getMethod = matrixClass.getMethod("get", Int::class.java, Int::class.java)
-            val getWidthMethod = matrixClass.getMethod("getWidth")
-            val getHeightMethod = matrixClass.getMethod("getHeight")
-            val w = getWidthMethod.invoke(bitMatrix) as Int
-            val h = getHeightMethod.invoke(bitMatrix) as Int
-            val pixels = IntArray(w * h)
-            for (y in 0 until h) for (x in 0 until w) {
-                val isBlack = getMethod.invoke(bitMatrix, x, y) as Boolean
-                pixels[y * w + x] = if (isBlack) android.graphics.Color.BLACK else android.graphics.Color.WHITE
-            }
-            android.graphics.Bitmap.createBitmap(pixels, w, h, android.graphics.Bitmap.Config.ARGB_8888)
-        }.getOrNull()
+    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+    val scope = rememberCoroutineScope()
+    val store = remember { SessionStore(context) }
+    var busy by remember { mutableStateOf(false) }
+
+    val qrBitmap = remember(user.subUrl) { QrGenerator.encode(user.subUrl) }
+
+    /** اشتراک‌گذاریِ یک فایل با نوعِ مشخص، به‌همراهِ لینکِ متنی به‌عنوان fallback. */
+    fun shareFile(file: java.io.File, mime: String, title: String) {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = mime
+            putExtra(Intent.EXTRA_STREAM, uri)
+            // اگر اپِ مقصد عکس را پشتیبانی نکرد، دستِ‌کم لینک می‌رود.
+            putExtra(Intent.EXTRA_TEXT, user.subUrl)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, title))
     }
 
     // به اشتراک‌گذاری عکس QR + لینک متنی از طریق FileProvider.
@@ -102,17 +99,40 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                 bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
                 if (bmp !== bitmap) bmp.recycle()
             }
-            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "image/png"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                // لینک متنی هم در متن قرار می‌گیرد تا اگر اپلیکیشن مقصد عکس را پشتیبانی نکرد، لینک برود.
-                putExtra(Intent.EXTRA_TEXT, user.subUrl)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(Intent.createChooser(intent, "اشتراک QR"))
+            shareFile(file, "image/png", "اشتراک QR")
         }.onFailure { e ->
             android.widget.Toast.makeText(context, "خطا در اشتراک‌گذاری: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * ساخت و ارسالِ «کارتِ تصویری» — QR به‌همراهِ نام، حجم، اعتبار و برندِ فروشنده.
+     * رندر روی رشتهٔ پس‌زمینه انجام می‌شود چون کشیدنِ یک بیت‌مپِ ۱۰۰۰×۱۵۰۰ روی
+     * رشتهٔ اصلی باعث پرشِ رابط می‌شود.
+     */
+    fun shareCard() {
+        if (busy) return
+        busy = true
+        scope.launch {
+            val file = withContext(Dispatchers.Default) {
+                SubscriptionCard.generate(
+                    context = context,
+                    user = user,
+                    qr = qrBitmap,
+                    sellerName = store.readInvoiceSeller(),
+                    logoPath = store.readInvoiceLogoPath(),
+                    isFa = isFa
+                )
+            }
+            busy = false
+            if (file == null) {
+                android.widget.Toast.makeText(context, if (isFa) "ساخت کارت ممکن نشد" else "Could not create card", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                runCatching { shareFile(file, "image/png", if (isFa) "ارسال کارت اشتراک" else "Share card") }
+                    .onFailure { e ->
+                        android.widget.Toast.makeText(context, "خطا در اشتراک‌گذاری: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+            }
         }
     }
 
@@ -131,8 +151,16 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
                             android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
                         }, modifier = Modifier.weight(1f))
-                        PrimaryButton("اشتراک", onClick = ::shareQr, modifier = Modifier.weight(1f))
+                        SecondaryButton(if (isFa) "فقط QR" else "QR only", onClick = ::shareQr, modifier = Modifier.weight(1f))
                     }
+                    // گزینهٔ اصلی: کارتِ کامل با نام، حجم، اعتبار و برند
+                    PrimaryButton(
+                        if (isFa) "ارسال کارت اشتراک" else "Share card",
+                        onClick = ::shareCard,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy,
+                        loading = busy
+                    )
                     TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
                 }
             }
