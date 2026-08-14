@@ -187,7 +187,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp))
                         MrmText(formatBytes(periodTotal), isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    PGChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
+                    UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                             Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
@@ -225,7 +225,7 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                             MrmText("$peakCount", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    PGChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
+                    UsageChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
                     Spacer(Modifier.height(56.dp))
                 }
             }
@@ -242,75 +242,3 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
     }
 }
 
-/**
- * نمودار خطیِ داده‌های واقعی. اگر داده‌ای نباشد، به‌جای کشیدنِ منحنیِ جعلی
- * پیامِ «داده‌ای موجود نیست» نشان می‌دهد.
- * برچسب‌های محور X از خودِ `period_start` ساخته می‌شوند (نه تاریخِ ثابت).
- */
-@Composable private fun PGChart(
-    points: List<TrafficPoint>,
-    accent: Color,
-    themeIsDark: Boolean,
-    valueFormatter: (Long) -> String = { it.toString() }
-) {
-    val theme = LocalThemeState.current
-    val grid = if (themeIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
-
-    if (points.isEmpty()) {
-        Box(Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.no_chart_data), fontSize = 10.sp, color = theme.mutedColor)
-        }
-        return
-    }
-
-    val maxValue = remember(points) { points.maxOf { it.totalTraffic }.coerceAtLeast(1L) }
-
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(valueFormatter(maxValue), fontSize = 8.sp, color = theme.mutedColor)
-        Text(valueFormatter(0L), fontSize = 8.sp, color = theme.mutedColor)
-    }
-    Canvas(Modifier.fillMaxWidth().height(110.dp)) {
-        val w = size.width; val h = size.height
-        for (i in 1..4) drawLine(grid, androidx.compose.ui.geometry.Offset(0f, h * i / 5f), androidx.compose.ui.geometry.Offset(w, h * i / 5f), 0.7f)
-        if (points.size > 1) {
-            val path = androidx.compose.ui.graphics.Path()
-            points.forEachIndexed { idx, pt ->
-                val x = w * idx / (points.size - 1)
-                val y = h - (pt.totalTraffic.toFloat() / maxValue * h * 0.78f) - h * 0.08f
-                if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            val fill = androidx.compose.ui.graphics.Path().apply { addPath(path); lineTo(w, h); lineTo(0f, h); close() }
-            drawPath(fill, accent.copy(0.14f))
-            drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.8f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        } else {
-            // تک‌نقطه: یک خطِ افقی در ارتفاعِ همان مقدار
-            val only = points.first()
-            val y = h - (only.totalTraffic.toFloat() / maxValue * h * 0.78f) - h * 0.08f
-            drawLine(accent, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(w, y), 1.8f)
-        }
-    }
-    // برچسب‌های محور X از دادهٔ واقعی (حداکثر ۵ برچسب برای جلوگیری از شلوغی)
-    val labels = remember(points) { pickAxisLabels(points) }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        labels.forEach { Text(it, fontSize = 8.sp, color = theme.mutedColor) }
-    }
-}
-
-/** حداکثر ۵ برچسبِ زمانی از نقاطِ نمودار، با فرمتِ کوتاهِ MM/dd یا HH:mm. */
-private fun pickAxisLabels(points: List<TrafficPoint>): List<String> {
-    if (points.isEmpty()) return emptyList()
-    val spanHours = runCatching {
-        val first = java.time.Instant.parse(points.first().timestamp)
-        val last = java.time.Instant.parse(points.last().timestamp)
-        java.time.Duration.between(first, last).toHours()
-    }.getOrDefault(24L)
-    val pattern = if (spanHours <= 48L) "HH:mm" else "MM/dd"
-    val fmt = java.time.format.DateTimeFormatter.ofPattern(pattern)
-        .withZone(java.time.ZoneId.systemDefault())
-
-    val step = (points.size / 5).coerceAtLeast(1)
-    return points.filterIndexed { i, _ -> i % step == 0 }.take(5).map { p ->
-        runCatching { fmt.format(java.time.Instant.parse(p.timestamp)) }
-            .getOrDefault(p.timestamp.take(10))
-    }
-}
