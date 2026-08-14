@@ -13,6 +13,11 @@ import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
 
 class SessionStore(context: Context) {
+    companion object {
+        /** سقفِ تعدادِ فروشِ نگه‌داشته‌شده؛ قدیمی‌ترین‌ها کنار گذاشته می‌شوند. */
+        const val MAX_SALES = 2000
+    }
+
     internal val prefs = EncryptedSharedPreferences.create(
         context,
         "mrm_pg_manager",
@@ -321,6 +326,65 @@ class SessionStore(context: Context) {
     fun readDebtorsForBase(baseUrl: String): List<com.mrm.pgmanager.data.model.DebtorInfo> {
         return readDebtors().values.filter { it.baseUrl == baseUrl }
     }
+
+    // === فروش‌های ثبت‌شده (پایهٔ گزارشِ درآمد) ===
+    // پنل چیزی دربارهٔ پول نمی‌داند، پس این تنها منبعِ حقیقتِ مالی است.
+    // برای اینکه حافظه بی‌نهایت رشد نکند، فقط MAX_SALES رکوردِ آخر نگه داشته می‌شود.
+
+    fun readSales(): List<com.mrm.pgmanager.data.model.SaleRecord> = runCatching {
+        val raw = prefs.getString("sales", "[]") ?: "[]"
+        val arr = org.json.JSONArray(raw)
+        val out = mutableListOf<com.mrm.pgmanager.data.model.SaleRecord>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val username = o.optString("username"); if (username.isBlank()) continue
+            val baseUrl = o.optString("baseUrl"); if (baseUrl.isBlank()) continue
+            val soldAt = o.optLong("soldAt", 0L); if (soldAt <= 0L) continue
+            out.add(
+                com.mrm.pgmanager.data.model.SaleRecord(
+                    id = o.optString("id").ifBlank { "$soldAt-$username" },
+                    username = username,
+                    baseUrl = baseUrl,
+                    amount = o.optLong("amount", 0L),
+                    currency = o.optString("currency", "تومان").ifBlank { "تومان" },
+                    days = o.optInt("days", 0),
+                    soldAt = soldAt,
+                    note = o.optString("note", "")
+                )
+            )
+        }
+        out
+    }.getOrDefault(emptyList())
+
+    fun saveSales(list: List<com.mrm.pgmanager.data.model.SaleRecord>) {
+        val trimmed = list.sortedByDescending { it.soldAt }.take(MAX_SALES)
+        val arr = org.json.JSONArray()
+        trimmed.forEach { s ->
+            arr.put(org.json.JSONObject().apply {
+                put("id", s.id)
+                put("username", s.username)
+                put("baseUrl", s.baseUrl)
+                put("amount", s.amount)
+                put("currency", s.currency)
+                put("days", s.days)
+                put("soldAt", s.soldAt)
+                put("note", s.note)
+            })
+        }
+        prefs.edit().putString("sales", arr.toString()).apply()
+    }
+
+    /** افزودنِ یک فروش. رکوردِ هم‌شناسه جایگزین می‌شود تا ثبتِ تکراری پیش نیاید. */
+    fun addSale(sale: com.mrm.pgmanager.data.model.SaleRecord) {
+        saveSales(listOf(sale) + readSales().filterNot { it.id == sale.id })
+    }
+
+    fun removeSale(id: String) {
+        saveSales(readSales().filterNot { it.id == id })
+    }
+
+    fun readSalesForBase(baseUrl: String): List<com.mrm.pgmanager.data.model.SaleRecord> =
+        readSales().filter { it.baseUrl == baseUrl }
 
     // === لوگوی فاکتور (در فایل خصوصی برنامه ذخیره می‌شود) ===
     fun hasInvoiceLogo(): Boolean = prefs.contains("invoice_logo_path")
