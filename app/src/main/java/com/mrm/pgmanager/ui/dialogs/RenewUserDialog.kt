@@ -29,6 +29,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.RenewalLogic
+import com.mrm.pgmanager.utils.RevenueLogic
 import java.time.LocalDate
 
 /**
@@ -42,11 +43,13 @@ import java.time.LocalDate
 fun RenewUserDialog(
     user: PanelUser,
     onDismiss: () -> Unit,
-    onConfirm: (days: Int, mode: RenewalLogic.Mode) -> Unit
+    currency: String = "تومان",
+    onConfirm: (days: Int, mode: RenewalLogic.Mode, amount: Long) -> Unit
 ) {
     val theme = LocalThemeState.current
     var days by remember { mutableStateOf("30") }
     var mode by remember { mutableStateOf(RenewalLogic.Mode.EXTEND) }
+    var amount by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
     val parsedDays = days.toIntOrNull()?.takeIf { it > 0 }
@@ -168,6 +171,38 @@ fun RenewUserDialog(
                 }
             }
 
+            // ── مبلغ (اختیاری) — پایهٔ گزارشِ درآمد
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(
+                    Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            BasicTextField(
+                                amount,
+                                { v -> amount = v.filter(Char::isDigit).take(12) },
+                                textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            if (amount.isEmpty()) Text("مبلغ (اختیاری)", color = theme.mutedColor, fontSize = 13.sp)
+                        }
+                        Text(currency, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                    }
+                }
+                val parsedAmount = amount.toLongOrNull()?.takeIf { it > 0L }
+                if (parsedAmount != null) {
+                    Text(
+                        RevenueLogic.formatAmount(parsedAmount) + " " + currency,
+                        fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text("خالی بگذارید تا در گزارشِ درآمد ثبت نشود.", fontSize = 9.5.sp, color = theme.mutedColor)
+                }
+            }
+
             error?.let { Text(it, fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium) }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -177,7 +212,7 @@ fun RenewUserDialog(
                     onClick = {
                         val n = parsedDays
                         if (n == null) error = "عدد روز معتبر (بزرگ‌تر از صفر) وارد کنید."
-                        else onConfirm(n, mode)
+                        else onConfirm(n, mode, amount.toLongOrNull() ?: 0L)
                     },
                     modifier = Modifier.weight(1f),
                     enabled = parsedDays != null
