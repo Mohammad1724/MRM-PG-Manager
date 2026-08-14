@@ -147,14 +147,4 @@
     <string name="all_nodes">همهٔ نودها</string>
     <string name="usage_in_range">مصرف در این بازه</string>
     <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
-    <string name="renewals">تمدیدها</string>
-    <string name="renewals_subtitle">کاربرانی که نیاز به تمدید دارند، فوری‌ترین اول</string>
-    <string name="renew_all">همه</string>
-    <string name="renew_expired">منقضی‌شده</string>
-    <string name="renew_soon">در آستانهٔ انقضا</string>
-    <string name="renew_window">پنجرهٔ «به‌زودی» (روز)</string>
-    <string name="renew_action">تمدید</string>
-    <string name="renew_limit_reached">حجم تمام شده</string>
-    <string name="renew_empty">چیزی برای تمدید نیست</string>
-    <string name="renew_empty_desc">هیچ کاربری منقضی یا نزدیک به انقضا نیست</string>
 </resources>
