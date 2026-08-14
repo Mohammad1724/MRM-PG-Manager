@@ -66,12 +66,6 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
     var countMetric by remember { mutableStateOf(CountMetric.ONLINE) }
     var metricMenuOpen by remember { mutableStateOf(false) }
 
-    // درآمد: کاملاً محلی است، پس با هر بار نمایشِ صفحه از حافظه خوانده می‌شود.
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
-    val currency = remember { store.readMonitoringSettings().debtorCurrency }
-    var sales by remember { mutableStateOf(store.readSalesForBase(session.baseUrl)) }
-
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }
@@ -79,13 +73,10 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
             .onSuccess { trafficPoints = it }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
             .onSuccess { countPoints = it }
-        // فروش‌ها محلی‌اند ولی ممکن است در تبِ تمدیدها تازه ثبت شده باشند.
-        sales = store.readSalesForBase(session.baseUrl)
         loading = false
     }
 
     LaunchedEffect(session) { runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it } }
-    LaunchedEffect(session) { sales = store.readSalesForBase(session.baseUrl) }
     // با تغییرِ هر فیلتر، داده دوباره از پنل گرفته می‌شود.
     LaunchedEffect(session, trafficRange, selectedNode, countRange, countMetric) { load(silent = stats != null) }
     val pullState = rememberPullToRefreshState()
@@ -235,16 +226,9 @@ fun StatisticsScreen(session: Session, onSettings: () -> Unit) {
                         }
                     }
                     UsageChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
+                    Spacer(Modifier.height(56.dp))
                 }
             }
-
-            // ── درآمد (دادهٔ محلی؛ مستقل از در دسترس بودنِ آمارِ پنل)
-            RevenueSection(
-                sales = sales,
-                currency = currency,
-                onDeleteSale = { sale -> store.removeSale(sale.id); sales = store.readSalesForBase(session.baseUrl) }
-            )
-            Spacer(Modifier.height(56.dp))
         }
     }
 }
