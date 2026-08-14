@@ -181,23 +181,6 @@ fun UserDetailsDialog(
         }
     }
     
-    // ── نمودار مصرفِ همین کاربر ──────────────────────────────────────────────
-    // بازهٔ پیش‌فرض ۷ روز است چون برای تشخیصِ الگوی مصرف گویاتر از ۲۴ ساعت است.
-    var chartRange by remember { mutableStateOf(StatsRange.LAST_7D) }
-    var chartPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
-    var chartLoading by remember { mutableStateOf(false) }
-    var chartFailed by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentUser.username, chartRange, session) {
-        val s = session ?: return@LaunchedEffect
-        chartLoading = true
-        chartFailed = false
-        runCatching { PanelApi.userTrafficUsage(s, currentUser.username, chartRange) }
-            .onSuccess { chartPoints = it }
-            .onFailure { chartPoints = emptyList(); chartFailed = true }
-        chartLoading = false
-    }
-
     var usageConfirm by remember { mutableStateOf(false) }
     var expiryConfirm by remember { mutableStateOf(false) }
     var templatePickerOpen by remember { mutableStateOf(false) }
@@ -407,108 +390,6 @@ fun UserDetailsDialog(
                                     )
                                 )
                             )
-                        }
-                    }
-
-                    // ── نمودار مصرف (فقط وقتی نشست در دسترس است)
-                    if (session != null) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(DsRadius.Lg)
-                                .background(theme.cardSurfaceColor)
-                                .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    if (isFa) "نمودار مصرف" else "Usage Chart",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = theme.inkColor
-                                )
-                                // انتخابِ بازه: ۲۴ ساعت / ۷ روز / ۳۰ روز
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    listOf(
-                                        StatsRange.LAST_24H to (if (isFa) "۲۴ ساعت" else "24h"),
-                                        StatsRange.LAST_7D to (if (isFa) "۷ روز" else "7d"),
-                                        StatsRange.LAST_30D to (if (isFa) "۳۰ روز" else "30d")
-                                    ).forEach { (range, label) ->
-                                        val sel = chartRange == range
-                                        Box(
-                                            Modifier
-                                                .clip(DsRadius.Sm)
-                                                .background(if (sel) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                                                .border(
-                                                    BorderStroke(
-                                                        0.7.dp,
-                                                        if (sel) theme.accentPrimary.copy(0.42f) else theme.borderColor
-                                                    ),
-                                                    DsRadius.Sm
-                                                )
-                                                .clickable { chartRange = range }
-                                                .padding(horizontal = 7.dp, vertical = 3.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                label,
-                                                fontSize = 9.sp,
-                                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (sel) theme.accentPrimary else theme.mutedColor,
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            when {
-                                chartLoading -> Box(
-                                    Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(8.dp))
-                                        .background(theme.searchBgColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        if (isFa) "در حال دریافت…" else "Loading…",
-                                        fontSize = 10.sp,
-                                        color = theme.mutedColor
-                                    )
-                                }
-                                // اگر پنل این اندپوینت را نداشته باشد، به‌جای نمودارِ خالی دلیلش را می‌گوییم
-                                chartFailed -> Box(
-                                    Modifier.fillMaxWidth().height(110.dp).clip(RoundedCornerShape(8.dp))
-                                        .background(theme.searchBgColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        if (isFa) "دریافت نمودار ممکن نشد" else "Could not load chart",
-                                        fontSize = 10.sp,
-                                        color = theme.mutedColor
-                                    )
-                                }
-                                else -> {
-                                    UsageChart(
-                                        points = chartPoints,
-                                        accent = theme.accentPrimary,
-                                        themeIsDark = theme.isDark,
-                                        valueFormatter = ::formatBytes
-                                    )
-                                    // مجموعِ همان بازه — عددی که کاربر معمولاً دنبالش است
-                                    if (chartPoints.isNotEmpty()) {
-                                        val sum = chartPoints.sumOf { it.totalTraffic }
-                                        Text(
-                                            (if (isFa) "مجموع این بازه: " else "Total in range: ") + formatBytes(sum),
-                                            fontSize = 10.sp,
-                                            color = theme.mutedColor
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
 
