@@ -25,10 +25,19 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 data class DrawerItem(val id: String, val label: String, val icon: AppIcon, val hasSub: Boolean = false)
 
+/**
+ * بخش‌هایی که واقعاً پیاده‌سازی شده‌اند و باید در منو قابل انتخاب باشند.
+ * ترتیبِ این فهرست با ترتیبِ تب‌ها در MainActivity یکی است، پس ایندکسِ هر id
+ * همان مقدارِ selectedTab است. تنها مرجعِ این اطلاعات همین‌جاست تا با
+ * افزودنِ بخشِ جدید، منو و تب‌بار از هم جدا نیفتند.
+ */
+val ImplementedDrawerIds = listOf("dashboard", "users", "statistics", "renewals")
+
 val PasarGuardDrawerItems = listOf(
     DrawerItem("dashboard","Dashboard", AppIcon.Gauge),
     DrawerItem("users","Users", AppIcon.Users),
     DrawerItem("statistics","Statistics", AppIcon.Gauge),
+    DrawerItem("renewals","Renewals", AppIcon.Calendar),
     DrawerItem("hosts","Hosts", AppIcon.Storage),
     DrawerItem("groups","Groups", AppIcon.Users),
     DrawerItem("admins","Admins", AppIcon.User),
@@ -67,7 +76,7 @@ fun PasarGuardDrawer(
             Text(stringResource(R.string.platform), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
             PasarGuardDrawerItems.forEach { item ->
                 val sel = item.id == selectedId
-                val isImplemented = item.id in listOf("dashboard","users","statistics")
+                val isImplemented = item.id in ImplementedDrawerIds
                 Row(
                     Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Sm)
                         .background(if (sel) theme.searchBgColor else Color.Transparent)
@@ -82,6 +91,7 @@ fun PasarGuardDrawer(
                             "dashboard" -> stringResource(R.string.dashboard)
                             "users" -> stringResource(R.string.users)
                             "statistics" -> stringResource(R.string.statistics)
+                            "renewals" -> stringResource(R.string.renewals)
                             "hosts" -> "Hosts"
                             "groups" -> "Groups"
                             "admins" -> "Admins"
