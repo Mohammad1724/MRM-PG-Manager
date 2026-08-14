@@ -58,7 +58,9 @@ import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
+import com.mrm.pgmanager.ui.screens.RenewalsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
+import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -322,11 +324,11 @@ fun MRMApp() {
                 gesturesEnabled = true,
                 drawerContent = {
                     PasarGuardDrawer(
-                        selectedId = listOf("dashboard","users","statistics")[selectedTab.coerceIn(0,2)],
+                        selectedId = ImplementedDrawerIds[selectedTab.coerceIn(0, ImplementedDrawerIds.lastIndex)],
                         onSelect = { id ->
-                            selectedTab = when(id) { "dashboard"->0; "statistics"->2; else->1 }
-                            // for unimplemented sections keep on dashboard
-                            if (id !in listOf("dashboard","users","statistics")) { /* TODO: hosts/groups etc */ }
+                            // ایندکسِ هر بخش در ImplementedDrawerIds همان selectedTab است؛
+                            // بخش‌های پیاده‌نشده اصلاً قابل کلیک نیستند و به اینجا نمی‌رسند.
+                            ImplementedDrawerIds.indexOf(id).takeIf { it >= 0 }?.let { selectedTab = it }
                         },
                         onClose = { showDrawer = false },
                         adminName = session?.username ?: "mrm",
@@ -339,6 +341,7 @@ fun MRMApp() {
                     when (selectedTab) {
                         0 -> DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false })
                         2 -> StatisticsScreen(session!!, onSettings = { showDashboardSettings = true })
+                        3 -> RenewalsScreen(session!!, onLogout = { store.clear(); session = null; isUnlocked = false })
                         else -> UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
@@ -373,7 +376,7 @@ fun MRMApp() {
                             .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
+                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer, stringResource(R.string.renewals) to AppIcon.Calendar).forEachIndexed { index, (label, icon) ->
                             val selected = selectedTab == index
                             val scale by androidx.compose.animation.core.animateFloatAsState(
                                 targetValue = 1f,
@@ -387,9 +390,9 @@ fun MRMApp() {
                                     .clickable { selectedTab = index },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    RoundedAppIcon(icon, tint = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor, size = 18.dp)
-                                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    RoundedAppIcon(icon, tint = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor, size = 16.dp)
+                                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
                                 }
                             }
                         }
