@@ -31,17 +31,29 @@ object DateLogic {
     fun endOfDayUtcIso(date: LocalDate): String =
         date.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toString()
 
-    /** تعداد روزهای باقی‌مانده تا انقضا؛ null برای «نامحدود/نامشخص»، صفر یا منفی برای «منقضی». */
-    fun remainingDays(expire: String?): Long? {
+    /**
+     * تاریخِ انقضا به‌صورت [LocalDate] محلی؛ `null` برای «نامحدود/نامشخص/نامعتبر».
+     * هم ISO-8601 کاملِ پنل را می‌پذیرد و هم رشتهٔ سادهٔ `yyyy-MM-dd` را.
+     */
+    fun expiryDate(expire: String?): LocalDate? {
         if (expire.isNullOrBlank() || expire == "0" || expire == "null") return null
         return runCatching {
-            val end = try {
+            try {
                 Instant.parse(expire).atZone(ZoneId.systemDefault()).toLocalDate()
             } catch (_: Exception) {
                 LocalDate.parse(expire.take(10))
             }
-            ChronoUnit.DAYS.between(LocalDate.now(), end)
         }.getOrNull()
+    }
+
+    /**
+     * تعداد روزهای باقی‌مانده تا انقضا؛ null برای «نامحدود/نامشخص»، صفر یا منفی برای «منقضی».
+     *
+     * [today] فقط برای تست تزریق می‌شود؛ در اپ همان تاریخِ امروزِ دستگاه است.
+     */
+    fun remainingDays(expire: String?, today: LocalDate = LocalDate.now()): Long? {
+        val end = expiryDate(expire) ?: return null
+        return ChronoUnit.DAYS.between(today, end)
     }
 
     /** آیا اشتراک در آستانهٔ انقضا (کمتر یا مساوی N روز) قرار دارد؟ کاربرِ نامحدود/نامشخص → false. */
