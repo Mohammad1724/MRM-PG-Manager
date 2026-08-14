@@ -69,6 +69,7 @@ fun RenewalsScreen(session: Session, onLogout: () -> Unit) {
     var soonDays by remember { mutableStateOf(7) }
     var renewTarget by remember { mutableStateOf<PanelUser?>(null) }
     var busyUser by remember { mutableStateOf<String?>(null) }
+    val currency = remember { store.readMonitoringSettings().debtorCurrency }
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
@@ -102,7 +103,7 @@ fun RenewalsScreen(session: Session, onLogout: () -> Unit) {
         }.sortedBy { RenewalLogic.urgencyKey(it.expire) }
     }
 
-    fun renew(user: PanelUser, days: Int, mode: RenewalLogic.Mode) {
+    fun renew(user: PanelUser, days: Int, mode: RenewalLogic.Mode, amount: Long) {
         val newExpire = RenewalLogic.newExpiryDateString(user.expire, days, mode) ?: return
         busyUser = user.username
         scope.launch {
@@ -117,6 +118,21 @@ fun RenewalsScreen(session: Session, onLogout: () -> Unit) {
                     user.groupIds
                 )
             }.onSuccess {
+                // فروش فقط پس از موفقیتِ واقعیِ تمدید ثبت می‌شود تا گزارشِ درآمد دروغ نگوید.
+                if (amount > 0L) {
+                    val now = System.currentTimeMillis()
+                    store.addSale(
+                        com.mrm.pgmanager.data.model.SaleRecord(
+                            id = "$now-${user.username}",
+                            username = user.username,
+                            baseUrl = session.baseUrl,
+                            amount = amount,
+                            currency = currency,
+                            days = days,
+                            soldAt = now
+                        )
+                    )
+                }
                 val ms = store.readMonitoringSettings()
                 if (ms.notificationsEnabled && ms.notifyUserActions) {
                     NotificationHelper.post(
@@ -273,7 +289,8 @@ fun RenewalsScreen(session: Session, onLogout: () -> Unit) {
         RenewUserDialog(
             user = u,
             onDismiss = { renewTarget = null },
-            onConfirm = { days, mode -> renewTarget = null; renew(u, days, mode) }
+            currency = currency,
+            onConfirm = { days, mode, amount -> renewTarget = null; renew(u, days, mode, amount) }
         )
     }
 }
