@@ -61,6 +61,7 @@ import com.mrm.pgmanager.ui.screens.LoginScreen
 import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
+import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.utils.NotificationHelper
@@ -347,6 +348,7 @@ fun MRMApp() {
                     when (selectedTab) {
                         0 -> DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false })
                         2 -> StatisticsScreen(session!!, onSettings = { showDashboardSettings = true })
+                        3 -> GroupsScreen(session!!, onSettings = { showDashboardSettings = true })
                         else -> UsersScreen(
                 session = session!!,
                 onLogout = { store.clear(); session = null; isUnlocked = false },
@@ -372,6 +374,7 @@ fun MRMApp() {
                 val currentSectionLabel = when (selectedTab) {
                     0 -> stringResource(R.string.dashboard)
                     2 -> stringResource(R.string.statistics)
+                    3 -> stringResource(R.string.groups_title)
                     else -> stringResource(R.string.users)
                 }
                 val menuLabel = stringResource(R.string.open_menu)
