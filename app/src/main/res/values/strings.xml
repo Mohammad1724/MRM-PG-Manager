@@ -177,4 +177,5 @@
     <string name="load_failed">Loading failed</string>
     <string name="retry">Retry</string>
     <string name="selected_count">%1$d selected</string>
+    <string name="app_settings">Settings</string>
 </resources>
