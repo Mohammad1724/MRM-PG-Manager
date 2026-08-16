@@ -22,6 +22,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard">Dashboard</string>
+    <string name="open_menu">Open menu</string>
     <string name="dashboard_subtitle">PasarGuard Management Dashboard</string>
     <string name="system">System</string>
     <string name="cpu_usage">CPU Usage</string>
