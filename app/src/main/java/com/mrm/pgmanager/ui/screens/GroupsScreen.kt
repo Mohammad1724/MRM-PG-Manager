@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroupsScreen(session: Session, onSettings: () -> Unit) {
+fun GroupsScreen(session: Session) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
@@ -141,7 +141,8 @@ fun GroupsScreen(session: Session, onSettings: () -> Unit) {
         ) {
             Column(
                 Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
-                    .padding(horizontal = DsSpacing.Screen, vertical = 10.dp),
+                    // 56dp بالا = جای دکمهٔ همبرگریِ شناور (38dp + 10dp حاشیه + 8dp فاصله)
+                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 56.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // ── سربرگ
@@ -169,12 +170,6 @@ fun GroupsScreen(session: Session, onSettings: () -> Unit) {
                             if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp)
                             else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
                         }
-                        Box(
-                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
-                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
-                                .clickable { onSettings() },
-                            contentAlignment = Alignment.Center
-                        ) { RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp) }
                     }
                 }
 
