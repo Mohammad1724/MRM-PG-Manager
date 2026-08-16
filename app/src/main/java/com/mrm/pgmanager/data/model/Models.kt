@@ -42,6 +42,50 @@ data class TrafficPoint(val timestamp: String, val totalTraffic: Long)
 
 data class Group(val id: Int, val name: String)
 
+/**
+ * گروهِ کامل — برای صفحهٔ مدیریت گروه‌ها.
+ * `Group` سبک (id+name) دست‌نخورده می‌ماند چون در انتخابگرِ گروهِ کاربران استفاده می‌شود.
+ * پنل نام را بین ۳ تا ۶۴ کاراکتر می‌پذیرد و برای ساخت، حداقل یک inbound tag لازم است.
+ */
+data class GroupDetail(
+    val id: Int,
+    val name: String,
+    val inboundTags: List<String> = emptyList(),
+    val isDisabled: Boolean = false,
+    val totalUsers: Int = 0
+) {
+    companion object {
+        const val NAME_MIN = 3
+        const val NAME_MAX = 64
+    }
+}
+
+/** نتیجهٔ اعتبارسنجیِ فرمِ گروه — پیام خطا یا null اگر معتبر باشد. */
+object GroupValidation {
+    /** کلیدهای خطا؛ ترجمه در لایهٔ UI انجام می‌شود تا منطق قابل تست بماند. */
+    const val ERR_NAME_SHORT = "name_short"
+    const val ERR_NAME_LONG = "name_long"
+    const val ERR_NO_INBOUND = "no_inbound"
+
+    /** نامِ گروه را طبق قواعدِ پنل بررسی می‌کند (۳..۶۴ کاراکتر پس از trim). */
+    fun validateName(raw: String): String? {
+        val name = raw.trim()
+        return when {
+            name.length < GroupDetail.NAME_MIN -> ERR_NAME_SHORT
+            name.length > GroupDetail.NAME_MAX -> ERR_NAME_LONG
+            else -> null
+        }
+    }
+
+    /** هنگام ساخت، پنل حداقل یک inbound tag می‌خواهد (GroupCreate). */
+    fun validateInbounds(tags: List<String>, isCreate: Boolean): String? =
+        if (isCreate && tags.isEmpty()) ERR_NO_INBOUND else null
+
+    /** اعتبارسنجی کاملِ فرم؛ اولین خطا برگردانده می‌شود. */
+    fun validate(name: String, tags: List<String>, isCreate: Boolean): String? =
+        validateName(name) ?: validateInbounds(tags, isCreate)
+}
+
 /** نودِ پنل — برای فیلترِ نمودارهای آمار. */
 data class PanelNode(val id: Int, val name: String)
 
