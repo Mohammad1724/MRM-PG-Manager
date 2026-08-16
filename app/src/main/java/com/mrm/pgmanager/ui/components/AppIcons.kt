@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Speed
@@ -70,7 +71,9 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh
     // وضعیت کاربر
     StatusActive, StatusDisabled, StatusExpired, StatusLimited, StatusOnHold,
     // نوار ابزار
-    Sort, Filter }
+    Sort, Filter,
+    // ناوبری
+    Menu }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -129,6 +132,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.StatusOnHold -> Icons.Rounded.PauseCircle
     AppIcon.Sort -> Icons.Rounded.SwapVert
     AppIcon.Filter -> Icons.Rounded.FilterList
+    AppIcon.Menu -> Icons.Rounded.Menu
 }
 
 @Composable
