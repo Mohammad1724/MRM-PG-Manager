@@ -148,4 +148,33 @@
     <string name="all_nodes">همهٔ نودها</string>
     <string name="usage_in_range">مصرف در این بازه</string>
     <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
+    <!-- مدیریت گروه‌ها -->
+    <string name="groups_subtitle">مدیریت گروه‌های inbound</string>
+    <string name="group_name">نام گروه</string>
+    <string name="group_name_hint">مثلاً Premium</string>
+    <string name="inbound_tags">تگ‌های inbound</string>
+    <string name="create_group">ساخت گروه</string>
+    <string name="edit_group">ویرایش گروه</string>
+    <string name="delete_group">حذف گروه</string>
+    <string name="delete_group_confirm">از حذف گروه «%1$s» مطمئنید؟</string>
+    <string name="delete_group_warning">این گروه به %1$d کاربر اختصاص دارد. دسترسی آن‌ها به inboundهای این گروه قطع می‌شود.</string>
+    <string name="group_disabled">غیرفعال</string>
+    <string name="group_enabled">فعال</string>
+    <string name="group_is_disabled_label">این گروه غیرفعال باشد</string>
+    <string name="group_users_count">%1$d کاربر</string>
+    <string name="no_groups">هنوز گروهی ساخته نشده</string>
+    <string name="no_groups_hint">اولین گروه را بسازید تا inboundها را دسته‌بندی کنید</string>
+    <string name="no_inbounds_available">هیچ inbound‌ای روی پنل موجود نیست</string>
+    <string name="search_groups">جست‌وجوی گروه</string>
+    <string name="no_results">نتیجه‌ای یافت نشد</string>
+    <string name="err_name_short">نام باید حداقل ۳ کاراکتر باشد</string>
+    <string name="err_name_long">نام باید حداکثر ۶۴ کاراکتر باشد</string>
+    <string name="err_no_inbound">حداقل یک inbound انتخاب کنید</string>
+    <string name="err_name_taken">گروهی با این نام از قبل وجود دارد</string>
+    <string name="group_created">گروه ساخته شد</string>
+    <string name="group_updated">گروه به‌روزرسانی شد</string>
+    <string name="group_deleted">گروه حذف شد</string>
+    <string name="load_failed">بارگذاری ناموفق بود</string>
+    <string name="retry">تلاش دوباره</string>
+    <string name="selected_count">%1$d انتخاب‌شده</string>
 </resources>
