@@ -34,6 +34,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,6 +51,7 @@ import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.work.BackupWorker
 import com.mrm.pgmanager.work.MonitoringWorker
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
@@ -185,7 +188,6 @@ fun MRMApp() {
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showQuickTabs by remember { mutableStateOf(true) }
-    var showDrawer by remember { mutableStateOf(false) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
     var deepLinkUsername by remember { mutableStateOf<String?>(null) }
@@ -318,8 +320,13 @@ fun MRMApp() {
                     isAppLockEnabled = false
                 }
             }
+            // وضعیت کشوی کناری به بیرون منتقل شد تا دکمهٔ منو بتواند بازش کند و
+            // دکمهٔ «×» داخل کشو واقعاً ببندَدش. پیش از این drawerState به‌صورت inline
+            // ساخته می‌شد و هیچ ارجاعی به آن وجود نداشت، پس کشو فقط با کشیدن انگشت باز می‌شد.
+            val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
+            val drawerScope = rememberCoroutineScope()
             androidx.compose.material3.ModalNavigationDrawer(
-                drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed),
+                drawerState = drawerState,
                 gesturesEnabled = true,
                 drawerContent = {
                     PasarGuardDrawer(
@@ -329,7 +336,7 @@ fun MRMApp() {
                             // بخش‌های پیاده‌نشده اصلاً قابل کلیک نیستند و به اینجا نمی‌رسند.
                             ImplementedDrawerIds.indexOf(id).takeIf { it >= 0 }?.let { selectedTab = it }
                         },
-                        onClose = { showDrawer = false },
+                        onClose = { drawerScope.launch { drawerState.close() } },
                         adminName = session?.username ?: "mrm",
                         traffic = "12.43 TB"
                     )
@@ -359,41 +366,54 @@ fun MRMApp() {
                 onLanguageChange = handleLanguageChange
             )
                 }
-                // تب‌بار پایین: دقیقاً همان کپسول سگمنت‌شدهٔ تب‌های تنظیمات (کاشی خاکستری + آیتم فعال اکسنت).
-                // منطق مخفی/پیداشدن هنگام اسکرول (AnimatedVisibility) بدون تغییر باقی مانده است.
+                // دکمهٔ منوی شناور: جایگزین تب‌بار سه‌تایی. یک کپسول جمع‌وجور که هم
+                // کشوی کناری را باز می‌کند و هم نام بخش فعال را نشان می‌دهد (نقش نشانگر موقعیت).
+                // همان منطق مخفی/پیداشدن هنگام اسکرول تب‌بار قبلی را به ارث می‌برد.
+                val currentSectionLabel = when (selectedTab) {
+                    0 -> stringResource(R.string.dashboard)
+                    2 -> stringResource(R.string.statistics)
+                    else -> stringResource(R.string.users)
+                }
+                val menuLabel = stringResource(R.string.open_menu)
+                // چرخش نرم آیکون هنگام باز شدن کشو.
+                // از Normal (tween با easing) استفاده می‌شود نه ScaleSpring؛ آن یکی
+                // dampingRatio=0.55 دارد و روی چرخش، از ۹۰ درجه رد می‌شود و برمی‌گردد.
+                val menuIconRotation by androidx.compose.animation.core.animateFloatAsState(
+                    targetValue = if (drawerState.isOpen) 90f else 0f,
+                    animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.Normal,
+                    label = "menuIconRotation"
+                )
                 AnimatedVisibility(
                     visible = showQuickTabs,
                     enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(animationSpec = androidx.compose.animation.core.tween(220)) { it / 2 },
                     exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + slideOutVertically(animationSpec = androidx.compose.animation.core.tween(180)) { it / 2 },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 34.dp)
                 ) {
                     Row(
-                        Modifier.height(48.dp).fillMaxWidth().padding(horizontal = 16.dp).widthIn(max = 400.dp).clip(RoundedCornerShape(14.dp))
+                        Modifier.height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(effectiveTheme.cardSurfaceColor)
                             .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(14.dp))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            .clickable { drawerScope.launch { drawerState.open() } }
+                            .padding(horizontal = 14.dp)
+                            .semantics { contentDescription = menuLabel },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf(stringResource(R.string.dashboard) to AppIcon.Gauge, stringResource(R.string.users) to AppIcon.Users, stringResource(R.string.statistics) to AppIcon.Timer).forEachIndexed { index, (label, icon) ->
-                            val selected = selectedTab == index
-                            val scale by androidx.compose.animation.core.animateFloatAsState(
-                                targetValue = 1f,
-                                animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.ScaleSpring,
-                                label = "navScale"
-                            )
-                            Box(
-                                Modifier.weight(1f).fillMaxHeight().graphicsLayer(scaleX = scale, scaleY = scale)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (selected) effectiveTheme.accentPrimary else Color.Transparent)
-                                    .clickable { selectedTab = index },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    RoundedAppIcon(icon, tint = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor, size = 16.dp)
-                                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, color = if (selected) Color(0xFF1A1A1A) else effectiveTheme.mutedColor)
-                                }
-                            }
-                        }
+                        RoundedAppIcon(
+                            AppIcon.Menu,
+                            tint = effectiveTheme.inkColor,
+                            size = 18.dp,
+                            modifier = Modifier.graphicsLayer(rotationZ = menuIconRotation)
+                        )
+                        Text(
+                            currentSectionLabel,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            color = effectiveTheme.inkColor
+                        )
                     }
                 }
                 if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false }, appLanguage = appLanguage, onLanguageChange = handleLanguageChange)
