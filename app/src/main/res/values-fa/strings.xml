@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MRM PG Manager</string>
     <string name="panel_address">آدرس کامل پنل</string>
-    <string name="panel_hint">https://panel.example.com:7431/dashboard/#/login</string>
+    <string name="panel_hint">https://panel.example.com:1234/dashboard/</string>
     <string name="username">نام کاربری</string>
     <string name="password">رمز عبور</string>
     <string name="sign_in">ورود به پنل</string>
@@ -177,4 +177,5 @@
     <string name="load_failed">بارگذاری ناموفق بود</string>
     <string name="retry">تلاش دوباره</string>
     <string name="selected_count">%1$d انتخاب‌شده</string>
+    <string name="app_settings">تنظیمات</string>
 </resources>
