@@ -148,4 +148,33 @@
     <string name="all_nodes">All nodes</string>
     <string name="usage_in_range">Usage During Period</string>
     <string name="no_chart_data">No data for this period</string>
+    <!-- Groups management -->
+    <string name="groups_subtitle">Manage inbound groups</string>
+    <string name="group_name">Group name</string>
+    <string name="group_name_hint">e.g. Premium</string>
+    <string name="inbound_tags">Inbound tags</string>
+    <string name="create_group">Create group</string>
+    <string name="edit_group">Edit group</string>
+    <string name="delete_group">Delete group</string>
+    <string name="delete_group_confirm">Are you sure you want to delete the group \"%1$s\"?</string>
+    <string name="delete_group_warning">This group is assigned to %1$d user(s). They will lose access to its inbounds.</string>
+    <string name="group_disabled">Disabled</string>
+    <string name="group_enabled">Enabled</string>
+    <string name="group_is_disabled_label">Disable this group</string>
+    <string name="group_users_count">%1$d users</string>
+    <string name="no_groups">No groups yet</string>
+    <string name="no_groups_hint">Create your first group to organise inbounds</string>
+    <string name="no_inbounds_available">No inbounds available on the panel</string>
+    <string name="search_groups">Search groups</string>
+    <string name="no_results">No matching results</string>
+    <string name="err_name_short">Name must be at least 3 characters</string>
+    <string name="err_name_long">Name must be at most 64 characters</string>
+    <string name="err_no_inbound">Select at least one inbound</string>
+    <string name="err_name_taken">A group with this name already exists</string>
+    <string name="group_created">Group created</string>
+    <string name="group_updated">Group updated</string>
+    <string name="group_deleted">Group deleted</string>
+    <string name="load_failed">Loading failed</string>
+    <string name="retry">Retry</string>
+    <string name="selected_count">%1$d selected</string>
 </resources>
