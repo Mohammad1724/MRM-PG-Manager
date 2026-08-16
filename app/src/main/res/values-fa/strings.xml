@@ -22,6 +22,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard">داشبورد</string>
+    <string name="open_menu">باز کردن منو</string>
     <string name="dashboard_subtitle">داشبورد مدیریت پاسارگارد</string>
     <string name="system">سیستم</string>
     <string name="cpu_usage">مصرف CPU</string>
