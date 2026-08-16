@@ -6,11 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.BorderStroke
@@ -18,10 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -188,19 +179,9 @@ fun MRMApp() {
     // حالت «افزودن حساب»: صفحهٔ ورود بدون پاک‌کردن نشست فعلی نمایش داده می‌شود.
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
-    var showQuickTabs by remember { mutableStateOf(true) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
     var deepLinkUsername by remember { mutableStateOf<String?>(null) }
-    val tabScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -2f) showQuickTabs = false
-                else if (available.y > 2f) showQuickTabs = true
-                return Offset.Zero
-            }
-        }
-    }
 
     // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
     val systemDark = isSystemInDarkTheme()
@@ -338,45 +319,30 @@ fun MRMApp() {
                             ImplementedDrawerIds.indexOf(id).takeIf { it >= 0 }?.let { selectedTab = it }
                         },
                         onClose = { drawerScope.launch { drawerState.close() } },
+                        onOpenSettings = { showDashboardSettings = true },
                         adminName = session?.username ?: "mrm",
                         traffic = "12.43 TB"
                     )
                 }
             ) {
-            Box(Modifier.fillMaxSize().nestedScroll(tabScrollConnection)) {
+            Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize()) {
                     when (selectedTab) {
-                        0 -> DashboardScreen(session!!, monitoringSettings, onSettings = { showDashboardSettings = true }, onLogout = { store.clear(); session = null; isUnlocked = false })
-                        2 -> StatisticsScreen(session!!, onSettings = { showDashboardSettings = true })
-                        3 -> GroupsScreen(session!!, onSettings = { showDashboardSettings = true })
+                        0 -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false })
+                        2 -> StatisticsScreen(session!!)
+                        3 -> GroupsScreen(session!!)
                         else -> UsersScreen(
-                session = session!!,
-                onLogout = { store.clear(); session = null; isUnlocked = false },
-                themeState = effectiveTheme,
-                onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
-                monitoringSettings = monitoringSettings,
-                onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
-                isAppLockEnabled = isAppLockEnabled,
-                onAppLockChange = handleAppLockChange,
-                appLockTimeout = appLockTimeout,
-                onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
-                onSwitchAccount = switchAccount,
-                onAddAccount = { addingAccount = true },
-                deepLinkUsername = deepLinkUsername,
-                onDeepLinkHandled = { deepLinkUsername = null },
-                appLanguage = appLanguage,
-                onLanguageChange = handleLanguageChange
-            )
+                            session = session!!,
+                            onLogout = { store.clear(); session = null; isUnlocked = false },
+                            themeState = effectiveTheme,
+                            monitoringSettings = monitoringSettings,
+                            deepLinkUsername = deepLinkUsername,
+                            onDeepLinkHandled = { deepLinkUsername = null }
+                        )
                 }
-                // دکمهٔ منوی شناور: جایگزین تب‌بار سه‌تایی. یک کپسول جمع‌وجور که هم
-                // کشوی کناری را باز می‌کند و هم نام بخش فعال را نشان می‌دهد (نقش نشانگر موقعیت).
-                // همان منطق مخفی/پیداشدن هنگام اسکرول تب‌بار قبلی را به ارث می‌برد.
-                val currentSectionLabel = when (selectedTab) {
-                    0 -> stringResource(R.string.dashboard)
-                    2 -> stringResource(R.string.statistics)
-                    3 -> stringResource(R.string.groups_title)
-                    else -> stringResource(R.string.users)
-                }
+                // دکمهٔ همبرگری: بالای صفحه. با Alignment.TopStart در انگلیسی سمت چپ و
+                // در فارسی (RTL) خودکار سمت راست می‌نشیند — نیازی به شرطِ دستیِ زبان نیست.
+                // statusBarsPadding لازم است وگرنه زیر نوار اعلان می‌رود.
                 val menuLabel = stringResource(R.string.open_menu)
                 // چرخش نرم آیکون هنگام باز شدن کشو.
                 // از Normal (tween با easing) استفاده می‌شود نه ScaleSpring؛ آن یکی
@@ -386,38 +352,24 @@ fun MRMApp() {
                     animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.Normal,
                     label = "menuIconRotation"
                 )
-                AnimatedVisibility(
-                    visible = showQuickTabs,
-                    enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) + slideInVertically(animationSpec = androidx.compose.animation.core.tween(220)) { it / 2 },
-                    exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) + slideOutVertically(animationSpec = androidx.compose.animation.core.tween(180)) { it / 2 },
-                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 34.dp)
+                Box(
+                    Modifier.align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(start = 10.dp, top = 10.dp)
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(effectiveTheme.cardSurfaceColor)
+                        .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(10.dp))
+                        .clickable { drawerScope.launch { drawerState.open() } }
+                        .semantics { contentDescription = menuLabel },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        Modifier.height(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(effectiveTheme.cardSurfaceColor)
-                            .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(14.dp))
-                            .clickable { drawerScope.launch { drawerState.open() } }
-                            .padding(horizontal = 14.dp)
-                            .semantics { contentDescription = menuLabel },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RoundedAppIcon(
-                            AppIcon.Menu,
-                            tint = effectiveTheme.inkColor,
-                            size = 18.dp,
-                            modifier = Modifier.graphicsLayer(rotationZ = menuIconRotation)
-                        )
-                        Text(
-                            currentSectionLabel,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            color = effectiveTheme.inkColor
-                        )
-                    }
+                    RoundedAppIcon(
+                        AppIcon.Menu,
+                        tint = effectiveTheme.inkColor,
+                        size = 18.dp,
+                        modifier = Modifier.graphicsLayer(rotationZ = menuIconRotation)
+                    )
                 }
                 if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false }, appLanguage = appLanguage, onLanguageChange = handleLanguageChange)
             }
