@@ -52,12 +52,17 @@ fun PasarGuardDrawer(
     selectedId: String,
     onSelect: (String) -> Unit,
     onClose: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     adminName: String = "mrm",
     traffic: String = "12.43 TB"
 ) {
     val theme = LocalThemeState.current
     Column(
-        Modifier.fillMaxHeight().width(268.dp).background(theme.cardSurfaceColor).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+        // statusBarsPadding/navigationBarsPadding لازم است، وگرنه سربرگ کشو
+        // زیر نوار اعلان گوشی می‌رود و بخش پایینی زیر نوار ناوبری گم می‌شود.
+        Modifier.fillMaxHeight().width(268.dp).background(theme.cardSurfaceColor)
+            .statusBarsPadding().navigationBarsPadding()
+            .verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -108,6 +113,18 @@ fun PasarGuardDrawer(
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 6.dp)) {
+            // تنظیمات برنامه: از نوار بالای همهٔ صفحه‌ها برداشته شد و اینجا نشست.
+            Row(
+                Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
+                    .clickable { onOpenSettings(); onClose() }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
+                Text(stringResource(R.string.app_settings), fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+            }
             Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RoundedAppIcon(AppIcon.Bell, tint = theme.mutedColor, size = 14.dp)
                 Text(stringResource(R.string.support_us), fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
