@@ -4,6 +4,7 @@ import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.data.model.BulkCreateResult
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
+import com.mrm.pgmanager.data.model.GroupDetail
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
@@ -416,6 +417,99 @@ object PanelApi {
                 }
             }
         }.getOrDefault(emptyList())
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  گروه‌ها — CRUD کامل
+    //
+    //  ⚠️ نکتهٔ مسیرها: پیشوندِ روترِ پنل «/api/group» (مفرد) است ولی
+    //  فهرست‌گرفتن روی «s» سوار می‌شود. یعنی:
+    //    ساخت    POST   /api/group
+    //    فهرست   GET    /api/groups
+    //    جزئیات  GET    /api/group/{id}
+    //    ویرایش  PUT    /api/group/{id}
+    //    حذف     DELETE /api/group/{id}
+    //  اشتباه‌گرفتنِ مفرد/جمع باعث 404 می‌شود.
+    // ─────────────────────────────────────────────────────────────
+
+    /** فهرستِ کاملِ گروه‌ها همراه با inbound tags و تعداد کاربر. */
+    suspend fun groupsDetailed(session: Session): List<GroupDetail> = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/groups?limit=200").get().build()
+        client.newCall(req).execute().use { res ->
+            if (!res.isSuccessful) error("Load groups failed: ${res.code}")
+            val obj = JSONObject(res.body?.string() ?: "{}")
+            val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseGroupDetail(arr.getJSONObject(i)) }
+        }
+    }
+
+    /** تگ‌های inbound موجود در پنل — برای انتخاب در فرمِ گروه. */
+    suspend fun inboundTags(session: Session): List<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
+            client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return@runCatching emptyList<String>()
+                val raw = res.body?.string().orEmpty()
+                // پنل list[str] برمی‌گرداند؛ ولی برای مقاومت، حالتِ آبجکت هم پوشش داده شده.
+                val trimmed = raw.trim()
+                val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
+                else JSONObject(trimmed.ifBlank { "{}" }).optJSONArray("inbounds") ?: org.json.JSONArray()
+                (0 until arr.length()).mapNotNull { i ->
+                    when (val item = arr.opt(i)) {
+                        is String -> item.takeIf { it.isNotBlank() }
+                        is JSONObject -> item.optString("tag").takeIf { it.isNotBlank() }
+                        else -> null
+                    }
+                }.distinct()
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    /** ساخت گروه. پنل حداقل یک inbound tag می‌خواهد. */
+    suspend fun createGroup(session: Session, name: String, inboundTags: List<String>, isDisabled: Boolean = false) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("inbound_tags", org.json.JSONArray(inboundTags))
+            .put("is_disabled", isDisabled)
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/group").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    /** ویرایش گروه (PUT روی مسیرِ مفرد + شناسه). */
+    suspend fun modifyGroup(session: Session, groupId: Int, name: String, inboundTags: List<String>, isDisabled: Boolean) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("inbound_tags", org.json.JSONArray(inboundTags))
+            .put("is_disabled", isDisabled)
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/group/$groupId").put(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    /** حذف گروه. پنل 204 برمی‌گرداند (بدنهٔ خالی). */
+    suspend fun deleteGroup(session: Session, groupId: Int) = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/group/$groupId").delete().build()
+        client.newCall(req).execute().use { res ->
+            if (!res.isSuccessful) {
+                val details = res.body?.string()?.take(250).orEmpty()
+                error("Delete group failed: ${res.code} $details")
+            }
+        }
+    }
+
+    /** تبدیل JSON گروه به مدل. نامِ کلیدها مطابق GroupResponse پنل است. */
+    internal fun parseGroupDetail(g: JSONObject): GroupDetail {
+        val tags = mutableListOf<String>()
+        if (!g.isNull("inbound_tags")) {
+            val arr = g.optJSONArray("inbound_tags")
+            if (arr != null) for (i in 0 until arr.length()) {
+                arr.optString(i).takeIf { it.isNotBlank() }?.let { tags.add(it) }
+            }
+        }
+        return GroupDetail(
+            id = g.optInt("id"),
+            name = g.optString("name"),
+            inboundTags = tags,
+            isDisabled = g.optBoolean("is_disabled", false),
+            totalUsers = g.optInt("total_users", 0)
+        )
     }
 
     suspend fun onlineUserCount(session: Session): Int = withContext(Dispatchers.IO) {
