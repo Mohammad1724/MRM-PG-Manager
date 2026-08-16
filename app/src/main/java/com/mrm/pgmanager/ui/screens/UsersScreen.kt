@@ -61,7 +61,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
-import com.mrm.pgmanager.BuildConfig
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.data.model.PanelUser
@@ -223,7 +222,6 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 private fun TopBarHeader(
     onRefresh: () -> Unit,
     onCreateUser: () -> Unit,
-    onOpenThemeDialog: () -> Unit,
     loading: Boolean
 ) {
     val theme = LocalThemeState.current
@@ -244,9 +242,6 @@ private fun TopBarHeader(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
                 if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, contentDescription = "بروزرسانی", tint = theme.mutedColor, size = 14.dp)
-            }
-            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { onOpenThemeDialog() }, contentAlignment = Alignment.Center) {
-                RoundedAppIcon(AppIcon.Settings, contentDescription = "تنظیمات", tint = theme.mutedColor, size = 14.dp)
             }
         }
     }
@@ -825,19 +820,9 @@ fun UsersScreen(
     session: Session,
     onLogout: () -> Unit,
     themeState: ThemeState,
-    onThemeChange: (ThemeState) -> Unit,
     monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
-    onMonitoringChange: (com.mrm.pgmanager.data.model.MonitoringSettings) -> Unit = {},
-    isAppLockEnabled: Boolean = false,
-    onAppLockChange: (Boolean) -> Unit = {},
-    appLockTimeout: Int = 0,
-    onLockTimeoutChange: (Int) -> Unit = {},
-    onSwitchAccount: (Session) -> Unit = {},
-    onAddAccount: () -> Unit = {},
     deepLinkUsername: String? = null,
-    onDeepLinkHandled: () -> Unit = {},
-    appLanguage: String = "system",
-    onLanguageChange: (String) -> Unit = {}
+    onDeepLinkHandled: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -850,7 +835,6 @@ fun UsersScreen(
     var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
-    var showThemeDialog by remember { mutableStateOf(false) }
     var qrUser by remember { mutableStateOf<PanelUser?>(null) }
     var onlineCount by remember { mutableStateOf(0) }
     var lastUserStates by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
@@ -1195,10 +1179,12 @@ fun UsersScreen(
                     .background(themeState.chromeBgColor)
                     .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
                     .padding(top = topInsets)
+                    // 46dp = جای دکمهٔ همبرگریِ شناور بالای صفحه (38dp + حاشیه)
+                    .padding(top = 46.dp)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
-                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, onOpenThemeDialog = { showThemeDialog = true }, loading = loading)
+                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, loading = loading)
 
                 Box(
                     Modifier
@@ -1354,26 +1340,6 @@ fun UsersScreen(
         )
     }
 
-    if (showThemeDialog) {
-        ThemeEditorDialog(
-            themeState = themeState,
-            isAppLockEnabled = isAppLockEnabled,
-            onDismiss = { showThemeDialog = false },
-            onThemeChange = onThemeChange,
-            onAppLockChange = onAppLockChange,
-            monitoringSettings = monitoringSettings,
-            onMonitoringChange = onMonitoringChange,
-            appVersion = BuildConfig.VERSION_NAME,
-            session = session,
-            onLogout = { onLogout(); showThemeDialog = false },
-            appLockTimeout = appLockTimeout,
-            onLockTimeoutChange = onLockTimeoutChange,
-            onSwitchAccount = { acc -> showThemeDialog = false; onSwitchAccount(acc) },
-            onAddAccount = { showThemeDialog = false; onAddAccount() },
-            appLanguage = appLanguage,
-            onLanguageChange = onLanguageChange
-        )
-    }
     selectedUser?.let { user ->
         val dInfo = debtorByUsername[user.username]
         UserDetailsDialog(
