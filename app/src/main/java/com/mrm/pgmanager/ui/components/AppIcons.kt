@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInNew
@@ -73,7 +74,7 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh
     // نوار ابزار
     Sort, Filter,
     // ناوبری
-    Menu }
+    Menu, Add }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -133,6 +134,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Sort -> Icons.Rounded.SwapVert
     AppIcon.Filter -> Icons.Rounded.FilterList
     AppIcon.Menu -> Icons.Rounded.Menu
+    AppIcon.Add -> Icons.Rounded.Add
 }
 
 @Composable
