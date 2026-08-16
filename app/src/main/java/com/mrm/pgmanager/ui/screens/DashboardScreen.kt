@@ -49,7 +49,7 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: () -> Unit, onLogout: () -> Unit) {
+fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: () -> Unit) {
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -130,7 +130,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
 
-        Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 56.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
             // ── Header: PasarGuard style top bar (Dashboard title + Quick Actions yellow button mimic)
             Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -148,9 +148,6 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSettings: 
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
                         if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.accentPrimary, strokeWidth = 2.dp)
                         else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
-                    }
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { onSettings() }, contentAlignment = Alignment.Center) {
-                        RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
                     }
                 }
             }
