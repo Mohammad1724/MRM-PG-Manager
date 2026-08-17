@@ -30,7 +30,7 @@ import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UsernamePattern
-import com.mrm.pgmanager.data.store.SessionStore
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
