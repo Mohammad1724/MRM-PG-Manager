@@ -132,6 +132,13 @@
     <string name="users_title">کاربران</string>
     <string name="invoice_title">فاکتور</string>
     <string name="backup_title">پشتیبان</string>
+    <string name="advanced_title">پیشرفته</string>
+    <string name="advanced_conn_desc">پنل فعلی، حساب‌های ذخیره‌شده، تست اتصال</string>
+    <string name="advanced_users_desc">الگوی نام، بدهکاران، ساخت گروهی، خروجی</string>
+    <string name="advanced_invoice_desc">لوگوی فاکتور و نام فروشنده</string>
+    <string name="advanced_backup_desc">پوشه، زمان‌بندی، رمزگذاری و بازیابی</string>
+    <string name="cd_expand">باز کردن بخش</string>
+    <string name="cd_collapse">بستن بخش</string>
     <string name="security_title">امنیت</string>
     <string name="appearance_desc">شخصی‌سازی، پایش و امنیت حساب مدیر</string>
     <string name="user_details">جزئیات کاربر</string>
