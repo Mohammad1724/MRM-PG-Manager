@@ -260,7 +260,6 @@ fun MRMApp() {
             LoginScreen(
                 onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
                 themeState = effectiveTheme,
-                onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
                 appLanguage = appLanguage,
                 onLanguageChange = handleLanguageChange,
                 onBack = when {
