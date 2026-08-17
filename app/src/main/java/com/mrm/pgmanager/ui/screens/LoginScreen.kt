@@ -16,10 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.BuildConfig
@@ -150,6 +153,15 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    // یک استایلِ مشترک برای متنِ واقعی و متنِ راهنما.
+    //
+    // ⚠️ چرا مهم است: `Text(placeholder, fontSize = 13.sp)` فقط اندازهٔ فونت را
+    // عوض می‌کرد ولی `lineHeight` را از LocalTextStyle (bodyLarge = 24.sp) ارث
+    // می‌برد؛ در حالی که TextStyle خودِ فیلد lineHeight تعریف‌نشده داشت (~۱۵.۶.sp
+    // طبیعیِ فونت). یعنی جعبهٔ خطِ متنِ راهنما بلندتر از جعبهٔ خطِ فیلد بود و
+    // کِرسر نسبت به متنِ راهنما بالاتر می‌نشست. با استایلِ واحد، هر دو دقیقاً
+    // یک ارتفاعِ خط دارند.
+    val fieldStyle = TextStyle(fontSize = 13.sp, lineHeight = 16.sp, color = theme.inkColor)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
         Box(
@@ -164,9 +176,22 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                     visualTransformation = if (isPassword && !visible) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text, imeAction = imeAction),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { if (onNext != null) onNext() else focusManager.moveFocus(FocusDirection.Down) }, onDone = { focusManager.clearFocus() }),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = theme.inkColor),
+                    textStyle = fieldStyle,
+                    cursorBrush = SolidColor(theme.accentPrimary),
                     modifier = Modifier.weight(1f),
-                    decorationBox = { inner -> if (value.isEmpty()) Text(placeholder, fontSize = 13.sp, color = theme.mutedColor); inner() }
+                    // متنِ راهنما و متنِ ورودی روی هم و هر دو وسط‌چینِ عمودی؛
+                    // قبلاً بدونِ Box کنارِ هم رها شده بودند و هم‌تراز نبودند.
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (value.isEmpty()) Text(
+                                placeholder,
+                                style = fieldStyle.copy(color = theme.mutedColor),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            inner()
+                        }
+                    }
                 )
                 if (isPassword) {
                     Box(Modifier.size(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { visible = !visible }, contentAlignment = Alignment.Center) {
