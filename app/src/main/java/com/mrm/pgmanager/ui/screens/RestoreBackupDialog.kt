@@ -247,7 +247,7 @@ private fun RestoreCheckRow(label: String, checked: Boolean, onCheckedChange: (B
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        CheckboxIcon(checked = checked)
+        CheckboxIcon(selected = checked, onToggle = { onCheckedChange(!checked) })
         Text(label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)
     }
 }
