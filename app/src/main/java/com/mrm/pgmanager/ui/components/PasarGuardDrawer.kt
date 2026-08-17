@@ -31,7 +31,7 @@ data class DrawerItem(val id: String, val label: String, val icon: AppIcon, val 
  * همان مقدارِ selectedTab است. تنها مرجعِ این اطلاعات همین‌جاست تا با
  * افزودنِ بخشِ جدید، منو و تب‌بار از هم جدا نیفتند.
  */
-val ImplementedDrawerIds = listOf("dashboard", "users", "statistics", "groups")
+val ImplementedDrawerIds = listOf("dashboard", "users", "statistics", "groups", "templates")
 
 val PasarGuardDrawerItems = listOf(
     DrawerItem("dashboard","Dashboard", AppIcon.Gauge),
@@ -42,7 +42,7 @@ val PasarGuardDrawerItems = listOf(
     DrawerItem("admins","Admins", AppIcon.User),
     DrawerItem("apikeys","API Keys", AppIcon.Link),
     DrawerItem("nodes","Nodes", AppIcon.Storage, hasSub = true),
-    DrawerItem("templates","Templates", AppIcon.Template, hasSub = true),
+    DrawerItem("templates","Templates", AppIcon.Template),
     DrawerItem("bulk","Bulk", AppIcon.Users, hasSub = true),
     DrawerItem("settings","Settings", AppIcon.Settings, hasSub = true),
 )
@@ -100,7 +100,7 @@ fun PasarGuardDrawer(
                             "admins" -> "Admins"
                             "apikeys" -> "API Keys"
                             "nodes" -> stringResource(R.string.nodes)
-                            "templates" -> "Templates"
+                            "templates" -> stringResource(R.string.templates_title)
                             "bulk" -> "Bulk"
                             "settings" -> "Settings"
                             else -> item.label
