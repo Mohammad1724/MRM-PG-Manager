@@ -119,8 +119,132 @@ data class UserTemplateItem(
     val name: String,
     val dataLimit: Long? = null,
     /** مدت انقضای تمپلت بر حسب ثانیه */
-    val expireDuration: Long? = null
-)
+    val expireDuration: Long? = null,
+    /** سقفِ تعداد دستگاه (HWID). null یعنی نامحدود. */
+    val hwidLimit: Int? = null,
+    /** پیشوندِ نامِ کاربری که پنل هنگام ساخت اضافه می‌کند. */
+    val usernamePrefix: String? = null,
+    /** پسوندِ نامِ کاربری. */
+    val usernameSuffix: String? = null,
+    /** گروه‌هایی که کاربرِ ساخته‌شده از این تمپلت به آن‌ها می‌پیوندد. */
+    val groupIds: List<Int> = emptyList(),
+    /** وضعیتِ اولیهٔ کاربر: active یا on_hold. */
+    val status: String? = null,
+    /** استراتژیِ ریستِ حجم: no_reset / day / week / month / year. */
+    val dataLimitResetStrategy: String = TemplateOptions.RESET_NO_RESET,
+    /** مهلتِ فعال‌سازی برای وضعیتِ on_hold، بر حسب ثانیه. */
+    val onHoldTimeout: Long? = null,
+    /** ریستِ مصرف هنگام اعمالِ تمپلت. */
+    val resetUsages: Boolean? = null,
+    val isDisabled: Boolean? = null,
+    /** روشِ رمزنگاریِ Shadowsocks در extra_settings. */
+    val ssMethod: String? = null
+) {
+    companion object {
+        const val NAME_MAX = 64
+        /** پنل `max_length=20` روی پیشوند و پسوند می‌گذارد. */
+        const val AFFIX_MAX = 20
+        /** سقفِ expire_duration در پنل (MAX_ON_HOLD_EXPIRE_DURATION_SECONDS). */
+        const val MAX_EXPIRE_SECONDS = 2_147_483_647L
+    }
+}
+
+/**
+ * مقادیرِ مجازِ enumهای تمپلت — دقیقاً مطابقِ پنل.
+ * رشته‌ای نگه داشته شده‌اند تا افزوده‌شدنِ مقدارِ جدید در پنل باعثِ crash نشود.
+ */
+object TemplateOptions {
+    const val STATUS_ACTIVE = "active"
+    const val STATUS_ON_HOLD = "on_hold"
+    val STATUSES = listOf(STATUS_ACTIVE, STATUS_ON_HOLD)
+
+    const val RESET_NO_RESET = "no_reset"
+    val RESET_STRATEGIES = listOf(RESET_NO_RESET, "day", "week", "month", "year")
+
+    val SS_METHODS = listOf(
+        "aes-128-gcm",
+        "aes-256-gcm",
+        "chacha20-ietf-poly1305",
+        "xchacha20-poly1305"
+    )
+}
+
+/**
+ * اعتبارسنجیِ فرمِ تمپلت — آینهٔ قواعدِ پنل (`app/models/user_template.py`
+ * و `UserValidator.validate_username`). کلیدِ خطا برمی‌گرداند؛ ترجمه در UI.
+ */
+object TemplateValidation {
+    const val ERR_NAME_EMPTY = "tpl_name_empty"
+    const val ERR_NAME_LONG = "tpl_name_long"
+    const val ERR_NO_GROUP = "tpl_no_group"
+    const val ERR_AFFIX_LONG = "tpl_affix_long"
+    const val ERR_AFFIX_CHARS = "tpl_affix_chars"
+    const val ERR_AFFIX_CONSECUTIVE = "tpl_affix_consecutive"
+    const val ERR_EXPIRE_RANGE = "tpl_expire_range"
+    const val ERR_DATA_NEGATIVE = "tpl_data_negative"
+
+    /** پنل نامِ خالی را رد می‌کند و ستونِ دیتابیس `String(64)` است. */
+    fun validateName(raw: String): String? {
+        val name = raw.trim()
+        return when {
+            name.isEmpty() -> ERR_NAME_EMPTY
+            name.length > UserTemplateItem.NAME_MAX -> ERR_NAME_LONG
+            else -> null
+        }
+    }
+
+    /**
+     * پیشوند/پسوندِ نامِ کاربری. پنل با `len_check=false, accept_null=true`
+     * صدا می‌زند: خالی مجاز است، ولی اگر مقدار داشته باشد باید
+     * `^[a-zA-Z0-9-_@.]+$` باشد و دو کاراکترِ خاصِ پشت‌سرهم نداشته باشد.
+     */
+    fun validateAffix(raw: String?): String? {
+        val v = raw?.trim().orEmpty()
+        if (v.isEmpty()) return null
+        if (v.length > UserTemplateItem.AFFIX_MAX) return ERR_AFFIX_LONG
+        if (!v.all { it.isLetterOrDigit() && it.code < 128 || it in "-_@." }) return ERR_AFFIX_CHARS
+        val special = "-_@."
+        for (i in 0 until v.length - 1) {
+            if (v[i] in special && v[i + 1] in special) return ERR_AFFIX_CONSECUTIVE
+        }
+        return null
+    }
+
+    /** ساخت حداقل یک گروه می‌خواهد (`ListValidator.not_null_list`). */
+    fun validateGroups(groupIds: List<Int>): String? =
+        if (groupIds.isEmpty()) ERR_NO_GROUP else null
+
+    /** `expire_duration` باید بینِ ۰ و MAX باشد. */
+    fun validateExpire(seconds: Long?): String? {
+        if (seconds == null) return null
+        return if (seconds < 0 || seconds > UserTemplateItem.MAX_EXPIRE_SECONDS) ERR_EXPIRE_RANGE else null
+    }
+
+    /** `data_limit` باید ≥ ۰ باشد. */
+    fun validateDataLimit(bytes: Long?): String? {
+        if (bytes == null) return null
+        return if (bytes < 0) ERR_DATA_NEGATIVE else null
+    }
+
+    /**
+     * اعتبارسنجیِ کاملِ فرم. [requireGroup] در حالتِ ساخت true است؛
+     * در ویرایش پنل `group_ids` را nullable می‌پذیرد.
+     */
+    fun validateAll(
+        name: String,
+        groupIds: List<Int>,
+        prefix: String?,
+        suffix: String?,
+        dataLimit: Long?,
+        expireSeconds: Long?,
+        requireGroup: Boolean = true
+    ): String? = validateName(name)
+        ?: (if (requireGroup) validateGroups(groupIds) else null)
+        ?: validateAffix(prefix)
+        ?: validateAffix(suffix)
+        ?: validateDataLimit(dataLimit)
+        ?: validateExpire(expireSeconds)
+}
 
 enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED, DEBTOR }
 enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
