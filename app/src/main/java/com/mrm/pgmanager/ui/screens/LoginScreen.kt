@@ -35,6 +35,8 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
@@ -43,7 +45,6 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     onLoggedIn: (Session) -> Unit,
     themeState: ThemeState,
-    onThemeChange: (ThemeState) -> Unit,
     appLanguage: String = "system",
     onLanguageChange: (String) -> Unit = {},
     onBack: (() -> Unit)? = null
@@ -54,17 +55,27 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var showThemeDialog by remember { mutableStateOf(false) }
     val theme = themeState
+
+    // پیام‌های خطا باید *قبل از* لامبدای کلیک خوانده شوند؛ stringResource فقط در
+    // بدنهٔ کامپوزبل قابل فراخوانی است، نه داخلِ coroutine.
+    val errCredentials = stringResource(R.string.login_err_credentials)
+    val errUrl = stringResource(R.string.login_err_url)
+    val errHost = stringResource(R.string.login_err_host)
+    val errTimeout = stringResource(R.string.login_err_timeout)
+    val errAuth = stringResource(R.string.login_err_auth)
+    val errNotFound = stringResource(R.string.login_err_not_found)
+    val errUnknown = stringResource(R.string.login_err_unknown)
+    val errGenericTemplate = stringResource(R.string.login_err_generic)
 
     val focusManager = LocalFocusManager.current
     Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Top bar minimal — فقط تنظیمات تم، لوگوی تکراری حذف شد
+            // نوار بالا: فقط سوییچِ زبان. دکمهٔ تنظیمات حذف شد چون تنظیماتِ کامل
+            // پس از ورود در دسترس است و اینجا فقط باعث شلوغی و ورودِ اتفاقی به
+            // دیالوگِ قدیمی می‌شد.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showThemeDialog = true }, contentAlignment = Alignment.Center) {
-                    RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
-                }
+                LanguageToggle(appLanguage = appLanguage, onLanguageChange = onLanguageChange, theme = theme)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -74,7 +85,7 @@ fun LoginScreen(
                 AppLogo(height = 56.dp)
                 Text("PasarGuard", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 Text("MRM Manager", fontSize = 12.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                Text("مدیریت پنل پاسارگارد", fontSize = 11.sp, color = theme.mutedColor)
+                Text(stringResource(R.string.login_subtitle), fontSize = 11.sp, color = theme.mutedColor)
             }
 
             // Card — white, subtle border, same as PG
@@ -103,13 +114,13 @@ fun LoginScreen(
                             scope.launch {
                                 runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { e ->
                                     error = when {
-                                        e.message?.contains("Credentials required", true) == true -> "نام کاربری و رمز را وارد کنید."
-                                        e.message?.contains("Invalid URL", true) == true -> "آدرس پنل نامعتبر است."
-                                        e is java.net.UnknownHostException -> "سرور پیدا نشد. آدرس را بررسی کنید."
-                                        e is java.net.SocketTimeoutException -> "پاسخی از سرور نگرفت شد."
-                                        e.message?.contains("401", true) == true -> "نام کاربری یا رمز اشتباه است."
-                                        e.message?.contains("404", true) == true -> "آدرس یا مسیر پنل درست نیست (۴۰۴)."
-                                        else -> "اتصال ناموفق: ${e.message ?: "خطای ناشناخته"}"
+                                        e.message?.contains("Credentials required", true) == true -> errCredentials
+                                        e.message?.contains("Invalid URL", true) == true -> errUrl
+                                        e is java.net.UnknownHostException -> errHost
+                                        e is java.net.SocketTimeoutException -> errTimeout
+                                        e.message?.contains("401", true) == true -> errAuth
+                                        e.message?.contains("404", true) == true -> errNotFound
+                                        else -> String.format(errGenericTemplate, e.message ?: errUnknown)
                                     }
                                 }
                                 loading = false
@@ -126,15 +137,15 @@ fun LoginScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 14.dp)
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("قفل اثرانگشت / پین", fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
-                        Text("بعد از ورود: تنظیمات → امنیت → قفل برنامه", fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.login_biometric_title), fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.login_biometric_desc), fontSize = 10.sp, color = theme.mutedColor)
                     }
                 }
             }
 
             if (onBack != null) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.TextButton(onClick = onBack) { Text("بازگشت", color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
+                    androidx.compose.material3.TextButton(onClick = onBack) { Text(stringResource(R.string.login_back), color = theme.mutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
                 }
             }
 
@@ -142,9 +153,45 @@ fun LoginScreen(
                 Text("v${BuildConfig.VERSION_NAME}", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
-        // clickable overlay for settings icon (since we placed icon but not click)
-        // Actually handle via Row click above — add invisible clickable
-        if (showThemeDialog) com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog(themeState = themeState, onDismiss = { showThemeDialog = false }, onThemeChange = onThemeChange, appVersion = BuildConfig.VERSION_NAME, appLanguage = appLanguage, onLanguageChange = onLanguageChange)
+    }
+}
+
+/**
+ * سوییچِ زبان در صفحهٔ ورود.
+ *
+ * سه حالتِ اپ («سیستم»/فارسی/انگلیسی) اینجا به یک دکمهٔ ساده خلاصه شده: با هر
+ * کلیک بین فارسی و انگلیسی جابه‌جا می‌شود. اگر زبان روی «سیستم» باشد، زبانِ
+ * *مؤثرِ* فعلی از locale خوانده می‌شود تا کلیکِ اول دقیقاً همان چیزی را بدهد
+ * که کاربر انتظار دارد (نه اینکه بی‌اثر به‌نظر برسد). انتخابِ «پیروی از سیستم»
+ * همچنان در تنظیمات → ظاهر در دسترس است.
+ */
+@Composable
+private fun LanguageToggle(
+    appLanguage: String,
+    onLanguageChange: (String) -> Unit,
+    theme: ThemeState
+) {
+    val isRtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+    val currentIsFa = when (appLanguage) {
+        "fa" -> true
+        "en" -> false
+        else -> isRtl
+    }
+    // برچسبِ دکمه = زبانی که با کلیک به آن سوییچ می‌کنیم.
+    val nextLabel = if (currentIsFa) stringResource(R.string.language_en) else stringResource(R.string.language_fa)
+    val switchLabel = stringResource(R.string.cd_change_language)
+    Row(
+        Modifier.height(36.dp).clip(DsRadius.Sm)
+            .background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+            .semantics { contentDescription = switchLabel }
+            .clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        RoundedAppIcon(AppIcon.Language, tint = theme.mutedColor, size = 15.dp)
+        Text(nextLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
     }
 }
 
