@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.MonitoringSettings
+import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -52,7 +54,7 @@ import com.mrm.pgmanager.ui.theme.ThemeState
  * مقایسه می‌کرد. با عوض‌کردنِ زبان، مقایسه شکست می‌خورد و تبِ فعال گم می‌شد.
  * شناسهٔ پایدار این کلاسِ باگ را ریشه‌کن می‌کند.
  */
-enum class SettingsSection { APPEARANCE, MONITORING, NOTIFICATIONS, SECURITY }
+enum class SettingsSection { APPEARANCE, MONITORING, NOTIFICATIONS, SECURITY, ADVANCED }
 
 /**
  * صفحهٔ تنظیمات — بازطراحی‌شده به‌صورتِ صفحهٔ کامل، هم‌سبک با بقیهٔ صفحه‌ها.
@@ -84,7 +86,13 @@ fun SettingsScreen(
     appLanguage: String = "system",
     onLanguageChange: (String) -> Unit = {},
     onLogout: (() -> Unit)? = null,
-    appVersion: String = ""
+    appVersion: String = "",
+    // ── وابستگی‌های بخشِ «پیشرفته» (اتصال/کاربران/فاکتور/پشتیبان)
+    session: Session? = null,
+    store: SessionStore? = null,
+    onSwitchAccount: (Session) -> Unit = {},
+    onAddAccount: () -> Unit = {},
+    onBulkCreate: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
@@ -126,7 +134,8 @@ fun SettingsScreen(
             SettingsSection.APPEARANCE to stringResource(R.string.appearance),
             SettingsSection.MONITORING to stringResource(R.string.monitoring_title),
             SettingsSection.NOTIFICATIONS to stringResource(R.string.notifications_title),
-            SettingsSection.SECURITY to stringResource(R.string.security_title)
+            SettingsSection.SECURITY to stringResource(R.string.security_title),
+            SettingsSection.ADVANCED to stringResource(R.string.advanced_title)
         )
         Row(
             Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
@@ -182,9 +191,168 @@ fun SettingsScreen(
                     onLockTimeoutChange = onLockTimeoutChange,
                     onLogout = onLogout
                 )
+
+                // بخشِ پیشرفته فقط وقتی معنا دارد که SessionStore پاس داده شده باشد
+                // (در MainActivity همیشه پاس داده می‌شود؛ مقدار پیش‌فرضِ null فقط
+                // برای پیش‌نمایش‌ها و تست‌هاست).
+                SettingsSection.ADVANCED -> if (store != null) {
+                    AdvancedSection(
+                        session = session,
+                        store = store,
+                        monitoringSettings = monitoringSettings,
+                        onMonitoringChange = onMonitoringChange,
+                        onSwitchAccount = onSwitchAccount,
+                        onAddAccount = onAddAccount,
+                        onBulkCreate = onBulkCreate,
+                        appVersion = appVersion
+                    )
+                }
             }
             AboutFooter(appVersion = appVersion)
             Spacer(Modifier.height(6.dp))
+        }
+    }
+}
+
+/**
+ * بخشِ «پیشرفته»: چهار زیربخشِ سنگین که به `session`/`store` و لانچرهای فایل
+ * وابسته‌اند، به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه شلوغ نشود.
+ *
+ * فقط یک زیربخش هم‌زمان باز است؛ ایندکسِ زیربخشِ باز با [rememberSaveable]
+ * نگه داشته می‌شود تا با چرخشِ صفحه یا تغییرِ زبان گم نشود (`-1` = همه بسته).
+ *
+ * دیالوگِ بازیابیِ پشتیبان عمداً اینجا (سطحِ بخش) میزبانی می‌شود، نه داخلِ
+ * [BackupSection]، چون آن داخلِ ستونِ اسکرول‌شونده است.
+ */
+@Composable
+private fun AdvancedSection(
+    session: Session?,
+    store: SessionStore,
+    monitoringSettings: MonitoringSettings,
+    onMonitoringChange: (MonitoringSettings) -> Unit,
+    onSwitchAccount: (Session) -> Unit,
+    onAddAccount: () -> Unit,
+    onBulkCreate: () -> Unit,
+    appVersion: String
+) {
+    val scope = rememberCoroutineScope()
+    var openGroup by rememberSaveable { mutableStateOf(0) }
+    var restoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    ExpandableSettingsGroup(
+        title = stringResource(R.string.connection_title),
+        subtitle = stringResource(R.string.advanced_conn_desc),
+        icon = AppIcon.Wifi,
+        accent = LocalThemeState.current.accentPrimary,
+        expanded = openGroup == 0,
+        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
+    ) {
+        ConnectionSection(
+            session = session,
+            store = store,
+            scope = scope,
+            onSwitchAccount = onSwitchAccount,
+            onAddAccount = onAddAccount
+        )
+    }
+
+    ExpandableSettingsGroup(
+        title = stringResource(R.string.users_title),
+        subtitle = stringResource(R.string.advanced_users_desc),
+        icon = AppIcon.Users,
+        accent = GlassGreen,
+        expanded = openGroup == 1,
+        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
+    ) {
+        UsersSettingsSection(
+            session = session,
+            store = store,
+            scope = scope,
+            monitoringSettings = monitoringSettings,
+            onMonitoringChange = onMonitoringChange,
+            onBulkCreate = onBulkCreate
+        )
+    }
+
+    ExpandableSettingsGroup(
+        title = stringResource(R.string.invoice_title),
+        subtitle = stringResource(R.string.advanced_invoice_desc),
+        icon = AppIcon.Receipt,
+        accent = GlassAmber,
+        expanded = openGroup == 2,
+        onToggle = { openGroup = if (openGroup == 2) -1 else 2 }
+    ) {
+        InvoiceSection(store = store, scope = scope)
+    }
+
+    ExpandableSettingsGroup(
+        title = stringResource(R.string.backup_title),
+        subtitle = stringResource(R.string.advanced_backup_desc),
+        icon = AppIcon.Backup,
+        accent = LocalThemeState.current.accentPrimary,
+        expanded = openGroup == 3,
+        onToggle = { openGroup = if (openGroup == 3) -1 else 3 }
+    ) {
+        BackupSection(
+            store = store,
+            scope = scope,
+            appVersion = appVersion,
+            onRequestRestore = { uri -> restoreUri = uri }
+        )
+    }
+
+    restoreUri?.let { uri ->
+        RestoreBackupDialog(uri = uri, scope = scope, onDismiss = { restoreUri = null })
+    }
+}
+
+/** کارتِ جمع‌شونده: سربرگِ همیشه‌دیده + محتوایی که با کلیک باز/بسته می‌شود. */
+@Composable
+private fun ExpandableSettingsGroup(
+    title: String,
+    subtitle: String,
+    icon: AppIcon,
+    accent: Color,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val toggleLabel = stringResource(if (expanded) R.string.cd_collapse else R.string.cd_expand)
+    Column(
+        Modifier.fillMaxWidth().clip(DsRadius.Xxl)
+            .background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+            .padding(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().clip(DsRadius.Xl)
+                .background(if (expanded) accent.copy(.10f) else Color.Transparent)
+                .semantics { contentDescription = toggleLabel }
+                .clickable { onToggle() }
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                Modifier.size(32.dp).clip(DsRadius.Md).background(accent.copy(.12f)),
+                contentAlignment = Alignment.Center
+            ) { RoundedAppIcon(icon, tint = accent, size = 16.dp) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(title, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+            }
+            RoundedAppIcon(
+                if (expanded) AppIcon.ChevronUp else AppIcon.ChevronDown,
+                tint = theme.mutedColor, size = 16.dp
+            )
+        }
+        if (expanded) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(11.dp)
+            ) { content() }
         }
     }
 }
