@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.CheckboxIcon
+import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
 import com.mrm.pgmanager.ui.components.PrimaryButton
 import com.mrm.pgmanager.ui.components.SecondaryButton
 import com.mrm.pgmanager.ui.designsystem.DsBorder
