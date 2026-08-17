@@ -11,6 +11,7 @@ import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.StatsRange
 import com.mrm.pgmanager.data.model.SystemStats
+import com.mrm.pgmanager.data.model.TemplateOptions
 import com.mrm.pgmanager.data.model.TrafficPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -527,15 +528,102 @@ object PanelApi {
         val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
         client.newCall(reqFull).execute().use { res ->
             if (!res.isSuccessful) error("بارگذاریِ تمپلت‌ها ناموفق بود: ${res.code}")
+            // ⚠️ برخلافِ /api/groups که آبجکتِ {groups,total} می‌دهد،
+            // این endpoint آرایهٔ خام برمی‌گرداند.
             val arr = org.json.JSONArray(res.body?.string() ?: "[]")
-            List(arr.length()) { i ->
-                val t = arr.getJSONObject(i)
-                UserTemplateItem(
-                    id = t.optInt("id"),
-                    name = t.optString("name", "تمپلت #${t.optInt("id")}"),
-                    dataLimit = if (t.has("data_limit") && !t.isNull("data_limit")) t.optLong("data_limit") else null,
-                    expireDuration = if (t.has("expire_duration") && !t.isNull("expire_duration")) t.optLong("expire_duration") else null
-                )
+            List(arr.length()) { i -> parseUserTemplate(arr.getJSONObject(i)) }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  تمپلت‌های کاربر — CRUD کامل
+    //
+    //  ⚠️ همان تلهٔ مفرد/جمعِ گروه‌ها، ولی با underscore:
+    //    ساخت    POST   /api/user_template      (۲۰۱)
+    //    فهرست   GET    /api/user_templates     ← آرایهٔ خام
+    //    جزئیات  GET    /api/user_template/{id}
+    //    ویرایش  PUT    /api/user_template/{id}
+    //    حذف     DELETE /api/user_template/{id} (۲۰۴)
+    // ─────────────────────────────────────────────────────────────
+
+    /** تبدیل JSON تمپلت به مدل. کلیدها مطابقِ UserTemplateResponse پنل. */
+    internal fun parseUserTemplate(t: JSONObject): UserTemplateItem {
+        val gids = mutableListOf<Int>()
+        if (!t.isNull("group_ids")) {
+            t.optJSONArray("group_ids")?.let { a -> for (i in 0 until a.length()) gids.add(a.optInt(i)) }
+        }
+        val method = if (t.isNull("extra_settings")) null
+        else t.optJSONObject("extra_settings")?.optString("method")?.takeIf { it.isNotBlank() }
+        return UserTemplateItem(
+            id = t.optInt("id"),
+            name = t.optString("name", "تمپلت #${t.optInt("id")}"),
+            dataLimit = if (t.isNull("data_limit")) null else t.optLong("data_limit"),
+            expireDuration = if (t.isNull("expire_duration")) null else t.optLong("expire_duration"),
+            hwidLimit = if (t.isNull("hwid_limit")) null else t.optInt("hwid_limit"),
+            usernamePrefix = if (t.isNull("username_prefix")) null else t.optString("username_prefix").takeIf { it.isNotBlank() },
+            usernameSuffix = if (t.isNull("username_suffix")) null else t.optString("username_suffix").takeIf { it.isNotBlank() },
+            groupIds = gids,
+            status = if (t.isNull("status")) null else t.optString("status").takeIf { it.isNotBlank() },
+            dataLimitResetStrategy = t.optString("data_limit_reset_strategy", TemplateOptions.RESET_NO_RESET)
+                .ifBlank { TemplateOptions.RESET_NO_RESET },
+            onHoldTimeout = if (t.isNull("on_hold_timeout")) null else t.optLong("on_hold_timeout"),
+            resetUsages = if (t.isNull("reset_usages")) null else t.optBoolean("reset_usages"),
+            isDisabled = if (t.isNull("is_disabled")) null else t.optBoolean("is_disabled"),
+            ssMethod = method
+        )
+    }
+
+    /**
+     * بدنهٔ مشترکِ ساخت و ویرایش.
+     * فیلدهای اختیاریِ خالی **حذف** می‌شوند نه اینکه null فرستاده شوند —
+     * پنل برای غایب‌بودن مقدارِ پیش‌فرض می‌گذارد.
+     */
+    private fun templateBody(t: UserTemplateItem, includeGroups: Boolean = true): JSONObject {
+        val b = JSONObject()
+        b.put("name", t.name.trim())
+        if (includeGroups) b.put("group_ids", org.json.JSONArray(t.groupIds))
+        b.put("data_limit", t.dataLimit ?: JSONObject.NULL)
+        b.put("expire_duration", t.expireDuration ?: JSONObject.NULL)
+        b.put("hwid_limit", t.hwidLimit ?: JSONObject.NULL)
+        b.put("username_prefix", t.usernamePrefix?.trim()?.takeIf { it.isNotEmpty() } ?: JSONObject.NULL)
+        b.put("username_suffix", t.usernameSuffix?.trim()?.takeIf { it.isNotEmpty() } ?: JSONObject.NULL)
+        b.put("data_limit_reset_strategy", t.dataLimitResetStrategy)
+        t.status?.let { b.put("status", it) }
+        // on_hold_timeout فقط وقتی معنی دارد که وضعیت on_hold باشد.
+        if (t.status == TemplateOptions.STATUS_ON_HOLD) {
+            b.put("on_hold_timeout", t.onHoldTimeout ?: JSONObject.NULL)
+        }
+        t.resetUsages?.let { b.put("reset_usages", it) }
+        t.isDisabled?.let { b.put("is_disabled", it) }
+        t.ssMethod?.let { b.put("extra_settings", JSONObject().put("method", it)) }
+        return b
+    }
+
+    /** ساخت تمپلت. پنل حداقل یک گروه می‌خواهد و ۲۰۱ برمی‌گرداند. */
+    suspend fun createUserTemplate(session: Session, template: UserTemplateItem) = withContext(Dispatchers.IO) {
+        val body = templateBody(template)
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/user_template")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** ویرایش تمپلت (PUT روی مسیرِ مفرد + شناسه). */
+    suspend fun modifyUserTemplate(session: Session, templateId: Int, template: UserTemplateItem) = withContext(Dispatchers.IO) {
+        val body = templateBody(template)
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/user_template/$templateId")
+                .put(body.toString().toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** حذف تمپلت. پنل ۲۰۴ با بدنهٔ خالی برمی‌گرداند. */
+    suspend fun deleteUserTemplate(session: Session, templateId: Int) = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/user_template/$templateId").delete().build()
+        client.newCall(req).execute().use { res ->
+            if (!res.isSuccessful) {
+                val details = res.body?.string()?.take(250).orEmpty()
+                error("Delete template failed: ${res.code} $details")
             }
         }
     }
