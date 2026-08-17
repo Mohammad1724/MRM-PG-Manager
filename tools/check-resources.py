@@ -84,6 +84,53 @@ for kt in JAVA.rglob("*.kt"):
         if need == 0 and nxt == ",":
             warnings.append(f"آرگومان اضافه: R.string.{name} آرگومانی نمی‌گیرد ولی در {kt.name} آرگومان داده شده")
 
+# ── ۵. قواعد escape اندروید ──────────────────────────────
+# aapt رشته‌ها را بعد از XML یک‌بار دیگر پردازش می‌کند: آپاستروف و گیومه
+# باید با \ محافظت شوند و \u حتماً چهار رقم hex بخواهد. XML معتبر بودن
+# کافی نیست — این خطاها فقط موقع mergeResources ظاهر می‌شوند.
+VALID_ESC = set("nt'\"\\u@?#")
+HEX = set("0123456789abcdefABCDEF")
+
+
+def check_escapes(items, label, path):
+    for name in sorted(items):
+        raw = items[name]
+        # رشته‌ای که کلاً داخل گیومه است، در اندروید «تحت‌اللفظی» است
+        if len(raw) >= 2 and raw[0] == '"' and raw[-1] == '"':
+            continue
+        i = 0
+        while i < len(raw):
+            c = raw[i]
+            if c == "\\":
+                nxt = raw[i + 1] if i + 1 < len(raw) else ""
+                if nxt not in VALID_ESC:
+                    errors.append(
+                        f"escape نامعتبر در {label}: '{name}' دنبالهٔ \\{nxt} را دارد ({path.name})"
+                    )
+                elif nxt == "u":
+                    h = raw[i + 2:i + 6]
+                    if len(h) < 4 or not all(x in HEX for x in h):
+                        errors.append(
+                            f"یونیکد ناقص در {label}: '{name}' → \\u{h} باید چهار رقم hex باشد ({path.name})"
+                        )
+                i += 2
+                continue
+            if c == "'":
+                errors.append(
+                    f"آپاستروفِ محافظت‌نشده در {label}: '{name}' — باید \\' بنویسید ({path.name})"
+                )
+                break
+            if c == '"':
+                errors.append(
+                    f"گیومهٔ محافظت‌نشده در {label}: '{name}' — باید \\\" بنویسید ({path.name})"
+                )
+                break
+            i += 1
+
+
+check_escapes(en, "انگلیسی", RES / "values/strings.xml")
+check_escapes(fa, "فارسی", RES / "values-fa/strings.xml")
+
 # ── گزارش ────────────────────────────────────────────────
 print(f"بررسی شد: {len(en)} رشتهٔ انگلیسی، {len(fa)} فارسی، {len(used)} ارجاع در کد\n")
 for w in warnings:
