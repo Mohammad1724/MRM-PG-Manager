@@ -54,10 +54,10 @@ import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
+import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.utils.NotificationHelper
-import com.mrm.pgmanager.ui.dialogs.ThemeEditorDialog
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
 import com.mrm.pgmanager.ui.theme.ThemeState
@@ -373,7 +373,27 @@ fun MRMApp() {
                         modifier = Modifier.graphicsLayer(rotationZ = menuIconRotation)
                     )
                 }
-                if (showDashboardSettings) ThemeEditorDialog(themeState = effectiveTheme, isAppLockEnabled = isAppLockEnabled, onDismiss = { showDashboardSettings = false }, onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) }, onAppLockChange = handleAppLockChange, monitoringSettings = monitoringSettings, onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) }, appVersion = BuildConfig.VERSION_NAME, session = session, onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false }, appLockTimeout = appLockTimeout, onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) }, onSwitchAccount = switchAccount, onAddAccount = { addingAccount = true; showDashboardSettings = false }, appLanguage = appLanguage, onLanguageChange = handleLanguageChange)
+                // تنظیمات: صفحهٔ کامل روی محتوا (نه دیالوگ) تا با بقیهٔ اپ یکدست باشد.
+                // پس‌زمینهٔ مات جلوی دیده‌شدن صفحهٔ زیرین را می‌گیرد.
+                if (showDashboardSettings) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        SettingsScreen(
+                            themeState = effectiveTheme,
+                            onThemeChange = { nt -> themeState = nt; store.saveTheme(nt) },
+                            onBack = { showDashboardSettings = false },
+                            isAppLockEnabled = isAppLockEnabled,
+                            onAppLockChange = handleAppLockChange,
+                            monitoringSettings = monitoringSettings,
+                            onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
+                            appLockTimeout = appLockTimeout,
+                            onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
+                            appLanguage = appLanguage,
+                            onLanguageChange = handleLanguageChange,
+                            onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
+                            appVersion = BuildConfig.VERSION_NAME
+                        )
+                    }
+                }
             }
             }
             }
