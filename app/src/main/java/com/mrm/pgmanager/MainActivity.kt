@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,7 +59,7 @@ import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.ui.components.MoreSheet
-import com.mrm.pgmanager.ui.components.MrmBottomBar
+import com.mrm.pgmanager.ui.components.MrmFloatingNav
 import com.mrm.pgmanager.ui.components.TAB_DASHBOARD
 import com.mrm.pgmanager.ui.components.TAB_GROUPS
 import com.mrm.pgmanager.ui.components.TAB_STATISTICS
@@ -355,11 +356,32 @@ fun MRMApp() {
                 if (selectedTab != pagerState.settledPage) selectedTab = pagerState.settledPage
             }
 
+            // ── محو/ظاهر شدنِ کپسولِ ناوبری با جهتِ اسکرول.
+            // از nested scroll استفاده می‌شود تا هیچ تغییری در خودِ صفحه‌ها لازم
+            // نباشد: هر لیست/اسکرولی که داخلِ Pager باشد رویدادش به اینجا می‌رسد.
+            var navVisible by remember { mutableStateOf(true) }
+            val navScrollConnection = remember {
+                object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                    override fun onPreScroll(
+                        available: androidx.compose.ui.geometry.Offset,
+                        source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+                    ): androidx.compose.ui.geometry.Offset {
+                        // آستانهٔ کوچک تا لرزشِ انگشت باعثِ پلک‌زدنِ نوار نشود.
+                        if (available.y < -6f) navVisible = false
+                        else if (available.y > 6f) navVisible = true
+                        return androidx.compose.ui.geometry.Offset.Zero
+                    }
+                }
+            }
+            // با عوض‌شدنِ بخش، نوار دوباره دیده شود؛ وگرنه اگر در صفحهٔ قبل
+            // پنهان شده بود، در صفحهٔ جدید هم غایب می‌ماند.
+            LaunchedEffect(selectedTab) { navVisible = true }
+
             Box(Modifier.fillMaxSize()) {
-                Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize().nestedScroll(navScrollConnection)) {
                     androidx.compose.foundation.pager.HorizontalPager(
                         state = pagerState,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxSize(),
                         // فقط صفحهٔ جاری در حافظه ساخته می‌شود؛ وگرنه هر سه صفحه
                         // هم‌زمان به پنل ریکوئست می‌زدند.
                         beyondViewportPageCount = 0,
@@ -382,12 +404,15 @@ fun MRMApp() {
                             )
                         }
                     }
-                    MrmBottomBar(
-                        selectedTab = selectedTab,
-                        onSelect = { selectedTab = it },
-                        onMore = { moreSheetOpen = true }
-                    )
                 }
+                // کپسولِ شناور: روی محتوا و چسبیده به پایینِ صفحه، در ناحیهٔ شست.
+                MrmFloatingNav(
+                    selectedTab = selectedTab,
+                    visible = navVisible,
+                    onSelect = { selectedTab = it },
+                    onMore = { moreSheetOpen = true },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
                 // دکمهٔ همبرگری حذف شد: ناوبری به نوار پایین منتقل شده و کشو
                 // فقط با کشیدنِ انگشت از لبه باز می‌شود (gesturesEnabled).
                 // تنظیمات: صفحهٔ کامل روی محتوا (نه دیالوگ) تا با بقیهٔ اپ یکدست باشد.
