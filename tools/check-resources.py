@@ -26,7 +26,19 @@ def load(path):
     """کلید -> متن، به‌همراه شمارشِ تکرارها."""
     if not path.exists():
         return {}, Counter()
-    root = ET.parse(path).getroot()
+    # آپلودِ ناقص (کپی/پیستِ بریده) رایج‌ترین علتِ خرابیِ این فایل‌هاست؛
+    # به‌جای Traceback خام، پیامِ روشن بده.
+    raw = path.read_text(encoding="utf-8")
+    if "</resources>" not in raw:
+        print(f"✖  فایل ناقص است: {path} — تگ پایانی </resources> پیدا نشد.")
+        print(f"   {raw.count('<string name=')} رشته خوانده شد؛ فایل احتمالاً وسط آپلود بریده شده.")
+        print("   راه‌حل: کلِ فایل را دوباره و کامل جایگزین کنید.")
+        sys.exit(1)
+    try:
+        root = ET.parse(path).getroot()
+    except ET.ParseError as e:
+        print(f"✖  XML نامعتبر در {path}: {e}")
+        sys.exit(1)
     items, counts = {}, Counter()
     for el in root.findall("string"):
         name = el.get("name")
