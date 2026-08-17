@@ -58,6 +58,8 @@ import androidx.compose.material.icons.rounded.ToggleOff
 import androidx.compose.material.icons.rounded.ToggleOn
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.size
@@ -74,7 +76,7 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh
     // نوار ابزار
     Sort, Filter,
     // ناوبری
-    Menu, Add }
+    Menu, Add, ChevronUp, ChevronDown }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -135,6 +137,8 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Filter -> Icons.Rounded.FilterList
     AppIcon.Menu -> Icons.Rounded.Menu
     AppIcon.Add -> Icons.Rounded.Add
+    AppIcon.ChevronUp -> Icons.Rounded.KeyboardArrowUp
+    AppIcon.ChevronDown -> Icons.Rounded.KeyboardArrowDown
 }
 
 @Composable
