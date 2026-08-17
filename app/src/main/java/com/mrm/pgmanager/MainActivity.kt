@@ -57,6 +57,13 @@ import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
+import com.mrm.pgmanager.ui.components.MoreSheet
+import com.mrm.pgmanager.ui.components.MrmBottomBar
+import com.mrm.pgmanager.ui.components.TAB_DASHBOARD
+import com.mrm.pgmanager.ui.components.TAB_GROUPS
+import com.mrm.pgmanager.ui.components.TAB_STATISTICS
+import com.mrm.pgmanager.ui.components.TAB_TEMPLATES
+import com.mrm.pgmanager.ui.components.TAB_USERS
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
@@ -163,6 +170,7 @@ fun authenticateBiometric(
     prompt.authenticate(promptInfo)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MRMApp() {
     val context = LocalContext.current
@@ -186,6 +194,8 @@ fun MRMApp() {
     // درخواستِ «ساخت گروهی» از صفحهٔ تنظیمات: تب کاربران باز می‌شود و دیالوگ را
     // همان‌جا نشان می‌دهد تا لیست پس از ساخت رفرش شود.
     var pendingBulkCreate by rememberSaveable { mutableStateOf(false) }
+    // شیتِ «بیشتر» در نوار پایین: بخش‌های کم‌کاربردتر + تنظیمات + خروج.
+    var moreSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
     val systemDark = isSystemInDarkTheme()
@@ -328,55 +338,58 @@ fun MRMApp() {
                     )
                 }
             ) {
+            // ── سوایپ بین بخش‌ها: صفحه‌ها روی یک Pager می‌نشینند تا با انگشت
+            // هم بشود بینشان جابه‌جا شد. ترتیب صفحه‌ها = همان ایندکس‌های
+            // selectedTab (۰ داشبورد … ۴ تمپلت‌ها).
+            val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+                initialPage = selectedTab,
+                pageCount = { ImplementedDrawerIds.size }
+            )
+            // کلیک روی نوار پایین → پرش نرم به صفحهٔ متناظر.
+            LaunchedEffect(selectedTab) {
+                if (pagerState.currentPage != selectedTab) pagerState.animateScrollToPage(selectedTab)
+            }
+            // سوایپِ کاربر → به‌روزرسانیِ آیتمِ فعالِ نوار پایین. settledPage
+            // یعنی وقتی حرکت واقعاً تمام شد، نه در میانهٔ کشیدن.
+            LaunchedEffect(pagerState.settledPage) {
+                if (selectedTab != pagerState.settledPage) selectedTab = pagerState.settledPage
+            }
+
             Box(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxSize()) {
-                    when (selectedTab) {
-                        0 -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false })
-                        2 -> StatisticsScreen(session!!)
-                        3 -> GroupsScreen(session!!)
-                        4 -> TemplatesScreen(session!!)
-                        else -> UsersScreen(
-                            session = session!!,
-                            onLogout = { store.clear(); session = null; isUnlocked = false },
-                            themeState = effectiveTheme,
-                            monitoringSettings = monitoringSettings,
-                            deepLinkUsername = deepLinkUsername,
-                            onDeepLinkHandled = { deepLinkUsername = null },
-                            openBulkCreate = pendingBulkCreate,
-                            onBulkCreateHandled = { pendingBulkCreate = false }
-                        )
-                }
-                // دکمهٔ همبرگری: بالای صفحه. با Alignment.TopStart در انگلیسی سمت چپ و
-                // در فارسی (RTL) خودکار سمت راست می‌نشیند — نیازی به شرطِ دستیِ زبان نیست.
-                // statusBarsPadding لازم است وگرنه زیر نوار اعلان می‌رود.
-                val menuLabel = stringResource(R.string.open_menu)
-                // چرخش نرم آیکون هنگام باز شدن کشو.
-                // از Normal (tween با easing) استفاده می‌شود نه ScaleSpring؛ آن یکی
-                // dampingRatio=0.55 دارد و روی چرخش، از ۹۰ درجه رد می‌شود و برمی‌گردد.
-                val menuIconRotation by androidx.compose.animation.core.animateFloatAsState(
-                    targetValue = if (drawerState.isOpen) 90f else 0f,
-                    animationSpec = com.mrm.pgmanager.ui.designsystem.DsMotion.Normal,
-                    label = "menuIconRotation"
-                )
-                Box(
-                    Modifier.align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(start = 10.dp, top = 10.dp)
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(effectiveTheme.cardSurfaceColor)
-                        .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(10.dp))
-                        .clickable { drawerScope.launch { drawerState.open() } }
-                        .semantics { contentDescription = menuLabel },
-                    contentAlignment = Alignment.Center
-                ) {
-                    RoundedAppIcon(
-                        AppIcon.Menu,
-                        tint = effectiveTheme.inkColor,
-                        size = 18.dp,
-                        modifier = Modifier.graphicsLayer(rotationZ = menuIconRotation)
+                Column(Modifier.fillMaxSize()) {
+                    androidx.compose.foundation.pager.HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.weight(1f),
+                        // فقط صفحهٔ جاری در حافظه ساخته می‌شود؛ وگرنه هر سه صفحه
+                        // هم‌زمان به پنل ریکوئست می‌زدند.
+                        beyondViewportPageCount = 0,
+                        key = { it }
+                    ) { page ->
+                        when (page) {
+                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false })
+                            TAB_STATISTICS -> StatisticsScreen(session!!)
+                            TAB_GROUPS -> GroupsScreen(session!!)
+                            TAB_TEMPLATES -> TemplatesScreen(session!!)
+                            else -> UsersScreen(
+                                session = session!!,
+                                onLogout = { store.clear(); session = null; isUnlocked = false },
+                                themeState = effectiveTheme,
+                                monitoringSettings = monitoringSettings,
+                                deepLinkUsername = deepLinkUsername,
+                                onDeepLinkHandled = { deepLinkUsername = null },
+                                openBulkCreate = pendingBulkCreate,
+                                onBulkCreateHandled = { pendingBulkCreate = false }
+                            )
+                        }
+                    }
+                    MrmBottomBar(
+                        selectedTab = selectedTab,
+                        onSelect = { selectedTab = it },
+                        onMore = { moreSheetOpen = true }
                     )
                 }
+                // دکمهٔ همبرگری حذف شد: ناوبری به نوار پایین منتقل شده و کشو
+                // فقط با کشیدنِ انگشت از لبه باز می‌شود (gesturesEnabled).
                 // تنظیمات: صفحهٔ کامل روی محتوا (نه دیالوگ) تا با بقیهٔ اپ یکدست باشد.
                 // پس‌زمینهٔ مات جلوی دیده‌شدن صفحهٔ زیرین را می‌گیرد.
                 if (showDashboardSettings) {
@@ -403,13 +416,24 @@ fun MRMApp() {
                             // لیستِ کاربران خودش رفرش شود.
                             onBulkCreate = {
                                 showDashboardSettings = false
-                                selectedTab = 1
+                                selectedTab = TAB_USERS
                                 pendingBulkCreate = true
                             }
                         )
                     }
                 }
-            }
+
+                // ── شیتِ «بیشتر»: بخش‌های کم‌کاربردتر و تنظیمات، همه در ناحیهٔ شست.
+                if (moreSheetOpen) {
+                    MoreSheet(
+                        selectedTab = selectedTab,
+                        adminName = session?.username ?: "",
+                        onSelect = { tab -> selectedTab = tab; moreSheetOpen = false },
+                        onOpenSettings = { moreSheetOpen = false; showDashboardSettings = true },
+                        onLogout = { moreSheetOpen = false; store.clear(); session = null; isUnlocked = false },
+                        onDismiss = { moreSheetOpen = false }
+                    )
+                }
             }
             }
         }
