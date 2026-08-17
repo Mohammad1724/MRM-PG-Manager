@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MRM PG Manager</string>
     <string name="panel_address">Full panel address</string>
-    <string name="panel_hint">https://panel.example.com:1234/dashboard/</string>
+    <string name="panel_hint">https://panel.example.com:1234/dashboard</string>
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="sign_in">Sign in</string>
