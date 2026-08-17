@@ -53,6 +53,7 @@ import com.mrm.pgmanager.ui.screens.UsersScreen
 import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
+import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
 import com.mrm.pgmanager.utils.NotificationHelper
@@ -331,6 +332,7 @@ fun MRMApp() {
                         0 -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false })
                         2 -> StatisticsScreen(session!!)
                         3 -> GroupsScreen(session!!)
+                        4 -> TemplatesScreen(session!!)
                         else -> UsersScreen(
                             session = session!!,
                             onLogout = { store.clear(); session = null; isUnlocked = false },
