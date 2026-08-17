@@ -3,6 +3,8 @@ package com.mrm.pgmanager.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +19,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -51,46 +55,65 @@ const val TAB_STATISTICS = 2
 const val TAB_GROUPS = 3
 const val TAB_TEMPLATES = 4
 
+/**
+ * نوارِ ناوبریِ **شناور** — یک کپسول که روی محتوا می‌نشیند.
+ *
+ * @param visible وقتی false شود، کپسول با محو‌شدن و سُر خوردن به پایین می‌رود.
+ *   MainActivity این را از جهتِ اسکرولِ صفحه‌ها می‌گیرد (nested scroll)، پس
+ *   هنگام خواندنِ لیستِ کاربران جلوی محتوا را نمی‌گیرد و با کوچک‌ترین اسکرول
+ *   به بالا برمی‌گردد.
+ */
 @Composable
-fun MrmBottomBar(
+fun MrmFloatingNav(
     selectedTab: Int,
+    visible: Boolean,
     onSelect: (Int) -> Unit,
-    onMore: () -> Unit
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val theme = LocalThemeState.current
     // وقتی کاربر در گروه‌ها/تمپلت‌هاست، آیتمِ «بیشتر» فعال نشان داده می‌شود تا
     // معلوم باشد کجاست (وگرنه هیچ آیتمی روشن نبود و کاربر گم می‌شد).
     val moreSelected = selectedTab == TAB_GROUPS || selectedTab == TAB_TEMPLATES
-    Column(Modifier.fillMaxWidth().background(theme.cardSurfaceColor)) {
-        // خطِ جداکنندهٔ بالای نوار — border کامل دورِ نوار می‌کشید، اینجا فقط
-        // یک خطِ مویی لازم است.
-        Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = androidx.compose.animation.fadeIn(animationSpec = tween(180)) +
+            androidx.compose.animation.slideInVertically(animationSpec = tween(220)) { it / 2 },
+        exit = androidx.compose.animation.fadeOut(animationSpec = tween(150)) +
+            androidx.compose.animation.slideOutVertically(animationSpec = tween(200)) { it / 2 }
+    ) {
         Row(
-            Modifier.fillMaxWidth()
+            Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .shadow(10.dp, DsRadius.Full, clip = false)
+                .clip(DsRadius.Full)
+                .background(theme.cardSurfaceColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
+                .padding(5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            BottomBarItem(
+            NavChip(
                 icon = AppIcon.Gauge,
                 label = stringResource(R.string.dashboard),
                 selected = selectedTab == TAB_DASHBOARD,
                 modifier = Modifier.weight(1f)
             ) { onSelect(TAB_DASHBOARD) }
-            BottomBarItem(
+            NavChip(
                 icon = AppIcon.Users,
                 label = stringResource(R.string.users),
                 selected = selectedTab == TAB_USERS,
                 modifier = Modifier.weight(1f)
             ) { onSelect(TAB_USERS) }
-            BottomBarItem(
+            NavChip(
                 icon = AppIcon.Timer,
                 label = stringResource(R.string.statistics),
                 selected = selectedTab == TAB_STATISTICS,
                 modifier = Modifier.weight(1f)
             ) { onSelect(TAB_STATISTICS) }
-            BottomBarItem(
+            NavChip(
                 icon = AppIcon.Menu,
                 label = stringResource(R.string.more),
                 selected = moreSelected,
@@ -101,8 +124,12 @@ fun MrmBottomBar(
     }
 }
 
+/**
+ * یک چیپِ داخلِ کپسول. آیتمِ فعال پس‌زمینهٔ اکسنت می‌گیرد و برچسبش ظاهر می‌شود؛
+ * بقیه فقط آیکون‌اند تا کپسول در عرضِ گوشی جا شود.
+ */
 @Composable
-private fun BottomBarItem(
+private fun NavChip(
     icon: AppIcon,
     label: String,
     selected: Boolean,
@@ -110,30 +137,39 @@ private fun BottomBarItem(
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
-    val tint = if (selected) theme.accentPrimary else theme.mutedColor
-    Column(
+    val bg by animateColorAsState(
+        if (selected) theme.accentPrimary else Color.Transparent,
+        animationSpec = tween(200), label = "navChipBg"
+    )
+    val tint by animateColorAsState(
+        if (selected) Color(0xFF422006) else theme.mutedColor,
+        animationSpec = tween(200), label = "navChipTint"
+    )
+    Row(
         modifier
-            .clip(DsRadius.Md)
-            .background(if (selected) theme.accentPrimary.copy(.12f) else Color.Transparent)
-            // ارتفاع ۵۴ + عرضِ تقسیم‌شده: هر هدف بزرگ‌تر از ۴۸dp توصیه‌شدهٔ
-            // اندروید است تا با شست هم خطای کلیک ندهد.
-            .height(54.dp)
+            // ارتفاع ۴۶ + عرضِ تقسیم‌شده: هر هدف بزرگ‌تر از حداقلِ ۴۸dpِ
+            // توصیه‌شدهٔ اندروید می‌ماند (با padding عمودیِ کپسول).
+            .height(46.dp)
+            .clip(DsRadius.Full)
+            .background(bg)
             .semantics { contentDescription = label }
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
-        RoundedAppIcon(icon, tint = tint, size = 19.dp)
-        Spacer(Modifier.height(3.dp))
-        Text(
-            label,
-            fontSize = 9.5.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = tint,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
-        )
+        RoundedAppIcon(icon, tint = tint, size = 18.dp)
+        if (selected) {
+            Spacer(Modifier.width(5.dp))
+            Text(
+                label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
