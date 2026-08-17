@@ -133,6 +133,13 @@
     <string name="invoice_title">Invoice</string>
     <string name="backup_title">Backup</string>
     <string name="security_title">Security</string>
+    <string name="advanced_title">Advanced</string>
+    <string name="advanced_conn_desc">Current panel, saved accounts, connection test</string>
+    <string name="advanced_users_desc">Username pattern, debtors, bulk create, export</string>
+    <string name="advanced_invoice_desc">Invoice logo and seller name</string>
+    <string name="advanced_backup_desc">Folder, schedule, encryption and restore</string>
+    <string name="cd_expand">Expand section</string>
+    <string name="cd_collapse">Collapse section</string>
     <string name="appearance_desc">Personalization, monitoring and account security</string>
     <string name="user_details">User Details</string>
     <string name="basic_info">Basic Info</string>
