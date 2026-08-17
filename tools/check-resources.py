@@ -74,12 +74,31 @@ for name in sorted(set(en) & set(fa)):
         errors.append(f"ناسازگاریِ فرمت: '{name}' انگلیسی {a} آرگومان، فارسی {b} آرگومان")
 
 # استفادهٔ بدون آرگومان از رشته‌ای که آرگومان می‌خواهد
+#
+# استثنا — الگوی «قالب»: در Compose تابع stringResource فقط داخل یک @Composable
+# صدا زده می‌شود، پس متنی که قرار است بعداً داخل یک coroutine یا کال‌بک پر شود،
+# ناچار اول بدون آرگومان گرفته و در متغیری ذخیره می‌شود و بعد با String.format
+# تکمیل می‌گردد:
+#
+#     val failTemplate = stringResource(R.string.set_conn_fail)   // بدون آرگومان
+#     ...
+#     String.format(failTemplate, e.message)                      // پرشدن واقعی
+#
+# این کاملاً درست است، پس اگر متغیرِ مقصد جایی به String.format داده شده باشد،
+# ایراد نمی‌گیریم.
 for kt in JAVA.rglob("*.kt"):
     text = kt.read_text(encoding="utf-8")
-    for m in re.finditer(r"stringResource\(\s*R\.string\.([a-zA-Z0-9_]+)\s*([,)])", text):
-        name, nxt = m.group(1), m.group(2)
+    formatted = set(re.findall(r"String\.format\(\s*([A-Za-z_]\w*)", text))
+    pattern = (
+        r"(?:(?:val|var)\s+([A-Za-z_]\w*)\s*=\s*)?"
+        r"stringResource\(\s*R\.string\.([a-zA-Z0-9_]+)\s*([,)])"
+    )
+    for m in re.finditer(pattern, text):
+        var, name, nxt = m.group(1), m.group(2), m.group(3)
         need = fmt_args(en.get(name, ""))
         if need > 0 and nxt == ")":
+            if var and var in formatted:
+                continue  # الگوی قالب — بعداً format می‌شود
             errors.append(f"آرگومان کم: R.string.{name} به {need} آرگومان نیاز دارد، در {kt.name} بدون آرگومان استفاده شده")
         if need == 0 and nxt == ",":
             warnings.append(f"آرگومان اضافه: R.string.{name} آرگومانی نمی‌گیرد ولی در {kt.name} آرگومان داده شده")
