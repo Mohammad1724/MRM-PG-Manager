@@ -822,7 +822,10 @@ fun UsersScreen(
     themeState: ThemeState,
     monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
     deepLinkUsername: String? = null,
-    onDeepLinkHandled: () -> Unit = {}
+    onDeepLinkHandled: () -> Unit = {},
+    /** درخواستِ بازکردنِ دیالوگ «ساخت گروهی» از بیرون (صفحهٔ تنظیمات). */
+    openBulkCreate: Boolean = false,
+    onBulkCreateHandled: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -988,6 +991,14 @@ fun UsersScreen(
             selectedUser = it
         }
         onDeepLinkHandled()
+    }
+    // درخواستِ ساخت گروهی از صفحهٔ تنظیمات: دیالوگ را همین‌جا باز می‌کنیم تا
+    // پس از پایان، لیست کاربران رفرش شود.
+    LaunchedEffect(openBulkCreate) {
+        if (openBulkCreate) {
+            bulkCreateOpen = true
+            onBulkCreateHandled()
+        }
     }
     var inForeground by remember { mutableStateOf(true) }
     val lifecycleOwner = LocalContext.current as? androidx.lifecycle.LifecycleOwner
