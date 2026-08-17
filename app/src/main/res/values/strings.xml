@@ -229,7 +229,7 @@
     <string name="set_mode_light">Light</string>
     <string name="set_mode_dark">Dark</string>
     <string name="set_mode_auto">Auto</string>
-    <string name="set_mode_desc">In 'Auto' mode the app follows the system light/dark theme.</string>
+    <string name="set_mode_desc">In \'Auto\' mode the app follows the system light/dark theme.</string>
     <string name="set_primary_color">Primary Color</string>
     <string name="set_custom_color">Custom Color</string>
     <string name="set_custom_active">Custom color is active</string>
