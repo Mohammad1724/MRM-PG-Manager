@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,13 +22,18 @@ import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
-data class DrawerItem(val id: String, val label: String, val icon: AppIcon, val hasSub: Boolean = false)
+data class DrawerItem(val id: String, val label: String, val icon: AppIcon)
 
 /**
- * بخش‌هایی که واقعاً پیاده‌سازی شده‌اند و باید در منو قابل انتخاب باشند.
- * ترتیبِ این فهرست با ترتیبِ تب‌ها در MainActivity یکی است، پس ایندکسِ هر id
- * همان مقدارِ selectedTab است. تنها مرجعِ این اطلاعات همین‌جاست تا با
- * افزودنِ بخشِ جدید، منو و تب‌بار از هم جدا نیفتند.
+ * بخش‌های اپ. ترتیبِ این فهرست با شاخه‌های `when(selectedTab)` در
+ * MainActivity یکی است، پس ایندکسِ هر id همان مقدارِ selectedTab است.
+ *
+ * ⚠️ این فهرست باید همیشه با [PasarGuardDrawerItems] هم‌ترتیب و هم‌عضو بماند.
+ * هر بخشی که اینجا هست باید یک شاخهٔ متناظر در MainActivity داشته باشد،
+ * وگرنه شاخهٔ پایانیِ `else` بی‌صدا صفحهٔ کاربران را نشان می‌دهد.
+ *
+ * بخش‌های هاست/نود/ادمین/کلید API عمداً حذف شده‌اند: مدیریتشان از خودِ
+ * پنل وب انجام می‌شود و آوردنشان به اپ ارزشِ پیچیدگی‌اش را نداشت.
  */
 val ImplementedDrawerIds = listOf("dashboard", "users", "statistics", "groups", "templates")
 
@@ -37,14 +41,8 @@ val PasarGuardDrawerItems = listOf(
     DrawerItem("dashboard","Dashboard", AppIcon.Gauge),
     DrawerItem("users","Users", AppIcon.Users),
     DrawerItem("statistics","Statistics", AppIcon.Gauge),
-    DrawerItem("hosts","Hosts", AppIcon.Storage),
     DrawerItem("groups","Groups", AppIcon.Folder),
-    DrawerItem("admins","Admins", AppIcon.User),
-    DrawerItem("apikeys","API Keys", AppIcon.Link),
-    DrawerItem("nodes","Nodes", AppIcon.Storage, hasSub = true),
     DrawerItem("templates","Templates", AppIcon.Template),
-    DrawerItem("bulk","Bulk", AppIcon.Users, hasSub = true),
-    DrawerItem("settings","Settings", AppIcon.Settings, hasSub = true),
 )
 
 @Composable
@@ -80,35 +78,25 @@ fun PasarGuardDrawer(
             Text(stringResource(R.string.platform), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp))
             PasarGuardDrawerItems.forEach { item ->
                 val sel = item.id == selectedId
-                val isImplemented = item.id in ImplementedDrawerIds
                 Row(
                     Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Sm)
                         .background(if (sel) theme.searchBgColor else Color.Transparent)
                         .then(if (sel) Modifier.border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm) else Modifier)
-                        .clickable(enabled = isImplemented) { onSelect(item.id); onClose() }
+                        .clickable { onSelect(item.id); onClose() }
                         .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(item.icon, tint = if (!isImplemented) theme.mutedColor else if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
-                        val labelRes = when(item.id) {
-                            "dashboard" -> stringResource(R.string.dashboard)
-                            "users" -> stringResource(R.string.users)
-                            "statistics" -> stringResource(R.string.statistics)
-                            "hosts" -> "Hosts"
-                            "groups" -> stringResource(R.string.groups_title)
-                            "admins" -> "Admins"
-                            "apikeys" -> "API Keys"
-                            "nodes" -> stringResource(R.string.nodes)
-                            "templates" -> stringResource(R.string.templates_title)
-                            "bulk" -> "Bulk"
-                            "settings" -> "Settings"
-                            else -> item.label
-                        }
-                        Text(labelRes, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (!isImplemented) theme.mutedColor else if (sel) theme.inkColor else theme.mutedColor)
-                        if (!isImplemented) Text(stringResource(R.string.coming_soon), fontSize = 9.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(theme.borderSubtle).padding(horizontal = 4.dp, vertical = 1.dp))
+                    RoundedAppIcon(item.icon, tint = if (sel) theme.inkColor else theme.mutedColor, size = 16.dp)
+                    val labelRes = when(item.id) {
+                        "dashboard" -> stringResource(R.string.dashboard)
+                        "users" -> stringResource(R.string.users)
+                        "statistics" -> stringResource(R.string.statistics)
+                        "groups" -> stringResource(R.string.groups_title)
+                        "templates" -> stringResource(R.string.templates_title)
+                        else -> item.label
                     }
-                    if (item.hasSub) Text("›", fontSize = 12.sp, color = theme.mutedColor)
+                    Text(labelRes, fontSize = 12.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.inkColor else theme.mutedColor)
                 }
             }
         }
