@@ -17,6 +17,7 @@
     <string name="login_err_not_found">Panel address or path is wrong (404).</string>
     <string name="login_err_generic">Connection failed: %1$s</string>
     <string name="login_err_unknown">Unknown error</string>
+    <string name="back_exit_hint">Press back again to exit</string>
     <string name="cd_change_language">Change language</string>
     <string name="users">Users</string>
     <string name="refresh">Refresh</string>
