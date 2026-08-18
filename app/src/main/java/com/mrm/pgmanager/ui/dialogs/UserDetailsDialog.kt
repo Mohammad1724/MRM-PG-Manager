@@ -1,26 +1,33 @@
 package com.mrm.pgmanager.ui.dialogs
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.mrm.pgmanager.R
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.ui.components.*
@@ -30,112 +37,148 @@ import com.mrm.pgmanager.utils.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+/* ──────────────────────────────────────────────────────────────────────────
+ *  دیالوگ جزئیات کاربر — بازطراحی‌شده
+ *
+ *  مشکلِ نسخهٔ قبل «شلوغی» بود: هفت جعبهٔ هم‌وزن پشتِ سر هم، همه با یک اندازه
+ *  و یک رنگ، بدونِ اینکه معلوم باشد کدام مهم‌تر است؛ و دکمه‌ها فقط متن بودند
+ *  که اسکن‌کردنشان با چشم کند است.
+ *
+ *  چیدمانِ جدید بر پایهٔ سه لایه است:
+ *
+ *   ۱. سربرگِ ثابت      — هویتِ کاربر (آواتار، نام، آخرین بازدید، وضعیت)
+ *   ۲. کارتِ قهرمان     — مصرف: بزرگ‌ترین و پررنگ‌ترین چیز، چون همان است که
+ *                          کاربر برای دیدنش این صفحه را باز می‌کند
+ *   ۳. بقیه به ترتیبِ    — لینک اشتراک ← عملیات ← مالی
+ *      اهمیت، هرکدام با
+ *      عنوانِ کوچکِ محو
+ *
+ *  هیچ دکمه‌ای حذف نشده؛ فقط گروه‌بندی و وزنِ بصری‌شان عوض شده و همه آیکون
+ *  گرفته‌اند تا با یک نگاه پیدا شوند.
+ * ────────────────────────────────────────────────────────────────────────── */
+
 @Composable
-private fun detailDaysText(expire: String?): String {
-    if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
+private fun daysLeftLabel(expire: String?): String {
+    val unlimited = stringResource(R.string.ud_unlimited)
+    val expired = stringResource(R.string.ud_expired)
+    val daysTemplate = stringResource(R.string.ud_days)
+    if (expire.isNullOrBlank() || expire == "0" || expire == "null") return unlimited
     return runCatching {
-        val end = try { java.time.Instant.parse(expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() } catch (_: Exception) { LocalDate.parse(expire.take(10)) }
+        val end = try {
+            java.time.Instant.parse(expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        } catch (_: Exception) {
+            LocalDate.parse(expire.take(10))
+        }
         val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end)
-        if (d < 0L) "منقضی" else "$d روز"
-    }.getOrDefault("نامحدود")
+        if (d < 0L) expired else String.format(daysTemplate, d.toString())
+    }.getOrDefault(unlimited)
 }
 
-/** دکمهٔ آیکون گرد برای کارت اشتراک و بخش‌های مشابه */
+/** عنوانِ کوچکِ بالای هر بخش — لنگرِ بصری برای چشم، بدونِ اشغال فضا. */
 @Composable
-private fun IconActionBtn(icon: AppIcon, contentDesc: String, theme: com.mrm.pgmanager.ui.theme.ThemeState, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Box(
-        modifier.clip(DsRadius.Sm)
-            .background(theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
-    }
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        color = LocalThemeState.current.mutedColor,
+        modifier = Modifier.padding(start = 4.dp)
+    )
 }
 
-/** منوی کشویی کپسولی برای اکشن‌ها (بدهکار/فاکتور) - هماهنگ با design system */
+/**
+ * کاشیِ عملیات: آیکونِ رنگی روی برچسب.
+ *
+ * جایگزینِ دکمه‌های فقط‌متنیِ قبلی؛ آیکون باعث می‌شود عملیات با یک نگاه
+ * تشخیص داده شود و برچسبِ زیرش ابهام را برمی‌دارد.
+ */
 @Composable
-private fun CapsuleActionMenu(
-    label: String,
-    expanded: Boolean,
-    onToggleExpand: () -> Unit,
-    isDebtor: Boolean = false,
-    actions: @Composable ColumnScope.() -> Unit
-) {
-    val theme = LocalThemeState.current
-    val headerColor = if (isDebtor) GlassRed else theme.accentPrimary
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // دکمه سربرگ کشویی - هماهنگ با دکمه‌های کپسولی settings
-        Box(
-            Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Xl)
-                .background(headerColor.copy(0.10f))
-                .border(BorderStroke(1.2.dp, headerColor.copy(0.30f)), DsRadius.Xl)
-                .clickable { onToggleExpand() }
-                .padding(horizontal = 14.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RoundedAppIcon(if (isDebtor) AppIcon.Warning else AppIcon.Money, tint = headerColor, size = 18.dp)
-                Text(label, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = headerColor, modifier = Modifier.weight(1f))
-                // فلش بالا/پایین: وقتی باز است به بالا، وقتی بسته است به پایین
-                RoundedAppIcon(
-                    AppIcon.Next,
-                    tint = headerColor, size = 16.dp,
-                    modifier = Modifier.graphicsLayer { rotationZ = if (expanded) -90f else 90f }
-                )
-            }
-        }
-        // محتوای کشویی با انیمیشن
-        androidx.compose.animation.AnimatedVisibility(
-            visible = expanded,
-            enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(180)) + androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(200)),
-            exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(140)) + androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(160))
-        ) {
-            Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                    .background(if (theme.isDark) Color.White.copy(0.06f) else Color.White)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
-                content = actions
-            )
-        }
-    }
-}
-
-/** یک ردیف دکمه کپسولی درون منوی کشویی */
-@Composable
-private fun CapsuleMenuItem(
+private fun ActionTile(
     icon: AppIcon,
     label: String,
     accent: Color,
-    primary: Boolean = false,
-    danger: Boolean = false,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bg = when {
-        primary -> accent.copy(0.78f)
-        danger -> accent.copy(0.10f)
-        else -> LocalThemeState.current.searchBgColor
+    val theme = LocalThemeState.current
+    val bg = if (filled) accent else accent.copy(0.10f)
+    val fg = if (filled) Color(0xFF422006) else accent
+    Column(
+        modifier
+            .height(66.dp)
+            .clip(DsRadius.Lg)
+            .background(bg)
+            .border(
+                BorderStroke(DsBorder.Hairline, if (filled) Color.Transparent else accent.copy(0.24f)),
+                DsRadius.Lg
+            )
+            .semantics { contentDescription = label }
+            .pressScale(0.95f)
+            .clickable(onClick = onClick),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        RoundedAppIcon(icon, tint = fg, size = 19.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (filled) fg else theme.inkColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
-    val textColor = when {
-        primary -> Color(0xFF202124)
-        else -> accent
-    }
-    var borderColor = LocalThemeState.current.borderColor
-    if (danger || primary) borderColor = accent.copy(if (primary) 0f else 0.30f)
-    Box(
-        Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Lg).background(bg)
-            .border(BorderStroke(DsBorder.Hairline, borderColor), DsRadius.Lg)
+}
+
+/** ردیفِ عملیات درونِ بخشِ مالی. */
+@Composable
+private fun BillingRow(
+    icon: AppIcon,
+    label: String,
+    accent: Color,
+    filled: Boolean = false,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val bg = if (filled) accent.copy(0.85f) else theme.searchBgColor
+    val fg = if (filled) Color(0xFF202124) else accent
+    Row(
+        Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Lg)
+            .background(bg)
+            .border(
+                BorderStroke(DsBorder.Hairline, if (filled) Color.Transparent else accent.copy(0.22f)),
+                DsRadius.Lg
+            )
+            .pressScale(0.98f)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
-        contentAlignment = Alignment.CenterStart
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundedAppIcon(icon, tint = textColor, size = 17.dp)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = textColor)
-        }
+        RoundedAppIcon(icon, tint = fg, size = 16.dp)
+        Text(label, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = fg)
+    }
+}
+
+/** چیپِ کوچکِ کنارِ لینک اشتراک. */
+@Composable
+private fun SubChip(icon: AppIcon, label: String, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.height(32.dp).clip(DsRadius.Full)
+            .background(theme.accentPrimary.copy(0.14f))
+            .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.32f)), DsRadius.Full)
+            .semantics { contentDescription = label }
+            .pressScale(0.94f)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        RoundedAppIcon(icon, tint = theme.accentPrimary, size = 13.dp)
+        Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
     }
 }
 
@@ -157,13 +200,23 @@ fun UserDetailsDialog(
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
-    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
     val scope = rememberCoroutineScope()
     var currentUser by remember(user) { mutableStateOf(user) }
     var editOpen by remember { mutableStateOf(false) }
     var qrOpen by remember { mutableStateOf(false) }
-    
-    // دریافت لینک اشتراک به‌صورت lazy
+    var usageConfirm by remember { mutableStateOf(false) }
+    var expiryConfirm by remember { mutableStateOf(false) }
+    var templatePickerOpen by remember { mutableStateOf(false) }
+    var availableTemplates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
+    var templatesLoading by remember { mutableStateOf(false) }
+    var templatesFailed by remember { mutableStateOf(false) }
+    var billingOpen by remember { mutableStateOf(false) }
+
+    val copiedMsg = stringResource(R.string.ud_copied)
+    val subFailedMsg = stringResource(R.string.ud_sub_failed)
+    val unlimitedLabel = stringResource(R.string.ud_unlimited)
+
+    // دریافتِ لینکِ اشتراک به‌صورت lazy (بعضی پاسخ‌های پنل subUrl ندارند).
     fun ensureSub(onResult: (String) -> Unit) {
         if (currentUser.subUrl.isNotBlank()) {
             onResult(currentUser.subUrl)
@@ -173,338 +226,398 @@ fun UserDetailsDialog(
                     currentUser = it
                     onResult(it.subUrl)
                 }.onFailure {
-                    android.widget.Toast.makeText(context, "دریافت لینک اشتراک ناموفق بود", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
             onResult(currentUser.subUrl)
         }
     }
-    
-    var usageConfirm by remember { mutableStateOf(false) }
-    var expiryConfirm by remember { mutableStateOf(false) }
-    var templatePickerOpen by remember { mutableStateOf(false) }
-    var availableTemplates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
-    var templatesLoading by remember { mutableStateOf(false) }
-    var templatesFailed by remember { mutableStateOf(false) }
-    var debtorMenuExpanded by remember { mutableStateOf(false) }
-    
-    val traffic = if (currentUser.dataLimit == 0L) (if (isFa) "نامحدود" else "Unlimited") else formatBytes(currentUser.dataLimit)
-    val percentage = if (currentUser.dataLimit > 0L) ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
-    val progressColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
 
-    fun section() = Modifier.fillMaxWidth().clip(DsRadius.Lg)
-        .background(theme.cardSurfaceColor)
-        .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg).padding(12.dp)
-
-    @Composable fun sectionTitle(text: String) = Text(text, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-    
-    @Composable fun statTile(label: String, value: String, modifier: Modifier = Modifier) {
-        Column(
-            modifier
-                .height(58.dp)
-                .clip(DsRadius.Md)
-                .background(theme.searchBgColor)
-                .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Md)
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(label, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-    
-    @Composable fun action(text: String, modifier: Modifier = Modifier, destructive: Boolean = false, primary: Boolean = false, height: androidx.compose.ui.unit.Dp = 44.dp, click: () -> Unit) {
-        val bg = when { primary -> theme.accentPrimary; destructive -> GlassRed.copy(.10f); else -> theme.searchBgColor }
-        val color = when { primary -> Color(0xFF202124); destructive -> GlassRed; else -> theme.inkColor }
-        var borderColor = theme.borderColor
-        if (destructive) borderColor = GlassRed.copy(.30f)
-        if (primary) borderColor = theme.accentPrimary
-        Box(
-            modifier
-                .height(height)
-                .clip(DsRadius.Md)
-                .background(bg)
-                .border(BorderStroke(0.7.dp, borderColor), DsRadius.Md)
-                .clickable(onClick = click),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text, fontSize = if (height <= 30.dp) 9.sp else 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
-        }
-    }
+    val unlimitedData = currentUser.dataLimit == 0L
+    val totalLabel = if (unlimitedData) unlimitedLabel else formatBytes(currentUser.dataLimit)
+    val percentage = if (currentUser.dataLimit > 0L)
+        ((currentUser.usedTraffic * 100f / currentUser.dataLimit).toInt()).coerceIn(0, 100) else 0
+    val usageColor = when { percentage < 70 -> GlassGreen; percentage < 90 -> GlassAmber; else -> GlassRed }
+    val remainingData = (currentUser.dataLimit - currentUser.usedTraffic).coerceAtLeast(0L)
+    // نوارِ مصرف به‌جای پرش، پر می‌شود.
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (unlimitedData) 1f else percentage / 100f,
+        animationSpec = DsAnim.enter(),
+        label = "usageBar"
+    )
+    val isActive = currentUser.status != "disabled"
 
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .heightIn(max = 760.dp)
                     .clip(DsRadius.Xxl)
-                    .background(theme.cardSurfaceColor)
-                    .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl)
+                    .background(theme.dialogBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
             ) {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // ── ۱) سربرگِ ثابت: بیرونِ ناحیهٔ اسکرول می‌ماند تا هنگام پایین
+                //     رفتن هم معلوم باشد داری کدام کاربر را می‌بینی.
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(theme.cardSurfaceColor)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(11.dp)
                 ) {
-                    // ── Header: Title + Close Button
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoundedAppIcon(AppIcon.User, tint = theme.accentPrimary, size = 20.dp)
-                            Text(
-                                if (isFa) "جزئیات کاربر" else "User Details",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = theme.inkColor
-                            )
-                        }
-                        IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                            Text("×", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        }
-                    }
-
-                    // ── User Identity & Activity Box
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(DsRadius.Lg)
-                            .background(theme.searchBgColor)
-                            .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            Modifier
-                                .size(32.dp)
-                                .clip(DsRadius.Xl)
-                                .background(if (currentUser.isOnline) GlassGreen.copy(0.14f) else Color.Gray.copy(0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(10.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (currentUser.isOnline) GlassGreen else Color.Gray)
-                            )
-                        }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            MrmText(
-                                currentUser.username,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                isTechnical = true
-                            )
-                            MrmText(
-                                lastSeenText(currentUser.onlineAt, currentUser.isOnline),
-                                fontSize = 11.sp,
-                                color = theme.mutedColor,
-                                maxLines = 1,
-                                isTechnical = true
-                            )
-                        }
-                        val active = currentUser.status != "disabled"
-                        Box(
-                            Modifier
-                                .height(26.dp)
-                                .clip(DsRadius.Sm)
-                                .background((if (active) GlassGreen else GlassRed).copy(alpha = 0.13f))
-                                .border(BorderStroke(0.8.dp, if (active) GlassGreen.copy(alpha = 0.35f) else GlassRed.copy(alpha = 0.35f)), DsRadius.Sm)
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                if (active) (if (isFa) "فعال" else "Active") else (if (isFa) "غیرفعال" else "Disabled"),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (active) GlassGreen else GlassRed
-                            )
-                        }
-                    }
-
-                    // ── User Note Section (If exists)
-                    if (!currentUser.note.isNullOrBlank()) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(DsRadius.Md)
-                                .background(theme.searchBgColor)
-                                .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Md)
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 16.dp)
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(if (isFa) "توضیحات" else "Note", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                                Text(currentUser.note.orEmpty(), fontSize = 12.sp, color = theme.inkColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-
-                    // ── Stats Section: Used / Total / Remaining
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(DsRadius.Lg)
-                            .background(theme.cardSurfaceColor)
-                            .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Lg)
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(if (isFa) "وضعیت اشتراک" else "Subscription Status", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            statTile(if (isFa) "مصرف‌شده" else "Used Traffic", formatBytes(currentUser.usedTraffic), Modifier.weight(1f))
-                            statTile(if (isFa) "حجم کل" else "Data Limit", traffic, Modifier.weight(1f))
-                            statTile(if (isFa) "زمان باقی‌مانده" else "Remaining Time", detailDaysText(currentUser.expire), Modifier.weight(1f))
-                        }
-                        // Custom Progress Bar with baseline-aligned percentage text
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (isFa) "مصرف" else "Usage", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                            Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
-                                if (percentage > 0) {
-                                    Box(Modifier.fillMaxWidth(percentage / 100f).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
-                                }
-                            }
-                            Text(
-                                text = if (currentUser.dataLimit == 0L) "∞" else "$percentage%",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = progressColor,
-                                style = androidx.compose.ui.text.TextStyle(
-                                    platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                                        includeFontPadding = false
-                                    )
+                    // آواتار: حرفِ اولِ نام + حلقهٔ سبز اگر آنلاین باشد.
+                    Box(
+                        Modifier.size(42.dp).clip(DsRadius.Full)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
                                 )
                             )
-                        }
-                    }
-
-                    // ── Subscription Action Chips (Copy Link / Show QR)
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(DsRadius.Md)
-                            .background(theme.searchBgColor)
-                            .border(BorderStroke(0.7.dp, theme.borderColor), DsRadius.Md)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .border(
+                                BorderStroke(
+                                    if (currentUser.isOnline) 2.dp else DsBorder.Hairline,
+                                    if (currentUser.isOnline) GlassGreen else theme.borderColor
+                                ),
+                                DsRadius.Full
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(if (isFa) "لینک اشتراک" else "Subscription Link", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(
-                                Modifier
-                                    .height(30.dp)
-                                    .clip(DsRadius.Sm)
-                                    .background(theme.accentPrimary.copy(alpha = 0.12f))
-                                    .border(BorderStroke(0.8.dp, theme.accentPrimary.copy(alpha = 0.35f)), DsRadius.Sm)
-                                    .clickable {
-                                        ensureSub { url ->
-                                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
-                                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    RoundedAppIcon(AppIcon.Copy, tint = theme.accentPrimary, size = 12.dp)
-                                    Text(if (isFa) "کپی" else "Copy", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
-                                }
-                            }
-                            Box(
-                                Modifier
-                                    .height(30.dp)
-                                    .clip(DsRadius.Sm)
-                                    .background(theme.accentPrimary.copy(alpha = 0.12f))
-                                    .border(BorderStroke(0.8.dp, theme.accentPrimary.copy(alpha = 0.35f)), DsRadius.Sm)
-                                    .clickable { ensureSub { _ -> qrOpen = true } }
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    RoundedAppIcon(AppIcon.Qr, tint = theme.accentPrimary, size = 12.dp)
-                                    Text(if (isFa) "بارکد" else "QR", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
-                                }
-                            }
-                        }
+                        Text(
+                            currentUser.username.take(1).uppercase(),
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = theme.inkColor
+                        )
                     }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        MrmText(
+                            currentUser.username,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            isTechnical = true
+                        )
+                        MrmText(
+                            lastSeenText(currentUser.onlineAt, currentUser.isOnline),
+                            fontSize = 10.5.sp,
+                            color = theme.mutedColor,
+                            maxLines = 1,
+                            isTechnical = true
+                        )
+                    }
+                    // وضعیت به‌صورت نقطه + متن؛ کوچک ولی خوانا.
+                    Row(
+                        Modifier.height(26.dp).clip(DsRadius.Full)
+                            .background((if (isActive) GlassGreen else GlassRed).copy(0.13f))
+                            .padding(horizontal = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Box(
+                            Modifier.size(6.dp).clip(RoundedCornerShape(50))
+                                .background(if (isActive) GlassGreen else GlassRed)
+                        )
+                        Text(
+                            stringResource(if (isActive) R.string.active else R.string.disabled),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isActive) GlassGreen else GlassRed
+                        )
+                    }
+                    Box(
+                        Modifier.size(28.dp).clip(DsRadius.Full)
+                            .background(theme.searchBgColor)
+                            .semantics { contentDescription = stringResource(R.string.ud_close) }
+                            .pressScale(0.9f)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) { Text("×", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
+                }
+                Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
 
-                    // ── Financial Section (Debtor / Invoice Dropdown Accordion)
-                    if (debtorInfo != null) {
-                        CapsuleActionMenu(
-                            label = if (isFa) "بخش مالی · ${debtorInfo.amount} ${debtorInfo.currency}" else "Financial · ${debtorInfo.amount} ${debtorInfo.currency}",
-                            expanded = debtorMenuExpanded,
-                            onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded },
-                            isDebtor = true
-                        ) {
+                Column(
+                    Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 14.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // ── ۲) کارتِ قهرمان: مصرف
+                    Column(
+                        Modifier.fillMaxWidth().clip(DsRadius.Xl)
+                            .background(theme.cardSurfaceColor)
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    stringResource(R.string.ud_used),
+                                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
+                                )
+                                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    MrmText(
+                                        formatBytes(currentUser.usedTraffic),
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        isTechnical = true
+                                    )
+                                    MrmText(
+                                        "/ $totalLabel",
+                                        fontSize = 11.sp,
+                                        color = theme.mutedColor,
+                                        fontWeight = FontWeight.Bold,
+                                        isTechnical = true,
+                                        modifier = Modifier.padding(bottom = 3.dp)
+                                    )
+                                }
+                            }
+                            // درصد، بزرگ و هم‌رنگِ وضعیتِ مصرف.
                             Text(
-                                (if (isFa) "ثبت شده در: " else "Marked at: ") +
-                                java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(debtorInfo.markedAt)) +
-                                (if (debtorInfo.notes.isNotBlank()) " - ${debtorInfo.notes}" else ""),
-                                fontSize = 10.sp, color = theme.mutedColor
+                                if (unlimitedData) "∞" else "$percentage%",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = usageColor,
+                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                             )
-                            if (debtorInfo.autoDisabled) {
-                                Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(GlassRed.copy(0.14f)).padding(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 14.dp)
-                                    Text(if (isFa) "به صورت خودکار به دلیل بدهی قطع شده است" else "Automatically disabled due to overdue debt", fontSize = 10.sp, color = GlassRed, fontWeight = FontWeight.Bold)
+                        }
+                        // نوارِ ضخیم‌تر از قبل (۸ به‌جای ۴) تا نقشِ «قهرمان» را بازی کند.
+                        Box(
+                            Modifier.fillMaxWidth().height(8.dp).clip(DsRadius.Full)
+                                .background(if (theme.isDark) Color.White.copy(0.10f) else Color(0xFFF1F2F4))
+                        ) {
+                            Box(
+                                Modifier.fillMaxWidth(animatedFraction).fillMaxHeight()
+                                    .clip(DsRadius.Full)
+                                    .background(
+                                        if (unlimitedData) Brush.horizontalGradient(
+                                            listOf(theme.accentPrimary.copy(0.55f), theme.accentPrimary)
+                                        ) else Brush.horizontalGradient(listOf(usageColor.copy(0.65f), usageColor))
+                                    )
+                            )
+                        }
+                        // دو معیارِ باقی‌مانده، هم‌وزن و کنارِ هم.
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            MetricPill(
+                                icon = AppIcon.Timer,
+                                label = stringResource(R.string.ud_remaining_time),
+                                value = daysLeftLabel(currentUser.expire),
+                                modifier = Modifier.weight(1f)
+                            )
+                            MetricPill(
+                                icon = AppIcon.Storage,
+                                label = stringResource(R.string.ud_remaining_data),
+                                value = if (unlimitedData) unlimitedLabel else formatBytes(remainingData),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // ── توضیحاتِ کاربر (فقط اگر وجود داشته باشد)
+                    if (!currentUser.note.isNullOrBlank()) {
+                        Row(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.searchBgColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
+                        ) {
+                            RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 15.dp)
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(
+                                    stringResource(R.string.ud_note),
+                                    fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
+                                )
+                                Text(
+                                    currentUser.note.orEmpty(),
+                                    fontSize = 11.5.sp, color = theme.inkColor,
+                                    maxLines = 3, overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    // ── ۳) لینک اشتراک
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SectionLabel(stringResource(R.string.ud_subscription))
+                        Row(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.searchBgColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 15.dp)
+                            MrmText(
+                                currentUser.subUrl.ifBlank { "—" },
+                                fontSize = 10.sp,
+                                color = theme.mutedColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                isTechnical = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            SubChip(AppIcon.Copy, stringResource(R.string.ud_copy)) {
+                                ensureSub { url ->
+                                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
+                                    android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
                                 }
                             }
-                            CapsuleMenuItem(AppIcon.CheckCircle, if (isFa) "تسویه بدهی" else "Clear Debt", GlassGreen, primary = true) { onClearDebt?.invoke() }
-                            CapsuleMenuItem(AppIcon.Edit, if (isFa) "ویرایش بدهی" else "Edit Debt", GlassRed, danger = true) { onMarkDebtor?.invoke() }
-                            CapsuleMenuItem(AppIcon.Receipt, if (isFa) "صدور فاکتور" else "Issue Invoice", theme.accentPrimary) { onInvoice?.invoke() }
-                        }
-                    } else {
-                        CapsuleActionMenu(
-                            label = if (isFa) "بخش مالی" else "Financial Section",
-                            expanded = debtorMenuExpanded,
-                            onToggleExpand = { debtorMenuExpanded = !debtorMenuExpanded }
-                        ) {
-                            CapsuleMenuItem(AppIcon.Warning, if (isFa) "ثبت بدهکار" else "Mark Debtor", GlassRed, danger = true) { onMarkDebtor?.invoke() }
-                            CapsuleMenuItem(AppIcon.Receipt, if (isFa) "صدور فاکتور" else "Issue Invoice", theme.accentPrimary) { onInvoice?.invoke() }
+                            SubChip(AppIcon.Qr, stringResource(R.string.ud_qr)) { ensureSub { qrOpen = true } }
                         }
                     }
 
-                    // ── Primary Action Buttons: Templates & Edit User
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        action(if (isFa) "تمپلت‌ها" else "Templates", Modifier.weight(1f)) { templatePickerOpen = true }
-                        action(if (isFa) "ویرایش کاربر" else "Edit User", Modifier.weight(2f), primary = true) { editOpen = true }
-                    }
-
-                    // ── Quick Actions Grid Box
-                    Column(section(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        sectionTitle(if (isFa) "عملیات سریع" else "Quick Actions")
+                    // ── ۴) عملیات: ویرایش پررنگ‌ترین است، بقیه هم‌وزن در یک شبکه
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SectionLabel(stringResource(R.string.ud_manage))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            action(if (isFa) "ریست حجم" else "Reset Data", Modifier.weight(1f)) { usageConfirm = true }
-                            action(if (isFa) "ریست زمان" else "Reset Expiry", Modifier.weight(1f)) { expiryConfirm = true }
+                            ActionTile(
+                                icon = AppIcon.Edit,
+                                label = stringResource(R.string.ud_edit),
+                                accent = theme.accentPrimary,
+                                filled = true,
+                                modifier = Modifier.weight(2f)
+                            ) { editOpen = true }
+                            ActionTile(
+                                icon = AppIcon.Template,
+                                label = stringResource(R.string.ud_template),
+                                accent = theme.accentPrimary,
+                                modifier = Modifier.weight(1f)
+                            ) { templatePickerOpen = true }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            action(
-                                text = if (currentUser.status == "disabled") (if (isFa) "فعال‌سازی" else "Enable") else (if (isFa) "غیرفعال‌سازی" else "Disable"),
+                            ActionTile(
+                                icon = AppIcon.Reset,
+                                label = stringResource(R.string.ud_reset_data),
+                                accent = DsSemantic.Violet,
+                                modifier = Modifier.weight(1f)
+                            ) { usageConfirm = true }
+                            ActionTile(
+                                icon = AppIcon.Calendar,
+                                label = stringResource(R.string.ud_reset_time),
+                                accent = DsSemantic.Violet,
+                                modifier = Modifier.weight(1f)
+                            ) { expiryConfirm = true }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ActionTile(
+                                icon = if (isActive) AppIcon.StatusDisabled else AppIcon.CheckCircle,
+                                label = stringResource(if (isActive) R.string.ud_disable else R.string.ud_enable),
+                                accent = if (isActive) GlassAmber else GlassGreen,
                                 modifier = Modifier.weight(1f)
                             ) { onToggle() }
-                            action(if (isFa) "حذف کاربر" else "Delete User", Modifier.weight(1f), destructive = true) { onDelete() }
+                            ActionTile(
+                                icon = AppIcon.Delete,
+                                label = stringResource(R.string.ud_delete),
+                                accent = GlassRed,
+                                modifier = Modifier.weight(1f)
+                            ) { onDelete() }
                         }
                     }
 
-                    // ── Bottom Close Button
-                    SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                    // ── ۵) مالی: جمع‌شونده، چون همیشه لازم نیست
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SectionLabel(stringResource(R.string.ud_financial))
+                        val hasDebt = debtorInfo != null
+                        val billingAccent = if (hasDebt) GlassRed else theme.accentPrimary
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Xl)
+                                .background(if (hasDebt) billingAccent.copy(0.07f) else theme.cardSurfaceColor)
+                                .border(
+                                    BorderStroke(DsBorder.Hairline, if (hasDebt) billingAccent.copy(0.28f) else theme.borderColor),
+                                    DsRadius.Xl
+                                )
+                                .padding(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Lg)
+                                    .pressScale(0.985f)
+                                    .clickable { billingOpen = !billingOpen }
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(9.dp)
+                            ) {
+                                RoundedAppIcon(
+                                    if (hasDebt) AppIcon.Warning else AppIcon.Money,
+                                    tint = billingAccent, size = 17.dp
+                                )
+                                Text(
+                                    if (hasDebt) String.format(
+                                        stringResource(R.string.ud_debt_of),
+                                        debtorInfo!!.amount.toString(), debtorInfo.currency
+                                    ) else stringResource(R.string.ud_invoice),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (hasDebt) billingAccent else theme.inkColor,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                val rotation by animateFloatAsState(
+                                    targetValue = if (billingOpen) 180f else 0f,
+                                    animationSpec = DsAnim.normal(),
+                                    label = "billingChevron"
+                                )
+                                RoundedAppIcon(
+                                    AppIcon.ChevronDown, tint = billingAccent, size = 15.dp,
+                                    modifier = Modifier.graphicsLayer { rotationZ = rotation }
+                                )
+                            }
+                            AnimatedVisibility(
+                                visible = billingOpen,
+                                enter = DsTransition.expandEnter,
+                                exit = DsTransition.expandExit
+                            ) {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (debtorInfo != null) {
+                                        val stamp = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
+                                            .format(java.util.Date(debtorInfo.markedAt))
+                                        Text(
+                                            String.format(stringResource(R.string.ud_marked_at), stamp) +
+                                                if (debtorInfo.notes.isNotBlank()) " · ${debtorInfo.notes}" else "",
+                                            fontSize = 10.sp, color = theme.mutedColor,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                        if (debtorInfo.autoDisabled) {
+                                            Row(
+                                                Modifier.fillMaxWidth().clip(DsRadius.Md)
+                                                    .background(GlassRed.copy(0.12f)).padding(9.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                            ) {
+                                                RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 13.dp)
+                                                Text(
+                                                    stringResource(R.string.ud_auto_disabled),
+                                                    fontSize = 10.sp, color = GlassRed, fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        BillingRow(AppIcon.CheckCircle, stringResource(R.string.ud_clear_debt), GlassGreen, filled = true) { onClearDebt?.invoke() }
+                                        BillingRow(AppIcon.Edit, stringResource(R.string.ud_edit_debt), GlassRed) { onMarkDebtor?.invoke() }
+                                    } else {
+                                        BillingRow(AppIcon.Warning, stringResource(R.string.ud_mark_debtor), GlassRed) { onMarkDebtor?.invoke() }
+                                    }
+                                    BillingRow(AppIcon.Receipt, stringResource(R.string.ud_invoice), theme.accentPrimary) { onInvoice?.invoke() }
+                                }
+                            }
+                        }
+                    }
+
+                    SecondaryButton(
+                        stringResource(R.string.ud_close),
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -548,8 +661,8 @@ fun UserDetailsDialog(
 
     if (usageConfirm) {
         ConfirmActionDialog(
-            title = if (isFa) "ریست حجم مصرف‌شده؟" else "Reset Used Data?",
-            message = if (isFa) "مصرف این کاربر صفر می‌شود." else "The user's usage will be set to zero.",
+            title = stringResource(R.string.ud_reset_data_title),
+            message = stringResource(R.string.ud_reset_data_msg),
             onDismiss = { usageConfirm = false },
             onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() }
         )
@@ -560,5 +673,37 @@ fun UserDetailsDialog(
             onDismiss = { expiryConfirm = false },
             onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) }
         )
+    }
+}
+
+/** معیارِ کوچکِ داخلِ کارتِ مصرف (زمان/حجمِ باقی‌مانده). */
+@Composable
+private fun MetricPill(
+    icon: AppIcon,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalThemeState.current
+    Row(
+        modifier.height(44.dp).clip(DsRadius.Lg)
+            .background(theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        RoundedAppIcon(icon, tint = theme.mutedColor, size = 15.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(label, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
+            MrmText(
+                value,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                isTechnical = true
+            )
+        }
     }
 }
