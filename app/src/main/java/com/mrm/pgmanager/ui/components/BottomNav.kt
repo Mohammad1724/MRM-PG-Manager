@@ -36,7 +36,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
@@ -103,10 +105,12 @@ fun MrmFloatingNav(
     androidx.compose.animation.AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = androidx.compose.animation.fadeIn(animationSpec = tween(180)) +
-            androidx.compose.animation.slideInVertically(animationSpec = tween(220)) { it / 2 },
-        exit = androidx.compose.animation.fadeOut(animationSpec = tween(150)) +
-            androidx.compose.animation.slideOutVertically(animationSpec = tween(200)) { it / 2 }
+        // ورود: از پایین سُر می‌خورد و نرم می‌ایستد. خروج: کوتاه‌تر و تندشونده،
+        // چون منتظرِ رفتنِ نوار ماندن آزاردهنده است.
+        enter = androidx.compose.animation.fadeIn(DsAnim.enter()) +
+            androidx.compose.animation.slideInVertically(DsAnim.enter()) { it / 2 },
+        exit = androidx.compose.animation.fadeOut(DsAnim.exit()) +
+            androidx.compose.animation.slideOutVertically(DsAnim.exit()) { it / 2 }
     ) {
         Box(
             Modifier
@@ -151,11 +155,11 @@ private fun NavChip(
     val theme = LocalThemeState.current
     val bg by animateColorAsState(
         if (selected) theme.accentPrimary else Color.Transparent,
-        animationSpec = tween(200), label = "navChipBg"
+        animationSpec = DsAnim.normal(), label = "navChipBg"
     )
     val tint by animateColorAsState(
         if (selected) Color(0xFF422006) else theme.mutedColor,
-        animationSpec = tween(200), label = "navChipTint"
+        animationSpec = DsAnim.normal(), label = "navChipTint"
     )
     Row(
         modifier
@@ -164,6 +168,7 @@ private fun NavChip(
             .clip(DsRadius.Full)
             .background(bg)
             .semantics { contentDescription = label }
+            .pressScale(0.94f)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
