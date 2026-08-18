@@ -459,4 +459,37 @@
     <string name="set_rs_pick_one">Select at least one section</string>
     <string name="set_rs_done">%1$s\nPlease close and reopen the app once.</string>
     <string name="set_rs_ok_toast">Restore successful</string>
+    <!-- دیالوگ جزئیات کاربر (بازطراحی) -->
+    <string name="ud_used">Used</string>
+    <string name="ud_total">Total</string>
+    <string name="ud_remaining_time">Time left</string>
+    <string name="ud_remaining_data">Data left</string>
+    <string name="ud_note">Note</string>
+    <string name="ud_subscription">Subscription link</string>
+    <string name="ud_copy">Copy</string>
+    <string name="ud_qr">QR code</string>
+    <string name="ud_copied">Subscription link copied</string>
+    <string name="ud_sub_failed">Could not fetch the subscription link</string>
+    <string name="ud_manage">Manage</string>
+    <string name="ud_edit">Edit user</string>
+    <string name="ud_template">Template</string>
+    <string name="ud_reset_data">Reset data</string>
+    <string name="ud_reset_time">Reset time</string>
+    <string name="ud_enable">Enable</string>
+    <string name="ud_disable">Disable</string>
+    <string name="ud_delete">Delete</string>
+    <string name="ud_financial">Billing</string>
+    <string name="ud_debt_of">Debt %1$s %2$s</string>
+    <string name="ud_marked_at">Marked %1$s</string>
+    <string name="ud_auto_disabled">Automatically disabled because of overdue debt</string>
+    <string name="ud_clear_debt">Settle debt</string>
+    <string name="ud_edit_debt">Edit debt</string>
+    <string name="ud_mark_debtor">Mark as debtor</string>
+    <string name="ud_invoice">Issue invoice</string>
+    <string name="ud_close">Close</string>
+    <string name="ud_unlimited">Unlimited</string>
+    <string name="ud_expired">Expired</string>
+    <string name="ud_days">%1$s days</string>
+    <string name="ud_reset_data_title">Reset used data?</string>
+    <string name="ud_reset_data_msg">This user\'s usage will be set to zero.</string>
 </resources>
