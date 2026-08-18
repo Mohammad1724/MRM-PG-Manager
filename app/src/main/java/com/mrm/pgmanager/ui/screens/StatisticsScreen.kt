@@ -47,7 +47,6 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
-import com.mrm.pgmanager.utils.formatUptime
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,7 +174,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
-                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText(formatUptime(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
 
@@ -218,10 +217,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             }
                         }
                         Box {
-                            PGDropdown(value = countMetric.label, onClick = { metricMenuOpen = true })
+                            PGDropdown(value = stringResource(countMetric.labelRes), onClick = { metricMenuOpen = true })
                             DropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
                                 CountMetric.entries.forEach { m ->
-                                    DropdownMenuItem(text = { Text(m.label) }, onClick = { countMetric = m; metricMenuOpen = false })
+                                    DropdownMenuItem(text = { Text(stringResource(m.labelRes)) }, onClick = { countMetric = m; metricMenuOpen = false })
                                 }
                             }
                         }
