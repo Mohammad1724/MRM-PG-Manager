@@ -201,7 +201,7 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundedAppIcon(AppIcon.Search, contentDescription = "جستجو", tint = theme.mutedColor, size = 16.dp)
+            RoundedAppIcon(AppIcon.Search, contentDescription = stringResource(R.string.search), tint = theme.mutedColor, size = 16.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (query.isEmpty()) Text(stringResource(R.string.search), color = theme.mutedColor.copy(0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
@@ -244,7 +244,7 @@ private fun TopBarHeader(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
-                if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, contentDescription = "بروزرسانی", tint = theme.mutedColor, size = 14.dp)
+                if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, contentDescription = stringResource(R.string.refresh), tint = theme.mutedColor, size = 14.dp)
             }
             Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).semantics { contentDescription = settingsLabel }.clickable(onClick = onOpenSettings), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
@@ -458,8 +458,8 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                 if (displayProgress > 0f) Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(50)).background(progressColor))
             }
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconGridAction(AppIcon.Copy, contentDesc = "کپی لینک اشتراک") { onCopySub(user) }
-                IconGridAction(AppIcon.Qr, contentDesc = "نمایش QR") { onQrClick(user) }
+                IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
+                IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
                 Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
                     OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
                 }
@@ -570,7 +570,7 @@ private fun RowAction(label: String, modifier: Modifier = Modifier, height: andr
 private fun copySubscription(context: Context, user: PanelUser) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-    android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+    android.widget.Toast.makeText(context, context.getString(R.string.us_sub_copied), android.widget.Toast.LENGTH_SHORT).show()
 }
 
 @Composable
@@ -686,7 +686,7 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
-                IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = "کپی") { onCopySub(user) }
+                IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
                 IconCardAction(AppIcon.Qr, Modifier.size(34.dp), contentDesc = "QR") { onQrClick(user) }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -745,7 +745,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
                     if (actualProgress > 0.01f) Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
                 }
             }
-            IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = "کپی") { onCopySub(user) }
+            IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
             IconRowAction(AppIcon.Qr, Modifier.size(24.dp), contentDesc = "QR") { onQrClick(user) }
         }
     }
@@ -755,7 +755,7 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
 fun DebtorEditDialog(
     user: PanelUser,
     existing: DebtorInfo?,
-    currency: String = "تومان",
+    currency: String = stringResource(R.string.us_currency),
     onDismiss: () -> Unit,
     onSave: (amount: Long, notes: String) -> Unit,
     onClear: () -> Unit
@@ -767,9 +767,9 @@ fun DebtorEditDialog(
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (existing != null) "ویرایش بدهی ${user.username}" else "ثبت بدهکار برای ${user.username}", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 if (existing != null) {
-                    Text("ثبت شده: ${java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))}", fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -782,7 +782,7 @@ fun DebtorEditDialog(
                             textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
                             modifier = Modifier.weight(1f),
                             decorationBox = { inner ->
-                                if (amountText.isEmpty()) Text("مبلغ بدهی (مثلاً 50000)", color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+                                if (amountText.isEmpty()) Text(stringResource(R.string.us_debt_amount_hint), color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
                                 inner()
                             }
                         )
@@ -796,21 +796,21 @@ fun DebtorEditDialog(
                         textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
                         modifier = Modifier.fillMaxWidth(),
                         decorationBox = { inner ->
-                            if (notes.isEmpty()) Text("یادداشت بدهی (اختیاری)", color = theme.mutedColor.copy(0.6f), fontSize = 11.sp)
+                            if (notes.isEmpty()) Text(stringResource(R.string.us_debt_note_hint), color = theme.mutedColor.copy(0.6f), fontSize = 11.sp)
                             inner()
                         }
                     )
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                    SecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     if (existing != null) {
-                        PrimaryButton("تسویه ✅", onClick = { onClear() }, modifier = Modifier.weight(1f))
+                        PrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
                     } else {
                         Box(Modifier.weight(1f))
                     }
                 }
                 PrimaryButton(
-                    text = if (existing != null) "ذخیره تغییرات" else "ثبت بدهکار",
+                    text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
                     enabled = amountLong > 0L,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onSave(amountLong, notes) }
@@ -874,7 +874,7 @@ fun UsersScreen(
     fun fetchSub(user: PanelUser, onResult: (PanelUser) -> Unit) {
         scope.launch {
             runCatching { PanelApi.user(session, user.username) }.onSuccess(onResult)
-                .onFailure { android.widget.Toast.makeText(context, "دریافت لینک اشتراک ناموفق بود", android.widget.Toast.LENGTH_SHORT).show() }
+                .onFailure { android.widget.Toast.makeText(context, context.getString(R.string.ud_sub_failed), android.widget.Toast.LENGTH_SHORT).show() }
         }
     }
     fun copySubWithFetch(user: PanelUser) {
@@ -922,21 +922,21 @@ fun UsersScreen(
                         val current = nextStates[u.id] ?: return@forEach
                         if (previous == current) return@forEach
                         fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text)
-                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), "کاربر محدود شد", "${u.username} به سقف حجم رسیده است")
-                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), "اشتراک منقضی شد", "اشتراک ${u.username} منقضی شده است")
+                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
+                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
                         val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                         val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
-                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), "هشدار مصرف", "${u.username} به $usage٪ مصرف حجم رسیده است")
+                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
                         val nearExpiry = current.substringAfterLast("|").toBoolean()
                         val wasNearExpiry = previous.substringAfterLast("|").toBoolean()
-                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), "هشدار انقضا", "اشتراک ${u.username} نزدیک به انقضا است")
+                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
                     }
                 }
                 lastUserStates = nextStates
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
                 if (it.message?.contains("401") == true) {
-                    android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
                     onLogout()
                 } else {
                     val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
@@ -958,10 +958,10 @@ fun UsersScreen(
             runCatching { action() }.onFailure {
                 error = it.message
                 if (it.message?.contains("401") == true) {
-                    android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
                     onLogout()
                 } else {
-                    android.widget.Toast.makeText(context, "خطا: ${it.message?.take(120)}", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()), android.widget.Toast.LENGTH_LONG).show()
                 }
             }.onSuccess { notification?.let { (title, message) -> val settings = store.readMonitoringSettings(); if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message) }; load() }
         }
@@ -976,7 +976,7 @@ fun UsersScreen(
                 out.use { it.write(if (payload.first == "json") com.mrm.pgmanager.utils.usersToJson(payload.second).toByteArray(Charsets.UTF_8) else com.mrm.pgmanager.utils.usersToCsv(payload.second).toByteArray(Charsets.UTF_8)) }
             }.isSuccess
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, if (ok) "فایل با موفقیت ذخیره شد" else "خطا در ذخیرهٔ فایل", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, context.getString(if (ok) R.string.us_file_saved else R.string.us_file_save_failed), android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -984,7 +984,7 @@ fun UsersScreen(
     val exportJsonLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { writeExport(it) }
     fun beginExport(format: String) {
         val chosen = users.filter { selectedUserIds.contains(it.id) }
-        if (chosen.isEmpty()) { android.widget.Toast.makeText(context, "ابتدا کاربرها را انتخاب کن", android.widget.Toast.LENGTH_SHORT).show(); return }
+        if (chosen.isEmpty()) { android.widget.Toast.makeText(context, context.getString(R.string.us_select_first), android.widget.Toast.LENGTH_SHORT).show(); return }
         exportPending = format to chosen
         if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
@@ -1141,9 +1141,9 @@ fun UsersScreen(
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("خطا", fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
+                            Text(stringResource(R.string.us_error), fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                            SecondaryButton("تلاش مجدد", onClick = { load() }, modifier = Modifier.fillMaxWidth())
+                            SecondaryButton(stringResource(R.string.us_retry), onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                     processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Lg).padding(28.dp), contentAlignment = Alignment.Center) {
@@ -1260,10 +1260,10 @@ fun UsersScreen(
                         onClear = { selectedUserIds = emptySet() },
                         onSelectAll = { selectedUserIds = processedUsers.map { it.id }.toSet() },
                         onExport = { exportChooserOpen = true },
-                        onDelete = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = "حذف ${ids.size} کاربر؟", message = "این کاربرها برای همیشه حذف می‌شوند و غیرقابل‌بازگشت هستند.", confirmLabel = "حذف", danger = true, action = { runAction(notification = "حذف گروهی" to "${ids.size} کاربر حذف شدند") { PanelApi.bulkDeleteUsers(session, ids) } }) },
-                        onResetUsage = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = "ریست حجم ${ids.size} کاربر؟", message = "مصرفِ این کاربرها صفر می‌شود.", confirmLabel = "تایید", action = { runAction(notification = "ریست حجم گروهی" to "مصرف ${ids.size} کاربر صفر شد") { PanelApi.bulkResetUsersUsage(session, ids) } }) },
-                        onDisable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = "غیرفعال‌سازی ${ids.size} کاربر؟", message = "این کاربرها غیرفعال می‌شوند و اتصالشان قطع می‌شود.", confirmLabel = "تایید", action = { runAction(notification = "غیرفعال‌سازی گروهی" to "${ids.size} کاربر غیرفعال شدند") { PanelApi.bulkDisableUsers(session, ids) } }) },
-                        onEnable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = "فعال‌سازی ${ids.size} کاربر؟", message = "این کاربرها فعال می‌شوند.", confirmLabel = "تایید", action = { runAction(notification = "فعال‌سازی گروهی" to "${ids.size} کاربر فعال شدند") { PanelApi.bulkEnableUsers(session, ids) } }) },
+                        onDelete = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, action = { runAction(notification = context.getString(R.string.us_n_bulk_delete) to context.getString(R.string.us_n_bulk_delete_body, ids.size)) { PanelApi.bulkDeleteUsers(session, ids) } }) },
+                        onResetUsage = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_reset_title, ids.size), message = context.getString(R.string.us_bulk_reset_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_reset) to context.getString(R.string.us_n_bulk_reset_body, ids.size)) { PanelApi.bulkResetUsersUsage(session, ids) } }) },
+                        onDisable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_disable_title, ids.size), message = context.getString(R.string.us_bulk_disable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_disable) to context.getString(R.string.us_n_bulk_disable_body, ids.size)) { PanelApi.bulkDisableUsers(session, ids) } }) },
+                        onEnable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size)) { PanelApi.bulkEnableUsers(session, ids) } }) },
                         onApplyTemplate = {
                             showBulkTemplateDialog = true
                         }
@@ -1346,11 +1346,11 @@ fun UsersScreen(
             user = u,
             onDismiss = { quickActionUser = null },
             onUseTemplate = { quickTemplateUser = u },
-            onToggle = { runAction(notification = "وضعیت کاربر" to "وضعیت ${u.username} تغییر کرد") { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
+            onToggle = { runAction(notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username)) { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
             onCopySub = { copySubWithFetch(u) },
             onQr = { qrUser = u },
             onEdit = { selectedUser = u },
-            onResetUsage = { runAction(notification = "ریست حجم" to "مصرف ${u.username} صفر شد") { PanelApi.resetUsage(session, u.username) } },
+            onResetUsage = { runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username)) { PanelApi.resetUsage(session, u.username) } },
             onResetExpiry = { resetExpiryTarget = u },
             onDelete = { deleteUser = u },
             onDebtor = { debtorDialogUser = u },
@@ -1370,10 +1370,10 @@ fun UsersScreen(
             onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },
             onResetUsage = {
-                selectedUser = null; runAction(notification = "ریست حجم" to "مصرف ${user.username} صفر شد") { PanelApi.resetUsage(session, user.username) }
+                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user.username) }
             },
             onResetExpiry = { days ->
-                selectedUser = null; runAction(notification = "ریست زمان" to "زمان ${user.username} به $days روز ریست شد") {
+                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
                     val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
                     PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
                 }
@@ -1389,7 +1389,7 @@ fun UsersScreen(
                 store.removeDebtor(session.baseUrl, user.username)
                 reloadDebtors()
                 selectedUser = null
-                android.widget.Toast.makeText(context, "بدهی تسویه شد", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
                 if (wasAutoDisabled) {
                     scope.launch {
                         runCatching { PanelApi.setDisabled(session, user.username, false) }.onSuccess { load() }
@@ -1405,10 +1405,10 @@ fun UsersScreen(
     if (createMenuOpen) {
         Dialog(onDismissRequest = { createMenuOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("ساخت کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                SettingsActionRow("ساخت تکی", "یک کاربر جدید با فرم کامل", AppIcon.UserAdd, themeState.accentPrimary) { createMenuOpen = false; createUser = true }
-                SettingsActionRow("ساخت گروهی", "چند کاربر هم‌زمان با الگوی نام، از تمپلت یا دستی", AppIcon.Users, GlassGreen) { createMenuOpen = false; bulkCreateOpen = true }
-                SecondaryButton("انصراف", onClick = { createMenuOpen = false }, modifier = Modifier.fillMaxWidth())
+                Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { createMenuOpen = false; createUser = true }
+                SettingsActionRow(stringResource(R.string.us_create_bulk), stringResource(R.string.us_create_bulk_desc), AppIcon.Users, GlassGreen) { createMenuOpen = false; bulkCreateOpen = true }
+                SecondaryButton(stringResource(R.string.us_cancel), onClick = { createMenuOpen = false }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -1418,30 +1418,30 @@ fun UsersScreen(
     if (exportChooserOpen) {
         Dialog(onDismissRequest = { exportChooserOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("خروجی ${selectedUserIds.size} کاربر", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                Text("فرمت فایل را انتخاب کن؛ سپس محل ذخیره‌سازی پرسیده می‌شود.", fontSize = 10.sp, color = themeState.mutedColor)
-                SettingsActionRow("خروجی CSV", "مناسب اکسل و گزارش‌گیری", AppIcon.Download, GlassGreen) { exportChooserOpen = false; beginExport("csv") }
-                SettingsActionRow("خروجی JSON", "مناسب برنامه‌نویسی و بکاپ", AppIcon.Download, themeState.accentPrimary) { exportChooserOpen = false; beginExport("json") }
-                SecondaryButton("انصراف", onClick = { exportChooserOpen = false }, modifier = Modifier.fillMaxWidth())
+                Text(stringResource(R.string.us_export_title, selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
+                Text(stringResource(R.string.us_export_desc), fontSize = 10.sp, color = themeState.mutedColor)
+                SettingsActionRow(stringResource(R.string.us_export_csv), stringResource(R.string.us_export_csv_desc), AppIcon.Download, GlassGreen) { exportChooserOpen = false; beginExport("csv") }
+                SettingsActionRow(stringResource(R.string.us_export_json), stringResource(R.string.us_export_json_desc), AppIcon.Download, themeState.accentPrimary) { exportChooserOpen = false; beginExport("json") }
+                SecondaryButton(stringResource(R.string.us_cancel), onClick = { exportChooserOpen = false }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction(notification = "کاربر جدید" to "${limitGb.username} ساخته شد") { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
+        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
     }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null, onSaveWithTemplate = { username, templateId, note ->
-        createUser = false; runAction(notification = "کاربر جدید" to "$username از تمپلت ساخته شد") { PanelApi.createUserFromTemplate(session, username, templateId, note) }
+        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)
     deleteUser?.let { user ->
         val theme = LocalThemeState.current
         Dialog(onDismissRequest = { deleteUser = null }) {
             Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("حذف ${user.username}؟", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Text("غیرقابل بازگشت", color = theme.mutedColor, fontSize = 13.sp)
+                    Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.us_delete_user_msg), color = theme.mutedColor, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        SecondaryButton("انصراف", onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
+                        SecondaryButton(stringResource(R.string.us_cancel), onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(10.dp))
-                        DangerButton("حذف", onClick = { deleteUser = null; runAction(notification = "حذف کاربر" to "${user.username} حذف شد") { PanelApi.deleteUser(session, user.username) } }, modifier = Modifier.weight(1f))
+                        DangerButton(stringResource(R.string.us_delete), onClick = { deleteUser = null; runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user.username) } }, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -1479,7 +1479,7 @@ fun UsersScreen(
                 store.setDebtor(info)
                 reloadDebtors()
                 debtorDialogUser = null
-                android.widget.Toast.makeText(context, if (existing==null) "بدهکار ثبت شد" else "بدهی بروزرسانی شد", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated), android.widget.Toast.LENGTH_SHORT).show()
                 if (monitoringSettings.debtorAutoDisableEnabled) {
                     val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
                     if (over && u.status != "disabled") {
@@ -1488,7 +1488,7 @@ fun UsersScreen(
                                 val updated = info.copy(autoDisabled = true)
                                 store.setDebtor(updated)
                                 reloadDebtors()
-                                android.widget.Toast.makeText(context, "کاربر بدهکار به صورت خودکار قطع شد", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_auto_disabled), android.widget.Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -1499,12 +1499,12 @@ fun UsersScreen(
                 store.removeDebtor(session.baseUrl, u.username)
                 reloadDebtors()
                 debtorDialogUser = null
-                android.widget.Toast.makeText(context, "بدهی تسویه شد", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
                 if (wasAutoDisabled) {
                     scope.launch {
                         runCatching { PanelApi.setDisabled(session, u.username, false) }.onSuccess {
                             load()
-                            android.widget.Toast.makeText(context, "کاربر فعال شد", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, context.getString(R.string.us_user_enabled), android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -1516,7 +1516,7 @@ fun UsersScreen(
             onDismiss = { resetExpiryTarget = null },
             onConfirm = { days ->
                 val targetUser = u; resetExpiryTarget = null
-                runAction(notification = "ریست زمان" to "زمان ${targetUser.username} به $days روز ریست شد") {
+                runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
                     val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
                     PanelApi.modifyUser(session, targetUser.username, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
                 }
@@ -1542,7 +1542,7 @@ fun UsersScreen(
                 store.setDebtor(updated)
                 reloadDebtors()
                 if (monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtorOverdue) {
-                    NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, "قطع خودکار بدهکار", "${d.username} پس از ${monitoringSettings.debtorAutoDisableAfterHours} ساعت بدهکاری قطع شد (${d.amount} ${d.currency})")
+                    NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, context.getString(R.string.us_n_auto_disable), context.getString(R.string.us_n_auto_disable_body, d.username, monitoringSettings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency))
                 }
             }
         }
