@@ -1,5 +1,7 @@
 package com.mrm.pgmanager.data.model
 
+import com.mrm.pgmanager.R
+
 data class Session(val baseUrl: String, val token: String, val username: String)
 
 data class PanelUser(
@@ -109,10 +111,10 @@ enum class StatsRange(val label: String, val period: String, private val seconds
 }
 
 /** متریکِ نمودار «تعداد کاربران» — مطابق `UserCountMetric` در پنل. */
-enum class CountMetric(val apiName: String, val label: String) {
-    ONLINE("online", "کاربران آنلاین"),
-    EXPIRED("expired", "کاربران منقضی"),
-    LIMITED("limited", "کاربران محدود")
+enum class CountMetric(val apiName: String, @androidx.annotation.StringRes val labelRes: Int) {
+    ONLINE("online", R.string.metric_online),
+    EXPIRED("expired", R.string.metric_expired),
+    LIMITED("limited", R.string.metric_limited)
 }
 data class UserTemplateItem(
     val id: Int,
@@ -254,7 +256,7 @@ data class DebtorInfo(
     val username: String,
     val baseUrl: String,
     val amount: Long,
-    val currency: String = "تومان",
+    val currency: String = "",
     val markedAt: Long,
     val notes: String = "",
     val autoDisabled: Boolean = false,
