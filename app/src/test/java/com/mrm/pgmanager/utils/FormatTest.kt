@@ -30,13 +30,15 @@ class FormatTest {
         }
     }
 
-    @Test fun `formatUptime renders days hours minutes`() {
-        assertEquals("—", formatUptime(0L))
-        assertEquals("—", formatUptime(-1L))
-        assertEquals("30 ثانیه", formatUptime(30L))
-        assertEquals("2 دقیقه", formatUptime(120L))
-        assertEquals("1 ساعت و 1 دقیقه", formatUptime(3_661L))
-        assertEquals("1 روز و 1 ساعت", formatUptime(90_061L))
+    @Test fun `uptimeOf picks the right unit`() {
+        // مثلِ daysLeft، اینجا هم روی نوعِ ساخت‌یافته assert می‌کنیم؛ متنِ
+        // نهایی در لایهٔ UI از منابع ساخته می‌شود.
+        assertEquals(Uptime.None, uptimeOf(0L))
+        assertEquals(Uptime.None, uptimeOf(-1L))
+        assertEquals(Uptime.Seconds(30), uptimeOf(30L))
+        assertEquals(Uptime.Minutes(2), uptimeOf(120L))
+        assertEquals(Uptime.HoursMinutes(1, 1), uptimeOf(3_661L))
+        assertEquals(Uptime.DaysHours(1, 1), uptimeOf(90_061L))
     }
 
     @Test fun `formatBytes handles zero negatives and units`() {
