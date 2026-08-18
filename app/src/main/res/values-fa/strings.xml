@@ -459,4 +459,37 @@
     <string name="set_rs_pick_one">حداقل یک بخش را انتخاب کنید</string>
     <string name="set_rs_done">%1$s\nلطفاً اپ را یک‌بار بسته و دوباره باز کنید.</string>
     <string name="set_rs_ok_toast">بازیابی موفق</string>
+    <!-- دیالوگ جزئیات کاربر (بازطراحی) -->
+    <string name="ud_used">مصرف‌شده</string>
+    <string name="ud_total">حجم کل</string>
+    <string name="ud_remaining_time">زمان مانده</string>
+    <string name="ud_remaining_data">حجم مانده</string>
+    <string name="ud_note">توضیحات</string>
+    <string name="ud_subscription">لینک اشتراک</string>
+    <string name="ud_copy">کپی</string>
+    <string name="ud_qr">بارکد</string>
+    <string name="ud_copied">لینک اشتراک کپی شد</string>
+    <string name="ud_sub_failed">دریافت لینک اشتراک ناموفق بود</string>
+    <string name="ud_manage">مدیریت</string>
+    <string name="ud_edit">ویرایش کاربر</string>
+    <string name="ud_template">تمپلت</string>
+    <string name="ud_reset_data">ریست حجم</string>
+    <string name="ud_reset_time">ریست زمان</string>
+    <string name="ud_enable">فعال‌سازی</string>
+    <string name="ud_disable">غیرفعال‌سازی</string>
+    <string name="ud_delete">حذف کاربر</string>
+    <string name="ud_financial">مالی</string>
+    <string name="ud_debt_of">بدهی %1$s %2$s</string>
+    <string name="ud_marked_at">ثبت‌شده در %1$s</string>
+    <string name="ud_auto_disabled">به‌دلیل بدهی به‌صورت خودکار قطع شده است</string>
+    <string name="ud_clear_debt">تسویه بدهی</string>
+    <string name="ud_edit_debt">ویرایش بدهی</string>
+    <string name="ud_mark_debtor">ثبت بدهکار</string>
+    <string name="ud_invoice">صدور فاکتور</string>
+    <string name="ud_close">بستن</string>
+    <string name="ud_unlimited">نامحدود</string>
+    <string name="ud_expired">منقضی</string>
+    <string name="ud_days">%1$s روز</string>
+    <string name="ud_reset_data_title">ریست حجم مصرف‌شده؟</string>
+    <string name="ud_reset_data_msg">مصرف این کاربر صفر می‌شود.</string>
 </resources>
