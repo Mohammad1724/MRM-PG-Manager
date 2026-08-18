@@ -222,9 +222,11 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 private fun TopBarHeader(
     onRefresh: () -> Unit,
     onCreateUser: () -> Unit,
-    loading: Boolean
+    loading: Boolean,
+    onOpenSettings: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
+    val settingsLabel = stringResource(R.string.app_settings)
     Row(
         Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -242,6 +244,9 @@ private fun TopBarHeader(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
                 if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, contentDescription = "بروزرسانی", tint = theme.mutedColor, size = 14.dp)
+            }
+            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).semantics { contentDescription = settingsLabel }.clickable(onClick = onOpenSettings), contentAlignment = Alignment.Center) {
+                RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
             }
         }
     }
@@ -825,7 +830,8 @@ fun UsersScreen(
     onDeepLinkHandled: () -> Unit = {},
     /** درخواستِ بازکردنِ دیالوگ «ساخت گروهی» از بیرون (صفحهٔ تنظیمات). */
     openBulkCreate: Boolean = false,
-    onBulkCreateHandled: () -> Unit = {}
+    onBulkCreateHandled: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -1195,7 +1201,7 @@ fun UsersScreen(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
-                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, loading = loading)
+                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, loading = loading, onOpenSettings = onOpenSettings)
 
                 Box(
                     Modifier
