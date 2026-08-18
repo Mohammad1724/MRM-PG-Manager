@@ -67,16 +67,16 @@ fun BulkApplyTemplateDialog(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
             ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("اعمال تمپلت روی $selectedCount کاربر انتخابی", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                Text("یک تمپلت آماده انتخاب کنید تا تنظیمات آن روی هر $selectedCount کاربر انتخابی اعمال شود:", color = theme.mutedColor, fontSize = 11.5.sp)
+                Text(stringResource(R.string.bt_title, selectedCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                Text(stringResource(R.string.bt_subtitle, selectedCount), color = theme.mutedColor, fontSize = 11.5.sp)
 
                 if (isLoading) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                         CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
-                        Text("در حال بارگذاریِ تمپلت‌ها...", fontSize = 11.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.bt_loading), fontSize = 11.sp, color = theme.mutedColor)
                     }
                 } else if (loadFailed) {
-                    Text("خطا در بارگذاریِ تمپلت‌ها. دوباره امتحان کنید.", fontSize = 11.sp, color = GlassRed)
+                    Text(stringResource(R.string.bt_load_failed), fontSize = 11.sp, color = GlassRed)
                 } else if (templates.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
@@ -91,23 +91,24 @@ fun BulkApplyTemplateDialog(
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) Color(0xFF202124) else theme.inkColor)
-                                    if (sel) Text("انتخاب شد", fontSize = 10.sp, color = Color(0xFF202124), fontWeight = FontWeight.Bold)
+                                    if (sel) Text(stringResource(R.string.bt_selected), fontSize = 10.sp, color = Color(0xFF202124), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
                 } else {
-                    Text("تمپلتی در پنل یافت نشد.", fontSize = 11.sp, color = GlassRed)
+                    Text(stringResource(R.string.bt_none), fontSize = 11.sp, color = GlassRed)
                 }
 
-                CompactGlassField(value = note, onValueChange = { note = it }, placeholder = "یادداشت اختیاری...", leading = "")
+                CompactGlassField(value = note, onValueChange = { note = it }, placeholder = stringResource(R.string.bt_note_hint), leading = "")
 
                 formError?.let { Text(it, color = GlassRed, fontSize = 11.sp) }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                    PrimaryButton("اعمال تمپلت", onClick = {
-                        if (selectedTemplateId == null) formError = "لطفاً یک تمپلت انتخاب کنید"
+                    SecondaryButton(stringResource(R.string.bt_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                    val pickFirstMsg = stringResource(R.string.bt_pick_first)
+                    PrimaryButton(stringResource(R.string.bt_apply), onClick = {
+                        if (selectedTemplateId == null) formError = pickFirstMsg
                         else onApply(selectedTemplateId!!, note)
                     }, modifier = Modifier.weight(1f))
                 }
