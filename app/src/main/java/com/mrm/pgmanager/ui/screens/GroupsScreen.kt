@@ -145,8 +145,9 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         ) {
             Column(
                 Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
-                    // 56dp بالا = جای دکمهٔ همبرگریِ شناور (38dp + 10dp حاشیه + 8dp فاصله)
-                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 56.dp, bottom = 10.dp),
+                    // دکمهٔ همبرگری حذف شده (ناوبری به کپسولِ پایین رفت)، پس دیگر
+                    // لازم نیست ۵۶dp بالای صفحه خالی بماند.
+                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // ── سربرگ
