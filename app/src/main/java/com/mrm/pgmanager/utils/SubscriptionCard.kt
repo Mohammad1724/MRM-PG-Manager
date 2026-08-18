@@ -1,5 +1,7 @@
 package com.mrm.pgmanager.utils
 
+import com.mrm.pgmanager.R
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -142,7 +144,7 @@ object SubscriptionCard {
             )
         } else {
             c.drawText(
-                if (isFa) "QR در دسترس نیست" else "QR unavailable",
+                if (isFa) context.getString(R.string.sc_qr_unavailable) else "QR unavailable",
                 cx, qrRect.centerY(), paint(28f, MUTED)
             )
         }
@@ -150,9 +152,9 @@ object SubscriptionCard {
 
         // ── ردیفِ اطلاعات: حجم و انقضا
         val used = formatBytes(user.usedTraffic)
-        val total = if (user.dataLimit == 0L) (if (isFa) "نامحدود" else "Unlimited") else formatBytes(user.dataLimit)
+        val total = if (user.dataLimit == 0L) (if (isFa) context.getString(R.string.sc_unlimited) else "Unlimited") else formatBytes(user.dataLimit)
         val trafficText = if (user.dataLimit == 0L) total else "$used / $total"
-        val daysText = DateLogic.daysLeftText(user.expire)
+        val daysText = context.daysLeftText(user.expire)
 
         fun infoBox(left: Float, right: Float, label: String, value: String, valueColor: Int) {
             val r = RectF(left, y, right, y + 150f)
@@ -174,8 +176,8 @@ object SubscriptionCard {
             remaining <= 3L -> AMBER
             else -> GREEN
         }
-        infoBox(PAD, PAD + half, if (isFa) "حجم" else "Traffic", trafficText, INK)
-        infoBox(PAD + half + gap, W - PAD, if (isFa) "اعتبار" else "Validity", daysText, expiryColor)
+        infoBox(PAD, PAD + half, if (isFa) context.getString(R.string.sc_data) else "Traffic", trafficText, INK)
+        infoBox(PAD + half + gap, W - PAD, if (isFa) context.getString(R.string.sc_validity) else "Validity", daysText, expiryColor)
         y += INFO_BLOCK
 
         // ── لینکِ اشتراک (کوچک، برای وقتی که QR اسکن نمی‌شود)
