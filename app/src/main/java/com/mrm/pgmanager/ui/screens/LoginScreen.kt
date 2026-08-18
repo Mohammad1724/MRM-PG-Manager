@@ -68,6 +68,10 @@ fun LoginScreen(
     val errUnknown = stringResource(R.string.login_err_unknown)
     val errGenericTemplate = stringResource(R.string.login_err_generic)
 
+    // در حالتِ «افزودن حساب» (یا وقتی حسابِ ذخیره‌شده‌ای هست) دکمهٔ برگشتِ گوشی
+    // باید همان کارِ دکمهٔ «بازگشت» را بکند، نه اینکه اپ را ببندد.
+    if (onBack != null) androidx.activity.compose.BackHandler { onBack() }
+
     val focusManager = LocalFocusManager.current
     Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
