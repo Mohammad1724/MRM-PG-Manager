@@ -336,6 +336,38 @@ fun MRMApp() {
                     )
                 }
             ) {
+            // ── دکمهٔ برگشتِ گوشی.
+            //
+            // تا امروز هیچ‌جا رهگیری نمی‌شد و هر بار اپ بسته می‌شد؛ حتی وسطِ
+            // تنظیمات. یک هندلرِ واحد با ترتیبِ اولویت گذاشته شده تا رفتار
+            // قابلِ پیش‌بینی باشد (چند BackHandlerِ پراکنده، ترتیبشان به ترتیبِ
+            // composition وابسته می‌شود و دیباگش سخت است).
+            //
+            // دیالوگ‌ها اینجا نمی‌آیند: هر Dialog پنجرهٔ جداست و خودش back را
+            // مصرف می‌کند، پس این هندلر اصلاً صدا زده نمی‌شود.
+            var lastBackAt by remember { mutableStateOf(0L) }
+            val exitHint = stringResource(R.string.back_exit_hint)
+            androidx.activity.compose.BackHandler {
+                when {
+                    // ۱. تنظیمات باز است → ببند
+                    showDashboardSettings -> showDashboardSettings = false
+                    // ۲. کشو باز است → ببند
+                    drawerState.isOpen -> drawerScope.launch { drawerState.close() }
+                    // ۳. در بخشی غیر از داشبورد → برگرد به داشبورد
+                    selectedTab != TAB_DASHBOARD -> selectedTab = TAB_DASHBOARD
+                    // ۴. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
+                    //    اتفاقی کلِ اپ بسته نشود.
+                    else -> {
+                        val now = System.currentTimeMillis()
+                        if (now - lastBackAt < 2000L) activity?.finish()
+                        else {
+                            lastBackAt = now
+                            Toast.makeText(context, exitHint, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+
             // ── سوایپ بین بخش‌ها: صفحه‌ها روی یک Pager می‌نشینند تا با انگشت
             // هم بشود بینشان جابه‌جا شد. ترتیب صفحه‌ها = همان ایندکس‌های
             // selectedTab (۰ داشبورد … ۴ تمپلت‌ها).
