@@ -106,7 +106,7 @@ private fun ActionTile(
     val fg = if (filled) Color(0xFF422006) else accent
     Column(
         modifier
-            .height(66.dp)
+            .height(50.dp)
             .clip(DsRadius.Lg)
             .background(bg)
             .border(
@@ -119,11 +119,11 @@ private fun ActionTile(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        RoundedAppIcon(icon, tint = fg, size = 19.dp)
-        Spacer(Modifier.height(6.dp))
+        RoundedAppIcon(icon, tint = fg, size = 17.dp)
+        Spacer(Modifier.height(3.dp))
         Text(
             label,
-            fontSize = 10.sp,
+            fontSize = 9.5.sp,
             fontWeight = FontWeight.Bold,
             color = if (filled) fg else theme.inkColor,
             maxLines = 1,
@@ -145,7 +145,7 @@ private fun BillingRow(
     val bg = if (filled) accent.copy(0.85f) else theme.searchBgColor
     val fg = if (filled) Color(0xFF202124) else accent
     Row(
-        Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Lg)
+        Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
             .background(bg)
             .border(
                 BorderStroke(DsBorder.Hairline, if (filled) Color.Transparent else accent.copy(0.22f)),
@@ -167,7 +167,7 @@ private fun BillingRow(
 private fun SubChip(icon: AppIcon, label: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.height(32.dp).clip(DsRadius.Full)
+        Modifier.height(28.dp).clip(DsRadius.Full)
             .background(theme.accentPrimary.copy(0.14f))
             .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.32f)), DsRadius.Full)
             .semantics { contentDescription = label }
@@ -264,13 +264,13 @@ fun UserDetailsDialog(
                 Row(
                     Modifier.fillMaxWidth()
                         .background(theme.cardSurfaceColor)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // آواتار: حرفِ اولِ نام + حلقهٔ سبز اگر آنلاین باشد.
                     Box(
-                        Modifier.size(42.dp).clip(DsRadius.Full)
+                        Modifier.size(36.dp).clip(DsRadius.Full)
                             .background(
                                 Brush.verticalGradient(
                                     listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
@@ -287,7 +287,7 @@ fun UserDetailsDialog(
                     ) {
                         Text(
                             currentUser.username.take(1).uppercase(),
-                            fontSize = 17.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = theme.inkColor
                         )
@@ -343,17 +343,17 @@ fun UserDetailsDialog(
                     Modifier
                         .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 14.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .padding(horizontal = 14.dp)
+                        .padding(top = 10.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // ── ۲) کارتِ قهرمان: مصرف
                     Column(
                         Modifier.fillMaxWidth().clip(DsRadius.Xl)
                             .background(theme.cardSurfaceColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(11.dp),
+                        verticalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -364,7 +364,7 @@ fun UserDetailsDialog(
                                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                     MrmText(
                                         formatBytes(currentUser.usedTraffic),
-                                        fontSize = 22.sp,
+                                        fontSize = 19.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         isTechnical = true
                                     )
@@ -381,7 +381,7 @@ fun UserDetailsDialog(
                             // درصد، بزرگ و هم‌رنگِ وضعیتِ مصرف.
                             Text(
                                 if (unlimitedData) "∞" else "$percentage%",
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = usageColor,
                                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
@@ -389,7 +389,7 @@ fun UserDetailsDialog(
                         }
                         // نوارِ ضخیم‌تر از قبل (۸ به‌جای ۴) تا نقشِ «قهرمان» را بازی کند.
                         Box(
-                            Modifier.fillMaxWidth().height(8.dp).clip(DsRadius.Full)
+                            Modifier.fillMaxWidth().height(7.dp).clip(DsRadius.Full)
                                 .background(if (theme.isDark) Color.White.copy(0.10f) else Color(0xFFF1F2F4))
                         ) {
                             Box(
@@ -425,9 +425,9 @@ fun UserDetailsDialog(
                             Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                 .background(theme.searchBgColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(12.dp),
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(9.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 15.dp)
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -438,7 +438,7 @@ fun UserDetailsDialog(
                                 Text(
                                     currentUser.note.orEmpty(),
                                     fontSize = 11.5.sp, color = theme.inkColor,
-                                    maxLines = 3, overflow = TextOverflow.Ellipsis
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -451,7 +451,7 @@ fun UserDetailsDialog(
                             Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                 .background(theme.searchBgColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -477,7 +477,7 @@ fun UserDetailsDialog(
                     }
 
                     // ── ۴) عملیات: ویرایش پررنگ‌ترین است، بقیه هم‌وزن در یک شبکه
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(stringResource(R.string.ud_manage))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActionTile(
@@ -540,7 +540,7 @@ fun UserDetailsDialog(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Lg)
+                                Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Lg)
                                     .pressScale(0.985f)
                                     .clickable { billingOpen = !billingOpen }
                                     .padding(horizontal = 10.dp),
@@ -687,7 +687,7 @@ private fun MetricPill(
 ) {
     val theme = LocalThemeState.current
     Row(
-        modifier.height(44.dp).clip(DsRadius.Lg)
+        modifier.height(38.dp).clip(DsRadius.Lg)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .padding(horizontal = 10.dp),
