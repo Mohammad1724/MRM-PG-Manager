@@ -38,6 +38,9 @@ import com.mrm.pgmanager.data.model.GroupValidation
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.spinWhile
+import com.mrm.pgmanager.ui.designsystem.DsTransition
 import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
@@ -168,8 +171,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 .clickable { scope.launch { refreshing = true; load(true); refreshing = false } },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp)
-                            else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                            RoundedAppIcon(AppIcon.Refresh, tint = if (refreshing) theme.accentPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.spinWhile(refreshing))
                         }
                         Box(
                             Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
@@ -182,7 +184,12 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 }
 
                 // ── پیام موفقیت
-                toast?.let { msg ->
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = toast != null,
+                    enter = DsTransition.bannerEnter,
+                    exit = DsTransition.bannerExit
+                ) {
+                    val msg = toast.orEmpty()
                     Row(
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Success.copy(0.12f))
@@ -279,11 +286,13 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             contentPadding = PaddingValues(bottom = 140.dp)
                         ) {
                             items(filtered, key = { it.id }) { group ->
-                                GroupRow(
-                                    group = group,
-                                    onEdit = { editing = group },
-                                    onDelete = { deleting = group }
-                                )
+                                Box(Modifier.animateItem()) {
+                                    GroupRow(
+                                        group = group,
+                                        onEdit = { editing = group },
+                                        onDelete = { deleting = group }
+                                    )
+                                }
                             }
                         }
                     }
