@@ -28,7 +28,12 @@ android {
             // مقادیر فقط در GitHub Actions از Secrets تزریق می‌شوند؛ هیچ کلیدی داخل repo نیست.
             val storePath = providers.gradleProperty("RELEASE_STORE_FILE").orNull
             if (storePath != null) {
-                storeFile = file(storePath)
+                // نکته: `file(...)` مسیرِ نسبی را نسبت به همین ماژول حساب می‌کند،
+                // یعنی `app/mrm-release.p12` می‌شد `app/app/mrm-release.p12` و
+                // امضای ریلیز با «فایل وجود ندارد» شکست می‌خورد. ورک‌فلو مسیر را
+                // نسبت به ریشهٔ مخزن می‌دهد، پس از ریشه حساب می‌کنیم. مسیرِ مطلق
+                // هم دست‌نخورده می‌ماند.
+                storeFile = rootProject.file(storePath)
                 storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
                 keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
                 keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
