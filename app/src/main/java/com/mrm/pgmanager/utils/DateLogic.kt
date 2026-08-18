@@ -62,15 +62,27 @@ object DateLogic {
         return days in 0..nearDays.toLong()
     }
 
-    /** متن فارسیِ روزهای باقی‌مانده (نامحدود / منقضی / امروز / N روز). */
-    fun daysLeftText(expire: String?): String {
-        if (expire.isNullOrBlank() || expire == "0" || expire == "null") return "نامحدود"
-        val days = remainingDays(expire) ?: return "نامحدود"
+    /**
+     * وضعیتِ زمانِ باقی‌مانده — **بدون متن**.
+     *
+     * قبلاً همین‌جا رشتهٔ فارسی ساخته می‌شد و در حالتِ انگلیسی هم فارسی
+     * نمایش داده می‌شد. حالا این لایه فقط «معنا» را برمی‌گرداند و ترجمه‌اش
+     * در لایهٔ UI انجام می‌شود (`daysLeftText` در utils/UiText.kt).
+     */
+    sealed interface DaysLeft {
+        data object Unlimited : DaysLeft
+        data object Expired : DaysLeft
+        data object Today : DaysLeft
+        data class Days(val count: Int) : DaysLeft
+    }
+
+    fun daysLeft(expire: String?): DaysLeft {
+        if (expire.isNullOrBlank() || expire == "0" || expire == "null") return DaysLeft.Unlimited
+        val days = remainingDays(expire) ?: return DaysLeft.Unlimited
         return when {
-            days < 0L -> "منقضی"
-            days == 0L -> "امروز"
-            days == 1L -> "۱ روز"
-            else -> "$days روز"
+            days < 0L -> DaysLeft.Expired
+            days == 0L -> DaysLeft.Today
+            else -> DaysLeft.Days(days.toInt())
         }
     }
 }
