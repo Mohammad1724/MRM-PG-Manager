@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -416,6 +417,19 @@ fun MRMApp() {
                         beyondViewportPageCount = 0,
                         key = { it }
                     ) { page ->
+                        // حرکتِ عمق: صفحهٔ در حالِ رفتن کمی عقب می‌نشیند و محو
+                        // می‌شود. بدونِ این، سوایپ حسِ «کاغذِ تخت» داشت.
+                        val offset = ((pagerState.currentPage - page) +
+                            pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
+                        Box(
+                            Modifier.graphicsLayer {
+                                val distance = kotlin.math.abs(offset)
+                                alpha = 1f - distance * 0.35f
+                                val scale = 1f - distance * 0.06f
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                        ) {
                         when (page) {
                             TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false }, onOpenSettings = { showDashboardSettings = true })
                             TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
@@ -433,6 +447,7 @@ fun MRMApp() {
                                 onOpenSettings = { showDashboardSettings = true }
                             )
                         }
+                        }
                     }
                 }
                 // کپسولِ شناور: روی محتوا و چسبیده به پایینِ صفحه، در ناحیهٔ شست.
@@ -446,7 +461,11 @@ fun MRMApp() {
                 // فقط با کشیدنِ انگشت از لبه باز می‌شود (gesturesEnabled).
                 // تنظیمات: صفحهٔ کامل روی محتوا (نه دیالوگ) تا با بقیهٔ اپ یکدست باشد.
                 // پس‌زمینهٔ مات جلوی دیده‌شدن صفحهٔ زیرین را می‌گیرد.
-                if (showDashboardSettings) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showDashboardSettings,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
                     Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
                         SettingsScreen(
                             themeState = effectiveTheme,
