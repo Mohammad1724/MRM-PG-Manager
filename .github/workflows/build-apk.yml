@@ -34,6 +34,17 @@ jobs:
       - name: Validate string resources
         run: python3 tools/check-resources.py
 
+      # همان بررسی‌هایی که تا حالا فقط دستی اجرا می‌شدند: پرانتزِ نامتوازن،
+      # importِ گم‌شده، پکیجِ اشتباه در import و فراخوانیِ تابعِ ناموجود.
+      # هر چهارتا در چند ثانیه اجرا می‌شوند و خطاهایی را می‌گیرند که
+      # وگرنه بعد از چند دقیقه کامپایل معلوم می‌شدند.
+      - name: Validate Kotlin sources
+        run: |
+          python3 tools/kt-balance.py
+          python3 tools/kt-imports.py
+          python3 tools/kt-import-paths.py
+          python3 tools/kt-callcheck.py
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
