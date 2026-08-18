@@ -76,10 +76,10 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     // به اشتراک‌گذاری عکس QR + لینک متنی از طریق FileProvider.
     fun shareQr() {
         val bitmap = qrBitmap ?: run {
-            android.widget.Toast.makeText(context, "ساخت QR ممکن نشد", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.qr_failed), android.widget.Toast.LENGTH_SHORT).show()
             // Fallback: فقط لینک
             val fallback = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, user.subUrl) }
-            context.startActivity(Intent.createChooser(fallback, "اشتراک"))
+            context.startActivity(Intent.createChooser(fallback, context.getString(R.string.qr_subscription)))
             return
         }
         runCatching {
@@ -99,9 +99,9 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                 bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
                 if (bmp !== bitmap) bmp.recycle()
             }
-            shareFile(file, "image/png", "اشتراک QR")
+            shareFile(file, "image/png", context.getString(R.string.qr_share_qr))
         }.onFailure { e ->
-            android.widget.Toast.makeText(context, "خطا در اشتراک‌گذاری: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.qr_share_error, e.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -126,11 +126,11 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
             }
             busy = false
             if (file == null) {
-                android.widget.Toast.makeText(context, if (isFa) "ساخت کارت ممکن نشد" else "Could not create card", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.qr_card_failed), android.widget.Toast.LENGTH_SHORT).show()
             } else {
-                runCatching { shareFile(file, "image/png", if (isFa) "ارسال کارت اشتراک" else "Share card") }
+                runCatching { shareFile(file, "image/png", context.getString(R.string.qr_send_card)) }
                     .onFailure { e ->
-                        android.widget.Toast.makeText(context, "خطا در اشتراک‌گذاری: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(context, context.getString(R.string.qr_share_error, e.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
                     }
             }
         }
@@ -143,25 +143,25 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                     MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
                     Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
                         if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                        else Text("QR خطا", fontSize = 12.sp)
+                        else Text(stringResource(R.string.qr_error), fontSize = 12.sp)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        SecondaryButton("کپی", onClick = {
+                        SecondaryButton(stringResource(R.string.qr_copy), onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                            android.widget.Toast.makeText(context, "لینک اشتراک کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, context.getString(R.string.qr_copied), android.widget.Toast.LENGTH_SHORT).show()
                         }, modifier = Modifier.weight(1f))
-                        SecondaryButton(if (isFa) "فقط QR" else "QR only", onClick = ::shareQr, modifier = Modifier.weight(1f))
+                        SecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
                     }
                     // گزینهٔ اصلی: کارتِ کامل با نام، حجم، اعتبار و برند
                     PrimaryButton(
-                        if (isFa) "ارسال کارت اشتراک" else "Share card",
+                        stringResource(R.string.qr_send_card),
                         onClick = ::shareCard,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !busy,
                         loading = busy
                     )
-                    TextButton(onClick = onDismiss) { Text("بستن", color = theme.mutedColor) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.qr_close), color = theme.mutedColor) }
                 }
             }
         }
