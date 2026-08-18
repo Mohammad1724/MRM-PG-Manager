@@ -31,7 +31,12 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsTransition
+import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.dialogs.SegmentedControl
@@ -162,8 +167,21 @@ fun SettingsScreen(
         }
 
         // ── محتوای بخشِ انتخاب‌شده
+        //
+        // جهتِ حرکت از روی ترتیبِ تب‌ها حساب می‌شود: تبِ سمتِ بعدی از همان سمت
+        // وارد می‌شود. بدونِ این، عوض‌شدنِ تب یک «پرش» بی‌جهت بود.
+        val sectionIndex = SettingsSection.entries.indexOf(section)
+        var previousIndex by remember { mutableStateOf(sectionIndex) }
+        val forward = sectionIndex >= previousIndex
+        LaunchedEffect(sectionIndex) { previousIndex = sectionIndex }
+        androidx.compose.animation.AnimatedContent(
+            targetState = section,
+            transitionSpec = DsTransition.tabSwitch<SettingsSection>(forward),
+            label = "settingsSection",
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        ) { section ->
         Column(
-            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(11.dp)
         ) {
             when (section) {
@@ -210,6 +228,7 @@ fun SettingsScreen(
             }
             AboutFooter(appVersion = appVersion)
             Spacer(Modifier.height(6.dp))
+        }
         }
     }
 }
@@ -330,6 +349,7 @@ private fun ExpandableSettingsGroup(
             Modifier.fillMaxWidth().clip(DsRadius.Xl)
                 .background(if (expanded) accent.copy(.10f) else Color.Transparent)
                 .semantics { contentDescription = toggleLabel }
+                .pressScale(0.985f)
                 .clickable { onToggle() }
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -343,12 +363,23 @@ private fun ExpandableSettingsGroup(
                 Text(title, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
             }
+            // به‌جای عوض‌کردنِ آیکون (که پرش داشت) خودِ شِوران می‌چرخد.
+            val chevronRotation by animateFloatAsState(
+                targetValue = if (expanded) 180f else 0f,
+                animationSpec = DsAnim.normal(),
+                label = "chevron"
+            )
             RoundedAppIcon(
-                if (expanded) AppIcon.ChevronUp else AppIcon.ChevronDown,
-                tint = theme.mutedColor, size = 16.dp
+                AppIcon.ChevronDown,
+                tint = theme.mutedColor, size = 16.dp,
+                modifier = Modifier.graphicsLayer { rotationZ = chevronRotation }
             )
         }
-        if (expanded) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = expanded,
+            enter = DsTransition.expandEnter,
+            exit = DsTransition.expandExit
+        ) {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(11.dp)
