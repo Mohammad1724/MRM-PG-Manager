@@ -29,7 +29,9 @@ import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 
 /** رنگ خاکستریِ واضح برای کادرِ کاشی‌ها (تمایز بهتر در حالت روشن/تیره). */
@@ -172,6 +174,7 @@ fun SettingsActionRow(
         Modifier.fillMaxWidth().clip(DsRadius.Xl)
             .background(accent.copy(.08f))
             .border(BorderStroke(1.dp, accent.copy(.22f)), DsRadius.Xl)
+            .pressScale(0.97f)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -275,7 +278,11 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
             .clickable { onToggle() },
         contentAlignment = Alignment.Center
     ) {
-        if (selected) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = selected,
+            enter = androidx.compose.animation.scaleIn(DsAnim.bouncy()) + androidx.compose.animation.fadeIn(DsAnim.fast()),
+            exit = androidx.compose.animation.scaleOut(DsAnim.exit()) + androidx.compose.animation.fadeOut(DsAnim.exit())
+        ) {
             // تیک با Canvas رسم می‌شود تا به baseline فونت وابسته نباشد و دقیقاً وسط مربع بماند.
             Canvas(Modifier.fillMaxSize()) {
                 val stroke = Stroke(width = size.minDimension * .14f, cap = StrokeCap.Round)
