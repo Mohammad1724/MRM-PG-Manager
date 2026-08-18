@@ -45,6 +45,8 @@ class StatsModelsTest {
 
     @Test fun `labels are present for the UI`() {
         StatsRange.entries.forEach { assertTrue(it.label.isNotBlank()) }
-        CountMetric.entries.forEach { assertTrue(it.label.isNotBlank()) }
+        // CountMetric دیگر متن نگه نمی‌دارد؛ شناسهٔ منبع را نگه می‌دارد تا در
+        // هر زبان درست ترجمه شود. اینجا فقط مطمئن می‌شویم شناسه معتبر است.
+        CountMetric.entries.forEach { assertTrue(it.labelRes != 0) }
     }
 }
