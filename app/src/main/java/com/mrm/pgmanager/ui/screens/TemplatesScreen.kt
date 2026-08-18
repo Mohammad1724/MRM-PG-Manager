@@ -68,7 +68,8 @@ private const val SECONDS_PER_DAY = 86_400L
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TemplatesScreen(session: Session) {
+fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+    val settingsLabel = stringResource(R.string.app_settings)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
@@ -177,14 +178,23 @@ fun TemplatesScreen(session: Session) {
                         }
                         Text(stringResource(R.string.templates_subtitle), fontSize = 10.sp, color = theme.mutedColor)
                     }
-                    Box(
-                        Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
-                            .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
-                            .clickable { scope.launch { refreshing = true; load(true); refreshing = false } },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp)
-                        else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
+                                .clickable { scope.launch { refreshing = true; load(true); refreshing = false } },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp)
+                            else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                        }
+                        Box(
+                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
+                                .semantics { contentDescription = settingsLabel }
+                                .clickable(onClick = onOpenSettings),
+                            contentAlignment = Alignment.Center
+                        ) { RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp) }
                     }
                 }
 
