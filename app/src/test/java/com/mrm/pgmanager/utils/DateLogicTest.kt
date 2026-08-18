@@ -105,10 +105,12 @@ class DateLogicTest {
 
     // ── daysLeftText ─────────────────────────────────────────
 
-    @Test fun `daysLeftText covers unlimited, expired and today`() {
-        assertEquals("نامحدود", DateLogic.daysLeftText(null))
-        assertEquals("نامحدود", DateLogic.daysLeftText("0"))
-        assertEquals("امروز", DateLogic.daysLeftText(DateLogic.expireValue(today().toString()) as String))
-        assertEquals("منقضی", DateLogic.daysLeftText(DateLogic.expireValue(today().minusDays(2).toString()) as String))
+    @Test fun `daysLeft covers unlimited, expired and today`() {
+        // روی نوعِ ساخت‌یافته assert می‌کنیم نه رشته: متنِ نمایشی در لایهٔ UI
+        // ترجمه می‌شود و تغییرِ واژه نباید تست را بشکند.
+        assertEquals(DateLogic.DaysLeft.Unlimited, DateLogic.daysLeft(null))
+        assertEquals(DateLogic.DaysLeft.Unlimited, DateLogic.daysLeft("0"))
+        assertEquals(DateLogic.DaysLeft.Today, DateLogic.daysLeft(DateLogic.expireValue(today().toString()) as String))
+        assertEquals(DateLogic.DaysLeft.Expired, DateLogic.daysLeft(DateLogic.expireValue(today().minusDays(2).toString()) as String))
     }
 }
