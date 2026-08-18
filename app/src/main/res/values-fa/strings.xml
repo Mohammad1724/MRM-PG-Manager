@@ -760,4 +760,91 @@
     <string name="bt_cancel">انصراف</string>
     <string name="bt_apply">اعمال تمپلت</string>
     <string name="bt_pick_first">لطفاً یک تمپلت انتخاب کنید</string>
+    <!-- پایان لوکالایزیشن: داشبورد، بکاپ، بیومتریک، ویجت و اجزای مشترک -->
+    <string name="db_error_stats">خطا در دریافت آمار داشبورد</string>
+    <string name="db_debtor_count">تعداد بدهکار</string>
+    <string name="db_debtor_people">%1$d نفر</string>
+    <string name="db_debt_total">مجموع بدهی</string>
+    <string name="bk_corrupt">فایل بکاپ خراب است</string>
+    <string name="bk_ok">پشتیبان‌گیری موفق</string>
+    <string name="bk_encrypted_short">این بکاپ رمزنگاری شده؛ رمز را وارد کنید.</string>
+    <string name="bk_encrypted_long">این فایل بکاپ رمزنگاری شده است. لطفاً رمز را وارد کنید.</string>
+    <string name="bk_invalid">فایل بکاپ نامعتبر است</string>
+    <string name="bk_no_data">بدون داده</string>
+    <string name="bk_need_password">رمز بکاپ را وارد کنید.</string>
+    <string name="bk_restored">بازیابی کامل شد. %1$d بخش بازنشانی شد.</string>
+    <string name="bk_auto_ok">پشتیبان‌گیری خودکار موفق</string>
+    <string name="bk_auto_failed">خطا در بکاپ خودکار: %1$s</string>
+    <string name="bio_title">ورود به پنل پاسارگارد</string>
+    <string name="bio_subtitle">اثر انگشت یا پین/الگوی گوشی خود را وارد کنید</string>
+    <string name="bio_failed">تایید هویت ناموفق بود</string>
+    <string name="bio_lock_title">تایید فعال‌سازی قفل</string>
+    <string name="bio_lock_subtitle">برای فعال‌سازی قفل برنامه، اثر انگشت خود را تایید کنید</string>
+    <string name="bio_lock_failed">فعال‌سازی قفل لغو یا ناموفق بود</string>
+    <string name="bio_cancel">انصراف</string>
+    <string name="cc_hide_password">پنهان‌کردن رمز</string>
+    <string name="cc_show_password">نمایش رمز</string>
+    <string name="cc_n_users">%1$d کاربر</string>
+    <string name="cc_enable">فعال‌سازی</string>
+    <string name="cc_disable">غیرفعال‌سازی</string>
+    <string name="cc_reset_data">ریست حجم</string>
+    <string name="cc_apply_template">اعمال تمپلت</string>
+    <string name="cc_export">خروجی گرفتن</string>
+    <string name="cc_select_all">انتخاب همه</string>
+    <string name="lamp_custom">سفارشی</string>
+    <string name="re_title">ریست زمان اشتراک</string>
+    <string name="re_subtitle">مدت واقعی اشتراک را وارد کنید. انقضا از امروز دوباره محاسبه می‌شود.</string>
+    <string name="re_days_label">مدت اشتراک (روز)</string>
+    <string name="re_days_value">%1$d روز</string>
+    <string name="re_cancel">انصراف</string>
+    <string name="re_apply">اعمال زمان</string>
+    <string name="re_invalid">عدد روز معتبر (بزرگ‌تر از صفر) وارد کنید.</string>
+    <string name="wg_debtors">%1$d بدهکار</string>
+    <string name="wg_no_debt">بدون بدهی</string>
+    <string name="wg_cores">%1$d هسته</string>
+    <string name="wg_updated">بروزرسانی %1$s</string>
+    <string name="wg_no_data">بدون داده</string>
+    <string name="wg_open_once">برنامه را یک‌بار باز کنید</string>
+    <string name="sc_qr_unavailable">بارکد در دسترس نیست</string>
+    <string name="sc_unlimited">نامحدود</string>
+    <string name="sc_data">حجم</string>
+    <string name="sc_validity">اعتبار</string>
+    <string name="cal_title">تقویم</string>
+    <string name="cal_today">امروز</string>
+    <string name="cal_cancel">انصراف</string>
+    <string name="cal_confirm">تایید</string>
+    <string name="nc_events">رویدادهای کاربران</string>
+    <string name="nc_events_desc">ساخت، حذف، محدودشدن و انقضای کاربران</string>
+    <string name="nc_system">سلامت سیستم</string>
+    <string name="nc_system_desc">هشدار CPU، RAM، دیسک و اتصال پنل</string>
+    <string name="add_template">افزودن تمپلت</string>
+    <string name="delete_template_cd">حذف تمپلت</string>
+    <string name="add_group">افزودن گروه</string>
+    <string name="delete_group_cd">حذف گروه</string>
+    <string name="copied">کپی شد</string>
+    <string name="cd_unselect">لغو انتخاب</string>
+    <string name="cd_select">انتخاب</string>
+    <string name="confirm">تایید</string>
+    <string name="search_cd">جست‌وجو</string>
+    <!-- زمان و مدت -->
+    <string name="dl_unlimited">نامحدود</string>
+    <string name="dl_expired">منقضی</string>
+    <string name="dl_today">امروز</string>
+    <string name="dl_one_day">۱ روز</string>
+    <string name="dl_days">%1$d روز</string>
+    <string name="up_days_hours">%1$d روز و %2$d ساعت</string>
+    <string name="up_hours_minutes">%1$d ساعت و %2$d دقیقه</string>
+    <string name="up_minutes">%1$d دقیقه</string>
+    <string name="up_seconds">%1$d ثانیه</string>
+    <!-- متریک نمودار -->
+    <string name="metric_online">کاربران آنلاین</string>
+    <string name="metric_expired">کاربران منقضی</string>
+    <string name="metric_limited">کاربران محدود</string>
+    <string-array name="jalali_months">
+        <item>فروردین</item><item>اردیبهشت</item><item>خرداد</item>
+        <item>تیر</item><item>مرداد</item><item>شهریور</item>
+        <item>مهر</item><item>آبان</item><item>آذر</item>
+        <item>دی</item><item>بهمن</item><item>اسفند</item>
+    </string-array>
+    <string name="login_err_https">فقط https پشتیبانی می‌شود؛ از آدرس https استفاده کنید.</string>
 </resources>
