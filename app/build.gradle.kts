@@ -34,9 +34,13 @@ android {
                 // نسبت به ریشهٔ مخزن می‌دهد، پس از ریشه حساب می‌کنیم. مسیرِ مطلق
                 // هم دست‌نخورده می‌ماند.
                 storeFile = rootProject.file(storePath)
-                storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+                val storePw = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+                storePassword = storePw
                 keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
-                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+                // ورک‌فلو RELEASE_KEY_PASSWORD را پاس نمی‌دهد و امضا با «کلمهٔ عبورِ
+                // کلید نیست» می‌ایستاد. در PKCS12 رمزِ کلید و رمزِ فایل عملاً یکی
+                // هستند، پس اگر جداگانه داده نشد از همان رمزِ فایل استفاده می‌کنیم.
+                keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull ?: storePw
                 storeType = "PKCS12"
             }
         }
