@@ -492,4 +492,39 @@
     <string name="ud_days">%1$s روز</string>
     <string name="ud_reset_data_title">ریست حجم مصرف‌شده؟</string>
     <string name="ud_reset_data_msg">مصرف این کاربر صفر می‌شود.</string>
+    <!-- دیالوگ ساخت/ویرایش کاربر (هماهنگ با جزئیات کاربر) -->
+    <string name="ue_create_title">کاربر جدید</string>
+    <string name="ue_edit_title">ویرایش کاربر</string>
+    <string name="ue_create_sub">برای ساخت حساب، مشخصات را پر کنید</string>
+    <string name="ue_edit_sub">تغییرات با ذخیره اعمال می‌شود</string>
+    <string name="ue_identity">هویت</string>
+    <string name="ue_username">نام کاربری</string>
+    <string name="ue_username_hint">یک نام کاربری وارد کنید</string>
+    <string name="ue_random">نام تصادفی</string>
+    <string name="ue_status">وضعیت</string>
+    <string name="ue_plan">پلن</string>
+    <string name="ue_data_limit">سقف حجم (گیگابایت)</string>
+    <string name="ue_data_limit_hint">مثلاً ۳۰ — برای نامحدود خالی بگذارید</string>
+    <string name="ue_expiry">انقضا (روز)</string>
+    <string name="ue_expiry_hint">مثلاً ۳۰</string>
+    <string name="ue_pick_date">انتخاب تاریخ</string>
+    <string name="ue_add_days">+%1$d روز</string>
+    <string name="ue_advanced">پیشرفته</string>
+    <string name="ue_hwid">محدودیت دستگاه</string>
+    <string name="ue_hwid_hint">خالی = پیش‌فرض، ۰ = نامحدود</string>
+    <string name="ue_hwid_help">خالی یعنی سیاست پیش‌فرض پنل. ۰ یعنی بدون محدودیت دستگاه.</string>
+    <string name="ue_note">یادداشت داخلی</string>
+    <string name="ue_note_hint">فقط ادمین‌ها می‌بینند</string>
+    <string name="ue_proxy">تنظیمات پروکسی</string>
+    <string name="ue_proxy_hint">توسط پنل مدیریت می‌شود</string>
+    <string name="ue_access">دسترسی</string>
+    <string name="ue_groups">گروه‌ها</string>
+    <string name="ue_templates">تمپلت‌ها</string>
+    <string name="ue_search_groups">جست‌وجوی گروه</string>
+    <string name="ue_no_groups">گروهی یافت نشد</string>
+    <string name="ue_no_templates">تمپلتی یافت نشد</string>
+    <string name="ue_selected_count">%1$d انتخاب‌شده</string>
+    <string name="ue_cancel">انصراف</string>
+    <string name="ue_create">ساخت کاربر</string>
+    <string name="ue_save">ذخیره تغییرات</string>
 </resources>
