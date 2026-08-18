@@ -73,13 +73,13 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("تقویم", fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text("امروز", color = theme.accentPrimary) }
+                        Text(stringResource(R.string.cal_title), fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text(stringResource(R.string.cal_today), color = theme.accentPrimary) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
                         Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
-                        Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${JalaliCalendar.Date(y, m, 1).getMonthName()} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${com.mrm.pgmanager.utils.jalaliMonthName(JalaliCalendar.Date(y, m, 1))} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                         Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                     }
                     LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
@@ -92,8 +92,8 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
-                        PrimaryButton("تایید", onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
+                        SecondaryButton(stringResource(R.string.cal_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                        PrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f))
                     }
                 }
             }
