@@ -760,4 +760,91 @@
     <string name="bt_cancel">Cancel</string>
     <string name="bt_apply">Apply template</string>
     <string name="bt_pick_first">Please pick a template</string>
+    <!-- پایان لوکالایزیشن: داشبورد، بکاپ، بیومتریک، ویجت و اجزای مشترک -->
+    <string name="db_error_stats">Could not load the dashboard stats</string>
+    <string name="db_debtor_count">Debtors</string>
+    <string name="db_debtor_people">%1$d people</string>
+    <string name="db_debt_total">Total debt</string>
+    <string name="bk_corrupt">The backup file is damaged</string>
+    <string name="bk_ok">Backup complete</string>
+    <string name="bk_encrypted_short">This backup is encrypted, enter the password.</string>
+    <string name="bk_encrypted_long">This backup file is encrypted. Please enter the password.</string>
+    <string name="bk_invalid">The backup file is not valid</string>
+    <string name="bk_no_data">No data</string>
+    <string name="bk_need_password">Enter the backup password.</string>
+    <string name="bk_restored">Restore complete. %1$d sections were restored.</string>
+    <string name="bk_auto_ok">Automatic backup complete</string>
+    <string name="bk_auto_failed">Automatic backup failed: %1$s</string>
+    <string name="bio_title">Sign in to PasarGuard</string>
+    <string name="bio_subtitle">Use your fingerprint or device PIN</string>
+    <string name="bio_failed">Authentication failed</string>
+    <string name="bio_lock_title">Confirm app lock</string>
+    <string name="bio_lock_subtitle">Confirm your fingerprint to turn on the app lock</string>
+    <string name="bio_lock_failed">Turning the lock on was cancelled or failed</string>
+    <string name="bio_cancel">Cancel</string>
+    <string name="cc_hide_password">Hide password</string>
+    <string name="cc_show_password">Show password</string>
+    <string name="cc_n_users">%1$d users</string>
+    <string name="cc_enable">Enable</string>
+    <string name="cc_disable">Disable</string>
+    <string name="cc_reset_data">Reset data</string>
+    <string name="cc_apply_template">Apply template</string>
+    <string name="cc_export">Export</string>
+    <string name="cc_select_all">Select all</string>
+    <string name="lamp_custom">Custom</string>
+    <string name="re_title">Reset subscription time</string>
+    <string name="re_subtitle">Enter the real length of the subscription. Expiry is recalculated from today.</string>
+    <string name="re_days_label">Subscription length (days)</string>
+    <string name="re_days_value">%1$d days</string>
+    <string name="re_cancel">Cancel</string>
+    <string name="re_apply">Apply</string>
+    <string name="re_invalid">Enter a valid number of days (greater than zero).</string>
+    <string name="wg_debtors">%1$d debtors</string>
+    <string name="wg_no_debt">No debt</string>
+    <string name="wg_cores">%1$d cores</string>
+    <string name="wg_updated">Updated %1$s</string>
+    <string name="wg_no_data">No data</string>
+    <string name="wg_open_once">Open the app once</string>
+    <string name="sc_qr_unavailable">QR not available</string>
+    <string name="sc_unlimited">Unlimited</string>
+    <string name="sc_data">Data</string>
+    <string name="sc_validity">Validity</string>
+    <string name="cal_title">Calendar</string>
+    <string name="cal_today">Today</string>
+    <string name="cal_cancel">Cancel</string>
+    <string name="cal_confirm">Confirm</string>
+    <string name="nc_events">User events</string>
+    <string name="nc_events_desc">Users created, deleted, limited or expired</string>
+    <string name="nc_system">System health</string>
+    <string name="nc_system_desc">CPU, RAM, disk and panel connection alerts</string>
+    <string name="add_template">Add template</string>
+    <string name="delete_template_cd">Delete template</string>
+    <string name="add_group">Add group</string>
+    <string name="delete_group_cd">Delete group</string>
+    <string name="copied">Copied</string>
+    <string name="cd_unselect">Unselect</string>
+    <string name="cd_select">Select</string>
+    <string name="confirm">Confirm</string>
+    <string name="search_cd">Search</string>
+    <!-- زمان و مدت -->
+    <string name="dl_unlimited">Unlimited</string>
+    <string name="dl_expired">Expired</string>
+    <string name="dl_today">Today</string>
+    <string name="dl_one_day">1 day</string>
+    <string name="dl_days">%1$d days</string>
+    <string name="up_days_hours">%1$dd %2$dh</string>
+    <string name="up_hours_minutes">%1$dh %2$dm</string>
+    <string name="up_minutes">%1$d min</string>
+    <string name="up_seconds">%1$d s</string>
+    <!-- متریک نمودار -->
+    <string name="metric_online">Online users</string>
+    <string name="metric_expired">Expired users</string>
+    <string name="metric_limited">Limited users</string>
+    <string-array name="jalali_months">
+        <item>Farvardin</item><item>Ordibehesht</item><item>Khordad</item>
+        <item>Tir</item><item>Mordad</item><item>Shahrivar</item>
+        <item>Mehr</item><item>Aban</item><item>Azar</item>
+        <item>Dey</item><item>Bahman</item><item>Esfand</item>
+    </string-array>
+    <string name="login_err_https">Only https is supported. Use an https address.</string>
 </resources>
