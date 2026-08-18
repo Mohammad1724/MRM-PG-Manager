@@ -95,6 +95,7 @@ import com.mrm.pgmanager.ui.theme.glassBg
 import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
@@ -153,11 +154,11 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
     val shape = DsRadius.Lg
     Box(
         modifier = modifier
-            .height(82.dp)
+            .height(72.dp)
             .clip(shape)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
-            .padding(12.dp)
+            .padding(horizontal = 10.dp, vertical = 9.dp)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -165,13 +166,13 @@ private fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: C
                 val iconBg = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.15f) else theme.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
                 val iconBorder = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.22f) else theme.accentPrimary.copy(alpha = 0.24f) } else accent.copy(0.18f)
                 val iconTint = if (isGold) { theme.accentPrimary } else accent
-                Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(iconBg).border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm), contentAlignment = Alignment.Center) {
-                    RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
+                Box(Modifier.size(24.dp).clip(DsRadius.Sm).background(iconBg).border(BorderStroke(DsBorder.Hairline, iconBorder), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                    RoundedAppIcon(icon, tint = iconTint, size = 13.dp)
                 }
                 Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             TechnicalContainer {
-                Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -294,7 +295,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.weight(1f).height(46.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
@@ -309,7 +310,7 @@ private fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (User
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.weight(1f).height(46.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
@@ -894,7 +895,7 @@ fun UsersScreen(
 
     val fallbackStatsPx = remember(density) { with(density) { 104.dp.toPx() } }
     val headerHeight = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else fallbackStatsPx
-    val fallbackTotalDp = 242.dp
+    val fallbackTotalDp = 190.dp
     val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
     val scrollOffset = remember { mutableStateOf(0f) }
     // با اسکرول به پایین دکمهٔ «کاربر جدید» پنهان و با اسکرول به بالا دوباره ظاهر می‌شود
@@ -1093,8 +1094,8 @@ fun UsersScreen(
             )
             Box(
                 modifier = Modifier
-                    .padding(bottom = 72.dp, end = 4.dp)
-                    .size(52.dp)
+                    .padding(bottom = 74.dp, end = 4.dp)
+                    .size(44.dp)
                     .graphicsLayer(
                         scaleX = fabScale * fabShown,
                         scaleY = fabScale * fabShown,
@@ -1107,7 +1108,7 @@ fun UsersScreen(
                     .clickable(enabled = fabVisible.value, interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
                 contentAlignment = Alignment.Center
             ) {
-                RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = DsComponent.IconLg)
+                RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = 20.dp)
             }
         }
     }) { padding ->
@@ -1196,8 +1197,8 @@ fun UsersScreen(
                     .background(themeState.chromeBgColor)
                     .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
                     .padding(top = topInsets)
-                    // 46dp = جای دکمهٔ همبرگریِ شناور بالای صفحه (38dp + حاشیه)
-                    .padding(top = 46.dp)
+                    // دکمهٔ همبرگری حذف شده؛ فقط یک فاصلهٔ نفس‌کشیدن زیرِ نوارِ وضعیت.
+                    .padding(top = 6.dp)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
@@ -1251,7 +1252,8 @@ fun UsersScreen(
                 Box(
                     Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 110.dp)
+                        // ۴۶dp کمتر از قبل، چون فضای رزروشدهٔ همبرگری آزاد شد.
+                        .padding(top = 64.dp)
                 ) {
                     BulkActionsBar(
                         selectedCount = selectedUserIds.size,
