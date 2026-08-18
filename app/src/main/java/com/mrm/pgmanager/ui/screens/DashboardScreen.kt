@@ -38,6 +38,9 @@ import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.spinWhile
+import com.mrm.pgmanager.ui.designsystem.animatedCount
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassAmber
@@ -148,9 +151,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                     Text(stringResource(R.string.dashboard_subtitle), fontSize = 10.sp, color = theme.mutedColor)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
-                        if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.accentPrimary, strokeWidth = 2.dp)
-                        else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).pressScale(0.92f).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
+                        // به‌جای عوض‌شدنِ آیکون با یک اسپینر (که پرش داشت)، خودِ
+                        // آیکونِ رفرش می‌چرخد؛ حرکت پیوسته و بدونِ قطع می‌ماند.
+                        RoundedAppIcon(AppIcon.Refresh, tint = if (manualRefreshing) theme.accentPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.spinWhile(manualRefreshing))
                     }
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).semantics { contentDescription = settingsLabel }, contentAlignment = Alignment.Center) {
                         RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
@@ -212,7 +216,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                             RoundedAppIcon(AppIcon.Users, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
-                        Text("${s.totalUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Text("${animatedCount(s.totalUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
                     Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
@@ -244,13 +248,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                         Text(stringResource(R.string.users_section), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                         Text(stringResource(R.string.monitor_users), fontSize = 10.sp, color = theme.mutedColor)
                         listOf(
-                            Triple(stringResource(R.string.users_section), "${s.totalUsers}", null),
-                            Triple(stringResource(R.string.active_users), "${s.activeUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.online_users), "${s.onlineUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.expired_users), "${s.expiredUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.limited_users), "${s.limitedUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.users_section), "${animatedCount(s.totalUsers)}", null),
+                            Triple(stringResource(R.string.active_users), "${animatedCount(s.activeUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.online_users), "${animatedCount(s.onlineUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.expired_users), "${animatedCount(s.expiredUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.limited_users), "${animatedCount(s.limitedUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
                             Triple(stringResource(R.string.on_hold_users), "0", null),
-                            Triple(stringResource(R.string.disabled_users), "${s.disabledUsers}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
+                            Triple(stringResource(R.string.disabled_users), "${animatedCount(s.disabledUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
                         ).forEach { (label, value, pct) ->
                             val dotColor = when(label) {
                                 "Online Users" -> Color(0xFF22C55E); "Expired Users" -> Color(0xFFF97316); "Limited Users" -> Color(0xFFEF4444); "On Hold Users" -> Color(0xFFA855F7); "Disabled Users" -> Color(0xFF6B7280); else -> Color.Transparent
