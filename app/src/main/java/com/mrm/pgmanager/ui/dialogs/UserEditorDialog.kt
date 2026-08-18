@@ -135,12 +135,12 @@ fun UserEditorDialog(
                 Row(
                     Modifier.fillMaxWidth()
                         .background(theme.cardSurfaceColor)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Box(
-                        Modifier.size(42.dp).clip(DsRadius.Full)
+                        Modifier.size(36.dp).clip(DsRadius.Full)
                             .background(
                                 Brush.verticalGradient(
                                     listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
@@ -151,7 +151,7 @@ fun UserEditorDialog(
                     ) {
                         RoundedAppIcon(
                             if (isCreating) AppIcon.UserAdd else AppIcon.Edit,
-                            tint = theme.accentPrimary, size = 19.dp
+                            tint = theme.accentPrimary, size = 17.dp
                         )
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -181,9 +181,9 @@ fun UserEditorDialog(
                     Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 14.dp, bottom = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .padding(horizontal = 14.dp)
+                        .padding(top = 10.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // ── هویت: نام کاربری + وضعیت
                     EditorSection(stringResource(R.string.ue_identity)) {
@@ -202,7 +202,7 @@ fun UserEditorDialog(
                                             modifier = Modifier.weight(1f)
                                         )
                                         Box(
-                                            Modifier.size(40.dp).clip(DsRadius.Md)
+                                            Modifier.size(36.dp).clip(DsRadius.Md)
                                                 .background(theme.accentPrimary.copy(0.12f))
                                                 .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.30f)), DsRadius.Md)
                                                 .semantics { contentDescription = randomLabel }
@@ -213,7 +213,7 @@ fun UserEditorDialog(
                                     } else {
                                         // نام کاربری بعد از ساخت قابل تغییر نیست (مثل پنل وب).
                                         Row(
-                                            Modifier.weight(1f).height(40.dp).clip(DsRadius.Md)
+                                            Modifier.weight(1f).height(36.dp).clip(DsRadius.Md)
                                                 .background(theme.searchBgColor)
                                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                                 .padding(horizontal = 12.dp),
@@ -236,7 +236,7 @@ fun UserEditorDialog(
                                 val statusColor = if (active) GlassGreen else GlassRed
                                 Box {
                                     Row(
-                                        Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Md)
+                                        Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
                                             .background(statusColor.copy(0.12f))
                                             .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.32f)), DsRadius.Md)
                                             .pressScale(0.96f)
@@ -308,7 +308,7 @@ fun UserEditorDialog(
                                     modifier = Modifier.weight(1f)
                                 )
                                 Box(
-                                    Modifier.size(40.dp).clip(DsRadius.Md)
+                                    Modifier.size(36.dp).clip(DsRadius.Md)
                                         .background(theme.accentPrimary.copy(0.12f))
                                         .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.30f)), DsRadius.Md)
                                         .semantics { contentDescription = pickDateLabel }
@@ -353,7 +353,7 @@ fun UserEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Lg)
+                                Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
                                     .pressScale(0.985f)
                                     .clickable { advancedOpen = !advancedOpen }
                                     .padding(horizontal = 10.dp),
@@ -382,7 +382,7 @@ fun UserEditorDialog(
                             ) {
                                 Column(
                                     Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                         FieldLabel(stringResource(R.string.ue_hwid))
@@ -406,7 +406,7 @@ fun UserEditorDialog(
                                             onValueChange = { note = it.take(500) },
                                             placeholder = stringResource(R.string.ue_note_hint),
                                             singleLine = false,
-                                            modifier = Modifier.height(70.dp)
+                                            modifier = Modifier.height(58.dp)
                                         )
                                     }
                                     // ردیفِ تنظیماتِ پروکسی (نمایشی — مدیریتش در پنل است)
@@ -414,7 +414,7 @@ fun UserEditorDialog(
                                         Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                             .background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            .padding(horizontal = 10.dp, vertical = 7.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(9.dp)
                                     ) {
@@ -442,12 +442,12 @@ fun UserEditorDialog(
                             Modifier.fillMaxWidth().clip(DsRadius.Xl)
                                 .background(theme.cardSurfaceColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             // سگمنتِ کپسولی — هم‌شکلِ سگمنت‌های تنظیمات
                             Row(
-                                Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Full)
+                                Modifier.fillMaxWidth().height(34.dp).clip(DsRadius.Full)
                                     .background(theme.searchBgColor)
                                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
                                     .padding(3.dp),
@@ -580,7 +580,7 @@ fun UserEditorDialog(
                 Row(
                     Modifier.fillMaxWidth()
                         .background(theme.cardSurfaceColor)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     SecondaryButton(
@@ -649,8 +649,8 @@ private fun EditorSection(title: String, content: @Composable ColumnScope.() -> 
             Modifier.fillMaxWidth().clip(DsRadius.Xl)
                 .background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
             content = content
         )
     }
@@ -674,7 +674,7 @@ private fun EmptyHint(text: String) {
     Box(
         Modifier.fillMaxWidth().clip(DsRadius.Lg)
             .background(theme.searchBgColor)
-            .padding(vertical = 16.dp),
+            .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) { Text(text, fontSize = 11.sp, color = theme.mutedColor) }
 }
@@ -690,7 +690,7 @@ private fun PickerRow(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Lg)
+        Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Lg)
             .background(if (selected) theme.accentPrimary.copy(0.12f) else theme.searchBgColor)
             .border(
                 BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(0.40f) else theme.borderColor),
@@ -749,7 +749,7 @@ private fun UserFormTextField(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(if (singleLine) 40.dp else Dp.Unspecified)
+            .height(if (singleLine) 36.dp else Dp.Unspecified)
             .clip(DsRadius.Md)
             .background(theme.searchBgColor)
             .border(BorderStroke(if (isFocused) 1.2.dp else DsBorder.Hairline, borderColor), DsRadius.Md)
