@@ -33,6 +33,9 @@
     <string name="manage_panel">Manage your PasarGuard panel</string>
     <string name="status">Status</string>
     <string name="widget_description">Panel status at a glance: online users and CPU usage of your PasarGuard panel</string>
+    <string name="widget_name">Panel status</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="widget_online">Online</string>
 
     <!-- Dashboard -->
     <string name="dashboard">Dashboard</string>
@@ -43,6 +46,8 @@
     <string name="ram_usage">RAM Usage</string>
     <string name="disk_usage">Disk Usage</string>
     <string name="total_traffic">Total Traffic</string>
+    <string name="cpu_cores_fmt">%1$d cores</string>
+    <string name="free_fmt">%1$s free</string>
     <string name="users_section">Users</string>
     <string name="active_users">Active Users</string>
     <string name="online_users">Online Users</string>

@@ -40,6 +40,7 @@ import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -135,42 +136,87 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             }
 
             stats?.let { s ->
+                // نسبت‌های سیستم — یک‌بار حساب می‌شوند و به حلقه‌ها می‌روند.
+                val memFraction = if (s.memTotal > 0) (s.memUsed.toFloat() / s.memTotal) else 0f
+                val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
+                val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
+                val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
+                val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
+
                 // ── System
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = stringResource(R.string.cpu_usage), value = "${formatPercent(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f), trailing = { Text("${s.cpuCores} cores", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) })
-                        PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
+                        PGRingStatCard(
+                            label = stringResource(R.string.cpu_usage),
+                            value = "${formatPercent(s.cpuUsage)}%",
+                            icon = AppIcon.Gauge,
+                            modifier = Modifier.weight(1f),
+                            fraction = cpuFraction,
+                            percent = cpuFraction.times(100).toInt(),
+                            sub = stringResource(R.string.cpu_cores_fmt, s.cpuCores)
+                        )
+                        PGRingStatCard(
+                            label = stringResource(R.string.ram_usage),
+                            value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}",
+                            icon = AppIcon.Memory,
+                            modifier = Modifier.weight(1f),
+                            fraction = memFraction,
+                            percent = memFraction.times(100).toInt(),
+                            sub = stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
+                        )
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PGStatCard(label = stringResource(R.string.disk_usage), value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f), trailing = { Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).padding(horizontal = 6.dp, vertical = 2.dp)) { Text("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%", fontSize = 10.sp, color = theme.mutedColor) } })
-                        // Total Traffic with in/out - same 92dp height
-                        Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 12.dp) }
-                                Text(stringResource(R.string.total_traffic), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                            }
-                            MrmText(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), isTechnical = true, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        }
+                        PGRingStatCard(
+                            label = stringResource(R.string.disk_usage),
+                            value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}",
+                            icon = AppIcon.Storage,
+                            modifier = Modifier.weight(1f),
+                            fraction = diskFraction,
+                            percent = diskFraction.times(100).toInt(),
+                            sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
+                        )
+                        // حلقهٔ ترافیک سقف ندارد؛ سهمِ دانلود/آپلود را نشان می‌دهد.
+                        PGRingStatCard(
+                            label = stringResource(R.string.total_traffic),
+                            value = formatBytes(totalTraffic),
+                            icon = AppIcon.Storage,
+                            modifier = Modifier.weight(1f),
+                            segments = listOf(
+                                RingSegment(downShare, DsSemantic.Success),
+                                RingSegment(1f - downShare, DsSemantic.Info)
+                            ),
+                            ringColor = theme.accentPrimary,
+                            centerIcon = AppIcon.Storage,
+                            sub = "↓ ${formatBytes(s.incomingBandwidth)}  ↑ ${formatBytes(s.outgoingBandwidth)}"
+                        )
                     }
-                    // Bandwidth - separate card
+                    // دانلود/آپلود — حلقه سهمِ هرکدام از کلِ ترافیک را می‌گوید.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF064E3B).copy(0.45f) else Color(0xFFDCFCE7)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF10B981).copy(0.30f) else Color(0xFFBBF7D0)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Download, tint = if (theme.isDark) Color(0xFF6EE7B7) else Color(0xFF065F46), size = 14.dp) }
-                                Text(stringResource(R.string.download), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                            }
-                            MrmText(formatBytes(s.incomingBandwidth), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                        Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(if (theme.isDark) Color(0xFF1E3A8A).copy(0.35f) else Color(0xFFDBEAFE)).border(BorderStroke(DsBorder.Hairline, if (theme.isDark) Color(0xFF60A5FA).copy(0.30f) else Color(0xFFBFDBFE)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Upload, tint = if (theme.isDark) Color(0xFF93C5FD) else Color(0xFF1E3A8A), size = 14.dp) }
-                                Text(stringResource(R.string.upload), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                            }
-                            MrmText(formatBytes(s.outgoingBandwidth), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
+                        PGRingStatCard(
+                            label = stringResource(R.string.download),
+                            value = formatBytes(s.incomingBandwidth),
+                            icon = AppIcon.Download,
+                            modifier = Modifier.weight(1f),
+                            fraction = downShare,
+                            percent = (downShare * 100).toInt(),
+                            ringColor = DsSemantic.Success,
+                            minHeight = 76.dp,
+                            ringSize = 44.dp
+                        )
+                        PGRingStatCard(
+                            label = stringResource(R.string.upload),
+                            value = formatBytes(s.outgoingBandwidth),
+                            icon = AppIcon.Upload,
+                            modifier = Modifier.weight(1f),
+                            fraction = 1f - downShare,
+                            percent = ((1f - downShare) * 100).toInt(),
+                            ringColor = DsSemantic.Info,
+                            minHeight = 76.dp,
+                            ringSize = 44.dp
+                        )
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }

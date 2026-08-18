@@ -38,6 +38,7 @@ import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.animatedCount
@@ -173,26 +174,62 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
             }
 
             stats?.let { s ->
-                // System row — 2x2 grid exactly like PG screenshot
+                // ── معیارهای سیستم، حالا با نمودارِ حلقه‌ای
+                //
+                // قبلاً هر کاشی فقط عدد داشت و «چقدر پر شده» را باید ذهنی حساب
+                // می‌کردی؛ حلقه همان نسبت را در یک نگاه می‌دهد و رنگش (سبز/کهربایی/
+                // قرمز) خودش هشدار است.
+                val memFraction = if (s.memTotal > 0) (s.memUsed.toFloat() / s.memTotal) else 0f
+                val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
+                val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
+                val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
+                val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
+
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = stringResource(R.string.cpu_usage), value = "${formatPercent(s.cpuUsage)}%", icon = AppIcon.Gauge, modifier = Modifier.weight(1f),
-                        valueSub = "${s.cpuCores} cores", trailing = { Text("${formatPercent(s.cpuUsage)}%", fontSize = 10.sp, color = theme.mutedColor) })
-                    PGStatCard(label = stringResource(R.string.ram_usage), value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}", icon = AppIcon.Memory, modifier = Modifier.weight(1f),
-                        trailing = { PGBadge("${if (s.memTotal>0) (s.memUsed*100/s.memTotal).toInt() else 0}%") })
+                    PGRingStatCard(
+                        label = stringResource(R.string.cpu_usage),
+                        value = "${formatPercent(s.cpuUsage)}%",
+                        icon = AppIcon.Gauge,
+                        modifier = Modifier.weight(1f),
+                        fraction = cpuFraction,
+                        percent = cpuFraction.times(100).toInt(),
+                        sub = stringResource(R.string.cpu_cores_fmt, s.cpuCores)
+                    )
+                    PGRingStatCard(
+                        label = stringResource(R.string.ram_usage),
+                        value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}",
+                        icon = AppIcon.Memory,
+                        modifier = Modifier.weight(1f),
+                        fraction = memFraction,
+                        percent = memFraction.times(100).toInt(),
+                        sub = stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
+                    )
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    PGStatCard(label = stringResource(R.string.disk_usage), value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}", icon = AppIcon.Storage, modifier = Modifier.weight(1f),
-                        trailing = { PGBadge("${if (s.diskTotal>0) (s.diskUsed*100/s.diskTotal).toInt() else 0}%") })
-                    // Total Traffic card with in/out badges - same 92dp height as PGStatCard
-                    Column(Modifier.weight(1f).height(92.dp).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) {
-                                RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 15.dp)
-                            }
-                            Text(stringResource(R.string.total_traffic), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.weight(1f))
-                        }
-                        TechnicalContainer { Text(formatBytes(s.incomingBandwidth + s.outgoingBandwidth), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                    }
+                    PGRingStatCard(
+                        label = stringResource(R.string.disk_usage),
+                        value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}",
+                        icon = AppIcon.Storage,
+                        modifier = Modifier.weight(1f),
+                        fraction = diskFraction,
+                        percent = diskFraction.times(100).toInt(),
+                        sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
+                    )
+                    // ترافیک سقف ندارد، پس حلقه‌اش «نسبتِ پرشدن» نیست؛ سهمِ دانلود
+                    // و آپلود را از کلِ ترافیک نشان می‌دهد.
+                    PGRingStatCard(
+                        label = stringResource(R.string.total_traffic),
+                        value = formatBytes(totalTraffic),
+                        icon = AppIcon.Storage,
+                        modifier = Modifier.weight(1f),
+                        segments = listOf(
+                            RingSegment(downShare, GlassGreen),
+                            RingSegment(1f - downShare, DsSemantic.Info)
+                        ),
+                        ringColor = theme.accentPrimary,
+                        centerIcon = AppIcon.Storage,
+                        sub = "↓ ${formatBytes(s.incomingBandwidth)}  ↑ ${formatBytes(s.outgoingBandwidth)}"
+                    )
                 }
                 // Uptime — full width
                 Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
@@ -202,14 +239,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                     }
                     Column {
                         Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                        val days = s.uptimeSeconds / 86400L; val hrs = (s.uptimeSeconds % 86400L)/3600L
-                        val txt = if (days > 0) "$days day, $hrs hour" else "$hrs hour"
-                        MrmText(txt, isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        // قبلاً اینجا «3 day, 4 hour» دستی ساخته می‌شد و در حالتِ
+                        // فارسی هم انگلیسی می‌ماند؛ حالا از همان مسیرِ ترجمه‌شدهٔ
+                        // صفحهٔ آمار رد می‌شود.
+                        MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 // ── Users section — mirrors PG Dashboard Users block
-                PGSectionHeader(title = "Users")
+                PGSectionHeader(title = stringResource(R.string.users_section))
                 // Users / Active Users 2-col
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -223,9 +261,11 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
-                            Text("${s.activeUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            Text("${animatedCount(s.activeUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                         }
-                        PGBadge("93.2%")
+                        // این بَج قبلاً عددِ ثابتِ «93.2%» بود و با دادهٔ واقعی جور
+                        // درنمی‌آمد؛ حالا از خودِ آمار حساب می‌شود.
+                        PGBadge(percentOf(s.activeUsers, s.totalUsers))
                     }
                 }
                 // Online Users full width
@@ -235,9 +275,9 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                             RoundedAppIcon(AppIcon.Wifi, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
-                        Text("${s.onlineUsers}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        Text("${animatedCount(s.onlineUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
-                    PGBadge("36.8%")
+                    PGBadge(percentOf(s.onlineUsers, s.totalUsers))
                 }
 
                 // ── Total Admins block (like screenshot bottom)
@@ -247,28 +287,30 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.users_section), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                         Text(stringResource(R.string.monitor_users), fontSize = 10.sp, color = theme.mutedColor)
+                        // رنگِ نقطه قبلاً با مقایسهٔ متنِ انگلیسیِ برچسب انتخاب می‌شد
+                        // و در حالتِ فارسی همهٔ نقطه‌ها بی‌رنگ می‌شدند؛ حالا رنگ
+                        // کنارِ خودِ ردیف تعریف شده و به زبان کاری ندارد.
                         listOf(
-                            Triple(stringResource(R.string.users_section), "${animatedCount(s.totalUsers)}", null),
-                            Triple(stringResource(R.string.active_users), "${animatedCount(s.activeUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.activeUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.online_users), "${animatedCount(s.onlineUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.onlineUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.expired_users), "${animatedCount(s.expiredUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.expiredUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.limited_users), "${animatedCount(s.limitedUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.limitedUsers*100.0/s.totalUsers) else null),
-                            Triple(stringResource(R.string.on_hold_users), "0", null),
-                            Triple(stringResource(R.string.disabled_users), "${animatedCount(s.disabledUsers)}", if(s.totalUsers>0) String.format(java.util.Locale.US, "%.0f%%", s.disabledUsers*100.0/s.totalUsers) else null),
-                        ).forEach { (label, value, pct) ->
-                            val dotColor = when(label) {
-                                "Online Users" -> Color(0xFF22C55E); "Expired Users" -> Color(0xFFF97316); "Limited Users" -> Color(0xFFEF4444); "On Hold Users" -> Color(0xFFA855F7); "Disabled Users" -> Color(0xFF6B7280); else -> Color.Transparent
-                            }
+                            UserBreakdownRow(stringResource(R.string.users_section), s.totalUsers, Color.Transparent, false),
+                            UserBreakdownRow(stringResource(R.string.active_users), s.activeUsers, Color(0xFF16A34A), true),
+                            UserBreakdownRow(stringResource(R.string.online_users), s.onlineUsers, Color(0xFF22C55E), true),
+                            UserBreakdownRow(stringResource(R.string.expired_users), s.expiredUsers, Color(0xFFF97316), true),
+                            UserBreakdownRow(stringResource(R.string.limited_users), s.limitedUsers, Color(0xFFEF4444), true),
+                            UserBreakdownRow(stringResource(R.string.on_hold_users), s.onHoldUsers, Color(0xFFA855F7), true),
+                            UserBreakdownRow(stringResource(R.string.disabled_users), s.disabledUsers, Color(0xFF6B7280), true),
+                        ).forEach { row ->
+                            val pct = if (row.showPercent && s.totalUsers > 0)
+                                String.format(java.util.Locale.US, "%.0f%%", row.count * 100.0 / s.totalUsers) else null
                             Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(horizontal = 8.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    if (dotColor != Color.Transparent) Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(dotColor))
+                                    if (row.dot != Color.Transparent) Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(row.dot))
                                     else RoundedAppIcon(AppIcon.Users, tint = theme.mutedColor, size = 12.dp)
-                                    Text(label, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                                    Text(row.label, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     if (pct != null) Text(pct, fontSize = 10.sp, color = theme.mutedColor)
-                                    Text(value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                    Text("${animatedCount(row.count)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 }
                             }
                         }
@@ -352,6 +394,17 @@ private fun UsageMiniChart(points: List<TrafficPoint>, themeIsDark: Boolean, acc
         }
     }
 }
+
+private data class UserBreakdownRow(
+    val label: String,
+    val count: Int,
+    val dot: Color,
+    val showPercent: Boolean
+)
+
+/** درصدِ یک بخش از کل، با یک رقمِ اعشار — «۸۹.۰%». اگر کل صفر باشد، «—». */
+private fun percentOf(part: Int, total: Int): String =
+    if (total <= 0) "—" else String.format(java.util.Locale.US, "%.1f%%", part * 100.0 / total)
 
 private fun formatDebtorAmountFull(amount: Long): String = when {
     amount == 0L -> "0"

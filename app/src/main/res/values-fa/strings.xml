@@ -33,6 +33,9 @@
     <string name="manage_panel">مدیریت پنل پاسارگارد</string>
     <string name="status">وضعیت</string>
     <string name="widget_description">وضعیت پنل در یک نگاه: کاربران آنلاین، مصرف RAM/CPU، بدهکاران و دکمه بروزرسانی دستی</string>
+    <string name="widget_name">وضعیت پنل</string>
+    <string name="widget_refresh">بروزرسانی</string>
+    <string name="widget_online">آنلاین</string>
 
     <!-- Dashboard -->
     <string name="dashboard">داشبورد</string>
@@ -43,6 +46,8 @@
     <string name="ram_usage">مصرف RAM</string>
     <string name="disk_usage">مصرف دیسک</string>
     <string name="total_traffic">ترافیک کل</string>
+    <string name="cpu_cores_fmt">%1$d هسته</string>
+    <string name="free_fmt">%1$s آزاد</string>
     <string name="users_section">کاربران</string>
     <string name="active_users">کاربران فعال</string>
     <string name="online_users">کاربران آنلاین</string>
