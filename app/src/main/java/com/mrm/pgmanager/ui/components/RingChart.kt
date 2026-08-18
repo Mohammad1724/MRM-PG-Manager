@@ -51,14 +51,33 @@ import com.mrm.pgmanager.ui.designsystem.animatedCount
 data class RingSegment(val fraction: Float, val color: Color)
 
 /**
- * رنگِ معنایی برای یک نسبتِ مصرف: سبز تا ۷۰٪، کهربایی تا ۹۰٪، قرمز بعد از آن.
- * همان آستانه‌هایی که در دیالوگِ جزئیاتِ کاربر استفاده می‌شود تا زبانِ رنگیِ اپ
- * یکی بماند.
+ * رنگِ حلقه برای یک نسبتِ مصرف.
+ *
+ * در حالتِ عادی **رنگِ تمِ خودِ کاربر** است (طلایی، بنفش، فیروزه‌ای… هرچه انتخاب
+ * کرده)، چون این کارت‌ها بخشی از هویتِ بصریِ اپ‌اند نه چراغِ خطر. فقط وقتی منبع
+ * واقعاً دارد پر می‌شود از تم فاصله می‌گیرد: بالای ۸۵٪ کهربایی و بالای ۹۵٪ قرمز.
+ * آستانه‌ها عمداً بالاتر از نوارِ مصرفِ کاربران (۷۰/۹۰) گرفته شده‌اند؛ آنجا سهمیهٔ
+ * خریداری‌شده تمام می‌شود، اینجا فقط بارِ لحظه‌ایِ سرور است.
  */
-fun meterColor(fraction: Float): Color = when {
-    fraction < 0.70f -> DsSemantic.Success
-    fraction < 0.90f -> DsSemantic.Warning
-    else -> DsSemantic.Danger
+@Composable
+fun meterColor(fraction: Float): Color {
+    val t = LocalThemeState.current
+    return when {
+        fraction < 0.85f -> t.accentPrimary
+        fraction < 0.95f -> DsSemantic.Warning
+        else -> DsSemantic.Danger
+    }
+}
+
+/**
+ * دو رنگِ هم‌خانواده برای حلقه‌های دوتکه (مثلاً سهمِ دانلود و آپلود): همان رنگِ
+ * تم، یکی پررنگ و یکی کم‌رنگ. با این کار نمودار خوانا می‌ماند بدون اینکه رنگِ
+ * بیگانه‌ای وارد صفحه شود.
+ */
+@Composable
+fun accentPair(): Pair<Color, Color> {
+    val t = LocalThemeState.current
+    return t.accentPrimary to t.accentPrimary.copy(alpha = if (t.isDark) 0.42f else 0.34f)
 }
 
 /**

@@ -40,7 +40,6 @@ import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
-import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -142,6 +141,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
+                val (downColor, upColor) = accentPair()
 
                 // ── System
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -178,15 +178,16 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             percent = diskFraction.times(100).toInt(),
                             sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
                         )
-                        // حلقهٔ ترافیک سقف ندارد؛ سهمِ دانلود/آپلود را نشان می‌دهد.
+                        // حلقهٔ ترافیک سقف ندارد؛ سهمِ دانلود/آپلود را با دو سایه از
+                        // رنگِ تم نشان می‌دهد.
                         PGRingStatCard(
                             label = stringResource(R.string.total_traffic),
                             value = formatBytes(totalTraffic),
                             icon = AppIcon.Storage,
                             modifier = Modifier.weight(1f),
                             segments = listOf(
-                                RingSegment(downShare, DsSemantic.Success),
-                                RingSegment(1f - downShare, DsSemantic.Info)
+                                RingSegment(downShare, downColor),
+                                RingSegment(1f - downShare, upColor)
                             ),
                             ringColor = theme.accentPrimary,
                             centerIcon = AppIcon.Storage,
@@ -202,7 +203,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             modifier = Modifier.weight(1f),
                             fraction = downShare,
                             percent = (downShare * 100).toInt(),
-                            ringColor = DsSemantic.Success,
+                            ringColor = downColor,
                             minHeight = 76.dp,
                             ringSize = 44.dp
                         )
@@ -213,7 +214,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             modifier = Modifier.weight(1f),
                             fraction = 1f - downShare,
                             percent = ((1f - downShare) * 100).toInt(),
-                            ringColor = DsSemantic.Info,
+                            ringColor = upColor,
                             minHeight = 76.dp,
                             ringSize = 44.dp
                         )

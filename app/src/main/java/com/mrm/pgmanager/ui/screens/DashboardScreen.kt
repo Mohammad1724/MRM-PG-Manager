@@ -38,14 +38,12 @@ import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
-import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.animatedCount
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassAmber
-import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.utils.formatBytes
@@ -216,15 +214,16 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                         sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
                     )
                     // ترافیک سقف ندارد، پس حلقه‌اش «نسبتِ پرشدن» نیست؛ سهمِ دانلود
-                    // و آپلود را از کلِ ترافیک نشان می‌دهد.
+                    // و آپلود را از کلِ ترافیک نشان می‌دهد — با دو سایه از رنگِ تم.
+                    val (downColor, upColor) = accentPair()
                     PGRingStatCard(
                         label = stringResource(R.string.total_traffic),
                         value = formatBytes(totalTraffic),
                         icon = AppIcon.Storage,
                         modifier = Modifier.weight(1f),
                         segments = listOf(
-                            RingSegment(downShare, GlassGreen),
-                            RingSegment(1f - downShare, DsSemantic.Info)
+                            RingSegment(downShare, downColor),
+                            RingSegment(1f - downShare, upColor)
                         ),
                         ringColor = theme.accentPrimary,
                         centerIcon = AppIcon.Storage,
