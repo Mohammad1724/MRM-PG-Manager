@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,7 +51,8 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: () -> Unit) {
+fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: () -> Unit, onOpenSettings: () -> Unit = {}) {
+    val settingsLabel = stringResource(R.string.app_settings)
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -148,6 +151,9 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                     Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
                         if (manualRefreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.accentPrimary, strokeWidth = 2.dp)
                         else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
+                    }
+                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).semantics { contentDescription = settingsLabel }, contentAlignment = Alignment.Center) {
+                        RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
                     }
                 }
             }
