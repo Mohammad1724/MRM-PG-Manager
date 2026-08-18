@@ -3,6 +3,7 @@ package com.mrm.pgmanager.work
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.utils.DateLogic
@@ -36,11 +37,11 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val old = oldStates[user.id] ?: return@forEach; val now = newStates[user.id] ?: return@forEach
                 if (old == now) return@forEach
                 fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, (kind + user.id).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, body)
-                if (settings.notifyLimited && user.status == "limited" && !old.startsWith("limited")) notify("limited", "کاربر محدود شد", "${user.username} به سقف حجم رسیده است")
-                if (settings.notifyExpired && user.status == "expired" && !old.startsWith("expired")) notify("expired", "اشتراک منقضی شد", "اشتراک ${user.username} منقضی شده است")
+                if (settings.notifyLimited && user.status == "limited" && !old.startsWith("limited")) notify("limited", applicationContext.getString(R.string.us_n_limited), applicationContext.getString(R.string.us_n_limited_body, user.username))
+                if (settings.notifyExpired && user.status == "expired" && !old.startsWith("expired")) notify("expired", applicationContext.getString(R.string.us_n_expired), applicationContext.getString(R.string.us_n_expired_body, user.username))
                 val oldUsage = old.split("|").getOrNull(1)?.toIntOrNull() ?: 0; val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
-                if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify("near_limit", "هشدار مصرف", "${user.username} به $usage٪ مصرف رسیده است")
-                if (settings.notifyNearExpiry && now.substringAfterLast("|").toBoolean() && !old.substringAfterLast("|").toBoolean()) notify("near_expiry", "هشدار انقضا", "اشتراک ${user.username} نزدیک به انقضا است")
+                if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify("near_limit", applicationContext.getString(R.string.us_n_near_limit), applicationContext.getString(R.string.us_n_near_limit_body, user.username, usage))
+                if (settings.notifyNearExpiry && now.substringAfterLast("|").toBoolean() && !old.substringAfterLast("|").toBoolean()) notify("near_expiry", applicationContext.getString(R.string.us_n_near_expiry), applicationContext.getString(R.string.us_n_near_expiry_body, user.username))
             }
             store.saveNotificationStates(newStates)
 
@@ -49,8 +50,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val oldNodes = store.readNodeStates()
                 if (settings.notifyNodeOffline && oldNodes.isNotEmpty()) states.forEach { (id, online) ->
                     val prev = oldNodes[id]
-                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود شماره $id در دسترس نیست")
-                    if (prev == false && online) NotificationHelper.post(applicationContext, 6200 + id, NotificationHelper.CHANNEL_SYSTEM, "نود دوباره آنلاین شد", "نود شماره $id دوباره در دسترس است")
+                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_offline), applicationContext.getString(R.string.mw_node_offline_body, id))
+                    if (prev == false && online) NotificationHelper.post(applicationContext, 6200 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_online), applicationContext.getString(R.string.mw_node_online_body, id))
                 }
                 store.saveNodeStates(states)
             }
@@ -72,7 +73,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     runCatching { PanelApi.setDisabled(session, d.username, true) }.onSuccess {
                         store.setDebtor(d.copy(autoDisabled = true))
                         if (settings.notificationsEnabled && settings.notifyDebtorOverdue) {
-                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, "قطع خودکار بدهکار", "${d.username} پس از ${settings.debtorAutoDisableAfterHours} ساعت بدهکاری قطع شد (${d.amount} ${d.currency})")
+                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency))
                         }
                     }
                 }
@@ -89,11 +90,11 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 }
                 val ram = if (stats.memTotal > 0L) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
                 val disk = if (stats.diskTotal > 0L) (stats.diskUsed * 100 / stats.diskTotal).toInt() else 0
-                healthAlert("cpu", 5101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(stats.cpuUsage)}٪ رسیده است", stats.cpuUsage >= settings.cpuThreshold)
-                healthAlert("ram", 5102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده است", ram >= settings.ramThreshold)
-                healthAlert("disk", 5103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده است", disk >= settings.diskThreshold)
+                healthAlert("cpu", 5101, applicationContext.getString(R.string.mw_cpu), applicationContext.getString(R.string.mw_cpu_body, "%.1f".format(stats.cpuUsage)), stats.cpuUsage >= settings.cpuThreshold)
+                healthAlert("ram", 5102, applicationContext.getString(R.string.mw_ram), applicationContext.getString(R.string.mw_ram_body, ram), ram >= settings.ramThreshold)
+                healthAlert("disk", 5103, applicationContext.getString(R.string.mw_disk), applicationContext.getString(R.string.mw_disk_body, disk), disk >= settings.diskThreshold)
                 // هشدار ظرفیت آنلاین: ترکیب با کلید خودِ ظرفیت؛ با غیرفعال‌کردن گزینه latch هم خودکار ریست می‌شود.
-                healthAlert("capacity", 5106, "هشدار ظرفیت", "کاربران آنلاین هم‌زمان به ${stats.onlineUsers} رسید (حد مجاز: ${settings.capacityOnlineLimit})", settings.notifyCapacity && stats.onlineUsers >= settings.capacityOnlineLimit)
+                healthAlert("capacity", 5106, applicationContext.getString(R.string.mw_capacity), applicationContext.getString(R.string.mw_capacity_body, stats.onlineUsers, settings.capacityOnlineLimit), settings.notifyCapacity && stats.onlineUsers >= settings.capacityOnlineLimit)
             }
             Result.success()
         }.getOrElse { e ->
@@ -102,7 +103,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 // توکن منقضی شده: اسپم نمی‌کنیم؛ فقط یک‌بار اطلاع و توقف retry.
                 msg.contains("401") -> {
                     if (settings.notificationsEnabled && !store.readAlertFlag("auth_expired")) {
-                        NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, "نشست منقضی شد", "برای ادامهٔ پایش، برنامه را باز کنید و دوباره وارد شوید")
+                        NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_session), applicationContext.getString(R.string.mw_session_body))
                         store.saveAlertFlag("auth_expired", true)
                     }
                     Result.success()
@@ -110,7 +111,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 else -> {
                     // آفلاین‌بودن پنل هم با latch اطلاع داده می‌شود، نه هر ۱۵ دقیقه.
                     if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) {
-                        NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "بررسی دوره‌ای نتوانست به پنل PasarGuard متصل شود")
+                        NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_unreachable), applicationContext.getString(R.string.mw_unreachable_body))
                         store.saveAlertFlag("panel_offline", true)
                     }
                     Result.retry()
