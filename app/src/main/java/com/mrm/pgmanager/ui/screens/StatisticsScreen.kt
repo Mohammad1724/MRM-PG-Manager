@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.Session
@@ -55,11 +56,22 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
-    var stats by remember { mutableStateOf<SystemStats?>(null) }
-    var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
-    var countPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
-    var nodes by remember { mutableStateOf<List<PanelNode>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
+    // مثلِ داشبورد: صفحه با آخرین دادهٔ حافظه ساخته می‌شود تا سوایپ خالی نباشد.
+    val statsKey = PanelCache.statsKey(session.baseUrl)
+    val trafficKey = PanelCache.statsTrafficKey(session.baseUrl)
+    val countKey = PanelCache.statsCountKey(session.baseUrl)
+    val nodesKey = PanelCache.nodesKey(session.baseUrl)
+    var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
+    var trafficPoints by remember(session) {
+        mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
+    }
+    var countPoints by remember(session) {
+        mutableStateOf(PanelCache.get<List<TrafficPoint>>(countKey) ?: emptyList())
+    }
+    var nodes by remember(session) {
+        mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList())
+    }
+    var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     var refreshing by remember { mutableStateOf(false) }
 
     // فیلترهای واقعی (قبلاً رشتهٔ ثابت و بی‌اثر بودند)
@@ -72,17 +84,27 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
-        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it }
+        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; PanelCache.put(statsKey, it) }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
-            .onSuccess { trafficPoints = it }
+            .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
-            .onSuccess { countPoints = it }
+            .onSuccess { countPoints = it; PanelCache.put(countKey, it) }
         loading = false
     }
 
-    LaunchedEffect(session) { runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it } }
-    // با تغییرِ هر فیلتر، داده دوباره از پنل گرفته می‌شود.
-    LaunchedEffect(session, trafficRange, selectedNode, countRange, countMetric) { load(silent = stats != null) }
+    LaunchedEffect(session) {
+        if (nodes.isEmpty()) runCatching { PanelApi.nodes(session) }
+            .onSuccess { nodes = it; PanelCache.put(nodesKey, it) }
+    }
+    // با تغییرِ هر فیلتر، داده دوباره از پنل گرفته می‌شود. ولی صرفِ برگشتن به
+    // این تب فیلتری عوض نمی‌کند، پس اگر داده تازه است درخواستی نمی‌رود.
+    var lastQuery by remember(session) { mutableStateOf<String?>(null) }
+    LaunchedEffect(session, trafficRange, selectedNode, countRange, countMetric) {
+        val query = "$trafficRange|${selectedNode?.id}|$countRange|$countMetric"
+        val changed = lastQuery != null && lastQuery != query
+        lastQuery = query
+        if (changed || !PanelCache.isFresh(statsKey)) load(silent = stats != null)
+    }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {

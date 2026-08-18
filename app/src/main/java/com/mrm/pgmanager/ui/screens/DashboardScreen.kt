@@ -31,6 +31,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
@@ -74,11 +75,17 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
         lifecycle?.addObserver(observer)
         onDispose { lifecycle?.removeObserver(observer) }
     }
-    var stats by remember { mutableStateOf<SystemStats?>(null) }
-    var loading by remember { mutableStateOf(true) }
+    // مقدارِ اولیه از حافظهٔ برنامه می‌آید: با برگشتن به این تب، صفحه فوراً با
+    // آخرین دادهٔ دیده‌شده ساخته می‌شود به‌جای اینکه خالی بیاید و بعد پر شود.
+    val statsKey = PanelCache.statsKey(session.baseUrl)
+    val trafficKey = PanelCache.trafficKey(session.baseUrl)
+    var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
+    var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var trafficPoints by remember { mutableStateOf<List<TrafficPoint>>(emptyList()) }
+    var trafficPoints by remember(session) {
+        mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
+    }
     var debtorTotalAmount by remember { mutableStateOf(0L) }
     var debtorCount by remember { mutableStateOf(0) }
     var debtorCurrency by remember { mutableStateOf(settings.debtorCurrency) }
@@ -104,6 +111,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
         if (!silent) loading = true
         error = null
         runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
+            PanelCache.put(statsKey, it)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
             refreshDebtors()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
@@ -116,7 +124,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: context.getString(R.string.db_error_stats)
             }
         }
-        runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
+        runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id))
@@ -127,9 +135,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
         loading = false
     }
     LaunchedEffect(session, settings.autoRefreshEnabled, settings.refreshIntervalSeconds) {
+        // اگر داده تازه است، همین حالا درخواست نمی‌دهیم؛ سوایپ نباید با یک
+        // ریکوئستِ همزمان سنگین شود. قبلاً حلقه اول load می‌کرد بعد delay، پس
+        // هر بار که این تب ساخته می‌شد یک درخواستِ فوری می‌رفت.
+        if (!PanelCache.isFresh(statsKey)) load(silent = stats != null)
         if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) {
-            if (inForeground) load(silent = true); kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5,3600)*1_000L)
-        } else load()
+            kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5,3600)*1_000L)
+            if (inForeground) load(silent = true)
+        }
     }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),

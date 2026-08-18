@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.GroupDetail
 import com.mrm.pgmanager.data.model.GroupValidation
 import com.mrm.pgmanager.data.model.Session
@@ -65,9 +66,15 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    var groups by remember { mutableStateOf<List<GroupDetail>>(emptyList()) }
-    var availableInbounds by remember { mutableStateOf<List<String>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
+    val groupsKey = PanelCache.groupsKey(session.baseUrl)
+    val inboundsKey = PanelCache.inboundsKey(session.baseUrl)
+    var groups by remember(session) {
+        mutableStateOf(PanelCache.get<List<GroupDetail>>(groupsKey) ?: emptyList())
+    }
+    var availableInbounds by remember(session) {
+        mutableStateOf(PanelCache.get<List<String>>(inboundsKey) ?: emptyList())
+    }
+    var loading by remember(session) { mutableStateOf(PanelCache.get<List<GroupDetail>>(groupsKey) == null) }
     var refreshing by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
@@ -87,14 +94,18 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.groupsDetailed(session) }
-            .onSuccess { groups = it; loadError = null }
+            .onSuccess { groups = it; loadError = null; PanelCache.put(groupsKey, it) }
             .onFailure { loadError = it.message ?: "error" }
         // تگ‌ها اختیاری‌اند؛ نبودشان صفحه را از کار نمی‌اندازد.
-        runCatching { PanelApi.inboundTags(session) }.onSuccess { availableInbounds = it }
+        runCatching { PanelApi.inboundTags(session) }
+            .onSuccess { availableInbounds = it; PanelCache.put(inboundsKey, it) }
         loading = false
     }
 
-    LaunchedEffect(session) { load() }
+    LaunchedEffect(session) {
+        // دادهٔ تازه = بدون درخواست؛ سوایپ روان می‌ماند.
+        if (!PanelCache.isFresh(groupsKey)) load(silent = groups.isNotEmpty())
+    }
 
     // پیام موفقیت پس از ۲ ثانیه محو می‌شود.
     LaunchedEffect(toast) {

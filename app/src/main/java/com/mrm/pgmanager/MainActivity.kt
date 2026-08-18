@@ -267,6 +267,9 @@ fun MRMApp() {
     LiquidGlassTheme(themeState = effectiveTheme) {
         // سوئیچ حساب: نشست فعال بدون دست‌خوردن لیست حساب‌ها عوض می‌شود.
         val switchAccount: (com.mrm.pgmanager.data.model.Session) -> Unit = { acc ->
+            // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
+            // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
+            com.mrm.pgmanager.data.cache.PanelCache.clear()
             store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false
         }
         if (session == null || addingAccount) {
@@ -295,7 +298,7 @@ fun MRMApp() {
                         )
                     }
                 },
-                onLogout = { store.clear(); session = null; isUnlocked = false }
+                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false }
             )
         } else {
             // فعال‌سازی قفل از هر دو مسیر (تنظیمات داشبورد / کاربران) با تأیید بیومتریک انجام می‌شود.
@@ -416,9 +419,12 @@ fun MRMApp() {
                     androidx.compose.foundation.pager.HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        // فقط صفحهٔ جاری در حافظه ساخته می‌شود؛ وگرنه هر سه صفحه
-                        // هم‌زمان به پنل ریکوئست می‌زدند.
-                        beyondViewportPageCount = 0,
+                        // یک صفحه از هر طرف از قبل ساخته می‌شود تا سوایپ محتوای
+                        // آماده را نشان بدهد، نه صفحه‌ای که وسطِ انیمیشن دارد
+                        // ساخته می‌شود. قبلاً صفر بود چون هر صفحه با ساخته‌شدن
+                        // یک ریکوئست می‌فرستاد؛ حالا PanelCache جلوی درخواستِ
+                        // تکراری را می‌گیرد، پس پیش‌ساختن هزینهٔ شبکه ندارد.
+                        beyondViewportPageCount = 1,
                         key = { it }
                     ) { page ->
                         // حرکتِ عمق: صفحهٔ در حالِ رفتن کمی عقب می‌نشیند و محو
@@ -435,13 +441,13 @@ fun MRMApp() {
                             }
                         ) {
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false }, onOpenSettings = { showDashboardSettings = true })
+                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false }, onOpenSettings = { showDashboardSettings = true })
                             TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
                                 session = session!!,
-                                onLogout = { store.clear(); session = null; isUnlocked = false },
+                                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
                                 themeState = effectiveTheme,
                                 monitoringSettings = monitoringSettings,
                                 deepLinkUsername = deepLinkUsername,
@@ -483,7 +489,7 @@ fun MRMApp() {
                             onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
                             appLanguage = appLanguage,
                             onLanguageChange = handleLanguageChange,
-                            onLogout = { store.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
+                            onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
                             appVersion = BuildConfig.VERSION_NAME,
                             session = session,
                             store = store,

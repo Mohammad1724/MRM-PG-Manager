@@ -62,6 +62,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
@@ -203,16 +204,23 @@ fun UsersScreen(
     val context = LocalContext.current
     val defaultCurrency = stringResource(R.string.us_currency)
     val store = remember { SessionStore(context) }
-    var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
+    // فهرست از حافظهٔ برنامه شروع می‌شود: برگشتن به تبِ کاربران دیگر یعنی
+    // «همان فهرست، فوراً»، نه یک صفحهٔ اسکلتی و بعد یک پرش.
+    val usersKey = PanelCache.usersKey(session.baseUrl)
+    var users by remember(session) {
+        mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey) ?: emptyList())
+    }
     var query by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(true) }
+    var loading by remember(session) { mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey) == null) }
     var error by remember { mutableStateOf<String?>(null) }
     var offlineAt by remember { mutableStateOf<Long?>(null) }
     var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
     var qrUser by remember { mutableStateOf<PanelUser?>(null) }
-    var onlineCount by remember { mutableStateOf(0) }
+    var onlineCount by remember(session) {
+        mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey)?.count { it.isOnline } ?: 0)
+    }
     var lastUserStates by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
 
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
@@ -274,6 +282,7 @@ fun UsersScreen(
             runCatching {
                 val list = PanelApi.users(session)
                 users = list; onlineCount = list.count { it.isOnline }
+                PanelCache.put(usersKey, list)
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveUsersCache(list) }
                 offlineAt = null
                 val settings = store.readMonitoringSettings()
@@ -354,7 +363,11 @@ fun UsersScreen(
         exportPending = format to chosen
         if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
-    LaunchedEffect(Unit) { load() }
+    LaunchedEffect(session) {
+        // فقط وقتی داده کهنه است سراغِ پنل می‌رویم؛ وگرنه سوایپ بینِ تب‌ها هر بار
+        // یک درخواستِ کامل می‌شد و همان‌جا انیمیشن می‌پرید.
+        if (!PanelCache.isFresh(usersKey)) load(silent = users.isNotEmpty())
+    }
     LaunchedEffect(deepLinkUsername, users) {
         val name = deepLinkUsername ?: return@LaunchedEffect
         if (users.isEmpty()) return@LaunchedEffect

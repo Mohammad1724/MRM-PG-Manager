@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.TemplateOptions
@@ -77,9 +78,17 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
-    var availableGroups by remember { mutableStateOf<List<Group>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
+    val templatesKey = PanelCache.templatesKey(session.baseUrl)
+    val templateGroupsKey = PanelCache.templateGroupsKey(session.baseUrl)
+    var templates by remember(session) {
+        mutableStateOf(PanelCache.get<List<UserTemplateItem>>(templatesKey) ?: emptyList())
+    }
+    var availableGroups by remember(session) {
+        mutableStateOf(PanelCache.get<List<Group>>(templateGroupsKey) ?: emptyList())
+    }
+    var loading by remember(session) {
+        mutableStateOf(PanelCache.get<List<UserTemplateItem>>(templatesKey) == null)
+    }
     var refreshing by remember { mutableStateOf(false) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
@@ -98,14 +107,17 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.userTemplates(session) }
-            .onSuccess { templates = it; loadError = null }
+            .onSuccess { templates = it; loadError = null; PanelCache.put(templatesKey, it) }
             .onFailure { loadError = it.message ?: "error" }
         // گروه‌ها برای انتخابگرِ فرم لازم‌اند؛ نبودشان صفحه را از کار نمی‌اندازد.
-        runCatching { PanelApi.groups(session) }.onSuccess { availableGroups = it }
+        runCatching { PanelApi.groups(session) }
+            .onSuccess { availableGroups = it; PanelCache.put(templateGroupsKey, it) }
         loading = false
     }
 
-    LaunchedEffect(session) { load() }
+    LaunchedEffect(session) {
+        if (!PanelCache.isFresh(templatesKey)) load(silent = templates.isNotEmpty())
+    }
 
     LaunchedEffect(toast) {
         if (toast != null) {
