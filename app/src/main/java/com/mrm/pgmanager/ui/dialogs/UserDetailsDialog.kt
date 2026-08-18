@@ -213,6 +213,7 @@ fun UserDetailsDialog(
     var billingOpen by remember { mutableStateOf(false) }
 
     val copiedMsg = stringResource(R.string.ud_copied)
+    val closeLabel = stringResource(R.string.ud_close)
     val subFailedMsg = stringResource(R.string.ud_sub_failed)
     val unlimitedLabel = stringResource(R.string.ud_unlimited)
 
@@ -330,7 +331,7 @@ fun UserDetailsDialog(
                     Box(
                         Modifier.size(28.dp).clip(DsRadius.Full)
                             .background(theme.searchBgColor)
-                            .semantics { contentDescription = stringResource(R.string.ud_close) }
+                            .semantics { contentDescription = closeLabel }
                             .pressScale(0.9f)
                             .clickable(onClick = onDismiss),
                         contentAlignment = Alignment.Center
@@ -551,8 +552,8 @@ fun UserDetailsDialog(
                                     tint = billingAccent, size = 17.dp
                                 )
                                 Text(
-                                    if (hasDebt) String.format(
-                                        stringResource(R.string.ud_debt_of),
+                                    if (hasDebt) stringResource(
+                                        R.string.ud_debt_of,
                                         debtorInfo!!.amount.toString(), debtorInfo.currency
                                     ) else stringResource(R.string.ud_invoice),
                                     fontSize = 12.sp,
@@ -583,7 +584,7 @@ fun UserDetailsDialog(
                                         val stamp = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
                                             .format(java.util.Date(debtorInfo.markedAt))
                                         Text(
-                                            String.format(stringResource(R.string.ud_marked_at), stamp) +
+                                            stringResource(R.string.ud_marked_at, stamp) +
                                                 if (debtorInfo.notes.isNotBlank()) " · ${debtorInfo.notes}" else "",
                                             fontSize = 10.sp, color = theme.mutedColor,
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
@@ -614,7 +615,7 @@ fun UserDetailsDialog(
                     }
 
                     SecondaryButton(
-                        stringResource(R.string.ud_close),
+                        closeLabel,
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth()
                     )
