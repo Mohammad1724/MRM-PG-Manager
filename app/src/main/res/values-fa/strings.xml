@@ -17,6 +17,7 @@
     <string name="login_err_not_found">آدرس یا مسیر پنل درست نیست (۴۰۴).</string>
     <string name="login_err_generic">اتصال ناموفق: %1$s</string>
     <string name="login_err_unknown">خطای ناشناخته</string>
+    <string name="back_exit_hint">برای خروج دوباره بزنید</string>
     <string name="cd_change_language">تغییر زبان</string>
     <string name="users">کاربران</string>
     <string name="refresh">بروزرسانی</string>
