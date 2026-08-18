@@ -23,16 +23,26 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
+import androidx.compose.ui.node.DelegatingNode
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.invalidateDraw
+import androidx.compose.ui.platform.InspectorInfo
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.IntOffset
 
 /**
@@ -169,24 +179,38 @@ fun animatedCount(target: Int): Int {
  * برای دکمه‌های رفرش: قبلاً آیکون با یک اسپینرِ گرد عوض می‌شد و لحظهٔ تعویض
  * پرش داشت. حالا خودِ آیکون می‌چرخد؛ حرکت پیوسته است و جای دکمه ثابت می‌ماند.
  */
-fun Modifier.spinWhile(spinning: Boolean): Modifier = composed {
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "spin")
-    val angle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = tween(950, easing = DsEasing.Linear),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
-        ),
-        label = "spinAngle"
-    )
-    // وقتی نمی‌چرخد، زاویه صفر می‌شود تا آیکون کج نماند.
-    val settle by animateFloatAsState(
-        targetValue = if (spinning) 1f else 0f,
-        animationSpec = DsAnim.normal(),
-        label = "spinSettle"
-    )
-    this.graphicsLayer { rotationZ = angle * settle }
+@Composable
+fun Modifier.spinWhile(spinning: Boolean): Modifier {
+    // نکتهٔ مهمِ کارایی: انیمیشنِ بی‌نهایت فقط وقتی ساخته می‌شود که واقعاً
+    // بچرخد. نسخهٔ قبلی همیشه یک rememberInfiniteTransition داشت و زاویه را در
+    // صفر ضرب می‌کرد؛ یعنی روی هر صفحه‌ای که دکمهٔ رفرش داشت (چهار صفحه) یک
+    // انیمیشنِ دائمی در جریان بود و اپ هیچ‌وقت به حالتِ بی‌کار نمی‌رسید — هم
+    // باتری می‌خورد، هم با انیمیشنِ جابه‌جاییِ صفحه‌ها رقابت می‌کرد.
+    var angle by remember { mutableStateOf(0f) }
+    // چرخش با یک انیمیشنِ قابلِ لغو پیش می‌رود و در پایان نرم روی صفر می‌ایستد،
+    // تا آیکون کج نماند.
+    LaunchedEffect(spinning) {
+        if (spinning) {
+            val start = angle
+            val clock = androidx.compose.animation.core.Animatable(start)
+            clock.animateTo(
+                targetValue = start + 100_000f,
+                animationSpec = androidx.compose.animation.core.tween(
+                    durationMillis = (100_000f / 360f * 950f).toInt(),
+                    easing = DsEasing.Linear
+                )
+            ) { angle = value % 360f }
+        } else if (angle != 0f) {
+            val rest = (360f - angle % 360f) % 360f
+            val from = angle
+            androidx.compose.animation.core.Animatable(0f).animateTo(
+                targetValue = 1f,
+                animationSpec = DsAnim.normal()
+            ) { angle = (from + rest * value) % 360f }
+            angle = 0f
+        }
+    }
+    return this.graphicsLayer { rotationZ = angle }
 }
 
 /**
@@ -196,31 +220,85 @@ fun Modifier.spinWhile(spinning: Boolean): Modifier = composed {
  * ولی هیچ بازخوردِ حرکتی ندارند؛ این مودیفایر بدونِ دست‌زدن به منطقِ کلیک،
  * همان حسِ «فشرده شد» را اضافه می‌کند.
  *
+ * ### چرا با Modifier.Node نوشته شده
+ * نسخهٔ اول با `composed { }` بود. `composed` یعنی مودیفایر باید در هر
+ * ترکیب‌بندی دوباره materialize شود، قابلِ مقایسه و skip نیست، و به‌ازای هر
+ * محلِ استفاده یک زنجیرهٔ تازه می‌سازد. این مودیفایر در بیش از بیست جا و از
+ * جمله روی ردیف‌های فهرستِ کاربران استفاده می‌شود، پس هزینه‌اش ضرب می‌شد در
+ * تعدادِ آیتم‌های روی صفحه.
+ *
+ * نسخهٔ فعلی یک گرهٔ سبک است: نه ترکیب‌بندی لازم دارد، نه هر بار آبجکتِ تازه؛
+ * انیمیشن هم فقط ناحیهٔ نقاشیِ خودش را باطل می‌کند و چرخهٔ recomposition را
+ * اصلاً بیدار نمی‌کند.
+ *
  * @param scale اندازهٔ جمع‌شدگی. برای سطح‌های بزرگ‌تر عددِ نزدیک‌تر به ۱ بهتر است.
  */
 fun Modifier.pressScale(
     scale: Float = 0.96f,
     enabled: Boolean = true
-): Modifier = composed {
-    var pressed by remember { mutableStateOf(false) }
-    val current by animateFloatAsState(
-        targetValue = if (pressed && enabled) scale else 1f,
-        animationSpec = DsAnim.snappy(),
-        label = "pressScale"
-    )
-    this
-        .graphicsLayer { scaleX = current; scaleY = current }
-        .pointerInput(enabled) {
-            if (!enabled) return@pointerInput
+): Modifier = this then PressScaleElement(scale, enabled)
+
+private data class PressScaleElement(
+    val scale: Float,
+    val enabled: Boolean
+) : ModifierNodeElement<PressScaleNode>() {
+    override fun create(): PressScaleNode = PressScaleNode(scale, enabled)
+    override fun update(node: PressScaleNode) = node.update(scale, enabled)
+    override fun InspectorInfo.inspectableProperties() {
+        name = "pressScale"
+        properties["scale"] = scale
+        properties["enabled"] = enabled
+    }
+}
+
+private class PressScaleNode(
+    private var pressedScale: Float,
+    private var enabled: Boolean
+) : DelegatingNode(), DrawModifierNode {
+
+    private val current = Animatable(1f)
+    private var animation: Job? = null
+
+    private val pointer = delegate(
+        SuspendingPointerInputModifierNode {
             detectTapGestures(
                 onPress = {
-                    pressed = true
+                    animateTo(pressedScale)
                     // منتظرِ رها شدن یا لغو می‌مانیم تا مقیاس در حالتِ فشرده گیر نکند.
                     tryAwaitRelease()
-                    pressed = false
+                    animateTo(1f)
                 }
             )
         }
+    )
+
+    fun update(scale: Float, enabled: Boolean) {
+        pressedScale = scale
+        if (this.enabled != enabled) {
+            this.enabled = enabled
+            pointer.resetPointerInputHandler()
+            if (!enabled) animateTo(1f)
+        }
+    }
+
+    private fun animateTo(target: Float) {
+        if (!enabled && target != 1f) return
+        animation?.cancel()
+        animation = coroutineScope.launch {
+            current.animateTo(
+                targetValue = target,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) { invalidateDraw() }
+        }
+    }
+
+    override fun ContentDrawScope.draw() {
+        val s = current.value
+        if (s == 1f) drawContent() else scale(s, s) { this@draw.drawContent() }
+    }
 }
 
 /**
