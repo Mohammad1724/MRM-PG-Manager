@@ -58,7 +58,6 @@ import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.PasarGuardDrawer
 import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
-import com.mrm.pgmanager.ui.components.MoreSheet
 import com.mrm.pgmanager.ui.components.MrmFloatingNav
 import com.mrm.pgmanager.ui.components.TAB_DASHBOARD
 import com.mrm.pgmanager.ui.components.TAB_GROUPS
@@ -195,8 +194,6 @@ fun MRMApp() {
     // درخواستِ «ساخت گروهی» از صفحهٔ تنظیمات: تب کاربران باز می‌شود و دیالوگ را
     // همان‌جا نشان می‌دهد تا لیست پس از ساخت رفرش شود.
     var pendingBulkCreate by rememberSaveable { mutableStateOf(false) }
-    // شیتِ «بیشتر» در نوار پایین: بخش‌های کم‌کاربردتر + تنظیمات + خروج.
-    var moreSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     // تمِ مؤثر: اگر «خودکار» فعّال باشد، از حالتِ روشن/تیرهٔ سیستم پیروی می‌کند.
     val systemDark = isSystemInDarkTheme()
@@ -388,10 +385,10 @@ fun MRMApp() {
                         key = { it }
                     ) { page ->
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false })
-                            TAB_STATISTICS -> StatisticsScreen(session!!)
-                            TAB_GROUPS -> GroupsScreen(session!!)
-                            TAB_TEMPLATES -> TemplatesScreen(session!!)
+                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); session = null; isUnlocked = false }, onOpenSettings = { showDashboardSettings = true })
+                            TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
+                            TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
+                            TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
                                 session = session!!,
                                 onLogout = { store.clear(); session = null; isUnlocked = false },
@@ -400,7 +397,8 @@ fun MRMApp() {
                                 deepLinkUsername = deepLinkUsername,
                                 onDeepLinkHandled = { deepLinkUsername = null },
                                 openBulkCreate = pendingBulkCreate,
-                                onBulkCreateHandled = { pendingBulkCreate = false }
+                                onBulkCreateHandled = { pendingBulkCreate = false },
+                                onOpenSettings = { showDashboardSettings = true }
                             )
                         }
                     }
@@ -410,7 +408,6 @@ fun MRMApp() {
                     selectedTab = selectedTab,
                     visible = navVisible,
                     onSelect = { selectedTab = it },
-                    onMore = { moreSheetOpen = true },
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
                 // دکمهٔ همبرگری حذف شد: ناوبری به نوار پایین منتقل شده و کشو
@@ -446,18 +443,6 @@ fun MRMApp() {
                             }
                         )
                     }
-                }
-
-                // ── شیتِ «بیشتر»: بخش‌های کم‌کاربردتر و تنظیمات، همه در ناحیهٔ شست.
-                if (moreSheetOpen) {
-                    MoreSheet(
-                        selectedTab = selectedTab,
-                        adminName = session?.username ?: "",
-                        onSelect = { tab -> selectedTab = tab; moreSheetOpen = false },
-                        onOpenSettings = { moreSheetOpen = false; showDashboardSettings = true },
-                        onLogout = { moreSheetOpen = false; store.clear(); session = null; isUnlocked = false },
-                        onDismiss = { moreSheetOpen = false }
-                    )
                 }
             }
             }
