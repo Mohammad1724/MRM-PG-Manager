@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -83,10 +85,10 @@ fun BulkCreateUsersDialog(
         (useTemplate || limitGb.toDoubleOrNull() != null) && pattern.prefix.isNotBlank()
 
     fun friendlyError(e: Throwable?): String = when {
-        e?.message?.contains("409") == true -> "نام تکراری است"
-        e?.message?.contains("422") == true -> "دادهٔ نامعتبر"
-        e?.message?.contains("401") == true -> "نشست منقضی شده"
-        else -> e?.message?.take(60) ?: "خطای نامشخص"
+        e?.message?.contains("409") == true -> context.getString(R.string.bc_err_duplicate)
+        e?.message?.contains("422") == true -> context.getString(R.string.bc_err_invalid)
+        e?.message?.contains("401") == true -> context.getString(R.string.bc_err_session)
+        else -> e?.message?.take(60) ?: context.getString(R.string.bc_err_unknown)
     }
 
     fun start() {
@@ -157,39 +159,39 @@ fun BulkCreateUsersDialog(
                         RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 19.dp)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("ساخت گروهی کاربر", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        Text("تولید چند کاربر هم‌زمان با نام یکدست", fontSize = 11.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.bc_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        Text(stringResource(R.string.bc_subtitle), fontSize = 11.sp, color = theme.mutedColor)
                     }
                 }
 
                 if (!running && !done) {
                     // کارت نام‌گذاری
-                    SettingsCard("نام‌گذاری", AppIcon.User) {
-                        SegmentedControl(options = listOf("تصادفی", "ترتیبی"), selectedIndex = if (pattern.sequential) 1 else 0) { pattern = pattern.copy(sequential = it == 1) }
+                    SettingsCard(stringResource(R.string.bc_naming), AppIcon.User) {
+                        SegmentedControl(options = listOf(stringResource(R.string.bc_random), stringResource(R.string.bc_sequential)), selectedIndex = if (pattern.sequential) 1 else 0) { pattern = pattern.copy(sequential = it == 1) }
                         CompactGlassField(
                             pattern.prefix,
                             { v -> pattern = pattern.copy(prefix = v.filter { c -> c.isLetterOrDigit() || c == '-' || c == '_' }.take(24)) },
-                            "پیشوند نام",
+                            stringResource(R.string.bc_prefix),
                             leadingAppIcon = AppIcon.Edit, keyboardType = KeyboardType.Ascii, fieldHeight = 38.dp
                         )
-                        if (pattern.sequential) SettingsStepper("شروع شمارش از", pattern.sequentialStart, "عدد", 1..999000) { pattern = pattern.copy(sequentialStart = it) }
-                        else SettingsStepper("تعداد ارقام", pattern.randomDigits, "رقم", 3..6) { pattern = pattern.copy(randomDigits = it) }
-                        Text("نمونه‌ها: ${if (pattern.sequential) "${pattern.sequentialName(0)} ، ${pattern.sequentialName(1)}" else "${pattern.randomName()} ، ${pattern.randomName()}"}", fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (pattern.sequential) SettingsStepper(stringResource(R.string.bc_start_from), pattern.sequentialStart, stringResource(R.string.bc_number), 1..999000) { pattern = pattern.copy(sequentialStart = it) }
+                        else SettingsStepper(stringResource(R.string.bc_digits), pattern.randomDigits, stringResource(R.string.bc_digit), 3..6) { pattern = pattern.copy(randomDigits = it) }
+                        Text(stringResource(R.string.bc_examples, if (pattern.sequential) "${pattern.sequentialName(0)} · ${pattern.sequentialName(1)}" else "${pattern.randomName()} · ${pattern.randomName()}"), fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     // کارت مشخصات
-                    SettingsCard("مشخصات اشتراک", AppIcon.Template) {
+                    SettingsCard(stringResource(R.string.bc_plan), AppIcon.Template) {
                         SegmentedControl(
-                            options = listOf("از تمپلت", "دستی"),
+                            options = listOf(stringResource(R.string.bc_from_template), stringResource(R.string.bc_manual)),
                             selectedIndex = if (useTemplate) 0 else 1,
                             enabled = templates.isNotEmpty() || !useTemplate
                         ) { useTemplate = it == 0 }
                         if (templatesLoading) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                                 CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
-                                Text("در حال بارگذاری تمپلت‌ها...", fontSize = 10.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.bc_loading_templates), fontSize = 10.sp, color = theme.mutedColor)
                             }
                         } else if (useTemplate && templates.isEmpty()) {
-                            Text("تمپلتی یافت نشد؛ حالت دستی فعال شد.", fontSize = 10.sp, color = GlassRed)
+                            Text(stringResource(R.string.bc_no_templates), fontSize = 10.sp, color = GlassRed)
                         }
                         if (useTemplate && templates.isNotEmpty()) {
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -203,26 +205,26 @@ fun BulkCreateUsersDialog(
                         }
                         if (!useTemplate) {
                             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, "حجم (GB)", Modifier.weight(1f), KeyboardType.Decimal, fieldHeight = 38.dp)
-                                CompactGlassField(days, { days = it.filter(Char::isDigit) }, "مدت (روز)", Modifier.weight(1f), KeyboardType.Number, fieldHeight = 38.dp)
+                                CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, stringResource(R.string.bc_data_gb), Modifier.weight(1f), KeyboardType.Decimal, fieldHeight = 38.dp)
+                                CompactGlassField(days, { days = it.filter(Char::isDigit) }, stringResource(R.string.bc_duration_days), Modifier.weight(1f), KeyboardType.Number, fieldHeight = 38.dp)
                             }
                         }
                     }
                     // تعداد + یادداشت
-                    SettingsCard("تعداد و یادداشت", AppIcon.Tune) {
-                        SettingsStepper("تعداد کاربر", count, "عدد", 1..100) { count = it }
-                        CompactGlassField(note, { note = it.take(200) }, "یادداشت اختیاری برای همهٔ کاربران", leadingAppIcon = AppIcon.Note, fieldHeight = 38.dp)
+                    SettingsCard(stringResource(R.string.bc_count_and_note), AppIcon.Tune) {
+                        SettingsStepper(stringResource(R.string.bc_count), count, stringResource(R.string.bc_number), 1..100) { count = it }
+                        CompactGlassField(note, { note = it.take(200) }, stringResource(R.string.bc_note_hint), leadingAppIcon = AppIcon.Note, fieldHeight = 38.dp)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(.38f))
-                        PrimaryButton(if (canStart) "ساخت $count کاربر" else "فرم ناقص است", enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() })
+                        SecondaryButton(stringResource(R.string.bc_cancel), onClick = onDismiss, modifier = Modifier.weight(.38f))
+                        PrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() })
                     }
                 } else {
                     // نمای پیشرفت / نتیجه
-                    SettingsCard(if (done) "نتیجهٔ ساخت" else "در حال ساخت...", AppIcon.Users, accent = if (done) GlassGreen else theme.accentPrimary) {
+                    SettingsCard(if (done) stringResource(R.string.bc_result) else stringResource(R.string.bc_creating), AppIcon.Users, accent = if (done) GlassGreen else theme.accentPrimary) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (!done) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
-                            Text("$progress از $count", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                            Text(stringResource(R.string.bc_progress, progress, count), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         }
                         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(4.dp)).background(theme.searchBgColor)) {
                             Box(Modifier.fillMaxWidth(if (count > 0) progress.toFloat() / count else 0f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (errors.isEmpty()) GlassGreen else GlassAmber))
@@ -230,10 +232,10 @@ fun BulkCreateUsersDialog(
                         if (done) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = GlassGreen, size = 16.dp)
-                                Text("$successCount کاربر ساخته شد", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
+                                Text(stringResource(R.string.bc_created_n, successCount), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
                             }
                             if (errors.isNotEmpty()) {
-                                Text("${errors.size} خطا:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                                Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                                 Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 11.sp, isTechnical = true) }
                                 }
@@ -241,9 +243,9 @@ fun BulkCreateUsersDialog(
                         }
                     }
                     if (!done) {
-                        DangerButton("لغو و توقف", onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth())
+                        DangerButton(stringResource(R.string.bc_stop), onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth())
                     } else {
-                        PrimaryButton("بستن", onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth())
+                        PrimaryButton(stringResource(R.string.bc_close), onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
