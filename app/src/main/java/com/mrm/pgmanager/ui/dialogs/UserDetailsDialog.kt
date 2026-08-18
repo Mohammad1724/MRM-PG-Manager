@@ -105,8 +105,9 @@ private fun ActionTile(
     val bg = if (filled) accent else accent.copy(0.10f)
     val fg = if (filled) Color(0xFF422006) else accent
     Column(
+        // ارتفاعِ کف به‌جای ارتفاعِ ثابت: با فونتِ بزرگِ سیستم، برچسب بریده نشود.
         modifier
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             .clip(DsRadius.Lg)
             .background(bg)
             .border(
@@ -115,7 +116,8 @@ private fun ActionTile(
             )
             .semantics { contentDescription = label }
             .pressScale(0.95f)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -145,7 +147,7 @@ private fun BillingRow(
     val bg = if (filled) accent.copy(0.85f) else theme.searchBgColor
     val fg = if (filled) Color(0xFF202124) else accent
     Row(
-        Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
+        Modifier.fillMaxWidth().heightIn(min = 38.dp).clip(DsRadius.Lg)
             .background(bg)
             .border(
                 BorderStroke(DsBorder.Hairline, if (filled) Color.Transparent else accent.copy(0.22f)),
@@ -153,12 +155,12 @@ private fun BillingRow(
             )
             .pressScale(0.98f)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         RoundedAppIcon(icon, tint = fg, size = 16.dp)
-        Text(label, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = fg)
+        Text(label, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -540,10 +542,10 @@ fun UserDetailsDialog(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Lg)
+                                Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(DsRadius.Lg)
                                     .pressScale(0.985f)
                                     .clickable { billingOpen = !billingOpen }
-                                    .padding(horizontal = 10.dp),
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(9.dp)
                             ) {
@@ -648,9 +650,6 @@ fun UserDetailsDialog(
             onDismiss = { editOpen = false },
             onSave = onSave,
             onToggle = onToggle,
-            onDelete = onDelete,
-            onResetUsage = onResetUsage,
-            onResetExpiry = { expiryConfirm = true },
             onApplyTemplateToUser = onApplyTemplate,
             session = session
         )
@@ -686,17 +685,28 @@ private fun MetricPill(
     modifier: Modifier = Modifier
 ) {
     val theme = LocalThemeState.current
+    // ارتفاع قبلاً ثابت (۳۸dp) بود؛ روی دستگاه‌هایی که مقیاسِ فونتِ سیستم را
+    // بزرگ کرده‌اند، دو خطِ متن از کپسول بیرون می‌زد و روی نوارِ مصرف می‌افتاد.
+    // حالا کپسول با محتوا رشد می‌کند و متن هم وزن‌دار است تا بریده شود نه اینکه
+    // از قاب بزند بیرون.
     Row(
-        modifier.height(38.dp).clip(DsRadius.Lg)
+        modifier.heightIn(min = 38.dp).clip(DsRadius.Lg)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         RoundedAppIcon(icon, tint = theme.mutedColor, size = 15.dp)
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(label, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                label,
+                fontSize = 9.sp,
+                color = theme.mutedColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 11.sp
+            )
             MrmText(
                 value,
                 fontSize = 11.5.sp,

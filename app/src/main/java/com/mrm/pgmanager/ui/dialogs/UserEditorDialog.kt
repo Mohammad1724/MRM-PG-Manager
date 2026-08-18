@@ -62,9 +62,9 @@ fun UserEditorDialog(
     onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
     onToggle: (() -> Unit)?,
-    onDelete: (() -> Unit)?,
-    onResetUsage: (() -> Unit)?,
-    onResetExpiry: (() -> Unit)?,
+    // نکته: حذف/صفرکردنِ مصرف/تمدید عمداً اینجا نیستند؛ آن‌ها کارِ دیالوگِ
+    // «جزئیات کاربر» هستند. قبلاً به‌عنوان پارامتر گرفته می‌شدند ولی هرگز صدا
+    // زده نمی‌شدند و فقط این تصور را می‌ساختند که ویرایشگر آن‌ها را انجام می‌دهد.
     onSaveWithTemplate: ((username: String, templateId: Int, note: String) -> Unit)? = null,
     onApplyTemplateToUser: ((templateId: Int, note: String) -> Unit)? = null,
     session: com.mrm.pgmanager.data.model.Session? = null
@@ -477,19 +477,31 @@ fun UserEditorDialog(
                                             color = if (sel) Color(0xFF422006) else theme.mutedColor
                                         )
                                         if (index == 0 && groupIds.isNotEmpty()) {
-                                            Spacer(Modifier.width(5.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            // شمارندهٔ گروه‌ها: قبلاً یک کپسولِ
+                                            // نیمه‌شفاف با پدینگِ افقی بود که کشیده
+                                            // و بدقواره می‌شد و عدد هم به‌خاطرِ
+                                            // فونت‌پدینگ وسط نمی‌نشست. حالا یک نشانِ
+                                            // توپرِ گرد است با عددِ دقیقاً وسط.
                                             Box(
-                                                Modifier.clip(DsRadius.Full)
-                                                    .background(
-                                                        if (sel) Color(0xFF422006).copy(0.18f)
-                                                        else theme.accentPrimary.copy(0.18f)
-                                                    )
-                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                                Modifier
+                                                    .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                                    .clip(DsRadius.Full)
+                                                    .background(if (sel) Color(0xFF422006) else theme.accentPrimary)
+                                                    .padding(horizontal = 4.dp),
+                                                contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
-                                                    "${groupIds.size}", fontSize = 9.sp,
+                                                    "${groupIds.size}",
+                                                    fontSize = 9.sp,
                                                     fontWeight = FontWeight.ExtraBold,
-                                                    color = if (sel) Color(0xFF422006) else theme.accentPrimary
+                                                    color = if (sel) theme.accentPrimary else Color(0xFF422006),
+                                                    maxLines = 1,
+                                                    style = TextStyle(
+                                                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                                            includeFontPadding = false
+                                                        )
+                                                    )
                                                 )
                                             }
                                         }
@@ -599,6 +611,12 @@ fun UserEditorDialog(
                             val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds)
                             if (selectedTemplate != null && isCreating && onSaveWithTemplate != null) {
                                 onSaveWithTemplate(username, selectedTemplate!!, note)
+                            } else if (selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) {
+                                // در حالتِ ویرایش، انتخابِ قالب قبلاً بی‌اثر بود:
+                                // تبِ «قالب‌ها» اجازهٔ انتخاب می‌داد ولی موقعِ ذخیره
+                                // نادیده گرفته می‌شد. حالا قالب واقعاً روی کاربر
+                                // اعمال می‌شود — همان کارِ دکمهٔ «قالب» در جزئیات.
+                                onApplyTemplateToUser(selectedTemplate!!, note)
                             } else {
                                 onSave(values, expire)
                                 if (initial != null && active != (initial.status != "disabled")) {

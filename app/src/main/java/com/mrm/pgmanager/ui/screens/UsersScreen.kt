@@ -91,8 +91,6 @@ import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-import com.mrm.pgmanager.ui.theme.glassBg
-import com.mrm.pgmanager.ui.theme.glassBorder
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
@@ -224,10 +222,11 @@ private fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modif
 @Composable
 private fun TopBarHeader(
     onRefresh: () -> Unit,
-    onCreateUser: () -> Unit,
     loading: Boolean,
     onOpenSettings: () -> Unit = {}
 ) {
+    // ساختِ کاربر از دکمهٔ شناورِ پایین انجام می‌شود؛ کال‌بکش اینجا گرفته می‌شد
+    // ولی هیچ دکمه‌ای در سربرگ صدایش نمی‌زد.
     val theme = LocalThemeState.current
     val settingsLabel = stringResource(R.string.app_settings)
     Row(
@@ -405,7 +404,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
     val displayProgress = if (user.dataLimit == 0L) 0f else actualProgress
     val progressColor = when { user.dataLimit <= 0L -> Color(0xFF9CA3AF); progressPercent < 70 -> Color(0xFF16A34A); progressPercent < 90 -> Color(0xFFD97706); else -> Color(0xFFDC2626) }
     val shape = DsRadius.Lg
-    val statusColor = Color.Transparent
 
     // نمای گرید: کارت شیشه‌ای با سایهٔ نرم و مرز ظریف design system جدید.
     Box(
@@ -431,7 +429,6 @@ private fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectT
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         if (debtorInfo != null) DebtorBadge(compact = true)
-                        Box(Modifier.size(7.dp).clip(RoundedCornerShape(3.5.dp)).background(statusColor))
                     }
                     OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
                 }
@@ -661,7 +658,6 @@ private fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelec
         else -> GlassRed
     }
     val traffic = if (user.dataLimit == 0L) "${formatBytes(user.usedTraffic)} / " + stringResource(R.string.unlimited) else "${formatBytes(user.usedTraffic)} / ${formatBytes(user.dataLimit)}"
-    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
     val shape = DsRadius.Lg
 
     Box(
@@ -719,7 +715,6 @@ private fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectT
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
     val traffic = "${formatBytes(user.usedTraffic)}/${if (user.dataLimit == 0L) "∞" else formatBytes(user.dataLimit)}"
-    val statusColor = when { user.status == "active" -> GlassGreen; user.status == "disabled" -> Color(0xFF8A8A8A); user.status == "expired" -> GlassRed; user.status == "limited" -> GlassAmber; user.status == "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor }
     val shape = DsRadius.Lg
 
     Box(
@@ -1205,7 +1200,7 @@ fun UsersScreen(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
-                TopBarHeader(onRefresh = { load() }, onCreateUser = { createUser = true }, loading = loading, onOpenSettings = onOpenSettings)
+                TopBarHeader(onRefresh = { load() }, loading = loading, onOpenSettings = onOpenSettings)
 
                 Box(
                     Modifier
@@ -1431,7 +1426,7 @@ fun UsersScreen(
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
         createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
-    }, onToggle = null, onDelete = null, onResetUsage = null, onResetExpiry = null, onSaveWithTemplate = { username, templateId, note ->
+    }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
         createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)
     deleteUser?.let { user ->
