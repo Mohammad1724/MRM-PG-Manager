@@ -12,7 +12,7 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.PictureAsPdf
-import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
@@ -20,18 +20,18 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.ViewHeadline
-import androidx.compose.material.icons.rounded.ViewList
+import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -41,7 +41,7 @@ import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.PhoneAndroid
-import androidx.compose.material.icons.rounded.Logout
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.NoteAlt
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
@@ -102,7 +102,8 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Template -> Icons.Rounded.Inventory2
     AppIcon.Reset -> Icons.Rounded.RestartAlt
     AppIcon.Note -> Icons.Rounded.NoteAlt
-    AppIcon.Logout -> Icons.Rounded.Logout
+    // آیکون‌های جهت‌دار از نسخهٔ AutoMirrored می‌آیند تا در چیدمانِ راست‌به‌چپ خودشان آینه شوند.
+    AppIcon.Logout -> Icons.AutoMirrored.Rounded.Logout
     AppIcon.Warning -> Icons.Rounded.WarningAmber
     AppIcon.LightMode -> Icons.Rounded.LightMode
     AppIcon.DarkMode -> Icons.Rounded.DarkMode
@@ -111,9 +112,9 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Tune -> Icons.Rounded.Tune
     AppIcon.Wifi -> Icons.Rounded.Wifi
     AppIcon.CheckCircle -> Icons.Rounded.CheckCircle
-    AppIcon.OpenNew -> Icons.Rounded.OpenInNew
+    AppIcon.OpenNew -> Icons.AutoMirrored.Rounded.OpenInNew
     AppIcon.GridView -> Icons.Rounded.GridView
-    AppIcon.ListRows -> Icons.Rounded.ViewList
+    AppIcon.ListRows -> Icons.AutoMirrored.Rounded.ViewList
     AppIcon.DenseList -> Icons.Rounded.ViewHeadline
     AppIcon.Gauge -> Icons.Rounded.Speed
     AppIcon.Memory -> Icons.Rounded.Memory
@@ -121,11 +122,11 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Timer -> Icons.Rounded.Timer
     AppIcon.Download -> Icons.Rounded.FileDownload
     AppIcon.Upload -> Icons.Rounded.FileUpload
-    AppIcon.Prev -> Icons.Rounded.ChevronLeft
-    AppIcon.Next -> Icons.Rounded.ChevronRight
+    AppIcon.Prev -> Icons.AutoMirrored.Rounded.KeyboardArrowLeft
+    AppIcon.Next -> Icons.AutoMirrored.Rounded.KeyboardArrowRight
     AppIcon.Image -> Icons.Rounded.Image
     AppIcon.Pdf -> Icons.Rounded.PictureAsPdf
-    AppIcon.Receipt -> Icons.Rounded.ReceiptLong
+    AppIcon.Receipt -> Icons.AutoMirrored.Rounded.ReceiptLong
     AppIcon.Money -> Icons.Rounded.AttachMoney
     AppIcon.Backup -> Icons.Rounded.Backup
     AppIcon.Restore -> Icons.Rounded.FileDownload

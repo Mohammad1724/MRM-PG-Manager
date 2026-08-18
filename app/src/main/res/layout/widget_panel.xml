@@ -30,7 +30,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:src="@drawable/ic_widget_refresh"
-            android:contentDescription="بروزرسانی"
+            android:contentDescription="@string/widget_refresh"
             android:padding="6dp"
             android:background="@drawable/widget_btn_bg_circle"
             android:scaleType="fitCenter" />
@@ -57,7 +57,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="آنلاین"
+                android:text="@string/widget_online"
                 android:textColor="#B9BAC0"
                 android:textSize="9sp" />
 

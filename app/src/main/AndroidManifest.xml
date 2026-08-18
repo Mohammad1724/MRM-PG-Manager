@@ -19,7 +19,7 @@
         <receiver
             android:name=".widget.PanelWidgetProvider"
             android:exported="true"
-            android:label="وضعیت پنل">
+            android:label="@string/widget_name">
             <intent-filter>
                 <!-- اکشن بروزرسانی دستی با PendingIntentِ explicit تحویل داده می‌شود و نیازی به فیلتر ندارد. -->
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

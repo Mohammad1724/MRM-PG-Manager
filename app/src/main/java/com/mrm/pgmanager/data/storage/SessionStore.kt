@@ -1,3 +1,9 @@
+// هشدارِ منسوخ‌بودن در سطحِ فایل خاموش شده چون تنها منشأش دو importِ
+// androidx.security است؛ خودِ آن پکیج «deprecated» شده ولی جایگزینِ رسمی ندارد
+// (توضیح کامل کنارِ ساختِ prefs). Kotlin راهی برای بی‌صداکردنِ هشدارِ import
+// جز سطحِ فایل ندارد.
+@file:Suppress("DEPRECATION")
+
 package com.mrm.pgmanager.data.storage
 
 import android.content.Context
@@ -13,6 +19,11 @@ import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
 
 class SessionStore(context: Context) {
+    // androidx.security.crypto از نسخهٔ 1.1 «deprecated» علامت خورده ولی جایگزینِ
+    // رسمی‌ای در Jetpack ندارد (پیشنهادِ گوگل: خودت روی Keystore رمزنگاری کن).
+    // توکنِ پنل داده‌ای حساس است و نباید در SharedPreferencesِ ساده بنشیند، پس
+    // فعلاً همین می‌ماند و فقط هشدارها خاموش می‌شوند تا لاگِ بیلد تمیز بماند.
+    // TODO: اگر جایگزینِ پایدار آمد (یا DataStore + رمزنگاریِ دستی) مهاجرت شود.
     internal val prefs = EncryptedSharedPreferences.create(
         context,
         "mrm_pg_manager",

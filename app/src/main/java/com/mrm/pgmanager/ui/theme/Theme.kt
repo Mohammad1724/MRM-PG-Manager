@@ -106,9 +106,6 @@ val GlassViolet = DsSemantic.Violet
 val GlassShape = DsRadius.Lg
 val PremiumCardShape = DsRadius.Lg
 
-fun glassBg(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color(0xFF1E1E24) else Color.White
-fun glassBorder(isDark: Boolean, amoled: Boolean = false): Color = if (isDark) Color.White.copy(0.14f) else Color(0xFFE5E7EB)
-
 @Composable
 fun LiquidGlassTheme(
     themeState: ThemeState,
@@ -144,8 +141,9 @@ fun LiquidGlassTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                window.statusBarColor = android.graphics.Color.TRANSPARENT
-                window.navigationBarColor = android.graphics.Color.TRANSPARENT
+                // رنگِ نوارها دیگر اینجا ست نمی‌شود؛ شفافیت را `enableEdgeToEdge()`
+                // در MainActivity می‌دهد. اینجا فقط روشن/تیره بودنِ آیکون‌های
+                // نوار را با تمِ خودِ اپ (نه تمِ سیستم) هماهنگ می‌کنیم.
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !themeState.isDark
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !themeState.isDark
             }
@@ -159,7 +157,6 @@ fun LiquidGlassTheme(
         if (it >= 24) context.resources.configuration.locales.get(0)
         else @Suppress("DEPRECATION") context.resources.configuration.locale
     } ?: java.util.Locale.getDefault()
-    val locale = com.mrm.pgmanager.utils.LocaleHelper.getLocale(savedLang, systemLocale)
     val isRtl = com.mrm.pgmanager.utils.LocaleHelper.isRtl(savedLang, systemLocale)
     val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 

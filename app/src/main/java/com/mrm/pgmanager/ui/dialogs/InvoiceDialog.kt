@@ -40,7 +40,6 @@ import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
-import com.mrm.pgmanager.ui.theme.glassBorder
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.utils.JalaliCalendar
@@ -128,12 +127,6 @@ fun InvoiceDialog(
     val isFullyPaid = totalBilled > 0L && paidAmount >= totalBilled
     val hasAnyAmount = currentPrice > 0L || previousDebt > 0L || paidAmount > 0L
     val moneyFmt: (Long) -> String = { "%,d".format(Locale.US, it) }
-    val statusText = when {
-        isFullyPaid && hasAnyAmount -> stringResource(R.string.inv_paid)
-        !hasAnyAmount -> stringResource(R.string.inv_no_amount)
-        paidAmount > 0L && remainingDebt > 0L -> stringResource(R.string.inv_partial, moneyFmt(remainingDebt), currency)
-        else -> stringResource(R.string.inv_payable)
-    }
     val statusColor = when {
         isFullyPaid && hasAnyAmount -> GlassGreen
         !hasAnyAmount -> theme.mutedColor
@@ -264,8 +257,6 @@ fun InvoiceDialog(
             currency = currency,
             invoiceDate = invoiceDateJalali,
             notes = notesText,
-            statusText = statusText,
-            statusColor = statusColor,
             onClose = { previewMode = false }
         )
         return
@@ -302,7 +293,7 @@ fun InvoiceDialog(
                     }
                 }
 
-                Divider(color = theme.borderColor, thickness = 1.dp)
+                HorizontalDivider(thickness = 1.dp, color = theme.borderColor)
 
                 Column(
                     Modifier
@@ -364,7 +355,7 @@ fun InvoiceDialog(
                         )
                     }
 
-                    Divider(color = theme.borderColor.copy(alpha = 0.5f))
+                    HorizontalDivider(color = theme.borderColor.copy(alpha = 0.5f))
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
@@ -508,12 +499,11 @@ private fun InvoicePreviewCard(
     currency: String,
     invoiceDate: String,
     notes: String,
-    statusText: String,
-    statusColor: Color,
     onClose: () -> Unit
 ) {
-    val theme = LocalThemeState.current
-
+    // پیش‌نمایشِ فاکتور رنگ‌های چاپی‌اش را خودش دارد و به وضعیتِ رنگیِ دیالوگِ
+    // بالادست کاری ندارد؛ پارامترهای statusText/statusColor گرفته می‌شدند و
+    // هیچ‌جا خوانده نمی‌شدند.
     Dialog(onDismissRequest = onClose) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -589,12 +579,12 @@ private fun InvoicePreviewCard(
                     if (currentPrice > 0L) PreviewRow(stringResource(R.string.inv_price), "%,d %s".format(Locale.US, currentPrice, currency))
                     if (previousDebt > 0L) PreviewRow(stringResource(R.string.inv_previous_debt), "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
                     if (totalBilled > 0L) {
-                        Divider(color = Color(0xFFE8E8EC))
+                        HorizontalDivider(color = Color(0xFFE8E8EC))
                         PreviewRow(stringResource(R.string.inv_total), "%,d %s".format(Locale.US, totalBilled, currency))
                     }
                     if (paidAmount > 0L) PreviewRow(stringResource(R.string.inv_paid), "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
                     if (paidAmount > 0L && remainingDebt > 0L) PreviewRow(stringResource(R.string.inv_remaining), "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
-                    Divider(color = Color(0xFFE8E8EC))
+                    HorizontalDivider(color = Color(0xFFE8E8EC))
                     val finalColor = if (isFullyPaid && totalBilled > 0L) Color(0xFF1A8C5B) else if (!hasAnyAmount) Color(0xFF74757B) else if (paidAmount > 0L) Color(0xFFC93B3B) else Color(0xFFC93B3B)
                     val finalLabel = when {
                         isFullyPaid && totalBilled > 0L -> "✅ " + stringResource(R.string.inv_paid)
