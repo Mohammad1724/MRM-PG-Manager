@@ -111,8 +111,10 @@ private data class PendingBulk(val title: String, val message: String, val confi
 // Track more gray and visible
 private fun trackBg(isDark: Boolean) = if (isDark) Color.White.copy(alpha = 0.26f) else Color(0xFF6B7280).copy(alpha = 0.28f)
 
-private fun daysLeftText(expire: String?): String = DateLogic.daysLeftText(expire)
+@Composable
+private fun daysLeftText(expire: String?): String = com.mrm.pgmanager.utils.daysLeftText(expire)
 
+@Composable
 private fun daysLeftFull(expire: String?): String = daysLeftText(expire)
 
 private fun formatDebtorAmount(amount: Long): String {
@@ -836,6 +838,7 @@ fun UsersScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val defaultCurrency = stringResource(R.string.us_currency)
     val store = remember { SessionStore(context) }
     var users by remember { mutableStateOf<List<PanelUser>>(emptyList()) }
     var query by remember { mutableStateOf("") }
@@ -1454,7 +1457,7 @@ fun UsersScreen(
         InvoiceDialog(
             user = u,
             debtorInfo = debtorByUsername[u.username],
-            currency = monitoringSettings.debtorCurrency,
+            currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
             onDismiss = { invoiceDialogUser = null }
         )
     }
@@ -1463,14 +1466,14 @@ fun UsersScreen(
         DebtorEditDialog(
             user = u,
             existing = existing,
-            currency = monitoringSettings.debtorCurrency,
+            currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
             onDismiss = { debtorDialogUser = null },
             onSave = { amount, notes ->
                 val info = DebtorInfo(
                     username = u.username,
                     baseUrl = session.baseUrl,
                     amount = amount,
-                    currency = monitoringSettings.debtorCurrency,
+                    currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
                     markedAt = existing?.markedAt ?: System.currentTimeMillis(),
                     notes = notes,
                     autoDisabled = existing?.autoDisabled ?: false,
