@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.utils
 
 import android.content.Context
+import com.mrm.pgmanager.R
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -39,13 +40,13 @@ object PdfInvoiceGenerator {
      * تولید PDF مینیمال فاکتور
      * @param currentPrice قیمت این دوره (واردشده دستی توسط کاربر)
      * @param previousDebt بدهی قبلی (واردشده دستی)
-     * اگر این دو null باشند، فاکتور "پرداخت شده" نمایش می‌دهد
+     * اگر این دو null باشند، فاکتور «پرداخت شده» نمایش می‌دهد
      */
     fun generate(
         context: Context,
         user: PanelUser,
         debtorInfo: DebtorInfo? = null,
-        currency: String = "تومان",
+        currency: String = context.getString(R.string.inv_currency),
         currentPrice: Long? = null,
         previousDebt: Long? = null,
         paidAmount: Long? = null,
@@ -148,7 +149,7 @@ object PdfInvoiceGenerator {
             drawFaCentered(canvas, sellerName, brandPaint, y)
             y += 24f
         }
-        drawFaCentered(canvas, "فاکتور اشتراک VPN", headerPaint, y)
+        drawFaCentered(canvas, context.getString(R.string.inv_line_title), headerPaint, y)
         y += 28f
 
         // ==== خط طلایی ====
@@ -157,7 +158,7 @@ object PdfInvoiceGenerator {
         y += 22f
 
         // ==== محاسبات اطلاعات ====
-        val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { "نامحدود" }
+        val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { context.getString(R.string.inv_unlimited) }
         val daysRemaining = runCatching {
             val e = try { Instant.parse(user.expire).atZone(ZoneId.systemDefault()).toLocalDate() }
             catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
@@ -166,18 +167,18 @@ object PdfInvoiceGenerator {
         val durationDays = daysRemaining.coerceAtLeast(0L)
         val startJalali = JalaliCalendar.isoToShamsi(LocalDate.now().toString()).ifBlank { "-" }
         val durationText = when {
-            durationDays <= 0L -> "نامحدود"
-            durationDays == 1L -> "1 روزه"
-            durationDays < 30L -> "$durationDays روزه"
-            durationDays == 30L -> "1 ماهه"
+            durationDays <= 0L -> context.getString(R.string.inv_unlimited)
+            durationDays == 1L -> context.getString(R.string.inv_one_day)
+            durationDays < 30L -> context.getString(R.string.inv_days, durationDays.toInt())
+            durationDays == 30L -> context.getString(R.string.inv_one_month)
             durationDays < 365L -> {
                 val months = durationDays / 30L
                 val extraDays = durationDays % 30L
-                if (extraDays == 0L) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
+                if (extraDays == 0L) context.getString(R.string.inv_months, months.toInt()) else context.getString(R.string.inv_months_days, months.toInt(), extraDays.toInt())
             }
-            else -> "${durationDays/30L} ماهه"
+            else -> context.getString(R.string.inv_months, (durationDays / 30L).toInt())
         }
-        val dataLimitText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
+        val dataLimitText = if (user.dataLimit == 0L) context.getString(R.string.inv_unlimited) else formatBytes(user.dataLimit)
         val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
 
         // ==== کارت مشخصات ====
@@ -200,11 +201,11 @@ object PdfInvoiceGenerator {
             ry += rowH
         }
 
-        drawRow("نام کاربری", user.username, bold = true)
-        drawRow("حجم اشتراک", dataLimitText, bold = true)
-        drawRow("مدت اشتراک", durationText, color = Color.rgb(0xD4, 0xA8, 0x00), bold = true)
-        drawRow("تاریخ شروع", startJalali)
-        drawRow("تاریخ پایان", endJalali, color = redColor, bold = true)
+        drawRow(context.getString(R.string.inv_username), user.username, bold = true)
+        drawRow(context.getString(R.string.inv_data), dataLimitText, bold = true)
+        drawRow(context.getString(R.string.inv_duration), durationText, color = Color.rgb(0xD4, 0xA8, 0x00), bold = true)
+        drawRow(context.getString(R.string.inv_start), startJalali)
+        drawRow(context.getString(R.string.inv_end), endJalali, color = redColor, bold = true)
 
         y += infoBoxH + 18f
 
@@ -229,12 +230,12 @@ object PdfInvoiceGenerator {
         ry = y + 22f
 
         if (cp > 0L) {
-            drawFaRight(canvas, "قیمت این دوره", labelPaint, leftX, rightX, ry)
+            drawFaRight(canvas, context.getString(R.string.inv_price), labelPaint, leftX, rightX, ry)
             drawFaLeft(canvas, "%,d %s".format(Locale.US, cp, currency), valPaint, leftX, rightX, ry)
             ry += rowH
         }
         if (pd > 0L) {
-            drawFaRight(canvas, "بدهی قبلی", labelPaint, leftX, rightX, ry)
+            drawFaRight(canvas, context.getString(R.string.inv_previous_debt), labelPaint, leftX, rightX, ry)
             val pdP = TextPaint(valPaint).apply { color = redColor }
             drawFaLeft(canvas, "%,d %s".format(Locale.US, pd, currency), pdP, leftX, rightX, ry)
             ry += rowH
@@ -243,19 +244,19 @@ object PdfInvoiceGenerator {
             fillPaint.color = borderGray
             canvas.drawRect(MARGIN + 30f, ry - 4f, PAGE_WIDTH - MARGIN - 30f, ry - 3f, fillPaint)
             ry += 14f
-            drawFaRight(canvas, "جمع کل", TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT }, leftX, rightX, ry)
+            drawFaRight(canvas, context.getString(R.string.inv_total), TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT }, leftX, rightX, ry)
             drawFaLeft(canvas, "%,d %s".format(Locale.US, total, currency), valPaint, leftX, rightX, ry)
             ry += rowH
         }
         if (paid > 0L) {
             val paidP = TextPaint(valPaint).apply { color = greenColor }
-            drawFaRight(canvas, "پرداخت شده", labelPaint, leftX, rightX, ry)
+            drawFaRight(canvas, context.getString(R.string.inv_paid), labelPaint, leftX, rightX, ry)
             drawFaLeft(canvas, "%,d %s".format(Locale.US, paid, currency), paidP, leftX, rightX, ry)
             ry += rowH
         }
         if (paid > 0L && remaining > 0L) {
             val remP = TextPaint(valPaint).apply { color = redColor }
-            drawFaRight(canvas, "مانده بدهی", labelPaint, leftX, rightX, ry)
+            drawFaRight(canvas, context.getString(R.string.inv_remaining), labelPaint, leftX, rightX, ry)
             drawFaLeft(canvas, "%,d %s".format(Locale.US, remaining, currency), remP, leftX, rightX, ry)
             ry += rowH
         }
@@ -272,14 +273,14 @@ object PdfInvoiceGenerator {
             else -> redColor
         }
         val finalLabel = when {
-            isPaid && total > 0L -> "پرداخت شده"
-            !hasAnyAmount -> "وضعیت"
-            paid > 0L && remaining > 0L -> "مانده قابل پرداخت"
-            else -> "مبلغ قابل پرداخت"
+            isPaid && total > 0L -> context.getString(R.string.inv_paid)
+            !hasAnyAmount -> context.getString(R.string.inv_status)
+            paid > 0L && remaining > 0L -> context.getString(R.string.inv_payable_remaining)
+            else -> context.getString(R.string.inv_payable)
         }
         val finalTextStr = when {
-            isPaid && total > 0L -> "تسویه کامل"
-            !hasAnyAmount -> "بدون مبلغ"
+            isPaid && total > 0L -> context.getString(R.string.inv_settled)
+            !hasAnyAmount -> context.getString(R.string.inv_no_amount)
             else -> "%,d %s".format(Locale.US, remaining, currency)
         }
         drawFaRight(canvas, finalLabel, TextPaint(valPaint).apply { textAlign = Paint.Align.RIGHT }, leftX, rightX, ry)
@@ -297,7 +298,7 @@ object PdfInvoiceGenerator {
             fillPaint.color = lightGray
             canvas.drawRoundRect(noteRect, 12f, 12f, fillPaint)
             val noteLabelPaint = TextPaint(labelPaint).apply { color = grayColor; textSize = 10f }
-            drawFaRight(canvas, "یادداشت", noteLabelPaint, MARGIN + 26f, rightX, y + 20f)
+            drawFaRight(canvas, context.getString(R.string.inv_note), noteLabelPaint, MARGIN + 26f, rightX, y + 20f)
             val notePaint = TextPaint(valPaint).apply { textSize = 11f; color = darkColor }
             val truncated = if (notes.length > 80) notes.take(80) + "..." else notes
             drawFaLeft(canvas, truncated, notePaint, MARGIN + 26f, rightX, y + 44f)
@@ -305,9 +306,9 @@ object PdfInvoiceGenerator {
         }
 
         // ==== تشکر و تاریخ ====
-        drawFaCentered(canvas, "با تشکر از انتخاب شما", thanksPaint, y)
+        drawFaCentered(canvas, context.getString(R.string.inv_thanks), thanksPaint, y)
         y += 20f
-        drawFaCentered(canvas, "تاریخ صدور: $invoiceDateJalali", smallPaint, y)
+        drawFaCentered(canvas, context.getString(R.string.inv_issued_on, invoiceDateJalali), smallPaint, y)
 
         document.finishPage(page)
         FileOutputStream(file).use { document.writeTo(it) }

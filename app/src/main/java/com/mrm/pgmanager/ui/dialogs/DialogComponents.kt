@@ -1,5 +1,9 @@
 package com.mrm.pgmanager.ui.dialogs
 
+import androidx.compose.ui.res.stringResource
+
+import com.mrm.pgmanager.R
+
 import android.content.Context
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -213,7 +217,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
-                    android.widget.Toast.makeText(context, "کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.copied), android.widget.Toast.LENGTH_SHORT).show()
                 },
                 size = 36.dp
             )
@@ -265,6 +269,8 @@ fun CompactGlassField(
 @Composable
 fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
+    val selectLabel = stringResource(R.string.cd_select)
+    val unselectLabel = stringResource(R.string.cd_unselect)
     val isDark = theme.isDark
     val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
     val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
@@ -274,7 +280,7 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
             .clip(DsRadius.Xs)
             .background(bg)
             .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
-            .semantics { contentDescription = if (selected) "لغو انتخاب" else "انتخاب" }
+            .semantics { contentDescription = if (selected) unselectLabel else selectLabel }
             .clickable { onToggle() },
         contentAlignment = Alignment.Center
     ) {

@@ -30,5 +30,5 @@ data class MonitoringSettings(
     val debtorAutoDisableAfterHours: Int = 24,
     val notifyDebtor: Boolean = true,
     val notifyDebtorOverdue: Boolean = true,
-    val debtorCurrency: String = "تومان"
+    val debtorCurrency: String = ""
 )

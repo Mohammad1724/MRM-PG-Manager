@@ -53,14 +53,14 @@ object PanelApi {
 
     private fun baseUrl(input: String): String {
         val trimmed = input.trim()
-        require(trimmed.isNotBlank()) { "آدرس پنل را وارد کنید" }
+        require(trimmed.isNotBlank()) { "Panel address is required" }
         val prepared = if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed else "https://$trimmed"
         val uri = runCatching { URI(prepared) }.getOrNull()
-            ?: error("آدرس پنل معتبر نیست")
-        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "آدرس پنل معتبر نیست" }
+            ?: error("Invalid URL")
+        require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
         // اپ با usesCleartextTraffic=false ساخته شده؛ http بدونِ پیامِ واضح در لایهٔ شبکه fail می‌شد.
         require(!uri.scheme.equals("http", ignoreCase = true)) {
-            "اتصال http پشتیبانی نمی‌شود؛ لطفاً از https استفاده کنید"
+            "Cleartext http is not supported, use https"
         }
         // مسیر رو به‌طور پیش‌فرض حذف می‌کنیم (کاربر معمولاً آدرسِ داشبورد/کامل وارد می‌کند و این از 405 جلوگیری می‌کند).
         // فقط اگر آدرسِ کاملِ API (دارای /api) داده شده باشد، پیشوندِ قبل از /api را نگه می‌داریم (پشتیبانی از subpath).
@@ -527,7 +527,7 @@ object PanelApi {
         // که در پاسخِ /simple وجود ندارد. (قبلاً هر دو صدا زده می‌شد و نتیجهٔ simple دور ریخته می‌شد.)
         val reqFull = requestBuilder(session, "${session.baseUrl}/api/user_templates").get().build()
         client.newCall(reqFull).execute().use { res ->
-            if (!res.isSuccessful) error("بارگذاریِ تمپلت‌ها ناموفق بود: ${res.code}")
+            if (!res.isSuccessful) error("Templates request failed: ${res.code}")
             // ⚠️ برخلافِ /api/groups که آبجکتِ {groups,total} می‌دهد،
             // این endpoint آرایهٔ خام برمی‌گرداند.
             val arr = org.json.JSONArray(res.body?.string() ?: "[]")
@@ -556,7 +556,7 @@ object PanelApi {
         else t.optJSONObject("extra_settings")?.optString("method")?.takeIf { it.isNotBlank() }
         return UserTemplateItem(
             id = t.optInt("id"),
-            name = t.optString("name", "تمپلت #${t.optInt("id")}"),
+            name = t.optString("name", "Template #${t.optInt("id")}"),
             dataLimit = if (t.isNull("data_limit")) null else t.optLong("data_limit"),
             expireDuration = if (t.isNull("expire_duration")) null else t.optLong("expire_duration"),
             hwidLimit = if (t.isNull("hwid_limit")) null else t.optInt("hwid_limit"),
@@ -656,14 +656,14 @@ object PanelApi {
         startNumber: Int? = null,
         note: String = ""
     ): BulkCreateResult = withContext(Dispatchers.IO) {
-        require(count in 1..500) { "تعداد باید بین ۱ تا ۵۰۰ باشد" }
+        require(count in 1..500) { "Count must be between 1 and 500" }
         val body = JSONObject().apply {
             put("user_template_id", templateId)
             put("count", count)
             put("strategy", if (sequential) "sequence" else "random")
             // قرارداد پنل: در حالتِ random باید username تهی باشد.
             if (sequential) {
-                put("username", username ?: error("نامِ پایه برای حالتِ ترتیبی لازم است"))
+                put("username", username ?: error("A base name is required for sequential mode"))
                 if (startNumber != null) put("start_number", startNumber)
             } else {
                 put("username", JSONObject.NULL)

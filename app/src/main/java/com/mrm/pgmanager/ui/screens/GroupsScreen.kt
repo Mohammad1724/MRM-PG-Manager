@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
+    val addGroupLabel = stringResource(R.string.add_group)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
@@ -121,7 +122,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     .size(52.dp)
                     .clip(DsRadius.Lg)
                     .background(theme.accentPrimary)
-                    .semantics { contentDescription = "افزودن گروه" }
+                    .semantics { contentDescription = addGroupLabel }
                     .clickable { editing = GroupDetail(id = 0, name = "") },
                 contentAlignment = Alignment.Center
             ) {
@@ -356,6 +357,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 @Composable
 private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: () -> Unit) {
     val theme = LocalThemeState.current
+    val deleteGroupLabel = stringResource(R.string.delete_group_cd)
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
@@ -405,7 +407,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: () -> Uni
 
         Box(
             Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
-                .semantics { contentDescription = "حذف گروه" }
+                .semantics { contentDescription = deleteGroupLabel }
                 .clickable { onDelete() },
             contentAlignment = Alignment.Center
         ) { RoundedAppIcon(AppIcon.Delete, tint = DsSemantic.Danger, size = 15.dp) }

@@ -1,5 +1,7 @@
 package com.mrm.pgmanager.utils
 
+import com.mrm.pgmanager.R
+
 import android.content.Context
 import android.net.Uri
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -181,8 +183,8 @@ object BackupManager {
         }.toByteArray()
     }
 
-    private fun decrypt(data: ByteArray, password: String): ByteArray {
-        require(data.size > SALT_LEN + IV_LEN) { "فایل بکاپ خراب است" }
+    private fun decrypt(context: Context, data: ByteArray, password: String): ByteArray {
+        require(data.size > SALT_LEN + IV_LEN) { context.getString(R.string.bk_corrupt) }
         val salt = data.copyOfRange(0, SALT_LEN)
         val iv = data.copyOfRange(SALT_LEN, SALT_LEN + IV_LEN)
         val enc = data.copyOfRange(SALT_LEN + IV_LEN, data.size)
@@ -229,7 +231,7 @@ object BackupManager {
 
         store.saveLastBackupAt(meta.getLong("ts"))
         store.saveLastBackupSuccess(true)
-        store.saveLastBackupMessage("پشتیبان‌گیری موفق")
+        store.saveLastBackupMessage(context.getString(R.string.bk_ok))
 
         return BackupInfo(
             version = meta.getInt("v"),
@@ -245,31 +247,31 @@ object BackupManager {
 
     // ============ Inspect/restore ============
 
-    fun inspect(input: InputStream, password: String = ""): BackupInfo {
+    fun inspect(context: Context, input: InputStream, password: String = ""): BackupInfo {
         val bytes = input.use { it.readBytes() }
         return try {
             // First try parse as plain JSON
             val s = String(bytes, Charsets.UTF_8)
             if (s.trimStart().startsWith("{")) {
-                parseBackupInfo(JSONObject(s))
+                parseBackupInfo(context, JSONObject(s))
             } else {
                 // Encrypted binary
-                require(password.isNotBlank()) { "این بکاپ رمزنگاری شده؛ رمز وارد کنید." }
-                val dec = decrypt(bytes, password)
-                parseBackupInfo(JSONObject(String(dec, Charsets.UTF_8)))
+                require(password.isNotBlank()) { context.getString(R.string.bk_encrypted_short) }
+                val dec = decrypt(context, bytes, password)
+                parseBackupInfo(context, JSONObject(String(dec, Charsets.UTF_8)))
             }
         } catch (e: Exception) {
             if (password.isBlank() && bytes.size > SALT_LEN + IV_LEN) {
                 // Likely encrypted but password not provided
-                throw IllegalArgumentException("این فایل بکاپ رمزنگاری شده است. لطفاً رمز را وارد کنید.", e)
+                throw IllegalArgumentException(context.getString(R.string.bk_encrypted_long), e)
             }
             throw e
         }
     }
 
-    private fun parseBackupInfo(obj: JSONObject): BackupInfo {
-        val meta = obj.optJSONObject("_meta") ?: throw IllegalArgumentException("فایل بکاپ نامعتبر است")
-        val data = obj.optJSONObject("data") ?: throw IllegalArgumentException("بدون داده")
+    private fun parseBackupInfo(context: Context, obj: JSONObject): BackupInfo {
+        val meta = obj.optJSONObject("_meta") ?: throw IllegalArgumentException(context.getString(R.string.bk_invalid))
+        val data = obj.optJSONObject("data") ?: throw IllegalArgumentException(context.getString(R.string.bk_no_data))
         val invoice = data.optJSONObject("invoice")
         return BackupInfo(
             version = meta.optInt("v", 0),
@@ -298,10 +300,10 @@ object BackupManager {
         container = if (s0.trimStart().startsWith("{")) {
             JSONObject(s0)
         } else {
-            require(password.isNotBlank()) { "رمز بکاپ را وارد کنید." }
-            JSONObject(String(decrypt(bytes, password), Charsets.UTF_8))
+            require(password.isNotBlank()) { context.getString(R.string.bk_need_password) }
+            JSONObject(String(decrypt(context, bytes, password), Charsets.UTF_8))
         }
-        val data = container.optJSONObject("data") ?: throw IllegalArgumentException("فایل بکاپ خراب است")
+        val data = container.optJSONObject("data") ?: throw IllegalArgumentException(context.getString(R.string.bk_corrupt))
         val store = SessionStore(context)
         var restored = 0
 
@@ -375,7 +377,7 @@ object BackupManager {
                     debtorAutoDisableAfterHours = m.optInt("debtor_auto_hours", 24).coerceIn(1, 720),
                     notifyDebtor = m.optBoolean("notify_debtor", true),
                     notifyDebtorOverdue = m.optBoolean("notify_debtor_overdue", true),
-                    debtorCurrency = m.optString("debtor_currency", "تومان")
+                    debtorCurrency = m.optString("debtor_currency", "")
                 ))
                 restored++
             }
@@ -414,7 +416,7 @@ object BackupManager {
                     val d = com.mrm.pgmanager.data.model.DebtorInfo(
                         username = username, baseUrl = base,
                         amount = o.optLong("amount", 0L),
-                        currency = o.optString("currency", "تومان").ifBlank { "تومان" },
+                        currency = o.optString("currency", "").ifBlank { "" },
                         markedAt = o.optLong("markedAt", System.currentTimeMillis()),
                         notes = o.optString("notes", ""),
                         autoDisabled = o.optBoolean("autoDisabled", false),
@@ -443,7 +445,7 @@ object BackupManager {
             }
         }
 
-        val msg = "بازیابی کامل شد. $restored بخش بازنشانی شد."
+        val msg = context.getString(R.string.bk_restored, restored)
         store.saveLastBackupAt(System.currentTimeMillis())
         store.saveLastBackupSuccess(true)
         store.saveLastBackupMessage(msg)

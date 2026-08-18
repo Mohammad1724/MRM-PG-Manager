@@ -102,7 +102,8 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
 @Composable
 fun PasswordEyeIcon(visible: Boolean) {
     val theme = LocalThemeState.current
-    Canvas(modifier = Modifier.size(20.dp).semantics { contentDescription = if (visible) "پنهان‌کردن رمز" else "نمایش رمز" }) {
+    val eyeLabel = stringResource(if (visible) R.string.cc_hide_password else R.string.cc_show_password)
+    Canvas(modifier = Modifier.size(20.dp).semantics { contentDescription = eyeLabel }) {
         val w = size.width; val h = size.height
         drawOval(color = theme.inkColor, topLeft = Offset(1f, h * 0.22f), size = Size(w - 2f, h * 0.56f), style = Stroke(width = 2.2f))
         drawCircle(color = if (visible) theme.accentPrimary else theme.inkColor, radius = if (visible) w * 0.20f else w * 0.14f, center = Offset(w * 0.5f, h * 0.5f))
@@ -574,7 +575,7 @@ fun BulkActionsBar(
         ) {
             // Target count text
             Text(
-                text = if (isFa) "$selectedCount کاربر" else "$selectedCount Targets",
+                text = if (isFa) stringResource(R.string.cc_n_users, selectedCount) else "$selectedCount Targets",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = theme.inkColor
@@ -599,27 +600,27 @@ fun BulkActionsBar(
                     modifier = Modifier.background(theme.cardSurfaceColor)
                 ) {
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) "فعال‌سازی" else "Enable", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_enable) else "Enable", color = theme.inkColor) } },
                         onClick = { onEnable(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) "غیرفعال‌سازی" else "Disable", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_disable) else "Disable", color = theme.inkColor) } },
                         onClick = { onDisable(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) "ریست حجم" else "Reset Usage", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_reset_data) else "Reset Usage", color = theme.inkColor) } },
                         onClick = { onResetUsage(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) "اعمال تمپلت" else "Apply Template", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
                         onClick = { onApplyTemplate(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) "خروجی گرفتن" else "Export", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_export) else "Export", color = theme.inkColor) } },
                         onClick = { onExport(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 14.dp); Text(if (isFa) "انتخاب همه" else "Select All", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_select_all) else "Select All", color = theme.inkColor) } },
                         onClick = { onSelectAll(); expanded = false }
                     )
                 }

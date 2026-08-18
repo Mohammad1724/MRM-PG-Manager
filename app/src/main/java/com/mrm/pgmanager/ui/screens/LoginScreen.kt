@@ -61,6 +61,7 @@ fun LoginScreen(
     // بدنهٔ کامپوزبل قابل فراخوانی است، نه داخلِ coroutine.
     val errCredentials = stringResource(R.string.login_err_credentials)
     val errUrl = stringResource(R.string.login_err_url)
+    val errHttps = stringResource(R.string.login_err_https)
     val errHost = stringResource(R.string.login_err_host)
     val errTimeout = stringResource(R.string.login_err_timeout)
     val errAuth = stringResource(R.string.login_err_auth)
@@ -120,6 +121,8 @@ fun LoginScreen(
                                     error = when {
                                         e.message?.contains("Credentials required", true) == true -> errCredentials
                                         e.message?.contains("Invalid URL", true) == true -> errUrl
+                                        e.message?.contains("Panel address is required", true) == true -> errUrl
+                                        e.message?.contains("Cleartext http", true) == true -> errHttps
                                         e is java.net.UnknownHostException -> errHost
                                         e is java.net.SocketTimeoutException -> errTimeout
                                         e.message?.contains("401", true) == true -> errAuth

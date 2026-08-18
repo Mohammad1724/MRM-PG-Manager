@@ -32,8 +32,8 @@ object NotificationHelper {
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL_EVENTS, "رویدادهای کاربران", NotificationManager.IMPORTANCE_DEFAULT).apply { description = "ساخت، حذف، محدودشدن و انقضای کاربران" })
-        manager.createNotificationChannel(NotificationChannel(CHANNEL_SYSTEM, "سلامت سیستم", NotificationManager.IMPORTANCE_HIGH).apply { description = "هشدار CPU، RAM، Disk و اتصال پنل" })
+        manager.createNotificationChannel(NotificationChannel(CHANNEL_EVENTS, context.getString(R.string.nc_events), NotificationManager.IMPORTANCE_DEFAULT).apply { description = context.getString(R.string.nc_events_desc) })
+        manager.createNotificationChannel(NotificationChannel(CHANNEL_SYSTEM, context.getString(R.string.nc_system), NotificationManager.IMPORTANCE_HIGH).apply { description = context.getString(R.string.nc_system_desc) })
     }
 
     /**

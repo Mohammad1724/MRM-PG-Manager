@@ -160,7 +160,7 @@ class SessionStore(context: Context) {
         debtorAutoDisableAfterHours = prefs.getInt("debtor_auto_hours", 24).coerceIn(1, 720),
         notifyDebtor = prefs.getBoolean("notify_debtor", true),
         notifyDebtorOverdue = prefs.getBoolean("notify_debtor_overdue", true),
-        debtorCurrency = prefs.getString("debtor_currency", "تومان") ?: "تومان"
+        debtorCurrency = prefs.getString("debtor_currency", "") ?: ""
     )
 
     fun saveMonitoringSettings(v: MonitoringSettings) = prefs.edit()
@@ -274,7 +274,7 @@ class SessionStore(context: Context) {
                 username = username,
                 baseUrl = baseUrl,
                 amount = o.optLong("amount", 0L),
-                currency = o.optString("currency", "تومان").ifBlank { "تومان" },
+                currency = o.optString("currency", "").ifBlank { "" },
                 markedAt = o.optLong("markedAt", o.optLong("marked_at", System.currentTimeMillis())),
                 notes = o.optString("notes", o.optString("note", "")),
                 autoDisabled = o.optBoolean("autoDisabled", o.optBoolean("auto_disabled", false)),

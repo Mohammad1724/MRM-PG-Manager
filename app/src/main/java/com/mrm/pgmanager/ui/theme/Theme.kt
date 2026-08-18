@@ -23,20 +23,23 @@ import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 
+/**
+ * رنگ‌های چراغِ اپ. نامِ نمایشی عمداً اینجا نگه داشته نمی‌شود: از منابع
+ * (کلیدهای lamp در strings.xml) خوانده می‌شود تا با زبانِ انتخابیِ کاربر هماهنگ بماند،
+ * نه با جهتِ چیدمان.
+ */
 enum class LampColor(
-    val label: String,
-    val labelFa: String,
     val primary: Color,
     val light: Color,
     val spotHigh: Color,
     val spotLow: Color
 ) {
-    GOLD("PasarGuard Yellow", "زرد پاسارگارد", DsAccent.Gold, DsAccent.GoldLight, DsAccent.GoldSpotHigh, DsAccent.GoldSpotLow),
-    MAGENTA("Berry Rose", "رز بری", Color(0xFFD64D8C), Color(0xFFFFD9E8), Color(0x66D64D8C), Color(0x14D64D8C)),
-    TURQUOISE("Aegean Teal", "تیل اژه", Color(0xFF16A99A), Color(0xFFC8F3ED), Color(0x6616A99A), Color(0x1416A99A)),
-    SKY_BLUE("Azure Blue", "آبی آزور", Color(0xFF3B82F6), Color(0xFFD8E8FF), Color(0x663B82F6), Color(0x143B82F6)),
-    VIOLET("Orchid Violet", "بنفش ارکیده", Color(0xFF8B5CF6), Color(0xFFE8DEFF), Color(0x668B5CF6), Color(0x148B5CF6)),
-    EMERALD("Jade Green", "سبز یشمی", Color(0xFF20A36B), Color(0xFFD1F5E2), Color(0x6620A36B), Color(0x1420A36B))
+    GOLD(DsAccent.Gold, DsAccent.GoldLight, DsAccent.GoldSpotHigh, DsAccent.GoldSpotLow),
+    MAGENTA(Color(0xFFD64D8C), Color(0xFFFFD9E8), Color(0x66D64D8C), Color(0x14D64D8C)),
+    TURQUOISE(Color(0xFF16A99A), Color(0xFFC8F3ED), Color(0x6616A99A), Color(0x1416A99A)),
+    SKY_BLUE(Color(0xFF3B82F6), Color(0xFFD8E8FF), Color(0x663B82F6), Color(0x143B82F6)),
+    VIOLET(Color(0xFF8B5CF6), Color(0xFFE8DEFF), Color(0x668B5CF6), Color(0x148B5CF6)),
+    EMERALD(Color(0xFF20A36B), Color(0xFFD1F5E2), Color(0x6620A36B), Color(0x1420A36B))
 }
 
 private fun Color.lightened(factor: Float = 0.80f): Color =
@@ -53,7 +56,6 @@ data class ThemeState(
     val accentLight: Color get() = customColor?.lightened() ?: lamp.light
     val accentSpotHigh: Color get() = customColor?.copy(alpha = 0.34f) ?: lamp.spotHigh
     val accentSpotLow: Color get() = customColor?.copy(alpha = 0.08f) ?: lamp.spotLow
-    val accentLabelFa: String get() = if (customColor != null) "سفارشی" else lamp.labelFa
 
     val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
     val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted

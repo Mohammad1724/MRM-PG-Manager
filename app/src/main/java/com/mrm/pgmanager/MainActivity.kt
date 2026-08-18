@@ -154,7 +154,7 @@ fun authenticateBiometric(
         BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setNegativeButtonText("انصراف")
+            .setNegativeButtonText(activity.getString(R.string.bio_cancel))
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
             .build()
     } else {
@@ -221,8 +221,8 @@ fun MRMApp() {
         if (session != null && isAppLockEnabled && !isUnlocked && activity != null) {
             authenticateBiometric(
                 activity = activity,
-                title = "ورود به پنل پاسارگارد",
-                subtitle = "اثر انگشت یا پین/الگوی گوشی خود را اسکن کنید",
+                title = context.getString(R.string.bio_title),
+                subtitle = context.getString(R.string.bio_subtitle),
                 onSuccess = { isUnlocked = true },
                 onError = { /* stay on lock screen */ }
             )
@@ -284,10 +284,10 @@ fun MRMApp() {
                     if (activity != null) {
                         authenticateBiometric(
                             activity = activity,
-                            title = "ورود به پنل پاسارگارد",
-                            subtitle = "اثر انگشت یا پین/الگوی گوشی خود را اسکن کنید",
+                            title = context.getString(R.string.bio_title),
+                            subtitle = context.getString(R.string.bio_subtitle),
                             onSuccess = { isUnlocked = true },
-                            onError = { Toast.makeText(context, "تایید هویت ناموفق بود", Toast.LENGTH_SHORT).show() }
+                            onError = { Toast.makeText(context, context.getString(R.string.bio_failed), Toast.LENGTH_SHORT).show() }
                         )
                     }
                 },
@@ -299,14 +299,14 @@ fun MRMApp() {
                 if (enabled && activity != null) {
                     authenticateBiometric(
                         activity = activity,
-                        title = "تایید فعال‌سازی قفل",
-                        subtitle = "برای فعال‌سازی قفل برنامه، اثر انگشت خود را تایید کنید",
+                        title = context.getString(R.string.bio_lock_title),
+                        subtitle = context.getString(R.string.bio_lock_subtitle),
                         onSuccess = {
                             store.saveAppLock(true)
                             isAppLockEnabled = true
                         },
                         onError = {
-                            Toast.makeText(context, "فعال‌سازی قفل لغو یا ناموفق بود", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.bio_lock_failed), Toast.LENGTH_SHORT).show()
                         }
                     )
                 } else {

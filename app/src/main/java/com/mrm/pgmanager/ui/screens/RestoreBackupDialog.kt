@@ -35,7 +35,7 @@ import kotlinx.coroutines.withContext
 /**
  * دیالوگ بازیابی پشتیبان.
  *
- * از ThemeEditorDialog جدا شد تا هم در صفحهٔ تنظیمات و هم در صفحهٔ ورود
+ * از دیالوگِ تنظیماتِ قدیمی (که حذف شد) جدا شد تا هم در صفحهٔ تنظیمات و هم در صفحهٔ ورود
  * (پیش از لاگین) قابل استفاده باشد. فایل قبلاً توسط BackupSection انتخاب
  * شده و اینجا فقط بازرسی و بازیابی می‌شود.
  */
@@ -68,7 +68,7 @@ internal fun RestoreBackupDialog(
     LaunchedEffect(uri) {
         runCatching {
             val ins = context.contentResolver.openInputStream(uri) ?: throw Exception(cantOpen)
-            ins.use { s -> BackupManager.inspect(s) }
+            ins.use { s -> BackupManager.inspect(context, s) }
         }.onSuccess { info ->
             preview = info
             needsPassword = info.encrypted

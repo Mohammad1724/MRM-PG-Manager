@@ -1,5 +1,7 @@
 package com.mrm.pgmanager.work
 
+import com.mrm.pgmanager.R
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -59,11 +61,11 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
             store.saveLastBackupAt(System.currentTimeMillis())
             store.saveLastBackupSuccess(true)
-            store.saveLastBackupMessage("پشتیبان‌گیری خودکار موفق")
+            store.saveLastBackupMessage(applicationContext.getString(R.string.bk_auto_ok))
             Result.success()
         } catch (e: Exception) {
             store.saveLastBackupSuccess(false)
-            store.saveLastBackupMessage("خطا در بکاپ خودکار: ${e.message}")
+            store.saveLastBackupMessage(applicationContext.getString(R.string.bk_auto_failed, e.message.orEmpty()))
             Result.failure()
         }
     }

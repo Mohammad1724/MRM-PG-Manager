@@ -92,13 +92,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
     fun evaluateHealth(s: SystemStats) {
         if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
         fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message)
-        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, "هشدار CPU", "مصرف CPU به ${"%.1f".format(s.cpuUsage)}٪ رسیده"); cpuAlerted = true } else cpuAlerted = false
+        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage))); cpuAlerted = true } else cpuAlerted = false
         val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
-        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, "هشدار RAM", "مصرف RAM به $ram٪ رسیده"); ramAlerted = true } else ramAlerted = false
+        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram)); ramAlerted = true } else ramAlerted = false
         val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
-        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, "هشدار Disk", "مصرف Disk به $disk٪ رسیده"); diskAlerted = true } else diskAlerted = false
+        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk)); diskAlerted = true } else diskAlerted = false
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
-            if (!capacityAlerted) alert(3105, "هشدار ظرفیت", "کاربران آنلاین به ${s.onlineUsers} رسید (حد: ${settings.capacityOnlineLimit})"); capacityAlerted = true
+            if (!capacityAlerted) alert(3105, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit)); capacityAlerted = true
         } else capacityAlerted = false
     }
     suspend fun load(silent: Boolean = false) {
@@ -110,18 +110,18 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
         }.onFailure { e ->
-            if (e.message?.contains("401") == true) { android.widget.Toast.makeText(context, "نشست منقضی شد، دوباره وارد شوید", android.widget.Toast.LENGTH_LONG).show(); onLogout() }
+            if (e.message?.contains("401") == true) { android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show(); onLogout() }
             else {
-                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, "اتصال به پنل ناموفق", "دریافت آمار Dashboard ناموفق بود"); panelOfflineAlerted = true }
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats)); panelOfflineAlerted = true }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
-                if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: "خطا در دریافت آمار"
+                if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: context.getString(R.string.db_error_stats)
             }
         }
         runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
-                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, "نود آفلاین شد", "نود $id در دسترس نیست")
-                if (prev == false && online) NotificationHelper.post(context, 4200+id, NotificationHelper.CHANNEL_SYSTEM, "نود آنلاین شد", "نود $id دوباره آنلاین است")
+                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id))
+                if (prev == false && online) NotificationHelper.post(context, 4200+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id))
             }
             lastNodeStates = states
         }
@@ -308,8 +308,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                 if (debtorCount > 0) {
                     Text(stringResource(R.string.debtors), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                        PGStatCard(label = "تعداد بدهکار", value = "$debtorCount نفر", icon = AppIcon.Warning, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
-                        PGStatCard(label = "مجموع بدهی", value = "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", icon = AppIcon.Money, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
+                        PGStatCard(label = stringResource(R.string.db_debtor_count), value = stringResource(R.string.db_debtor_people, debtorCount), icon = AppIcon.Warning, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
+                        PGStatCard(label = stringResource(R.string.db_debt_total), value = "${formatDebtorAmountFull(debtorTotalAmount)} $debtorCurrency", icon = AppIcon.Money, modifier = Modifier.weight(1f), accent = com.mrm.pgmanager.ui.theme.GlassRed)
                     }
                 }
 

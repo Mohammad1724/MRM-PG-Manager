@@ -66,7 +66,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
                 // کاربران
                 views.setTextViewText(R.id.w_online, stats.onlineUsers.toString())
                 views.setTextViewText(R.id.w_total, "/${stats.totalUsers}")
-                views.setTextViewText(R.id.w_debtors, if (debtors > 0) "$debtors بدهکار" else "بدون بدهی")
+                views.setTextViewText(R.id.w_debtors, if (debtors > 0) context.getString(R.string.wg_debtors, debtors) else context.getString(R.string.wg_no_debt))
                 // RAM
                 val usedGb = stats.memUsed / (1024.0 * 1024.0 * 1024.0)
                 val totalGb = stats.memTotal / (1024.0 * 1024.0 * 1024.0)
@@ -75,17 +75,17 @@ class PanelWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.w_ram_sub, "%.1f/%.1fG".format(usedGb, totalGb))
                 // CPU
                 views.setTextViewText(R.id.w_cpu_val, "%.0f%%".format(stats.cpuUsage))
-                views.setTextViewText(R.id.w_cpu_sub, "${stats.cpuCores} هسته")
-                views.setTextViewText(R.id.w_updated, "بروزرسانی $time")
+                views.setTextViewText(R.id.w_cpu_sub, context.getString(R.string.wg_cores, stats.cpuCores))
+                views.setTextViewText(R.id.w_updated, context.getString(R.string.wg_updated, time))
             } else {
                 views.setTextViewText(R.id.w_online, "-")
                 views.setTextViewText(R.id.w_total, "")
-                views.setTextViewText(R.id.w_debtors, "بدون داده")
+                views.setTextViewText(R.id.w_debtors, context.getString(R.string.wg_no_data))
                 views.setTextViewText(R.id.w_ram_val, "-")
                 views.setTextViewText(R.id.w_ram_sub, "RAM")
                 views.setTextViewText(R.id.w_cpu_val, "-")
                 views.setTextViewText(R.id.w_cpu_sub, "CPU")
-                views.setTextViewText(R.id.w_updated, "برنامه را یک‌بار باز کنید")
+                views.setTextViewText(R.id.w_updated, context.getString(R.string.wg_open_once))
             }
 
             // کلیک روی ویجت: باز کردن برنامه

@@ -1,5 +1,9 @@
 package com.mrm.pgmanager.ui.dialogs
 
+import androidx.compose.ui.res.stringResource
+
+import com.mrm.pgmanager.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,27 +33,28 @@ import com.mrm.pgmanager.ui.components.MrmText
 @Composable
 fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     val theme = LocalThemeState.current
+    val invalidMsg = stringResource(R.string.re_invalid)
     var days by remember { mutableStateOf("30") }
     var error by remember { mutableStateOf<String?>(null) }
     Dialog(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("ریست زمان اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-            Text("مدت واقعی اشتراک را وارد کنید. انقضا از امروز دوباره محاسبه می‌شود.", fontSize = 11.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.re_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+            Text(stringResource(R.string.re_subtitle), fontSize = 11.sp, color = theme.mutedColor)
             Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 BasicTextField(days, { days = it.filter(Char::isDigit); error = null }, textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
-                if (days.isEmpty()) Text("مدت اشتراک (روز)", color = theme.mutedColor)
+                if (days.isEmpty()) Text(stringResource(R.string.re_days_label), color = theme.mutedColor)
             }
             error?.let { Text(it, fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.weight(1f).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { days = value.toString(); error = null }, contentAlignment = Alignment.Center) { Text("$value روز", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor) } }
+                listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.weight(1f).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { days = value.toString(); error = null }, contentAlignment = Alignment.Center) { Text(stringResource(R.string.re_days_value, value), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor) } }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                SecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                 PrimaryButton(
-                    text = "اعمال زمان",
+                    text = stringResource(R.string.re_apply),
                     onClick = {
                         val n = days.toIntOrNull()?.takeIf { it > 0 }
-                        if (n == null) error = "عدد روز معتبر (بزرگ‌تر از صفر) وارد کنید."
+                        if (n == null) error = invalidMsg
                         else onConfirm(n)
                     },
                     modifier = Modifier.weight(1f)

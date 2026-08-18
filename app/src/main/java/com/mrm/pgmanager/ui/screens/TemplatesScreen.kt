@@ -73,6 +73,7 @@ private const val SECONDS_PER_DAY = 86_400L
 @Composable
 fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
+    val addTemplateLabel = stringResource(R.string.add_template)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
@@ -128,7 +129,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     .size(52.dp)
                     .clip(DsRadius.Lg)
                     .background(theme.accentPrimary)
-                    .semantics { contentDescription = "افزودن تمپلت" }
+                    .semantics { contentDescription = addTemplateLabel }
                     .clickable { editing = UserTemplateItem(id = 0, name = "") },
                 contentAlignment = Alignment.Center
             ) {
@@ -382,6 +383,7 @@ private fun TemplateRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val deleteTemplateLabel = stringResource(R.string.delete_template_cd)
     val theme = LocalThemeState.current
     val unlimited = stringResource(R.string.tpl_unlimited)
     val daysLabel = stringResource(R.string.tpl_days)
@@ -395,7 +397,7 @@ private fun TemplateRow(
             ?: unlimited
         template.expireDuration?.takeIf { it > 0 }?.let { parts += "${it / SECONDS_PER_DAY} $daysLabel" }
         val names = template.groupIds.mapNotNull { id -> groups.firstOrNull { it.id == id }?.name }
-        if (names.isNotEmpty()) parts += names.joinToString("، ")
+        if (names.isNotEmpty()) parts += names.joinToString(" · ")
         parts.joinToString(" • ")
     }
 
@@ -436,7 +438,7 @@ private fun TemplateRow(
 
         Box(
             Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
-                .semantics { contentDescription = "حذف تمپلت" }
+                .semantics { contentDescription = deleteTemplateLabel }
                 .clickable { onDelete() },
             contentAlignment = Alignment.Center
         ) { RoundedAppIcon(AppIcon.Delete, tint = DsSemantic.Danger, size = 15.dp) }

@@ -5,10 +5,11 @@ import java.time.LocalDate
 object JalaliCalendar {
     data class Date(val year: Int, val month: Int, val day: Int) {
         override fun toString(): String = "%04d/%02d/%02d".format(year, month, day)
-        fun getMonthName(): String {
-            val names = arrayOf("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
-            return if (month in 1..12) names[month - 1] else "$month"
-        }
+        /**
+         * نامِ ماه در لایهٔ UI از منابع خوانده می‌شود (`jalali_months`)، چون
+         * در انگلیسی باید «Farvardin» نوشته شود نه «فروردین».
+         */
+        fun monthIndex(): Int = (month - 1).coerceIn(0, 11)
     }
     fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Date {
         val gDaysInMonth = intArrayOf(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)

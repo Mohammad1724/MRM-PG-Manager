@@ -52,7 +52,7 @@ import java.time.LocalDate
 fun ConfirmActionDialog(
     title: String,
     message: String,
-    confirmLabel: String = "تایید",
+    confirmLabel: String = stringResource(R.string.confirm),
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     /** عملیات مخرب (مثل حذف) → قرمز؛ بقیه → اکسنت برنامه. */
@@ -66,7 +66,7 @@ fun ConfirmActionDialog(
                     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                     Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SecondaryButton("انصراف", onClick = onDismiss, modifier = Modifier.weight(1f))
+                        SecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                         if (danger) {
                             DangerButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
                         } else {

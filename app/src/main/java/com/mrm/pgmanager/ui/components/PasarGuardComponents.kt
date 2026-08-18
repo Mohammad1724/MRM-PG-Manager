@@ -1,5 +1,9 @@
 package com.mrm.pgmanager.ui.components
 
+import androidx.compose.ui.res.stringResource
+
+import com.mrm.pgmanager.R
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -166,7 +170,7 @@ fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
 //  PGSearchBar — light gray bg, subtle border, rounded
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = "جست‌وجو", modifier: Modifier = Modifier) {
+fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = stringResource(R.string.search_cd), modifier: Modifier = Modifier) {
     val t = LocalThemeState.current
     val shape = DsRadius.Md
     Box(
