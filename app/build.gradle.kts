@@ -55,6 +55,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.activity:activity-compose:1.9.1")
+    // پروفایلِ پایه را روی دستگاه نصب می‌کند. بدون این، APKای که دستی نصب
+    // می‌شود (خارج از پلی‌استور) از پروفایل‌های آماده‌ای که کتابخانه‌های کامپوز
+    // همراه خودشان دارند هیچ استفاده‌ای نمی‌کند و همه‌چیز باید با JIT گرم شود.
+    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
