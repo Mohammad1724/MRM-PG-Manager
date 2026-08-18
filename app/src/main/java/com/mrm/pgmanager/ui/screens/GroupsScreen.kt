@@ -56,7 +56,8 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroupsScreen(session: Session) {
+fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+    val settingsLabel = stringResource(R.string.app_settings)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
@@ -170,6 +171,13 @@ fun GroupsScreen(session: Session) {
                             if (refreshing) CircularProgressIndicator(Modifier.size(14.dp), color = theme.mutedColor, strokeWidth = 1.6.dp)
                             else RoundedAppIcon(AppIcon.Refresh, tint = theme.mutedColor, size = 16.dp)
                         }
+                        Box(
+                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
+                                .semantics { contentDescription = settingsLabel }
+                                .clickable(onClick = onOpenSettings),
+                            contentAlignment = Alignment.Center
+                        ) { RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp) }
                     }
                 }
 
