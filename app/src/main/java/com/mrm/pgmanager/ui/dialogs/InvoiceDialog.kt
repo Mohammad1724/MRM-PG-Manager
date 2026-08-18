@@ -41,6 +41,8 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.theme.glassBorder
+import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.R
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.PdfInvoiceGenerator
 import com.mrm.pgmanager.utils.formatBytes
@@ -56,7 +58,7 @@ import java.util.*
 fun InvoiceDialog(
     user: PanelUser,
     debtorInfo: DebtorInfo? = null,
-    currency: String = "تومان",
+    currency: String = stringResource(R.string.inv_currency),
     onDismiss: () -> Unit
 ) {
     val theme = LocalThemeState.current
@@ -89,7 +91,8 @@ fun InvoiceDialog(
     }
 
     // ==== محاسبات تاریخ ====
-    val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { "نامحدود" }
+    val unlimitedLabel = stringResource(R.string.inv_unlimited)
+    val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { unlimitedLabel }
     val daysRemaining = runCatching {
         val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
         catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
@@ -100,19 +103,20 @@ fun InvoiceDialog(
     val startJalali = JalaliCalendar.isoToShamsi(startLocalDate.toString()).ifBlank { "-" }
 
     val durationText = when {
-        durationDays <= 0L -> "نامحدود"
-        durationDays == 1L -> "1 روزه"
-        durationDays < 30L -> "$durationDays روزه"
-        durationDays == 30L -> "1 ماهه"
+        durationDays <= 0L -> stringResource(R.string.inv_unlimited)
+        durationDays == 1L -> stringResource(R.string.inv_one_day)
+        durationDays < 30L -> stringResource(R.string.inv_days, durationDays.toInt())
+        durationDays == 30L -> stringResource(R.string.inv_one_month)
         durationDays < 365L -> {
-            val months = durationDays / 30L
-            val extraDays = durationDays % 30L
-            if (extraDays == 0L) "${months} ماهه" else "${months} ماه و ${extraDays} روزه"
+            val months = (durationDays / 30L).toInt()
+            val extraDays = (durationDays % 30L).toInt()
+            if (extraDays == 0) stringResource(R.string.inv_months, months)
+            else stringResource(R.string.inv_months_days, months, extraDays)
         }
-        else -> "${durationDays/30L} ماهه"
+        else -> stringResource(R.string.inv_months, (durationDays / 30L).toInt())
     }
 
-    val dataLimitText = if (user.dataLimit == 0L) "نامحدود" else formatBytes(user.dataLimit)
+    val dataLimitText = if (user.dataLimit == 0L) stringResource(R.string.inv_unlimited) else formatBytes(user.dataLimit)
     val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
 
     // ==== محاسبه مبالغ ====
@@ -123,11 +127,12 @@ fun InvoiceDialog(
     val remainingDebt = (totalBilled - paidAmount).coerceAtLeast(0L)
     val isFullyPaid = totalBilled > 0L && paidAmount >= totalBilled
     val hasAnyAmount = currentPrice > 0L || previousDebt > 0L || paidAmount > 0L
+    val moneyFmt: (Long) -> String = { "%,d".format(Locale.US, it) }
     val statusText = when {
-        isFullyPaid && hasAnyAmount -> "پرداخت شده ✅"
-        !hasAnyAmount -> "فاکتور بدون مبلغ"
-        paidAmount > 0L && remainingDebt > 0L -> "پرداخت جزئی - مانده: %,d %s".format(Locale.US, remainingDebt, currency)
-        else -> "مبلغ قابل پرداخت"
+        isFullyPaid && hasAnyAmount -> stringResource(R.string.inv_paid)
+        !hasAnyAmount -> stringResource(R.string.inv_no_amount)
+        paidAmount > 0L && remainingDebt > 0L -> stringResource(R.string.inv_partial, moneyFmt(remainingDebt), currency)
+        else -> stringResource(R.string.inv_payable)
     }
     val statusColor = when {
         isFullyPaid && hasAnyAmount -> GlassGreen
@@ -137,37 +142,57 @@ fun InvoiceDialog(
     }
 
     // ==== ساخت متن فاکتور ====
+    // متن‌های فاکتورِ متنی از پیش خوانده می‌شوند: داخلِ تابعِ معمولی نمی‌شود
+    // stringResource صدا زد.
+    val txtTitle = stringResource(R.string.inv_line_title)
+    val txtUser = stringResource(R.string.inv_line_user, user.username)
+    val txtData = stringResource(R.string.inv_line_data, dataLimitText)
+    val txtDuration = stringResource(R.string.inv_line_duration, durationText)
+    val txtStart = stringResource(R.string.inv_line_start, startJalali)
+    val txtEnd = stringResource(R.string.inv_line_end, endJalali)
+    val txtPrice = stringResource(R.string.inv_line_price, moneyFmt(currentPrice), currency)
+    val txtPrev = stringResource(R.string.inv_line_prev, moneyFmt(previousDebt), currency)
+    val txtPaid = stringResource(R.string.inv_line_paid, moneyFmt(paidAmount), currency)
+    val txtLeft = stringResource(R.string.inv_line_left, moneyFmt(remainingDebt), currency)
+    val txtSettledLabel = stringResource(R.string.inv_settled)
+    val txtPayableLabel = stringResource(R.string.inv_payable)
+    val txtPaidOnly = stringResource(R.string.inv_paid)
+    val txtNoteLine = stringResource(R.string.inv_line_note, notesText)
+    val txtDateLine = stringResource(R.string.inv_line_date, invoiceDateJalali)
+    val txtThanks = stringResource(R.string.inv_thanks)
+    val txtTotalSettled = stringResource(R.string.inv_line_total, txtSettledLabel, moneyFmt(totalBilled), currency)
+    val txtTotalPayable = stringResource(R.string.inv_line_total, txtPayableLabel, moneyFmt(remainingDebt), currency)
+
     fun buildTextInvoice(): String {
         val lines = mutableListOf<String>()
         if (sellerName.isNotBlank()) lines.add(sellerName)
-        lines.add("📄 فاکتور اشتراک VPN")
+        lines.add("📄 $txtTitle")
         lines.add("─────────────────")
-        lines.add("👤 کاربر: ${user.username}")
-        lines.add("📦 حجم: $dataLimitText")
-        lines.add("⏱ مدت: $durationText")
-        lines.add("📅 شروع: $startJalali")
-        lines.add("📅 پایان: $endJalali")
+        lines.add("👤 $txtUser")
+        lines.add("📦 $txtData")
+        lines.add("⏱ $txtDuration")
+        lines.add("📅 $txtStart")
+        lines.add("📅 $txtEnd")
         lines.add("─────────────────")
-        if (currentPrice > 0L) lines.add("💵 مبلغ این دوره: %,d %s".format(Locale.US, currentPrice, currency))
-        if (previousDebt > 0L) lines.add("💳 بدهی قبلی: %,d %s".format(Locale.US, previousDebt, currency))
+        if (currentPrice > 0L) lines.add("💵 $txtPrice")
+        if (previousDebt > 0L) lines.add("💳 $txtPrev")
         if (paidAmount > 0L) {
-            lines.add("✅ پرداختی: %,d %s".format(Locale.US, paidAmount, currency))
-            if (remainingDebt > 0L) lines.add("⚠️ مانده بدهی: %,d %s".format(Locale.US, remainingDebt, currency))
+            lines.add("✅ $txtPaid")
+            if (remainingDebt > 0L) lines.add("⚠️ $txtLeft")
         }
         if (totalBilled > 0L) {
-            val total = if (isFullyPaid) totalBilled else remainingDebt
             lines.add("─────────────────")
-            lines.add("${if (isFullyPaid) "✅ تسویه کامل" else "💰 مبلغ قابل پرداخت"}: %,d %s".format(Locale.US, total, currency))
+            lines.add(if (isFullyPaid) "✅ $txtTotalSettled" else "💰 $txtTotalPayable")
         } else {
-            lines.add("✅ پرداخت شده")
+            lines.add("✅ $txtPaidOnly")
         }
         if (notesText.isNotBlank()) {
             lines.add("─────────────────")
-            lines.add("📝 یادداشت: $notesText")
+            lines.add("📝 $txtNoteLine")
         }
         lines.add("─────────────────")
-        lines.add("📅 تاریخ: $invoiceDateJalali")
-        lines.add("با تشکر از انتخاب شما 🙏")
+        lines.add("📅 $txtDateLine")
+        lines.add("$txtThanks 🙏")
         return lines.joinToString("\n")
     }
 
@@ -180,7 +205,7 @@ fun InvoiceDialog(
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("فاکتور متنی", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text(stringResource(R.string.inv_text_invoice), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     val scroll = rememberScrollState()
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 280.dp).clip(DsRadius.Xl)
@@ -192,28 +217,28 @@ fun InvoiceDialog(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         PrimaryButton(
-                            text = "کپی متن",
+                            text = stringResource(R.string.inv_copy_text),
                             onClick = {
                                 val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 clip.setPrimaryClip(ClipData.newPlainText("Invoice", invoiceText))
-                                android.widget.Toast.makeText(context, "در کلیپ‌بورد کپی شد", android.widget.Toast.LENGTH_SHORT).show()
+                                android.widget.Toast.makeText(context, context.getString(R.string.inv_copied), android.widget.Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.weight(1f),
                             icon = AppIcon.Copy
                         )
                         SecondaryButton(
-                            text = "اشتراک‌گذاری",
+                            text = stringResource(R.string.inv_share),
                             onClick = {
                                 val intent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"; putExtra(Intent.EXTRA_TEXT, invoiceText)
                                 }
-                                context.startActivity(Intent.createChooser(intent, "اشتراک‌گذاری فاکتور"))
+                                context.startActivity(Intent.createChooser(intent, context.getString(R.string.inv_share_invoice)))
                             },
                             modifier = Modifier.weight(1f),
                             icon = AppIcon.OpenNew
                         )
                     }
-                    SecondaryButton("بستن", onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth())
+                    SecondaryButton(stringResource(R.string.inv_close), onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -272,7 +297,7 @@ fun InvoiceDialog(
                         RoundedAppIcon(AppIcon.Receipt, tint = theme.accentPrimary, size = 20.dp)
                     }
                     Column {
-                        Text("فاکتور اشتراک", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                        Text(stringResource(R.string.inv_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         com.mrm.pgmanager.ui.components.MrmText(user.username, fontSize = 10.sp, color = theme.mutedColor, isTechnical = true)
                     }
                 }
@@ -288,11 +313,11 @@ fun InvoiceDialog(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    InfoRow("نام کاربری", user.username, theme)
-                    InfoRow("حجم اشتراک", dataLimitText, theme, bold = true)
-                    InfoRow("مدت اشتراک", durationText, theme, bold = true, color = theme.accentPrimary)
-                    InfoRow("تاریخ شروع", startJalali, theme)
-                    InfoRow("تاریخ پایان", endJalali, theme, color = GlassRed, bold = true)
+                    InfoRow(stringResource(R.string.inv_username), user.username, theme)
+                    InfoRow(stringResource(R.string.inv_data), dataLimitText, theme, bold = true)
+                    InfoRow(stringResource(R.string.inv_duration), durationText, theme, bold = true, color = theme.accentPrimary)
+                    InfoRow(stringResource(R.string.inv_start), startJalali, theme)
+                    InfoRow(stringResource(R.string.inv_end), endJalali, theme, color = GlassRed, bold = true)
                 }
 
                 Column(
@@ -304,21 +329,21 @@ fun InvoiceDialog(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("💰 مبالغ", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    Text("💰 " + stringResource(R.string.inv_amounts), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("قیمت این دوره", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_price), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = currentPriceText,
                             onValueChange = { v -> currentPriceText = v.filter { it.isDigit() } },
-                            placeholder = "مثال: ۵۰,۰۰۰",
+                            placeholder = stringResource(R.string.inv_price_hint),
                             keyboardType = KeyboardType.Number,
                             leading = currency
                         )
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("بدهی قبلی", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_previous_debt), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = previousDebtText,
                             onValueChange = { v -> previousDebtText = v.filter { it.isDigit() } },
@@ -329,11 +354,11 @@ fun InvoiceDialog(
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("مبلغ واریزی (اختیاری)", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_paid_amount), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = paidAmountText,
                             onValueChange = { v -> paidAmountText = v.filter { it.isDigit() } },
-                            placeholder = "اگر بخشی/کل را پرداخت کرده",
+                            placeholder = stringResource(R.string.inv_paid_hint),
                             keyboardType = KeyboardType.Number,
                             leading = currency
                         )
@@ -347,29 +372,29 @@ fun InvoiceDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(if (totalBilled > 0L) "جمع کل" else "وضعیت", fontSize = 11.sp, color = theme.mutedColor)
+                            Text(if (totalBilled > 0L) stringResource(R.string.inv_total) else stringResource(R.string.inv_status), fontSize = 11.sp, color = theme.mutedColor)
                             val totalColor = if (totalBilled == 0L) GlassGreen else theme.inkColor
-                            val totalText = if (totalBilled > 0L) "%,d %s".format(Locale.US, totalBilled, currency) else "بدون مبلغ"
+                            val totalText = if (totalBilled > 0L) "%,d %s".format(Locale.US, totalBilled, currency) else stringResource(R.string.inv_no_amount)
                             Text(totalText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = totalColor)
                         }
                         if (paidAmount > 0L) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("پرداخت شده", fontSize = 11.sp, color = GlassGreen)
+                                Text(stringResource(R.string.inv_paid), fontSize = 11.sp, color = GlassGreen)
                                 Text("%,d %s".format(Locale.US, paidAmount, currency), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
                             }
                         }
                         if (paidAmount > 0L && remainingDebt > 0L) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("مانده بدهی", fontSize = 11.sp, color = GlassRed)
+                                Text(stringResource(R.string.inv_remaining), fontSize = 11.sp, color = GlassRed)
                                 Text("%,d %s".format(Locale.US, remainingDebt, currency), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = GlassRed)
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (paidAmount > 0L) "وضعیت نهایی" else "مبلغ قابل پرداخت", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                            Text(if (paidAmount > 0L) stringResource(R.string.inv_final_status) else stringResource(R.string.inv_payable), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                             Text(
-                                if (isFullyPaid) "✅ پرداخت شده"
-                                else if (totalBilled == 0L) "✅ پرداخت شده"
-                                else if (remainingDebt > 0L && paidAmount > 0L) "%,d %s مانده".format(Locale.US, remainingDebt, currency)
+                                if (isFullyPaid) "✅ " + stringResource(R.string.inv_paid)
+                                else if (totalBilled == 0L) "✅ " + stringResource(R.string.inv_paid)
+                                else if (remainingDebt > 0L && paidAmount > 0L) stringResource(R.string.inv_remaining_fmt, moneyFmt(remainingDebt), currency)
                                 else "%,d %s".format(Locale.US, remainingDebt, currency),
                                 fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = statusColor
                             )
@@ -378,11 +403,11 @@ fun InvoiceDialog(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("📝 یادداشت (اختیاری)", fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Text("📝 " + stringResource(R.string.inv_note_optional), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     CompactGlassField(
                         value = notesText,
                         onValueChange = { v -> notesText = v.take(200) },
-                        placeholder = "مثلاً بابت اشتراک یک ماهه، تا تاریخ...",
+                        placeholder = stringResource(R.string.inv_note_hint),
                         leading = "",
                         keyboardType = KeyboardType.Text
                     )
@@ -390,7 +415,7 @@ fun InvoiceDialog(
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     SecondaryButton(
-                        text = "📸 پیش‌نمایش فاکتور (اسکرین‌شات)",
+                        text = "📸 " + stringResource(R.string.inv_preview),
                         onClick = { previewMode = true },
                         modifier = Modifier.fillMaxWidth(),
                         icon = AppIcon.Qr
@@ -398,7 +423,7 @@ fun InvoiceDialog(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         SecondaryButton(
-                            text = "📄 فاکتور متنی",
+                            text = "📄 " + stringResource(R.string.inv_text_invoice),
                             onClick = { textShareMode = true },
                             modifier = Modifier.weight(1f)
                         )
@@ -433,9 +458,9 @@ fun InvoiceDialog(
                                                 putExtra(Intent.EXTRA_STREAM, uri)
                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
-                                            context.startActivity(Intent.createChooser(intent, "اشتراک PDF"))
+                                            context.startActivity(Intent.createChooser(intent, context.getString(R.string.inv_share_pdf)))
                                         } else {
-                                            android.widget.Toast.makeText(context, "خطا در ساخت PDF", android.widget.Toast.LENGTH_SHORT).show()
+                                            android.widget.Toast.makeText(context, context.getString(R.string.inv_pdf_failed), android.widget.Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 }
@@ -446,7 +471,7 @@ fun InvoiceDialog(
                     }
 
                     SecondaryButton(
-                        "بستن",
+                        stringResource(R.string.inv_close),
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -527,7 +552,7 @@ private fun InvoicePreviewCard(
                     Text(sellerName, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF202124))
                 }
                 Text(
-                    "فاکتور اشتراک VPN",
+                    stringResource(R.string.inv_line_title),
                     fontSize = 13.sp,
                     color = Color(0xFF74757B)
                 )
@@ -546,11 +571,11 @@ private fun InvoicePreviewCard(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    PreviewRow("نام کاربری", username, bold = true)
-                    PreviewRow("حجم اشتراک", volume, bold = true, color = Color(0xFF202124))
-                    PreviewRow("مدت اشتراک", duration, color = Color(0xFFD4A800), bold = true)
-                    PreviewRow("تاریخ شروع", startDate)
-                    PreviewRow("تاریخ پایان", endDate, color = Color(0xFFC93B3B), bold = true)
+                    PreviewRow(stringResource(R.string.inv_username), username, bold = true)
+                    PreviewRow(stringResource(R.string.inv_data), volume, bold = true, color = Color(0xFF202124))
+                    PreviewRow(stringResource(R.string.inv_duration), duration, color = Color(0xFFD4A800), bold = true)
+                    PreviewRow(stringResource(R.string.inv_start), startDate)
+                    PreviewRow(stringResource(R.string.inv_end), endDate, color = Color(0xFFC93B3B), bold = true)
                 }
 
                 Column(
@@ -561,24 +586,24 @@ private fun InvoicePreviewCard(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    if (currentPrice > 0L) PreviewRow("قیمت این دوره", "%,d %s".format(Locale.US, currentPrice, currency))
-                    if (previousDebt > 0L) PreviewRow("بدهی قبلی", "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
+                    if (currentPrice > 0L) PreviewRow(stringResource(R.string.inv_price), "%,d %s".format(Locale.US, currentPrice, currency))
+                    if (previousDebt > 0L) PreviewRow(stringResource(R.string.inv_previous_debt), "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
                     if (totalBilled > 0L) {
                         Divider(color = Color(0xFFE8E8EC))
-                        PreviewRow("جمع کل", "%,d %s".format(Locale.US, totalBilled, currency))
+                        PreviewRow(stringResource(R.string.inv_total), "%,d %s".format(Locale.US, totalBilled, currency))
                     }
-                    if (paidAmount > 0L) PreviewRow("پرداخت شده", "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
-                    if (paidAmount > 0L && remainingDebt > 0L) PreviewRow("مانده بدهی", "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
+                    if (paidAmount > 0L) PreviewRow(stringResource(R.string.inv_paid), "%,d %s".format(Locale.US, paidAmount, currency), color = Color(0xFF1A8C5B))
+                    if (paidAmount > 0L && remainingDebt > 0L) PreviewRow(stringResource(R.string.inv_remaining), "%,d %s".format(Locale.US, remainingDebt, currency), color = Color(0xFFC93B3B))
                     Divider(color = Color(0xFFE8E8EC))
                     val finalColor = if (isFullyPaid && totalBilled > 0L) Color(0xFF1A8C5B) else if (!hasAnyAmount) Color(0xFF74757B) else if (paidAmount > 0L) Color(0xFFC93B3B) else Color(0xFFC93B3B)
                     val finalLabel = when {
-                        isFullyPaid && totalBilled > 0L -> "✅ پرداخت شده"
-                        !hasAnyAmount -> "وضعیت"
-                        paidAmount > 0L && remainingDebt > 0L -> "مانده قابل پرداخت"
-                        else -> "مبلغ قابل پرداخت"
+                        isFullyPaid && totalBilled > 0L -> "✅ " + stringResource(R.string.inv_paid)
+                        !hasAnyAmount -> stringResource(R.string.inv_status)
+                        paidAmount > 0L && remainingDebt > 0L -> stringResource(R.string.inv_payable_remaining)
+                        else -> stringResource(R.string.inv_payable)
                     }
                     val finalText = when {
-                        isFullyPaid && totalBilled > 0L -> "تسویه کامل"
+                        isFullyPaid && totalBilled > 0L -> stringResource(R.string.inv_settled)
                         !hasAnyAmount -> "—"
                         else -> "%,d %s".format(Locale.US, remainingDebt, currency)
                     }
@@ -590,22 +615,22 @@ private fun InvoicePreviewCard(
 
                 if (notes.isNotBlank()) {
                     Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(Color(0xFFF8F8FA)).padding(12.dp)) {
-                        Text("📝 یادداشت", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
+                        Text("📝 " + stringResource(R.string.inv_note), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
                         Text(notes, fontSize = 11.sp, color = Color(0xFF202124))
                     }
                 }
 
                 Spacer(Modifier.height(4.dp))
 
-                Text("با تشکر از انتخاب شما 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
+                Text(stringResource(R.string.inv_thanks) + " 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
                 Text(
-                    "تاریخ صدور: $invoiceDate",
+                    stringResource(R.string.inv_issued_on, invoiceDate),
                     fontSize = 10.sp,
                     color = Color(0xFFA09C94)
                 )
             }
             SecondaryButton(
-                "بستن",
+                stringResource(R.string.inv_close),
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth()
             )
