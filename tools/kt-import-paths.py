@@ -20,7 +20,10 @@ import sys
 DECL_RE = re.compile(
     r'^(?:@\w+\s*)?(?:internal |private |public )?(?:expect |actual )?'
     r'(?:data |sealed |enum |abstract |open |value |const |lateinit |inline )*'
-    r'(?:class|object|interface|fun|val|var|typealias)\s+([A-Za-z_]\w*)',
+    r'(?:class|object|interface|fun|val|var|typealias)\s+'
+    # گیرندهٔ الحاقی (مثلاً «fun Modifier.pressScale») باید رد شود تا نامِ خودِ
+    # تابع استخراج شود، نه نامِ گیرنده.
+    r'(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.]*\.)?([A-Za-z_]\w*)',
     re.M,
 )
 IMPORT_RE = re.compile(r'^import\s+(com\.mrm\.pgmanager[\w.]*)\.([A-Za-z_]\w*)\s*$')
