@@ -65,7 +65,6 @@ fun QuickActionSheet(
     onInvoice: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
-    val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
@@ -77,37 +76,37 @@ fun QuickActionSheet(
                             MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                         }
-                        Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(if (user.status == "disabled") (if (isFa) "غیرفعال" else "Disabled") else (if (isFa) "فعال" else "Active"), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(stringResource(if (user.status == "disabled") R.string.disabled else R.string.active), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QuickActionRow(AppIcon.Template, if (isFa) "تمپلت" else "Template", theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
-                            QuickActionRow(AppIcon.Edit, if (isFa) "ویرایش" else "Edit", theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
+                            QuickActionRow(AppIcon.Template, stringResource(R.string.qa_template), theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
+                            QuickActionRow(AppIcon.Edit, stringResource(R.string.qa_edit), theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QuickActionRow(AppIcon.Reset, if (isFa) "ریست حجم" else "Reset Data", theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
-                            QuickActionRow(AppIcon.Calendar, if (isFa) "ریست زمان" else "Reset Time", theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
+                            QuickActionRow(AppIcon.Reset, stringResource(R.string.qa_reset_data), theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                            QuickActionRow(AppIcon.Calendar, stringResource(R.string.qa_reset_time), theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QuickActionRow(AppIcon.Copy, if (isFa) "کپی لینک" else "Copy Link", theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
-                            QuickActionRow(AppIcon.Qr, if (isFa) "نمایش QR" else "Show QR", theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                            QuickActionRow(AppIcon.Copy, stringResource(R.string.qa_copy_link), theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
+                            QuickActionRow(AppIcon.Qr, stringResource(R.string.qa_show_qr), theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QuickActionRow(AppIcon.Note, if (isFa) "فاکتور 🧾" else "Invoice 🧾", theme.accentPrimary, Modifier.weight(1f)) {
+                            QuickActionRow(AppIcon.Note, stringResource(R.string.qa_invoice) + " 🧾", theme.accentPrimary, Modifier.weight(1f)) {
                                 if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
                             }
-                            QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, if (isDebtor) (if (isFa) "تسویه بدهی" else "Clear Debt") else (if (isFa) "بدهکار" else "Debtor"), GlassRed, Modifier.weight(1f)) {
+                            QuickActionRow(if (isDebtor) AppIcon.CheckCircle else AppIcon.Warning, stringResource(if (isDebtor) R.string.qa_settle_debt else R.string.qa_debtor), GlassRed, Modifier.weight(1f)) {
                                 if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            QuickActionRow(AppIcon.User, if (user.status == "disabled") (if (isFa) "فعال‌سازی" else "Enable") else (if (isFa) "غیرفعال‌سازی" else "Disable"), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
-                            QuickActionRow(AppIcon.Delete, if (isFa) "حذف کاربر" else "Delete User", GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
+                            QuickActionRow(AppIcon.User, stringResource(if (user.status == "disabled") R.string.qa_enable else R.string.qa_disable), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                            QuickActionRow(AppIcon.Delete, stringResource(R.string.qa_delete), GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                         }
                     }
                     
-                    SecondaryButton(if (isFa) "بستن" else "Close", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                    SecondaryButton(stringResource(R.string.qa_close), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
