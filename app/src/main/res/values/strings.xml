@@ -492,4 +492,39 @@
     <string name="ud_days">%1$s days</string>
     <string name="ud_reset_data_title">Reset used data?</string>
     <string name="ud_reset_data_msg">This user\'s usage will be set to zero.</string>
+    <!-- دیالوگ ساخت/ویرایش کاربر (هماهنگ با جزئیات کاربر) -->
+    <string name="ue_create_title">New user</string>
+    <string name="ue_edit_title">Edit user</string>
+    <string name="ue_create_sub">Fill in the details to create an account</string>
+    <string name="ue_edit_sub">Changes apply as soon as you save</string>
+    <string name="ue_identity">Identity</string>
+    <string name="ue_username">Username</string>
+    <string name="ue_username_hint">Enter a username</string>
+    <string name="ue_random">Random name</string>
+    <string name="ue_status">Status</string>
+    <string name="ue_plan">Plan</string>
+    <string name="ue_data_limit">Data limit (GB)</string>
+    <string name="ue_data_limit_hint">e.g. 30 — leave empty for unlimited</string>
+    <string name="ue_expiry">Expires in (days)</string>
+    <string name="ue_expiry_hint">e.g. 30</string>
+    <string name="ue_pick_date">Pick a date</string>
+    <string name="ue_add_days">+%1$d d</string>
+    <string name="ue_advanced">Advanced</string>
+    <string name="ue_hwid">Device limit</string>
+    <string name="ue_hwid_hint">Empty = default, 0 = unlimited</string>
+    <string name="ue_hwid_help">Empty uses the panel default policy. 0 means no device limit.</string>
+    <string name="ue_note">Internal note</string>
+    <string name="ue_note_hint">Only admins can see this</string>
+    <string name="ue_proxy">Proxy settings</string>
+    <string name="ue_proxy_hint">Managed by the panel</string>
+    <string name="ue_access">Access</string>
+    <string name="ue_groups">Groups</string>
+    <string name="ue_templates">Templates</string>
+    <string name="ue_search_groups">Search groups</string>
+    <string name="ue_no_groups">No groups found</string>
+    <string name="ue_no_templates">No templates found</string>
+    <string name="ue_selected_count">%1$d selected</string>
+    <string name="ue_cancel">Cancel</string>
+    <string name="ue_create">Create user</string>
+    <string name="ue_save">Save changes</string>
 </resources>
