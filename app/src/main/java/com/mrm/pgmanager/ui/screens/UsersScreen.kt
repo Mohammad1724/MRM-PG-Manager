@@ -267,9 +267,9 @@ fun UsersScreen(
     val statsCardsHeightPx = remember { mutableStateOf(0f) }
     val totalHeaderHeightPx = remember { mutableStateOf(0f) }
 
-    val fallbackStatsPx = remember(density) { with(density) { 104.dp.toPx() } }
+    val fallbackStatsPx = remember(density) { with(density) { 114.dp.toPx() } }
     val headerHeight = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else fallbackStatsPx
-    val fallbackTotalDp = 190.dp
+    val fallbackTotalDp = 200.dp
     val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
     val scrollOffset = remember { mutableStateOf(0f) }
     // با اسکرول به پایین دکمهٔ «کاربر جدید» پنهان و با اسکرول به بالا دوباره ظاهر می‌شود
@@ -607,6 +607,11 @@ fun UsersScreen(
                             val progress = (scrollOffset.value / maxH).coerceIn(0f, 1f)
                             this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
                         }
+                        // فاصله از سربرگ. عمداً *داخلِ* زنجیرهٔ جمع‌شونده است (بعد از
+                        // layout و graphicsLayer)، تا با اسکرول همراهِ خودِ کارت‌ها جمع
+                        // شود؛ اگر بیرون بود، بعد از جمع‌شدنِ کارت‌ها یک نوارِ خالی
+                        // زیرِ سربرگ باقی می‌ماند.
+                        .padding(top = 10.dp)
                 ) {
                     StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, debtorCount = debtorCount)
                 }
