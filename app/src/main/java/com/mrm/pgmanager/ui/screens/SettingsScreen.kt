@@ -4,8 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Slider
@@ -48,6 +48,7 @@ import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LampColor
+import kotlinx.coroutines.launch
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.ThemeState
 
@@ -102,6 +103,21 @@ fun SettingsScreen(
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
     var section by rememberSaveable { mutableStateOf(SettingsSection.APPEARANCE) }
+    val sections = SettingsSection.entries
+    val scope = rememberCoroutineScope()
+    // بخش‌ها حالا با انگشت هم عوض می‌شوند، نه فقط با زدنِ تب. پیجر و نوارِ تب
+    // دوطرفه همگام‌اند: کلیک روی تب صفحه را می‌لغزاند و سوایپ، تبِ فعال را
+    // عوض می‌کند.
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = sections.indexOf(section)
+    ) { sections.size }
+    LaunchedEffect(pagerState.currentPage) { section = sections[pagerState.currentPage] }
+    // نوارِ تب‌ها اسکرول‌شونده است؛ اگر با سوایپ به تبِ بیرون از دید برسیم باید
+    // خودش را بیاورد جلوی چشم.
+    val tabListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(section) {
+        tabListState.animateScrollToItem(sections.indexOf(section).coerceAtLeast(0))
+    }
 
     Column(
         Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
@@ -142,19 +158,21 @@ fun SettingsScreen(
             SettingsSection.SECURITY to stringResource(R.string.security_title),
             SettingsSection.ADVANCED to stringResource(R.string.advanced_title)
         )
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .horizontalScroll(rememberScrollState())
-                .padding(4.dp),
+        androidx.compose.foundation.lazy.LazyRow(
+            state = tabListState,
+            modifier = Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            tabs.forEach { (id, label) ->
+            items(tabs.size) { index ->
+                val (id, label) = tabs[index]
                 val selected = section == id
                 Box(
                     Modifier.height(34.dp).clip(DsRadius.Md)
                         .background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent)
-                        .clickable { section = id }
+                        .pressScale(0.95f)
+                        .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
                         .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -168,23 +186,19 @@ fun SettingsScreen(
 
         // ── محتوای بخشِ انتخاب‌شده
         //
-        // جهتِ حرکت از روی ترتیبِ تب‌ها حساب می‌شود: تبِ سمتِ بعدی از همان سمت
-        // وارد می‌شود. بدونِ این، عوض‌شدنِ تب یک «پرش» بی‌جهت بود.
-        val sectionIndex = SettingsSection.entries.indexOf(section)
-        var previousIndex by remember { mutableStateOf(sectionIndex) }
-        val forward = sectionIndex >= previousIndex
-        LaunchedEffect(sectionIndex) { previousIndex = sectionIndex }
-        androidx.compose.animation.AnimatedContent(
-            targetState = section,
-            transitionSpec = DsTransition.tabSwitch<SettingsSection>(forward),
-            label = "settingsSection",
-            modifier = Modifier.fillMaxWidth().weight(1f)
-        ) { section ->
+        // قبلاً AnimatedContent بود: فقط با زدنِ تب عوض می‌شد. حالا پیجر است، پس
+        // با انگشت هم می‌شود بینِ بخش‌ها رفت — مثل خودِ صفحه‌های اصلیِ اپ.
+        androidx.compose.foundation.pager.HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            beyondViewportPageCount = 1,
+            key = { it }
+        ) { page ->
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(11.dp)
         ) {
-            when (section) {
+            when (sections[page]) {
                 SettingsSection.APPEARANCE -> AppearanceSection(
                     themeState = themeState,
                     onThemeChange = onThemeChange,
