@@ -30,7 +30,11 @@ import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 // ─────────────────────────────────────────────────────────────
 //  PGCard — white card with subtle border, 12dp radius, tiny shadow
@@ -98,6 +102,96 @@ fun PGStatCard(
                 Text(valueSub, fontSize = 10.sp, color = t.mutedLightColor, maxLines = 1)
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PGScreenHeader — سربرگِ مشترکِ صفحه‌های اصلی
+//
+//  چرا مشترک شد: پنج صفحه هرکدام سربرگِ خودشان را داشتند و با هر تغییر، یکی
+//  عقب می‌ماند. صفحهٔ کاربران کاملاً از بقیه جدا افتاده بود — بدون کارت و
+//  حاشیه، دکمه‌های ۳۲dp به‌جای ۳۴dp، اسپینرِ پرشی به‌جای آیکونِ چرخان، و عنوانِ
+//  «Users» که اصلاً ترجمه نمی‌شد. حالا یک تعریف داریم و پنج مصرف.
+// ─────────────────────────────────────────────────────────────
+@Composable
+fun PGScreenHeader(
+    title: String,
+    subtitle: String,
+    refreshing: Boolean,
+    onRefresh: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    settingsLabel: String,
+    refreshLabel: String,
+    badge: @Composable (() -> Unit)? = null
+) {
+    val t = LocalThemeState.current
+    Row(
+        modifier.fillMaxWidth().clip(DsRadius.Lg).background(t.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                if (badge != null) badge()
+            }
+            Text(
+                subtitle, fontSize = 10.sp, color = t.mutedColor,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                    .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
+                    .semantics { contentDescription = refreshLabel }
+                    .pressScale(0.92f)
+                    .clickable(onClick = onRefresh),
+                contentAlignment = Alignment.Center
+            ) {
+                // آیکون خودش می‌چرخد؛ جایگزین‌کردنش با اسپینر پرش داشت.
+                RoundedAppIcon(
+                    AppIcon.Refresh,
+                    tint = if (refreshing) t.accentPrimary else t.mutedColor,
+                    size = 16.dp,
+                    modifier = Modifier.spinWhile(refreshing)
+                )
+            }
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                    .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
+                    .semantics { contentDescription = settingsLabel }
+                    .pressScale(0.92f)
+                    .clickable(onClick = onOpenSettings),
+                contentAlignment = Alignment.Center
+            ) { RoundedAppIcon(AppIcon.Settings, tint = t.mutedColor, size = 16.dp) }
+        }
+    }
+}
+
+/** نشانِ کوچکِ کنارِ عنوانِ صفحه — همان دایرهٔ توخالیِ آشنا. */
+@Composable
+fun PGTitleDot(glyph: String = "\u25CB") {
+    val t = LocalThemeState.current
+    Box(
+        Modifier.size(17.dp).clip(RoundedCornerShape(50))
+            .background(if (t.isDark) t.accentPrimary.copy(0.18f) else t.accentPrimary.copy(0.12f))
+            .border(
+                BorderStroke(DsBorder.Hairline, if (t.isDark) t.accentPrimary.copy(0.30f) else t.accentPrimary.copy(0.24f)),
+                RoundedCornerShape(50)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(glyph, fontSize = 8.sp, color = t.accentPrimary, fontWeight = FontWeight.Bold)
     }
 }
 

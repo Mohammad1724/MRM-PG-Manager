@@ -56,6 +56,7 @@ import kotlinx.coroutines.isActive
 @Composable
 fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
+    val refreshLabel = stringResource(R.string.refresh)
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -150,29 +151,17 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-            // ── Header: PasarGuard style top bar (Dashboard title + Quick Actions yellow button mimic)
-            Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.dashboard), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Box(Modifier.size(18.dp).clip(RoundedCornerShape(50)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                            Text("ⓘ", fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Text(stringResource(R.string.dashboard_subtitle), fontSize = 10.sp, color = theme.mutedColor)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).pressScale(0.92f).clickable { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, contentAlignment = Alignment.Center) {
-                        // به‌جای عوض‌شدنِ آیکون با یک اسپینر (که پرش داشت)، خودِ
-                        // آیکونِ رفرش می‌چرخد؛ حرکت پیوسته و بدونِ قطع می‌ماند.
-                        RoundedAppIcon(AppIcon.Refresh, tint = if (manualRefreshing) theme.accentPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.spinWhile(manualRefreshing))
-                    }
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).semantics { contentDescription = settingsLabel }, contentAlignment = Alignment.Center) {
-                        RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
-                    }
-                }
-            }
+            // ── سربرگِ مشترکِ همهٔ صفحه‌ها
+            PGScreenHeader(
+                title = stringResource(R.string.dashboard),
+                subtitle = stringResource(R.string.dashboard_subtitle),
+                refreshing = manualRefreshing,
+                onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } },
+                onOpenSettings = onOpenSettings,
+                settingsLabel = settingsLabel,
+                refreshLabel = refreshLabel,
+                badge = { PGTitleDot("\u24D8") }
+            )
 
             if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
             error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp) }

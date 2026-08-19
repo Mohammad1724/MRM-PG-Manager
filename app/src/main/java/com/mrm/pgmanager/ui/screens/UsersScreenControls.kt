@@ -189,33 +189,23 @@ internal fun TopBarHeader(
     loading: Boolean,
     onOpenSettings: () -> Unit = {}
 ) {
+    // این سربرگ تنها سربرگی بود که با بقیهٔ صفحه‌ها فرق داشت: نه کارت داشت نه
+    // حاشیه، دکمه‌هایش ۳۲dp بود به‌جای ۳۴dp، رفرشش به‌جای چرخیدن با یک اسپینر
+    // عوض می‌شد، و عنوانش رشتهٔ انگلیسیِ هاردکد بود. حالا همان PGScreenHeaderِ
+    // مشترک است.
+    //
     // ساختِ کاربر از دکمهٔ شناورِ پایین انجام می‌شود؛ کال‌بکش اینجا گرفته می‌شد
     // ولی هیچ دکمه‌ای در سربرگ صدایش نمی‌زد.
-    val theme = LocalThemeState.current
-    val settingsLabel = stringResource(R.string.app_settings)
-    Row(
-        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Users", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) theme.accentPrimary.copy(0.18f) else theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, if (LocalThemeState.current.isDark) theme.accentPrimary.copy(0.30f) else theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                    Text("○", fontSize = 7.sp, color = theme.accentPrimary)
-                }
-            }
-            Text(stringResource(R.string.control_users_desc), fontSize = 10.sp, color = theme.mutedColor)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onRefresh), contentAlignment = Alignment.Center) {
-                if (loading) CircularProgressIndicator(Modifier.size(12.dp), color = theme.mutedColor, strokeWidth = 1.5.dp) else RoundedAppIcon(AppIcon.Refresh, contentDescription = stringResource(R.string.refresh), tint = theme.mutedColor, size = 14.dp)
-            }
-            Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).semantics { contentDescription = settingsLabel }.clickable(onClick = onOpenSettings), contentAlignment = Alignment.Center) {
-                RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 14.dp)
-            }
-        }
-    }
+    PGScreenHeader(
+        title = stringResource(R.string.users),
+        subtitle = stringResource(R.string.control_users_desc),
+        refreshing = loading,
+        onRefresh = onRefresh,
+        onOpenSettings = onOpenSettings,
+        settingsLabel = stringResource(R.string.app_settings),
+        refreshLabel = stringResource(R.string.refresh),
+        badge = { PGTitleDot() }
+    )
 }
 
 @Composable

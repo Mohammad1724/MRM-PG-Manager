@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
+    val refreshLabel = stringResource(R.string.refresh)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
     // مثلِ داشبورد: صفحه با آخرین دادهٔ حافظه ساخته می‌شود تا سوایپ خالی نباشد.
@@ -111,27 +112,16 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-            // ── Header
-            Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.statistics), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.5.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                            Text("○", fontSize = 7.sp, color = theme.accentPrimary)
-                        }
-                    }
-                    Text(stringResource(R.string.statistics_subtitle), fontSize = 10.sp, color = theme.mutedColor)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).pressScale(0.92f).clickable { scope.launch { refreshing = true; load(true); refreshing = false } }, contentAlignment = Alignment.Center) {
-                    RoundedAppIcon(AppIcon.Refresh, tint = if (refreshing) theme.accentPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.spinWhile(refreshing))
-                }
-                    Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).semantics { contentDescription = settingsLabel }, contentAlignment = Alignment.Center) {
-                        RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp)
-                    }
-                }
-            }
+            PGScreenHeader(
+                title = stringResource(R.string.statistics),
+                subtitle = stringResource(R.string.statistics_subtitle),
+                refreshing = refreshing,
+                onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } },
+                onOpenSettings = onOpenSettings,
+                settingsLabel = settingsLabel,
+                refreshLabel = refreshLabel,
+                badge = { PGTitleDot() }
+            )
 
             // ── Nodes selector
             Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

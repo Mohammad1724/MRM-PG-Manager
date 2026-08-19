@@ -74,6 +74,7 @@ private const val SECONDS_PER_DAY = 86_400L
 @Composable
 fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
+    val refreshLabel = stringResource(R.string.refresh)
     val addTemplateLabel = stringResource(R.string.add_template)
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -175,44 +176,16 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // ── سربرگ
-                Row(
-                    Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                stringResource(R.string.templates_title), fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold, color = theme.inkColor
-                            )
-                            if (templates.isNotEmpty()) PGBadge("${templates.size}")
-                        }
-                        Text(stringResource(R.string.templates_subtitle), fontSize = 10.sp, color = theme.mutedColor)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
-                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
-                                .clickable { scope.launch { refreshing = true; load(true); refreshing = false } },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            RoundedAppIcon(AppIcon.Refresh, tint = if (refreshing) theme.accentPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.spinWhile(refreshing))
-                        }
-                        Box(
-                            Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
-                                .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp))
-                                .semantics { contentDescription = settingsLabel }
-                                .clickable(onClick = onOpenSettings),
-                            contentAlignment = Alignment.Center
-                        ) { RoundedAppIcon(AppIcon.Settings, tint = theme.mutedColor, size = 16.dp) }
-                    }
-                }
+                PGScreenHeader(
+                    title = stringResource(R.string.templates_title),
+                    subtitle = stringResource(R.string.templates_subtitle),
+                    refreshing = refreshing,
+                    onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } },
+                    onOpenSettings = onOpenSettings,
+                    settingsLabel = settingsLabel,
+                    refreshLabel = refreshLabel,
+                    badge = if (templates.isNotEmpty()) ({ PGBadge("${templates.size}") }) else null
+                )
 
                 // ── پیام موفقیت
                 androidx.compose.animation.AnimatedVisibility(
