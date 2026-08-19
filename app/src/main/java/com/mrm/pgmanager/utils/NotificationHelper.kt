@@ -20,6 +20,9 @@ import com.mrm.pgmanager.R
  *  - اعلان‌های سیستمی (CPU/RAM/Disk/قطع پنل/نود/تمدید نشست) → تب «داشبورد» باز می‌شود.
  */
 object NotificationHelper {
+    /** طلاییِ برند (DsAccent.Gold) — برای رنگِ اعلان‌ها. */
+    private val ACCENT_COLOR = 0xFFFACC15.toInt()
+
     const val CHANNEL_EVENTS = "mrm_user_events"
     const val CHANNEL_SYSTEM = "mrm_system_health"
 
@@ -72,6 +75,9 @@ object NotificationHelper {
         val priority = if (channel == CHANNEL_SYSTEM) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
         val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
+            // رنگِ برندی که سیستم پشتِ آیکونِ کوچک در کشوی اعلان‌ها می‌گذارد؛
+            // کمک می‌کند کاربر در یک نگاه بفهمد اعلان از کدام اپ است.
+            .setColor(ACCENT_COLOR)
             .setContentTitle(title).setContentText(message).setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(priority).setAutoCancel(true)
             .setContentIntent(pendingIntent)

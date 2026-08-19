@@ -727,7 +727,7 @@
     <string name="mw_session">Session expired</string>
     <string name="mw_session_body">Open the app and sign in again to keep monitoring</string>
     <string name="mw_unreachable">Panel unreachable</string>
-    <string name="mw_unreachable_body">The periodic check could not reach the PasarGuard panel</string>
+    <string name="mw_unreachable_body">Two checks in a row could not reach %1$s. The app keeps retrying in the background.</string>
     <!-- شیت اقدام سریع -->
     <string name="qa_template">Template</string>
     <string name="qa_edit">Edit</string>

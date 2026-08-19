@@ -79,9 +79,14 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
                 wm.cancelUniqueWork(UNIQUE_NAME)
                 return
             }
+            // پشتیبان‌گیری هم از پنل داده می‌گیرد، پس بدونِ شبکه اجرا نشود.
             val request = PeriodicWorkRequestBuilder<BackupWorker>(
                 hours.toLong(), TimeUnit.HOURS,
                 15L, TimeUnit.MINUTES
+            ).setConstraints(
+                androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
             ).build()
             wm.enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }

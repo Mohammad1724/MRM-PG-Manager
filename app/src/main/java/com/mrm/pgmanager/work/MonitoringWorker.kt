@@ -10,6 +10,23 @@ import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.NotificationHelper
 
 class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+
+    /**
+     * آیا خودِ دستگاه اینترنت دارد؟
+     *
+     * بدونِ این بررسی، هر بار که گوشی آفلاین بود (پرواز، بی‌آنتنی، قطعِ VPN)
+     * بررسیِ دوره‌ای شکست می‌خورد و اعلانِ «اتصال به پنل ناموفق» می‌آمد — در حالی
+     * که پنل سالم بود و مشکل از خودِ گوشی بود. آن اعلانِ تکراری از همین‌جا می‌آمد.
+     */
+    private fun deviceHasInternet(): Boolean {
+        val cm = applicationContext.getSystemService(android.net.ConnectivityManager::class.java)
+            ?: return true
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
     override suspend fun doWork(): Result {
         val store = SessionStore(applicationContext)
         val session = store.read() ?: return Result.success()
@@ -19,6 +36,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             // اتصال برقرار شد؛ latch مربوط به آفلاین/انقضای نشست ریست می‌شود.
             store.saveAlertFlag("panel_offline", false)
             store.saveAlertFlag("auth_expired", false)
+            store.saveAlertCount("panel_offline", 0)
             // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود (حتی اگر اعلان‌ها خاموش باشند).
             store.saveStatsCache(stats)
             // بروزرسانی ویجت پس از کش جدید
@@ -109,9 +127,25 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     Result.success()
                 }
                 else -> {
-                    // آفلاین‌بودن پنل هم با latch اطلاع داده می‌شود، نه هر ۱۵ دقیقه.
-                    if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) {
-                        NotificationHelper.post(applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_unreachable), applicationContext.getString(R.string.mw_unreachable_body))
+                    // سه شرط تا وقتی اعلان بدهیم:
+                    //  ۱. خودِ گوشی اینترنت داشته باشد — وگرنه تقصیرِ پنل نیست.
+                    //  ۲. دو بررسیِ پشتِ‌سرِ هم شکست خورده باشد — یک قطعیِ لحظه‌ای
+                    //     (ری‌استارتِ سرور، تایم‌اوتِ گذرا) ارزشِ بیدارکردنِ کاربر را ندارد.
+                    //  ۳. latch باز باشد — تا وقتی پنل برنگشته، دوباره اعلان ندهیم.
+                    val online = deviceHasInternet()
+                    val strikes = if (online) store.readAlertCount("panel_offline") + 1 else 0
+                    store.saveAlertCount("panel_offline", strikes)
+                    if (online && strikes >= 2 &&
+                        settings.notificationsEnabled && settings.notifyPanelOffline &&
+                        !store.readAlertFlag("panel_offline")
+                    ) {
+                        val host = runCatching { java.net.URI(session.baseUrl).host }.getOrNull()
+                            ?.takeIf { it.isNotBlank() } ?: session.baseUrl
+                        NotificationHelper.post(
+                            applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM,
+                            applicationContext.getString(R.string.mw_unreachable),
+                            applicationContext.getString(R.string.mw_unreachable_body, host)
+                        )
                         store.saveAlertFlag("panel_offline", true)
                     }
                     Result.retry()

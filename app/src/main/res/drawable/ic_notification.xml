@@ -1,9 +1,21 @@
+<!--
+  آیکونِ نوارِ وضعیت. سیستم آن را تک‌رنگ (سفید) می‌کشد و هرچه رنگ و جزئیات
+  داشته باشد دور می‌ریزد؛ پس فقط سیلوئتِ ساده کار می‌کند.
+
+  قبلاً یک زنگولهٔ عمومی بود که هیچ ربطی به این اپ نداشت — کاربر از دیدنش
+  نمی‌فهمید کدام برنامه اعلان داده. حالا همان مونوگرامِ Mِ آیکونِ خودِ اپ است:
+  دو ستونِ کناری با دو قطر که در وسط به هم می‌رسند. در ۲۲dp هم خوانا می‌ماند.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
   <path
-      android:fillColor="#FFFFFFFF"
-      android:pathData="M12,22c1.1,0 2,-0.9 2,-2h-4c0,1.1 0.89,2 2,2zM18,16v-5c0,-3.07 -1.63,-5.64 -4.5,-6.32V4c0,-0.83 -0.83,-1.5 -1.5,-1.5s-1.5,0.67 -1.5,1.5v0.68C7.64,5.36 6,7.92 6,11v5l-2,2v1h16v-1l-2,-2z"/>
+      android:fillColor="#00000000"
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="2.3"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:pathData="M3.7,20.3 L3.7,6.2 L12,15.2 L20.3,6.2 L20.3,20.3" />
 </vector>

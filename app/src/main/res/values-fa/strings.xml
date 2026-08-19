@@ -727,7 +727,7 @@
     <string name="mw_session">نشست منقضی شد</string>
     <string name="mw_session_body">برای ادامهٔ پایش، برنامه را باز کنید و دوباره وارد شوید</string>
     <string name="mw_unreachable">اتصال به پنل ناموفق</string>
-    <string name="mw_unreachable_body">بررسی دوره‌ای نتوانست به پنل PasarGuard متصل شود</string>
+    <string name="mw_unreachable_body">دو بررسی پشت سر هم نتوانست به %1$s وصل شود. تلاش در پس‌زمینه ادامه دارد.</string>
     <!-- شیت اقدام سریع -->
     <string name="qa_template">تمپلت</string>
     <string name="qa_edit">ویرایش</string>

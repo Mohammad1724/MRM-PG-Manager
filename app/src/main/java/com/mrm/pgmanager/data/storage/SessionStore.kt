@@ -196,6 +196,13 @@ class SessionStore(context: Context) {
     fun readAlertFlag(key: String): Boolean = prefs.getBoolean("alert_$key", false)
     fun saveAlertFlag(key: String, value: Boolean) = prefs.edit().putBoolean("alert_$key", value).apply()
 
+    /**
+     * شمارندهٔ خطاهای پشتِ‌سرِ هم — برای اینکه یک قطعیِ لحظه‌ای فوراً به اعلان
+     * تبدیل نشود و فقط خطای تکرارشونده گزارش شود.
+     */
+    fun readAlertCount(key: String): Int = prefs.getInt("alert_count_$key", 0)
+    fun saveAlertCount(key: String, value: Int) = prefs.edit().putInt("alert_count_$key", value).apply()
+
     /** آخرین وضعیت آنلاین/آفلاین نودها برای تشخیص تغییر در پس‌زمینه. */
     fun readNodeStates(): Map<Int, Boolean> = runCatching {
         val obj = org.json.JSONObject(prefs.getString("node_states", "{}") ?: "{}")

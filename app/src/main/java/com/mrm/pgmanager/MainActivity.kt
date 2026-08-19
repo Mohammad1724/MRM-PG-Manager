@@ -237,7 +237,15 @@ fun MRMApp() {
 
     LaunchedEffect(session) {
         if (session != null) {
-            val request = PeriodicWorkRequestBuilder<MonitoringWorker>(15, TimeUnit.MINUTES).build()
+            // بدونِ این محدودیت، WorkManager بررسی را حتی وقتی گوشی اینترنت
+            // ندارد اجرا می‌کرد؛ درخواست شکست می‌خورد و اعلانِ «اتصال به پنل
+            // ناموفق» می‌آمد در حالی که پنل سالم بود.
+            val networkConstraint = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+            val request = PeriodicWorkRequestBuilder<MonitoringWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(networkConstraint)
+                .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork("mrm_background_monitoring", ExistingPeriodicWorkPolicy.UPDATE, request)
             // زمان‌بندی پشتیبان‌گیری خودکار (store بیرونی از MRMApp استفاده می‌شود)
             val hours = if (store.readBackupEnabled()) store.readBackupIntervalHours() else 0
