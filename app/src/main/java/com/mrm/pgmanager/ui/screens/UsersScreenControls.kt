@@ -203,8 +203,7 @@ internal fun TopBarHeader(
         onRefresh = onRefresh,
         onOpenSettings = onOpenSettings,
         settingsLabel = stringResource(R.string.app_settings),
-        refreshLabel = stringResource(R.string.refresh),
-        badge = { PGTitleDot() }
+        refreshLabel = stringResource(R.string.refresh)
     )
 }
 

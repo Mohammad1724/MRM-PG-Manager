@@ -342,99 +342,6 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // ── پیشرفته: جمع‌شونده، چون در ساختِ سریع لازم نیست
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        EditorSectionLabel(stringResource(R.string.ue_advanced))
-                        Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                                .background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                                .padding(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
-                                    .pressScale(0.985f)
-                                    .clickable { advancedOpen = !advancedOpen }
-                                    .padding(horizontal = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(9.dp)
-                            ) {
-                                RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 16.dp)
-                                Text(
-                                    stringResource(R.string.ue_advanced),
-                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                                    color = theme.inkColor, modifier = Modifier.weight(1f)
-                                )
-                                val rot by animateFloatAsState(
-                                    targetValue = if (advancedOpen) 180f else 0f,
-                                    animationSpec = DsAnim.normal(), label = "advChevron"
-                                )
-                                RoundedAppIcon(
-                                    AppIcon.ChevronDown, tint = theme.mutedColor, size = 15.dp,
-                                    modifier = Modifier.graphicsLayer { rotationZ = rot }
-                                )
-                            }
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = advancedOpen,
-                                enter = DsTransition.expandEnter,
-                                exit = DsTransition.expandExit
-                            ) {
-                                Column(
-                                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                        FieldLabel(stringResource(R.string.ue_hwid))
-                                        UserFormTextField(
-                                            value = hwid,
-                                            onValueChange = { hwid = it.filter { c -> c.isDigit() } },
-                                            placeholder = stringResource(R.string.ue_hwid_hint),
-                                            keyboardType = KeyboardType.Number,
-                                            leading = AppIcon.Device
-                                        )
-                                        Text(
-                                            stringResource(R.string.ue_hwid_help),
-                                            fontSize = 9.sp, color = theme.mutedColor,
-                                            modifier = Modifier.padding(start = 2.dp)
-                                        )
-                                    }
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                        FieldLabel(stringResource(R.string.ue_note))
-                                        UserFormTextField(
-                                            value = note,
-                                            onValueChange = { note = it.take(500) },
-                                            placeholder = stringResource(R.string.ue_note_hint),
-                                            singleLine = false,
-                                            modifier = Modifier.height(58.dp)
-                                        )
-                                    }
-                                    // ردیفِ تنظیماتِ پروکسی (نمایشی — مدیریتش در پنل است)
-                                    Row(
-                                        Modifier.fillMaxWidth().clip(DsRadius.Lg)
-                                            .background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                            .padding(horizontal = 10.dp, vertical = 7.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(9.dp)
-                                    ) {
-                                        RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 15.dp)
-                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            Text(
-                                                stringResource(R.string.ue_proxy),
-                                                fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
-                                            )
-                                            Text(
-                                                stringResource(R.string.ue_proxy_hint),
-                                                fontSize = 9.sp, color = theme.mutedColor
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     // ── دسترسی: گروه‌ها / تمپلت‌ها
                     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                         EditorSectionLabel(stringResource(R.string.ue_access))
@@ -579,6 +486,101 @@ fun UserEditorDialog(
                                                     }
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── پیشرفته: جمع‌شونده و بعد از «دسترسی»، چون گروه/قالب
+                    // چیزی است که تقریباً همیشه تنظیم می‌شود و «پیشرفته» فقط
+                    // گاهی؛ پرکاربردتر باید بالاتر بنشیند.
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        EditorSectionLabel(stringResource(R.string.ue_advanced))
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Xl)
+                                .background(theme.cardSurfaceColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
+                                .padding(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
+                                    .pressScale(0.985f)
+                                    .clickable { advancedOpen = !advancedOpen }
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(9.dp)
+                            ) {
+                                RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 16.dp)
+                                Text(
+                                    stringResource(R.string.ue_advanced),
+                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                                    color = theme.inkColor, modifier = Modifier.weight(1f)
+                                )
+                                val rot by animateFloatAsState(
+                                    targetValue = if (advancedOpen) 180f else 0f,
+                                    animationSpec = DsAnim.normal(), label = "advChevron"
+                                )
+                                RoundedAppIcon(
+                                    AppIcon.ChevronDown, tint = theme.mutedColor, size = 15.dp,
+                                    modifier = Modifier.graphicsLayer { rotationZ = rot }
+                                )
+                            }
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = advancedOpen,
+                                enter = DsTransition.expandEnter,
+                                exit = DsTransition.expandExit
+                            ) {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        FieldLabel(stringResource(R.string.ue_hwid))
+                                        UserFormTextField(
+                                            value = hwid,
+                                            onValueChange = { hwid = it.filter { c -> c.isDigit() } },
+                                            placeholder = stringResource(R.string.ue_hwid_hint),
+                                            keyboardType = KeyboardType.Number,
+                                            leading = AppIcon.Device
+                                        )
+                                        Text(
+                                            stringResource(R.string.ue_hwid_help),
+                                            fontSize = 9.sp, color = theme.mutedColor,
+                                            modifier = Modifier.padding(start = 2.dp)
+                                        )
+                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        FieldLabel(stringResource(R.string.ue_note))
+                                        UserFormTextField(
+                                            value = note,
+                                            onValueChange = { note = it.take(500) },
+                                            placeholder = stringResource(R.string.ue_note_hint),
+                                            singleLine = false,
+                                            modifier = Modifier.height(58.dp)
+                                        )
+                                    }
+                                    // ردیفِ تنظیماتِ پروکسی (نمایشی — مدیریتش در پنل است)
+                                    Row(
+                                        Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                            .background(theme.searchBgColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(9.dp)
+                                    ) {
+                                        RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 15.dp)
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            Text(
+                                                stringResource(R.string.ue_proxy),
+                                                fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                                            )
+                                            Text(
+                                                stringResource(R.string.ue_proxy_hint),
+                                                fontSize = 9.sp, color = theme.mutedColor
+                                            )
                                         }
                                     }
                                 }

@@ -119,8 +119,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } },
                 onOpenSettings = onOpenSettings,
                 settingsLabel = settingsLabel,
-                refreshLabel = refreshLabel,
-                badge = { PGTitleDot() }
+                refreshLabel = refreshLabel
             )
 
             // ── Nodes selector

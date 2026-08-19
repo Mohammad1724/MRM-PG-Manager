@@ -178,23 +178,6 @@ fun PGScreenHeader(
     }
 }
 
-/** نشانِ کوچکِ کنارِ عنوانِ صفحه — همان دایرهٔ توخالیِ آشنا. */
-@Composable
-fun PGTitleDot(glyph: String = "\u25CB") {
-    val t = LocalThemeState.current
-    Box(
-        Modifier.size(17.dp).clip(RoundedCornerShape(50))
-            .background(if (t.isDark) t.accentPrimary.copy(0.18f) else t.accentPrimary.copy(0.12f))
-            .border(
-                BorderStroke(DsBorder.Hairline, if (t.isDark) t.accentPrimary.copy(0.30f) else t.accentPrimary.copy(0.24f)),
-                RoundedCornerShape(50)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(glyph, fontSize = 8.sp, color = t.accentPrimary, fontWeight = FontWeight.Bold)
-    }
-}
-
 @Composable
 fun PGBadge(text: String, color: Color = Color.Unspecified) {
     val t = LocalThemeState.current

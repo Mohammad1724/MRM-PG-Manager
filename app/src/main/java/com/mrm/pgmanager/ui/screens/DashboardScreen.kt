@@ -159,8 +159,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                 onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } },
                 onOpenSettings = onOpenSettings,
                 settingsLabel = settingsLabel,
-                refreshLabel = refreshLabel,
-                badge = { PGTitleDot("\u24D8") }
+                refreshLabel = refreshLabel
             )
 
             if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
