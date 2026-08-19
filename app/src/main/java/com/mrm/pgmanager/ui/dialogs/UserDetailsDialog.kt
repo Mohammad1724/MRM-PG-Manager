@@ -168,19 +168,26 @@ private fun BillingRow(
 @Composable
 private fun SubChip(icon: AppIcon, label: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
+    // قبلاً کپسولِ کاملاً گِرد با پُرکنندهٔ طلاییِ کم‌رنگ و متنِ طلایی بود: دو لکهٔ
+    // طلایی روی طلایی که نه با کارت‌های این دیالوگ می‌خواند نه با دکمه‌های
+    // بقیهٔ اپ. حالا همان زبانِ بصریِ کاشی‌های اپ را دارد — گوشهٔ ۱۰، سطحِ کارت
+    // روی زمینهٔ خاکستریِ فیلد، حاشیهٔ مویی، و رنگِ تم فقط روی آیکون.
     Row(
-        Modifier.height(28.dp).clip(DsRadius.Full)
-            .background(theme.accentPrimary.copy(0.14f))
-            .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.32f)), DsRadius.Full)
+        Modifier.heightIn(min = 30.dp).clip(DsRadius.Md)
+            .background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
             .semantics { contentDescription = label }
             .pressScale(0.94f)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         RoundedAppIcon(icon, tint = theme.accentPrimary, size = 13.dp)
-        Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
+        Text(
+            label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -270,29 +277,41 @@ fun UserDetailsDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // آواتار: حرفِ اولِ نام + حلقهٔ سبز اگر آنلاین باشد.
-                    Box(
-                        Modifier.size(36.dp).clip(DsRadius.Full)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
+                    // آواتار: حرفِ اولِ نام.
+                    //
+                    // وضعیتِ آنلاین قبلاً یک حلقهٔ سبزِ ۲dp دورِ کلِ آواتار بود؛ سبزِ
+                    // اشباع دورِ دایرهٔ طلایی با هیچ‌جای دیگرِ اپ نمی‌خواند و بیشتر
+                    // شبیهِ خطا دیده می‌شد تا نشانه. حالا همان نقطهٔ کوچکی است که
+                    // در فهرستِ کاربران هم استفاده می‌شود، با یک حلقهٔ هم‌رنگِ
+                    // پس‌زمینه که از لبهٔ آواتار جدایش می‌کند.
+                    Box(Modifier.size(38.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.size(36.dp).clip(DsRadius.Full)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
+                                    )
                                 )
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                currentUser.username.take(1).uppercase(),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = theme.inkColor
                             )
-                            .border(
-                                BorderStroke(
-                                    if (currentUser.isOnline) 2.dp else DsBorder.Hairline,
-                                    if (currentUser.isOnline) GlassGreen else theme.borderColor
-                                ),
-                                DsRadius.Full
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            currentUser.username.take(1).uppercase(),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = theme.inkColor
-                        )
+                        }
+                        if (currentUser.isOnline) {
+                            Box(
+                                Modifier.align(Alignment.BottomEnd)
+                                    .size(12.dp).clip(DsRadius.Full)
+                                    .background(theme.cardSurfaceColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(Modifier.size(8.dp).clip(DsRadius.Full).background(GlassGreen))
+                            }
+                        }
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         MrmText(
