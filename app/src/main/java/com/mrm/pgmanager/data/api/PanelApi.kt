@@ -5,6 +5,7 @@ import com.mrm.pgmanager.data.model.BulkCreateResult
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.GroupDetail
+import com.mrm.pgmanager.data.model.PanelAdmin
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserTemplateItem
@@ -386,8 +387,60 @@ object PanelApi {
             note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
             hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 },
             groupIds = groupIds,
-            groupNames = groupNames
+            groupNames = groupNames,
+            lifetimeUsedTraffic = user.optLong("lifetime_used_traffic", 0L),
+            // `admin` یک آبجکتِ AdminBase است؛ فقط نامش را نگه می‌داریم.
+            ownerAdmin = user.optJSONObject("admin")?.optString("username")
+                ?.takeIf { it.isNotBlank() && it != "null" }
         )
+    }
+
+    /**
+     * فهرستِ ادمین‌های پنل — `GET /api/admins`.
+     *
+     * فقط ادمینی که مجوزِ `admins:read` دارد می‌تواند بگیرد؛ برای بقیه پنل ۴۰۳
+     * می‌دهد و صداکننده باید بخش را پنهان کند (نه اینکه خطا نشان بدهد).
+     */
+    suspend fun admins(session: Session): List<PanelAdmin> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/admins?limit=100").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Admins failed: ${response.code}")
+            val body = response.body?.string().orEmpty()
+            // پاسخ `{admins, total}` است، ولی برای مقاومت در برابر تغییرِ شکل،
+            // آرایهٔ خام هم پذیرفته می‌شود.
+            val arr = runCatching { JSONObject(body).optJSONArray("admins") }.getOrNull()
+                ?: runCatching { org.json.JSONArray(body) }.getOrNull()
+                ?: return@use emptyList()
+            List(arr.length()) { i ->
+                val a = arr.getJSONObject(i)
+                PanelAdmin(
+                    id = a.optInt("id"),
+                    username = a.optString("username"),
+                    totalUsers = a.optInt("total_users", 0),
+                    usedTraffic = a.optLong("used_traffic", 0L),
+                    dataLimit = if (a.isNull("data_limit")) null else a.optLong("data_limit").takeIf { it > 0L },
+                    status = a.optString("status", "active"),
+                    isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false
+                )
+            }
+        }
+    }
+
+    /**
+     * باطل‌کردنِ لینکِ اشتراکِ کاربر — `POST /api/user/{username}/revoke_sub`.
+     *
+     * توکنِ اشتراک عوض می‌شود، پس لینکِ قبلی (و هر کسی که آن را دارد) از کار
+     * می‌افتد و کاربر باید لینکِ تازه را بگیرد. تنها راهِ درستِ واکنش به لو رفتنِ
+     * لینک است.
+     */
+    suspend fun revokeSubscription(session: Session, username: String): PanelUser = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${userUrl(session, username)}/revoke_sub")
+            .post("".toRequestBody(jsonType))
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Revoke failed: ${response.code}")
+            parseUser(JSONObject(response.body?.string() ?: error("Empty revoke response")))
+        }
     }
 
     suspend fun groups(session: Session): List<Group> = withContext(Dispatchers.IO) {

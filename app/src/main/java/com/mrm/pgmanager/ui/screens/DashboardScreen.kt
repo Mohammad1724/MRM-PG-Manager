@@ -32,7 +32,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.PanelAdmin
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.StatsRange
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.MonitoringSettings
@@ -87,6 +89,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
     var trafficPoints by remember(session) {
         mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
     }
+    // بازهٔ نمودارِ مصرف — قبلاً دو «منو»ی تزئینی بود که کلیک هم نمی‌شدند.
+    var chartRange by remember { mutableStateOf(StatsRange.LAST_7D) }
+    var chartMenuOpen by remember { mutableStateOf(false) }
+    // فهرستِ ادمین‌ها: فقط برای حسابی که مجوزِ خواندنش را دارد. اگر پنل ۴۰۳ داد،
+    // بخش کلاً پنهان می‌شود به‌جای اینکه خطا نشان بدهیم.
+    var admins by remember(session) { mutableStateOf<List<PanelAdmin>?>(null) }
     var debtorTotalAmount by remember { mutableStateOf(0L) }
     var debtorCount by remember { mutableStateOf(0) }
     var debtorCurrency by remember { mutableStateOf(settings.debtorCurrency) }
@@ -125,7 +133,9 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: context.getString(R.string.db_error_stats)
             }
         }
-        runCatching { PanelApi.trafficUsage(session) }.onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
+        runCatching { PanelApi.trafficUsage(session, chartRange) }.onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
+        // ۴۰۳ یعنی این ادمین اجازهٔ دیدنِ بقیه را ندارد؛ لیستِ خالی = بخش پنهان.
+        runCatching { PanelApi.admins(session) }.onSuccess { admins = it }.onFailure { admins = emptyList() }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id))
@@ -145,6 +155,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
             if (inForeground) load(silent = true)
         }
     }
+    // عوض‌شدنِ بازه فقط نمودار را تازه می‌کند، نه کلِ صفحه را.
+    LaunchedEffect(chartRange) {
+        runCatching { PanelApi.trafficUsage(session, chartRange) }
+            .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
+    }
+
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
@@ -280,8 +296,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                     PGBadge(percentOf(s.onlineUsers, s.totalUsers))
                 }
 
-                // ── Total Admins block (like screenshot bottom)
-                Text(stringResource(R.string.total_admins), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                // ── تفکیکِ کاربران و نمودارِ مصرف
+                //
+                // این بخش قبلاً عنوانِ «Total Admins» داشت در حالی که هیچ دادهٔ
+                // ادمینی درش نبود؛ عنوان با محتوا جور نبود. ادمین‌های واقعی حالا
+                // بخشِ جداگانهٔ خودشان را دارند (پایین‌تر).
+                Text(stringResource(R.string.users_section), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     // Left: Users breakdown card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -320,12 +340,32 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column { Text(stringResource(R.string.usage), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.monitor_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp) }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
-                                Text(stringResource(R.string.days_7) + " ▾", fontSize = 10.sp, color = theme.mutedColor)
+                        // انتخابگرِ بازه. قبلاً دو کادرِ «7 days ▾» و «Auto ▾» بود
+                        // که هیچ‌کدام کلیک نمی‌شدند — شکلِ منوی پنل کپی شده بود
+                        // بدونِ رفتارش. حالا واقعاً نمودار را عوض می‌کند.
+                        Box {
+                            Row(
+                                Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor)
+                                    .border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp))
+                                    .pressScale(0.95f)
+                                    .clickable { chartMenuOpen = true }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(chartRange.label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                                Text("▾", fontSize = 9.sp, color = theme.mutedColor)
                             }
-                            Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor).border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp)) {
-                                Text(stringResource(R.string.auto) + " ▾", fontSize = 10.sp, color = theme.mutedColor)
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = chartMenuOpen,
+                                onDismissRequest = { chartMenuOpen = false }
+                            ) {
+                                StatsRange.entries.forEach { r ->
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(r.label, fontSize = 12.sp) },
+                                        onClick = { chartRange = r; chartMenuOpen = false }
+                                    )
+                                }
                             }
                         }
                         UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = theme.accentPrimary)
@@ -341,6 +381,49 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(trendingText, fontSize = 10.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
+                            }
+                        }
+                    }
+                }
+
+                // ── ادمین‌های واقعیِ پنل
+                admins?.takeIf { it.isNotEmpty() }?.let { list ->
+                    Text(stringResource(R.string.db_admins), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    Column(
+                        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(stringResource(R.string.db_admins_desc), fontSize = 10.sp, color = theme.mutedColor)
+                        list.forEach { a ->
+                            Row(
+                                Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                                    .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
+                                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                RoundedAppIcon(
+                                    AppIcon.User,
+                                    tint = if (a.status == "active") theme.accentPrimary else theme.mutedColor,
+                                    size = 13.dp
+                                )
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        MrmText(a.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = true)
+                                        if (a.isOwner) PGBadge(stringResource(R.string.db_admin_owner))
+                                    }
+                                    Text(
+                                        stringResource(R.string.db_admin_users, a.totalUsers),
+                                        fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                                    )
+                                }
+                                MrmText(
+                                    if (a.dataLimit != null) "${formatBytes(a.usedTraffic)}/${formatBytes(a.dataLimit)}"
+                                    else formatBytes(a.usedTraffic),
+                                    fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = true
+                                )
                             }
                         }
                     }

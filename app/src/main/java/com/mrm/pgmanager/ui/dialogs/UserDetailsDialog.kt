@@ -220,11 +220,30 @@ fun UserDetailsDialog(
     var templatesLoading by remember { mutableStateOf(false) }
     var templatesFailed by remember { mutableStateOf(false) }
     var billingOpen by remember { mutableStateOf(false) }
+    var revokeConfirm by remember { mutableStateOf(false) }
+    // نمودارِ مصرفِ خودِ کاربر. تابعِ واکشی از قبل در PanelApi بود ولی هیچ‌جا
+    // صدا زده نمی‌شد؛ حالا وصل شده.
+    var usagePoints by remember(user.username) { mutableStateOf<List<com.mrm.pgmanager.data.model.TrafficPoint>>(emptyList()) }
+    var usageLoading by remember(user.username) { mutableStateOf(session != null) }
+    LaunchedEffect(user.username, session) {
+        if (session == null) return@LaunchedEffect
+        usageLoading = true
+        runCatching { PanelApi.userTrafficUsage(session, currentUser.username) }
+            .onSuccess { usagePoints = it }
+        usageLoading = false
+    }
 
     val copiedMsg = stringResource(R.string.ud_copied)
     val closeLabel = stringResource(R.string.ud_close)
     val subFailedMsg = stringResource(R.string.ud_sub_failed)
     val unlimitedLabel = stringResource(R.string.ud_unlimited)
+    val groupsLabel = stringResource(R.string.ud_group_names)
+    val createdLabel = stringResource(R.string.ud_created_at)
+    val lifetimeLabel = stringResource(R.string.ud_lifetime)
+    val ownerLabel = stringResource(R.string.ud_owner)
+    val usageChartLabel = stringResource(R.string.ud_usage_chart)
+    val usageEmptyLabel = stringResource(R.string.ud_usage_empty)
+    val revokedMsg = stringResource(R.string.ud_revoked)
 
     // دریافتِ لینکِ اشتراک به‌صورت lazy (بعضی پاسخ‌های پنل subUrl ندارند).
     fun ensureSub(onResult: (String) -> Unit) {
@@ -440,6 +459,80 @@ fun UserDetailsDialog(
                         }
                     }
 
+                    // ── حقایقِ کاربر: گروه‌ها، تاریخِ ساخت، مصرفِ مادام‌العمر، مالک
+                    //
+                    // هیچ‌کدامِ این‌ها قبلاً نشان داده نمی‌شدند، در حالی که پنل
+                    // همه‌شان را در همان پاسخِ کاربر برمی‌گرداند.
+                    run {
+                        val facts = buildList {
+                            if (currentUser.groupNames.isNotEmpty()) {
+                                add(Triple(AppIcon.Folder, groupsLabel, currentUser.groupNames.joinToString("، ")))
+                            }
+                            currentUser.createdAt?.takeIf { it.isNotBlank() }?.let {
+                                add(Triple(AppIcon.Calendar, createdLabel, JalaliCalendar.isoToShamsi(it).ifBlank { it.take(10) }))
+                            }
+                            if (currentUser.lifetimeUsedTraffic > currentUser.usedTraffic) {
+                                add(Triple(AppIcon.Storage, lifetimeLabel, formatBytes(currentUser.lifetimeUsedTraffic)))
+                            }
+                            currentUser.ownerAdmin?.let { add(Triple(AppIcon.User, ownerLabel, it)) }
+                        }
+                        if (facts.isNotEmpty()) {
+                            Column(
+                                Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                    .background(theme.searchBgColor)
+                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                facts.forEach { (icon, label, value) ->
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        RoundedAppIcon(icon, tint = theme.mutedColor, size = 13.dp)
+                                        Text(label, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1)
+                                        Spacer(Modifier.weight(1f))
+                                        MrmText(
+                                            value, fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
+                                            maxLines = 2, overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(2f, fill = false),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── نمودارِ مصرفِ همین کاربر (۷ روزِ گذشته)
+                    if (session != null) {
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.cardSurfaceColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 13.dp)
+                                Text(usageChartLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                            }
+                            when {
+                                usageLoading -> Box(Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) {
+                                    Text("…", fontSize = 14.sp, color = theme.mutedColor)
+                                }
+                                usagePoints.isEmpty() -> Text(usageEmptyLabel, fontSize = 10.sp, color = theme.mutedColor)
+                                else -> UsageChart(
+                                    points = usagePoints,
+                                    accent = theme.accentPrimary,
+                                    themeIsDark = theme.isDark,
+                                    valueFormatter = ::formatBytes
+                                )
+                            }
+                        }
+                    }
+
                     // ── توضیحاتِ کاربر (فقط اگر وجود داشته باشد)
                     if (!currentUser.note.isNullOrBlank()) {
                         Row(
@@ -494,6 +587,10 @@ fun UserDetailsDialog(
                                 }
                             }
                             SubChip(AppIcon.Qr, stringResource(R.string.ud_qr)) { ensureSub { qrOpen = true } }
+                            // باطل‌کردنِ لینک: تنها واکنشِ درست به لو رفتنِ لینک.
+                            if (session != null) {
+                                SubChip(AppIcon.Reset, stringResource(R.string.ud_revoke)) { revokeConfirm = true }
+                            }
                         }
                     }
 
@@ -684,6 +781,27 @@ fun UserDetailsDialog(
             message = stringResource(R.string.ud_reset_data_msg),
             onDismiss = { usageConfirm = false },
             onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() }
+        )
+    }
+
+    if (revokeConfirm && session != null) {
+        ConfirmActionDialog(
+            title = stringResource(R.string.ud_revoke_title),
+            message = stringResource(R.string.ud_revoke_msg),
+            onDismiss = { revokeConfirm = false },
+            onConfirm = {
+                revokeConfirm = false
+                scope.launch {
+                    runCatching { PanelApi.revokeSubscription(session, currentUser.username) }
+                        .onSuccess {
+                            currentUser = it
+                            android.widget.Toast.makeText(context, revokedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        .onFailure {
+                            android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                }
+            }
         )
     }
 

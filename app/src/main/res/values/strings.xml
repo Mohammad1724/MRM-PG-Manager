@@ -852,4 +852,20 @@
         <item>Dey</item><item>Bahman</item><item>Esfand</item>
     </string-array>
     <string name="login_err_https">Only https is supported. Use an https address.</string>
+    <string name="db_admins">Admins</string>
+    <string name="db_admins_desc">Accounts that manage this panel</string>
+    <string name="db_admins_none">No admin list — your account cannot read it</string>
+    <string name="db_admin_users">%1$d users</string>
+    <string name="db_admin_owner">Owner</string>
+    <string name="db_chart_range">Range</string>
+    <string name="ud_group_names">Groups</string>
+    <string name="ud_created_at">Created</string>
+    <string name="ud_lifetime">Lifetime usage</string>
+    <string name="ud_owner">Owner admin</string>
+    <string name="ud_usage_chart">Usage over time</string>
+    <string name="ud_usage_empty">No traffic recorded in this period</string>
+    <string name="ud_revoke">New link</string>
+    <string name="ud_revoke_title">Issue a new subscription link?</string>
+    <string name="ud_revoke_msg">The current link stops working immediately. Anyone using it — including the user — has to receive the new one.</string>
+    <string name="ud_revoked">A new subscription link was issued</string>
 </resources>

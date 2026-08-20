@@ -18,7 +18,26 @@ data class PanelUser(
     val note: String? = null,
     val hwidLimit: Int? = null,
     val groupIds: List<Int> = emptyList(),
-    var groupNames: List<String> = emptyList()
+    var groupNames: List<String> = emptyList(),
+    /** مصرفِ کل از ابتدا — با ریستِ مصرف صفر نمی‌شود. */
+    val lifetimeUsedTraffic: Long = 0L,
+    /** ادمینِ مالکِ کاربر (در پنل‌های چندادمینی). */
+    val ownerAdmin: String? = null
+)
+
+/**
+ * ادمینِ پنل — برای بخشِ «ادمین‌ها» در داشبورد.
+ * فقط ادمینی که دسترسیِ `admins:read` دارد می‌تواند این فهرست را بگیرد؛
+ * برای بقیه پنل ۴۰۳ برمی‌گرداند و بخش پنهان می‌شود.
+ */
+data class PanelAdmin(
+    val id: Int,
+    val username: String,
+    val totalUsers: Int = 0,
+    val usedTraffic: Long = 0L,
+    val dataLimit: Long? = null,
+    val status: String = "active",
+    val isOwner: Boolean = false
 )
 
 data class SystemStats(

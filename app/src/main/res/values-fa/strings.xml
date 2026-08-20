@@ -852,4 +852,20 @@
         <item>دی</item><item>بهمن</item><item>اسفند</item>
     </string-array>
     <string name="login_err_https">فقط https پشتیبانی می‌شود؛ از آدرس https استفاده کنید.</string>
+    <string name="db_admins">ادمین‌ها</string>
+    <string name="db_admins_desc">حساب‌هایی که این پنل را مدیریت می‌کنند</string>
+    <string name="db_admins_none">فهرست ادمین‌ها در دسترس نیست — حساب شما اجازهٔ خواندنش را ندارد</string>
+    <string name="db_admin_users">%1$d کاربر</string>
+    <string name="db_admin_owner">مالک</string>
+    <string name="db_chart_range">بازه</string>
+    <string name="ud_group_names">گروه‌ها</string>
+    <string name="ud_created_at">ساخته شده</string>
+    <string name="ud_lifetime">مصرف کل</string>
+    <string name="ud_owner">ادمین مالک</string>
+    <string name="ud_usage_chart">مصرف در طول زمان</string>
+    <string name="ud_usage_empty">در این بازه ترافیکی ثبت نشده</string>
+    <string name="ud_revoke">لینک تازه</string>
+    <string name="ud_revoke_title">لینک اشتراک تازه صادر شود؟</string>
+    <string name="ud_revoke_msg">لینک فعلی همان لحظه از کار می‌افتد. هرکسی که از آن استفاده می‌کند — از جمله خود کاربر — باید لینک تازه را بگیرد.</string>
+    <string name="ud_revoked">لینک اشتراک تازه صادر شد</string>
 </resources>
