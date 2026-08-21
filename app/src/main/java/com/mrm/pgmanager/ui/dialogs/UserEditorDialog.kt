@@ -96,6 +96,10 @@ fun UserEditorDialog(
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
+    // پلنِ بعدی: کدام قالب، و آیا حجمِ باقی‌مانده منتقل شود.
+    var nextPlanTemplate by remember { mutableStateOf(initial?.nextPlan?.templateId) }
+    var nextPlanCarry by remember { mutableStateOf(initial?.nextPlan?.addRemainingTraffic ?: false) }
+    var nextPlanMenu by remember { mutableStateOf(false) }
     var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
     var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
     var active by remember { mutableStateOf(initial?.status != "disabled") }
@@ -493,6 +497,79 @@ fun UserEditorDialog(
                         }
                     }
 
+                    // ── پلنِ بعدی
+                    //
+                    // پنل این را دارد و اپ نداشت: پلنی که با تمام‌شدنِ حجم یا
+                    // روزهای فعلی، خودکار جایگزین می‌شود. اینجا از روی قالب‌ها
+                    // انتخاب می‌شود چون همان چیزی است که در عمل استفاده می‌شود.
+                    if (templates.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            EditorSectionLabel(stringResource(R.string.ue_next_plan))
+                            Column(
+                                Modifier.fillMaxWidth().clip(DsRadius.Xl)
+                                    .background(theme.cardSurfaceColor)
+                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(stringResource(R.string.ue_next_plan_desc), fontSize = 10.sp, color = theme.mutedColor)
+                                Box {
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 38.dp).clip(DsRadius.Md)
+                                            .background(theme.searchBgColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                                            .pressScale(0.98f)
+                                            .clickable { nextPlanMenu = true }
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 15.dp)
+                                        Text(
+                                            templates.firstOrNull { it.id == nextPlanTemplate }?.name
+                                                ?: stringResource(R.string.ue_next_plan_none),
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text("▾", fontSize = 10.sp, color = theme.mutedColor)
+                                    }
+                                    DropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 12.sp) },
+                                            onClick = { nextPlanTemplate = null; nextPlanMenu = false }
+                                        )
+                                        templates.forEach { t ->
+                                            DropdownMenuItem(
+                                                text = { Text(t.name, fontSize = 12.sp) },
+                                                onClick = { nextPlanTemplate = t.id; nextPlanMenu = false }
+                                            )
+                                        }
+                                    }
+                                }
+                                if (nextPlanTemplate != null) {
+                                    Row(
+                                        Modifier.fillMaxWidth().clip(DsRadius.Md)
+                                            .pressScale(0.99f)
+                                            .clickable { nextPlanCarry = !nextPlanCarry }
+                                            .padding(vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        CheckboxIcon(selected = nextPlanCarry, onToggle = { nextPlanCarry = !nextPlanCarry })
+                                        Text(
+                                            stringResource(R.string.ue_next_plan_carry),
+                                            fontSize = 11.sp, color = theme.inkColor, modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // ── پیشرفته: جمع‌شونده و بعد از «دسترسی»، چون گروه/قالب
                     // چیزی است که تقریباً همیشه تنظیم می‌شود و «پیشرفته» فقط
                     // گاهی؛ پرکاربردتر باید بالاتر بنشیند.
@@ -610,7 +687,13 @@ fun UserEditorDialog(
                                 ?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) }
                                 ?: ""
                             val hwidValue = hwid.toIntOrNull() ?: 0
-                            val values = UserEditorValues(username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds)
+                            val values = UserEditorValues(
+                                username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
+                                nextPlan = com.mrm.pgmanager.data.model.NextPlan(
+                                    templateId = nextPlanTemplate,
+                                    addRemainingTraffic = nextPlanCarry
+                                )
+                            )
                             if (selectedTemplate != null && isCreating && onSaveWithTemplate != null) {
                                 onSaveWithTemplate(username, selectedTemplate!!, note)
                             } else if (selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) {

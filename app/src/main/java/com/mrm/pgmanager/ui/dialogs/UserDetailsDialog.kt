@@ -221,6 +221,16 @@ fun UserDetailsDialog(
     var templatesFailed by remember { mutableStateOf(false) }
     var billingOpen by remember { mutableStateOf(false) }
     var revokeConfirm by remember { mutableStateOf(false) }
+    var devicesResetConfirm by remember { mutableStateOf(false) }
+    var nextPlanConfirm by remember { mutableStateOf(false) }
+    // دستگاه‌های ثبت‌شده (HWID). اپ تا حالا فقط سقفِ تعداد را می‌گرفت و خودِ
+    // دستگاه‌ها را نه می‌شد دید نه پاک کرد.
+    var devices by remember(user.id) { mutableStateOf<List<com.mrm.pgmanager.data.model.UserDevice>>(emptyList()) }
+    fun reloadDevices() {
+        if (session == null) return
+        scope.launch { runCatching { PanelApi.userDevices(session, currentUser.id) }.onSuccess { devices = it } }
+    }
+    LaunchedEffect(user.id, session) { reloadDevices() }
     // نمودارِ مصرفِ خودِ کاربر. تابعِ واکشی از قبل در PanelApi بود ولی هیچ‌جا
     // صدا زده نمی‌شد؛ حالا وصل شده.
     var usagePoints by remember(user.username) { mutableStateOf<List<com.mrm.pgmanager.data.model.TrafficPoint>>(emptyList()) }
@@ -244,6 +254,8 @@ fun UserDetailsDialog(
     val usageChartLabel = stringResource(R.string.ud_usage_chart)
     val usageEmptyLabel = stringResource(R.string.ud_usage_empty)
     val revokedMsg = stringResource(R.string.ud_revoked)
+    val devicesLabel = stringResource(R.string.ud_devices)
+    val nextPlanLabel = stringResource(R.string.ud_next_plan)
 
     // دریافتِ لینکِ اشتراک به‌صورت lazy (بعضی پاسخ‌های پنل subUrl ندارند).
     fun ensureSub(onResult: (String) -> Unit) {
@@ -499,6 +511,106 @@ fun UserDetailsDialog(
                                             modifier = Modifier.weight(2f, fill = false),
                                             textAlign = androidx.compose.ui.text.style.TextAlign.End
                                         )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── پلنِ بعدی (اگر در صف باشد)
+                    currentUser.nextPlan?.let { np ->
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.accentPrimary.copy(0.08f))
+                                .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.22f)), DsRadius.Lg)
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 13.dp)
+                                Text(nextPlanLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                Spacer(Modifier.weight(1f))
+                                if (session != null) {
+                                    SubChip(AppIcon.Check, stringResource(R.string.ud_next_plan_activate)) { nextPlanConfirm = true }
+                                }
+                            }
+                            val desc = when {
+                                np.templateId != null -> stringResource(
+                                    R.string.ud_next_plan_template,
+                                    availableTemplates.firstOrNull { it.id == np.templateId }?.name ?: "#${np.templateId}"
+                                )
+                                else -> stringResource(
+                                    R.string.ud_next_plan_manual,
+                                    np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel,
+                                    ((np.expireSeconds ?: 0L) / 86400L).toInt()
+                                )
+                            }
+                            Text(desc, fontSize = 10.sp, color = theme.mutedColor)
+                            if (np.addRemainingTraffic) {
+                                Text(stringResource(R.string.ud_next_plan_carry), fontSize = 9.5.sp, color = theme.mutedLightColor)
+                            }
+                        }
+                    }
+
+                    // ── دستگاه‌های ثبت‌شده
+                    if (session != null && (devices.isNotEmpty() || currentUser.hwidLimit != null)) {
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.cardSurfaceColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                RoundedAppIcon(AppIcon.Device, tint = theme.accentPrimary, size = 13.dp)
+                                Text(devicesLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                                Spacer(Modifier.weight(1f))
+                                currentUser.hwidLimit?.let {
+                                    PGBadge(stringResource(R.string.ud_devices_count, devices.size, it))
+                                }
+                                if (devices.isNotEmpty()) {
+                                    Spacer(Modifier.width(4.dp))
+                                    SubChip(AppIcon.Delete, stringResource(R.string.ud_devices_reset)) { devicesResetConfirm = true }
+                                }
+                            }
+                            if (devices.isEmpty()) {
+                                Text(stringResource(R.string.ud_devices_empty), fontSize = 10.sp, color = theme.mutedColor)
+                            }
+                            devices.forEach { d ->
+                                Row(
+                                    Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                                        .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
+                                        .padding(horizontal = 8.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        MrmText(
+                                            listOfNotNull(d.deviceModel, d.deviceOs, d.osVersion)
+                                                .joinToString(" · ").ifBlank { d.hwid.take(16) },
+                                            fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        d.lastUsedAt?.let {
+                                            Text(
+                                                stringResource(R.string.ud_device_last_used, JalaliCalendar.isoToShamsi(it).ifBlank { it.take(10) }),
+                                                fontSize = 9.sp, color = theme.mutedColor, maxLines = 1
+                                            )
+                                        }
+                                    }
+                                    Box(
+                                        Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor)
+                                            .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.28f)), DsRadius.Sm)
+                                            .pressScale(0.94f)
+                                            .clickable {
+                                                scope.launch {
+                                                    runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }
+                                                    reloadDevices()
+                                                }
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(stringResource(R.string.ud_device_forget), fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                                     }
                                 }
                             }
@@ -781,6 +893,38 @@ fun UserDetailsDialog(
             message = stringResource(R.string.ud_reset_data_msg),
             onDismiss = { usageConfirm = false },
             onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() }
+        )
+    }
+
+    if (devicesResetConfirm && session != null) {
+        ConfirmActionDialog(
+            title = stringResource(R.string.ud_devices_reset_title),
+            message = stringResource(R.string.ud_devices_reset_msg),
+            onDismiss = { devicesResetConfirm = false },
+            onConfirm = {
+                devicesResetConfirm = false
+                scope.launch {
+                    runCatching { PanelApi.resetUserDevices(session, currentUser.id) }
+                    reloadDevices()
+                }
+            }
+        )
+    }
+
+    if (nextPlanConfirm && session != null) {
+        ConfirmActionDialog(
+            title = stringResource(R.string.ud_next_plan_activate_title),
+            message = stringResource(R.string.ud_next_plan_activate_msg),
+            onDismiss = { nextPlanConfirm = false },
+            onConfirm = {
+                nextPlanConfirm = false
+                scope.launch {
+                    runCatching { PanelApi.activateNextPlan(session, currentUser.username) }
+                        .onSuccess {
+                            runCatching { PanelApi.user(session, currentUser.username) }.onSuccess { currentUser = it }
+                        }
+                }
+            }
         )
     }
 

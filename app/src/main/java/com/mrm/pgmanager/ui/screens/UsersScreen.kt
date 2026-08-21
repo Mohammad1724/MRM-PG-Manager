@@ -927,7 +927,7 @@ fun UsersScreen(
             user = user,
             onDismiss = { selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
+                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan) }
             },
             onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },
@@ -989,7 +989,7 @@ fun UsersScreen(
         }
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds) }
+        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan) }
     }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
         createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)

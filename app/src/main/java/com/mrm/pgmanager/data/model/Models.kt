@@ -22,7 +22,9 @@ data class PanelUser(
     /** مصرفِ کل از ابتدا — با ریستِ مصرف صفر نمی‌شود. */
     val lifetimeUsedTraffic: Long = 0L,
     /** ادمینِ مالکِ کاربر (در پنل‌های چندادمینی). */
-    val ownerAdmin: String? = null
+    val ownerAdmin: String? = null,
+    /** پلنی که پس از تمام‌شدنِ پلنِ فعلی خودکار اعمال می‌شود. */
+    val nextPlan: NextPlan? = null
 )
 
 /**
@@ -108,7 +110,59 @@ object GroupValidation {
 }
 
 /** نودِ پنل — برای فیلترِ نمودارهای آمار. */
-data class PanelNode(val id: Int, val name: String)
+/**
+ * نودِ پنل.
+ *
+ * `status` یکی از مقادیرِ پنل است: connected / connecting / error / disabled /
+ * limited. رشته نگه داشته شده تا اگر پنل حالتِ تازه‌ای اضافه کرد، اپ نترکد.
+ */
+data class PanelNode(
+    val id: Int,
+    val name: String,
+    val address: String = "",
+    val status: String = "",
+    val message: String? = null,
+    val xrayVersion: String? = null,
+    val nodeVersion: String? = null,
+    val uplink: Long = 0L,
+    val downlink: Long = 0L
+) {
+    val isConnected: Boolean get() = status == "connected"
+    val isDisabled: Boolean get() = status == "disabled"
+}
+
+/** آمارِ لحظه‌ایِ یک نود — `GET /api/nodes/realtime_stats`. */
+data class NodeRealtime(
+    val memTotal: Long = 0L,
+    val memUsed: Long = 0L,
+    val cpuCores: Int = 0,
+    val cpuUsage: Float = 0f,
+    val incomingSpeed: Long = 0L,
+    val outgoingSpeed: Long = 0L,
+    val uptimeSeconds: Long = 0L
+)
+
+/** یک دستگاهِ ثبت‌شدهٔ کاربر (HWID). */
+data class UserDevice(
+    val id: Int,
+    val hwid: String,
+    val deviceOs: String? = null,
+    val osVersion: String? = null,
+    val deviceModel: String? = null,
+    val createdAt: String? = null,
+    val lastUsedAt: String? = null
+)
+
+/**
+ * «پلنِ بعدی» — وقتی حجم یا زمانِ کاربر تمام شود، پنل خودش این پلن را اعمال
+ * می‌کند. یا از روی یک قالب، یا با حجم/مدتِ دستی.
+ */
+data class NextPlan(
+    val templateId: Int? = null,
+    val dataLimit: Long? = null,
+    val expireSeconds: Long? = null,
+    val addRemainingTraffic: Boolean = false
+)
 
 /** نتیجهٔ ساخت گروهیِ سمت‌سرور. */
 data class BulkCreateResult(val created: Int, val subscriptionUrls: List<String> = emptyList())
@@ -358,4 +412,15 @@ data class UsernamePattern(
     }
 }
 
-data class UserEditorValues(val username: String, val value: Double, val note: String = "", val hwidLimit: Int? = null, val groupIds: List<Int> = emptyList())
+data class UserEditorValues(
+    val username: String,
+    val value: Double,
+    val note: String = "",
+    val hwidLimit: Int? = null,
+    val groupIds: List<Int> = emptyList(),
+    /**
+     * پلنی که پس از تمام‌شدنِ این پلن خودکار جایش می‌نشیند.
+     * `null` یعنی دست نزن؛ [NextPlan] با همهٔ فیلدهای خالی یعنی پاکش کن.
+     */
+    val nextPlan: NextPlan? = null
+)

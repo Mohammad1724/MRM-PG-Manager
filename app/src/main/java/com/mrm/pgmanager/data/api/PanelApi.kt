@@ -6,7 +6,10 @@ import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.GroupDetail
 import com.mrm.pgmanager.data.model.PanelAdmin
+import com.mrm.pgmanager.data.model.NextPlan
+import com.mrm.pgmanager.data.model.NodeRealtime
 import com.mrm.pgmanager.data.model.PanelNode
+import com.mrm.pgmanager.data.model.UserDevice
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserQuery
 import com.mrm.pgmanager.data.model.UsersPage
@@ -237,10 +240,107 @@ object PanelApi {
                     ?: return@runCatching emptyList<PanelNode>()
                 List(arr.length()) { i ->
                     val n = arr.getJSONObject(i)
-                    PanelNode(id = n.optInt("id"), name = n.optString("name", "Node #${n.optInt("id")}"))
+                    PanelNode(
+                        id = n.optInt("id"),
+                        name = n.optString("name", "Node #${n.optInt("id")}"),
+                        address = n.optString("address", ""),
+                        status = n.optString("status", ""),
+                        message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
+                        xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
+                        nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
+                        uplink = n.optLong("uplink", 0L),
+                        downlink = n.optLong("downlink", 0L)
+                    )
                 }
             }
         }.getOrDefault(emptyList())
+    }
+
+    /**
+     * آمارِ لحظه‌ایِ نودها — `GET /api/nodes/realtime_stats`.
+     * کلیدِ null یعنی نود در دسترس نیست (همان چیزی که [nodeOnlineStates] هم
+     * از رویش تصمیم می‌گیرد).
+     */
+    suspend fun nodeRealtimeStats(session: Session): Map<Int, NodeRealtime> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/nodes/realtime_stats").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Node stats failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            buildMap {
+                root.keys().forEach { key ->
+                    val id = key.toIntOrNull() ?: return@forEach
+                    val o = root.optJSONObject(key) ?: return@forEach
+                    put(
+                        id,
+                        NodeRealtime(
+                            memTotal = o.optLong("mem_total"),
+                            memUsed = o.optLong("mem_used"),
+                            cpuCores = o.optInt("cpu_cores"),
+                            cpuUsage = o.optDouble("cpu_usage", 0.0).toFloat(),
+                            incomingSpeed = o.optLong("incoming_bandwidth_speed"),
+                            outgoingSpeed = o.optLong("outgoing_bandwidth_speed"),
+                            uptimeSeconds = o.optLong("uptime")
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /** تلاشِ دوبارهٔ اتصال به یک نود — `POST /api/node/{id}/reconnect`. */
+    suspend fun reconnectNode(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reconnect")
+                .post("".toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
+    suspend fun userDevices(session: Session, userId: Long): List<UserDevice> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/user/$userId/hwids").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("HWID list failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val arr = root.optJSONArray("hwids") ?: return@use emptyList()
+            List(arr.length()) { i ->
+                val d = arr.getJSONObject(i)
+                UserDevice(
+                    id = d.optInt("id"),
+                    hwid = d.optString("hwid"),
+                    deviceOs = d.optString("device_os").takeIf { it.isNotBlank() && it != "null" },
+                    osVersion = d.optString("os_version").takeIf { it.isNotBlank() && it != "null" },
+                    deviceModel = d.optString("device_model").takeIf { it.isNotBlank() && it != "null" },
+                    createdAt = d.optString("created_at").takeIf { it.isNotBlank() && it != "null" },
+                    lastUsedAt = d.optString("last_used_at").takeIf { it.isNotBlank() && it != "null" }
+                )
+            }
+        }
+    }
+
+    /** حذفِ یک دستگاه — `DELETE /api/user/{user_id}/hwids/{hwid}`. */
+    suspend fun deleteUserDevice(session: Session, userId: Long, hwid: String) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(
+                session,
+                "${session.baseUrl}/api/user/$userId/hwids/${URLEncoder.encode(hwid, "UTF-8")}"
+            ).delete().build()
+        )
+    }
+
+    /** پاک‌کردنِ همهٔ دستگاه‌ها — `POST /api/user/{user_id}/hwids/reset`. */
+    suspend fun resetUserDevices(session: Session, userId: Long) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/user/$userId/hwids/reset")
+                .post("".toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** فعال‌کردنِ فوریِ پلنِ بعدی — `POST /api/user/{username}/active_next`. */
+    suspend fun activateNextPlan(session: Session, username: String) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${userUrl(session, username)}/active_next")
+                .post("".toRequestBody(jsonType)).build()
+        )
     }
 
     suspend fun users(session: Session): List<PanelUser> = withContext(Dispatchers.IO) {
@@ -360,19 +460,22 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList()) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
+        nextPlanJson(nextPlan)?.let { body.put("next_plan", it) }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
+        // null یعنی «دست نزن»؛ قالبِ خالی یعنی «پاکش کن».
+        if (nextPlan != null) body.put("next_plan", nextPlanJson(nextPlan) ?: JSONObject.NULL)
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
@@ -396,6 +499,18 @@ object PanelApi {
                 val details = response.body?.string()?.take(250).orEmpty()
                 error("Request failed: ${response.code} $details")
             }
+        }
+    }
+
+    /** بدنهٔ `next_plan`؛ اگر قالب و حجم و مدت هر سه خالی باشند null برمی‌گرداند. */
+    private fun nextPlanJson(plan: NextPlan?): JSONObject? {
+        if (plan == null) return null
+        if (plan.templateId == null && plan.dataLimit == null && plan.expireSeconds == null) return null
+        return JSONObject().apply {
+            plan.templateId?.let { put("user_template_id", it) }
+            plan.dataLimit?.let { put("data_limit", it) }
+            plan.expireSeconds?.let { put("expire", it) }
+            put("add_remaining_traffic", plan.addRemainingTraffic)
         }
     }
 
@@ -466,6 +581,14 @@ object PanelApi {
             groupIds = groupIds,
             groupNames = groupNames,
             lifetimeUsedTraffic = user.optLong("lifetime_used_traffic", 0L),
+            nextPlan = user.optJSONObject("next_plan")?.let { np ->
+                NextPlan(
+                    templateId = if (np.isNull("user_template_id")) null else np.optInt("user_template_id"),
+                    dataLimit = if (np.isNull("data_limit")) null else np.optLong("data_limit"),
+                    expireSeconds = if (np.isNull("expire")) null else np.optLong("expire"),
+                    addRemainingTraffic = np.optBoolean("add_remaining_traffic", false)
+                )
+            },
             // `admin` یک آبجکتِ AdminBase است؛ فقط نامش را نگه می‌داریم.
             ownerAdmin = user.optJSONObject("admin")?.optString("username")
                 ?.takeIf { it.isNotBlank() && it != "null" }

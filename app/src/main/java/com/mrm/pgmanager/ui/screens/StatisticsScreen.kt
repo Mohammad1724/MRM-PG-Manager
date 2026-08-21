@@ -41,6 +41,7 @@ import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -72,6 +73,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     var nodes by remember(session) {
         mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList())
     }
+    // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
+    // هیچ‌جا روی صفحه دیده نمی‌شد.
+    var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
+    var reconnecting by remember { mutableStateOf<Int?>(null) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     var refreshing by remember { mutableStateOf(false) }
 
@@ -90,6 +95,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
             .onSuccess { countPoints = it; PanelCache.put(countKey, it) }
+        runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it; PanelCache.put(nodesKey, it) }
+        runCatching { PanelApi.nodeRealtimeStats(session) }.onSuccess { nodeStats = it }
         loading = false
     }
 
@@ -233,6 +240,98 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
                         Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                    }
+                }
+
+                // ── سلامتِ نودها
+                //
+                // انتخابگرِ نود از قبل بود ولی هیچ‌جا معلوم نمی‌شد نودی که انتخاب
+                // کرده‌ای اصلاً بالا هست یا نه. حالا وضعیت، مصرفِ لحظه‌ای و سرعتِ
+                // هر نود دیده می‌شود و اگر خطا داشته باشد می‌شود دوباره وصلش کرد.
+                Column(
+                    Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp)
+                        Text(stringResource(R.string.st_nodes_health), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    }
+                    if (nodes.isEmpty()) {
+                        Text(stringResource(R.string.st_node_none), fontSize = 10.sp, color = theme.mutedColor)
+                    }
+                    nodes.forEach { n ->
+                        val live = nodeStats[n.id]
+                        val statusColor = when (n.status) {
+                            "connected" -> DsSemantic.Success
+                            "connecting" -> theme.accentPrimary
+                            "error" -> DsSemantic.Danger
+                            "limited" -> DsSemantic.Warning
+                            else -> theme.mutedColor
+                        }
+                        val statusText = when (n.status) {
+                            "connected" -> stringResource(R.string.st_node_connected)
+                            "connecting" -> stringResource(R.string.st_node_connecting)
+                            "error" -> stringResource(R.string.st_node_error)
+                            "limited" -> stringResource(R.string.st_node_limited)
+                            "disabled" -> stringResource(R.string.st_node_disabled)
+                            else -> n.status
+                        }
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
+                                .padding(horizontal = 9.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(statusColor))
+                                MrmText(n.name, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
+                                Text(statusText, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
+                                if (n.status == "error" || n.status == "connecting") {
+                                    Box(
+                                        Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+                                            .pressScale(0.94f)
+                                            .clickable {
+                                                reconnecting = n.id
+                                                scope.launch {
+                                                    runCatching { PanelApi.reconnectNode(session, n.id) }
+                                                    load(true)
+                                                    reconnecting = null
+                                                }
+                                            }
+                                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            stringResource(if (reconnecting == n.id) R.string.st_node_reconnecting else R.string.st_node_reconnect),
+                                            fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                            if (live != null) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        "CPU ${formatPercent(live.cpuUsage)}%", fontSize = 9.5.sp,
+                                        color = theme.mutedColor, maxLines = 1
+                                    )
+                                    Text(
+                                        "RAM ${formatBytes(live.memUsed)}/${formatBytes(live.memTotal)}",
+                                        fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                                    )
+                                }
+                                MrmText(
+                                    stringResource(R.string.st_node_speed, formatBytes(live.incomingSpeed), formatBytes(live.outgoingSpeed)),
+                                    fontSize = 9.5.sp, color = theme.mutedLightColor, maxLines = 1, isTechnical = true
+                                )
+                            } else {
+                                Text(
+                                    n.message?.take(90) ?: stringResource(R.string.st_node_unreachable),
+                                    fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 2
+                                )
+                            }
+                        }
                     }
                 }
 
