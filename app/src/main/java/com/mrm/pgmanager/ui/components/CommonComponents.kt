@@ -555,7 +555,10 @@ fun BulkActionsBar(
     onSelectAll: () -> Unit = {},
     onExport: () -> Unit = {},
     onGroupAdd: () -> Unit = {},
-    onGroupRemove: () -> Unit = {}
+    onGroupRemove: () -> Unit = {},
+    onAddDays: () -> Unit = {},
+    onAddData: () -> Unit = {},
+    onRevokeSubs: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
@@ -615,6 +618,20 @@ fun BulkActionsBar(
                     DropdownMenuItem(
                         text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
                         onClick = { onApplyTemplate(); expanded = false }
+                    )
+                    // تمدید و افزودنِ حجم به‌صورت گروهی — پنل این‌ها را دارد
+                    // (`bulk/expire` و `bulk/data_limit`) و اپ نداشت.
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_days), color = theme.inkColor) } },
+                        onClick = { onAddDays(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_data), color = theme.inkColor) } },
+                        onClick = { onAddData(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
+                        onClick = { onRevokeSubs(); expanded = false }
                     )
                     // افزودن/برداشتنِ گروه برای چند کاربر یک‌جا — قبلاً باید
                     // تک‌تکِ کاربرها را ویرایش می‌کردی.

@@ -22,15 +22,10 @@
     <string name="users">کاربران</string>
     <string name="refresh">بروزرسانی</string>
     <string name="logout">خروج</string>
-    <string name="search_users">جست‌وجوی کاربر</string>
-    <string name="connection_error">اتصال برقرار نشد. آدرس پنل، SSL، نام کاربری و رمز عبور را بررسی کنید.</string>
-    <string name="no_users">کاربری پیدا نشد</string>
-    <string name="used">مصرف</string>
     <string name="limit">سقف حجم</string>
     <string name="expired">منقضی</string>
     <string name="limited">محدود</string>
     <string name="unlimited">نامحدود</string>
-    <string name="manage_panel">مدیریت پنل پاسارگارد</string>
     <string name="status">وضعیت</string>
     <string name="widget_description">وضعیت پنل در یک نگاه: کاربران آنلاین، مصرف RAM/CPU، بدهکاران و دکمه بروزرسانی دستی</string>
     <string name="widget_name">وضعیت پنل</string>
@@ -39,7 +34,6 @@
 
     <!-- Dashboard -->
     <string name="dashboard">داشبورد</string>
-    <string name="open_menu">باز کردن منو</string>
     <string name="dashboard_subtitle">داشبورد مدیریت پاسارگارد</string>
     <string name="system">سیستم</string>
     <string name="cpu_usage">مصرف CPU</string>
@@ -58,18 +52,13 @@
     <string name="monitor_users">پایش کاربران</string>
     <string name="usage">مصرف</string>
     <string name="monitor_traffic_desc">پایش مصرف ترافیک مدیر\nدر طول زمان</string>
-    <string name="days_7">۷ روز</string>
-    <string name="auto">خودکار</string>
     <string name="trending_up">٪%1$d افزایش ↗</string>
     <string name="trending_down">٪%1$d کاهش ↘</string>
     <string name="no_trend">بدون روند</string>
     <string name="usage_during_period">مصرف دوره: %1$s</string>
     <string name="total_traffic_desc">مجموع مصرف ترافیک تمام سرورها</string>
     <string name="debtors">بدهکاران</string>
-    <string name="debtor_count">تعداد بدهکار</string>
-    <string name="debtor_total">مجموع بدهی</string>
     <string name="offline_state">حالت آفلاین — %1$s</string>
-    <string name="total_admins">کل ادمین‌ها</string>
     <string name="uptime">آپ‌تایم</string>
     <string name="download">دانلود</string>
     <string name="upload">آپلود</string>
@@ -81,22 +70,16 @@
     <string name="nodes_desc">یک نود را برای آمار دقیق انتخاب کن</string>
     <string name="traffic_usage">مصرف ترافیک</string>
     <string name="traffic_usage_desc">مجموع مصرف ترافیک تمام سرورها</string>
-    <string name="usage_during_period_title">مصرف دوره</string>
     <string name="user_count">تعداد کاربران</string>
     <string name="user_count_desc">تعداد کاربران آنلاین، منقضی و محدود در طول زمان</string>
     <string name="status_history_note">تغییر وضعیت‌ها تاریخچه را منحرف می‌کند. ریست مصرف فقط در صورت فعال بودن پاکسازی نمودار، تاریخچه را پاک می‌کند.</string>
-    <string name="group_by_node">گروه‌بندی بر اساس نود</string>
     <string name="count_during_period">تعداد دوره</string>
-    <string name="overall">کلی</string>
-    <string name="more">بیشتر</string>
-    <string name="all_admins">همه ادمین‌ها</string>
 
     <!-- Drawer -->
     <string name="platform">پلتفرم</string>
     <string name="support_us">حمایت از ما</string>
     <string name="star_count">★ ستاره  ۲٬۴۸۴</string>
     <string name="up_to_date">به‌روز</string>
-    <string name="coming_soon">به‌زودی</string>
 
     <!-- Users -->
     <string name="control_users_desc">کنترل، بروزرسانی و مدیریت حساب‌های کاربری</string>
@@ -114,17 +97,8 @@
     <string name="remaining_credit">اعتبار باقی‌مانده</string>
     <string name="online">آنلاین</string>
     <string name="offline">آفلاین</string>
-    <string name="copy_link">کپی لینک</string>
-    <string name="show_qr">نمایش QR</string>
-    <string name="bulk_actions_on">عملیات گروهی روی %1$d کاربر</string>
-    <string name="select_all">انتخاب همه</string>
     <string name="cancel">لغو</string>
-    <string name="enable">فعال‌سازی</string>
     <string name="disable">غیرفعال‌سازی</string>
-    <string name="reset_usage">ریست حجم</string>
-    <string name="apply_template">اعمال تمپلت</string>
-    <string name="export">خروجی</string>
-    <string name="delete_all">حذف همه</string>
     <string name="filter">فیلتر</string>
     <string name="sort">مرتب‌سازی</string>
     <string name="no_user_found">کاربری یافت نشد</string>
@@ -160,17 +134,9 @@
     <string name="cd_collapse">بستن بخش</string>
     <string name="security_title">امنیت</string>
     <string name="appearance_desc">شخصی‌سازی، پایش و امنیت حساب مدیر</string>
-    <string name="user_details">جزئیات کاربر</string>
-    <string name="basic_info">اطلاعات پایه</string>
-    <string name="volume_and_time">حجم و زمان اشتراک</string>
-    <string name="access_and_details">دسترسی و جزئیات</string>
     <string name="groups_title">گروه‌ها</string>
     <string name="templates_title">تمپلت‌ها</string>
     <string name="save_changes">ذخیرهٔ تغییرات</string>
-    <string name="edit_user_title">ویرایش کاربر</string>
-    <string name="create_user_title">ایجاد کاربر</string>
-    <string name="user_status">وضعیت اشتراک</string>
-    <string name="quick_actions">عملیات سریع</string>
     <string name="all_nodes">همهٔ نودها</string>
     <string name="usage_in_range">مصرف در این بازه</string>
     <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
@@ -185,7 +151,6 @@
     <string name="delete_group_confirm">از حذف گروه «%1$s» مطمئنید؟</string>
     <string name="delete_group_warning">این گروه به %1$d کاربر اختصاص دارد. دسترسی آن‌ها به inboundهای این گروه قطع می‌شود.</string>
     <string name="group_disabled">غیرفعال</string>
-    <string name="group_enabled">فعال</string>
     <string name="group_is_disabled_label">این گروه غیرفعال باشد</string>
     <string name="group_users_count">%1$d کاربر</string>
     <string name="no_groups">هنوز گروهی ساخته نشده</string>
@@ -331,7 +296,6 @@
     <string name="set_logout">خروج از حساب کاربری</string>
     <string name="set_logout_desc">پاک‌شدن نشست فعلی و بازگشت به صفحهٔ ورود</string>
     <string name="set_github">گیت‌هاب</string>
-    <string name="set_back">بازگشت</string>
     <string name="lamp_gold">زرد پاسارگارد</string>
     <string name="lamp_magenta">رز بری</string>
     <string name="lamp_turquoise">تیل اژه</string>
@@ -466,7 +430,6 @@
     <string name="set_rs_ok_toast">بازیابی موفق</string>
     <!-- دیالوگ جزئیات کاربر (بازطراحی) -->
     <string name="ud_used">مصرف‌شده</string>
-    <string name="ud_total">حجم کل</string>
     <string name="ud_remaining_time">زمان مانده</string>
     <string name="ud_remaining_data">حجم مانده</string>
     <string name="ud_note">توضیحات</string>
@@ -528,7 +491,6 @@
     <string name="ue_search_groups">جست‌وجوی گروه</string>
     <string name="ue_no_groups">گروهی یافت نشد</string>
     <string name="ue_no_templates">تمپلتی یافت نشد</string>
-    <string name="ue_selected_count">%1$d انتخاب‌شده</string>
     <string name="ue_cancel">انصراف</string>
     <string name="ue_create">ساخت کاربر</string>
     <string name="ue_save">ذخیره تغییرات</string>
@@ -646,7 +608,6 @@
     <string name="inv_payable">مبلغ قابل پرداخت</string>
     <string name="inv_payable_remaining">مانده قابل پرداخت</string>
     <string name="inv_settled">تسویه کامل</string>
-    <string name="inv_partial">پرداخت جزئی — مانده: %1$s %2$s</string>
     <string name="inv_note">یادداشت</string>
     <string name="inv_note_optional">یادداشت (اختیاری)</string>
     <string name="inv_note_hint">مثلاً بابت اشتراک یک ماهه، تا تاریخ…</string>
@@ -796,7 +757,6 @@
     <string name="cc_apply_template">اعمال تمپلت</string>
     <string name="cc_export">خروجی گرفتن</string>
     <string name="cc_select_all">انتخاب همه</string>
-    <string name="lamp_custom">سفارشی</string>
     <string name="re_title">ریست زمان اشتراک</string>
     <string name="re_subtitle">مدت واقعی اشتراک را وارد کنید. انقضا از امروز دوباره محاسبه می‌شود.</string>
     <string name="re_days_label">مدت اشتراک (روز)</string>
@@ -854,10 +814,8 @@
     <string name="login_err_https">فقط https پشتیبانی می‌شود؛ از آدرس https استفاده کنید.</string>
     <string name="db_admins">ادمین‌ها</string>
     <string name="db_admins_desc">حساب‌هایی که این پنل را مدیریت می‌کنند</string>
-    <string name="db_admins_none">فهرست ادمین‌ها در دسترس نیست — حساب شما اجازهٔ خواندنش را ندارد</string>
     <string name="db_admin_users">%1$d کاربر</string>
     <string name="db_admin_owner">مالک</string>
-    <string name="db_chart_range">بازه</string>
     <string name="ud_group_names">گروه‌ها</string>
     <string name="ud_created_at">ساخته شده</string>
     <string name="ud_lifetime">مصرف کل</string>
@@ -909,4 +867,20 @@
     <string name="ue_next_plan_desc">وقتی این پلن تمام شود خودکار اعمال می‌شود</string>
     <string name="ue_next_plan_none">ندارد</string>
     <string name="ue_next_plan_carry">انتقال حجم باقی‌مانده</string>
+    <string name="us_bulk_days">افزودن روز</string>
+    <string name="us_bulk_data">افزودن حجم</string>
+    <string name="us_bulk_revoke">لینک تازه</string>
+    <string name="us_bulk_amount_days">تعداد روز (برای کم‌کردن، منفی بنویس)</string>
+    <string name="us_bulk_amount_gb">گیگابایت (برای کم‌کردن، منفی بنویس)</string>
+    <string name="us_bulk_apply">اعمال</string>
+    <string name="us_bulk_revoke_title">برای %1$d کاربر لینک تازه صادر شود؟</string>
+    <string name="us_bulk_revoke_msg">همهٔ لینک‌های فعلی همان لحظه از کار می‌افتند و هر کاربر باید لینک تازه‌اش را بگیرد.</string>
+    <string name="us_cleanup">پاک‌سازی منقضی‌ها</string>
+    <string name="us_cleanup_none">چیزی برای پاک‌سازی نیست</string>
+    <string name="us_cleanup_title">%1$d کاربر منقضی حذف شوند؟</string>
+    <string name="us_cleanup_msg">این حساب‌ها از تاریخ انقضاشان گذشته‌اند. حذفشان برگشت‌پذیر نیست.</string>
+    <string name="us_cleanup_done">%1$d کاربر حذف شد</string>
+    <string name="ue_reset_strategy">ریست ترافیک</string>
+    <string name="ue_auto_delete">حذف خودکار پس از انقضا (روز)</string>
+    <string name="ue_auto_delete_hint">خالی یعنی هیچ‌وقت خودکار حذف نشود.</string>
 </resources>

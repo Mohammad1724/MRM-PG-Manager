@@ -22,15 +22,10 @@
     <string name="users">Users</string>
     <string name="refresh">Refresh</string>
     <string name="logout">Log out</string>
-    <string name="search_users">Search users</string>
-    <string name="connection_error">Unable to connect. Check panel address, SSL, username and password.</string>
-    <string name="no_users">No users found</string>
-    <string name="used">Used</string>
     <string name="limit">Limit</string>
     <string name="expired">Expired</string>
     <string name="limited">Limited</string>
     <string name="unlimited">Unlimited</string>
-    <string name="manage_panel">Manage your PasarGuard panel</string>
     <string name="status">Status</string>
     <string name="widget_description">Panel status at a glance: online users and CPU usage of your PasarGuard panel</string>
     <string name="widget_name">Panel status</string>
@@ -39,7 +34,6 @@
 
     <!-- Dashboard -->
     <string name="dashboard">Dashboard</string>
-    <string name="open_menu">Open menu</string>
     <string name="dashboard_subtitle">PasarGuard Management Dashboard</string>
     <string name="system">System</string>
     <string name="cpu_usage">CPU Usage</string>
@@ -58,18 +52,13 @@
     <string name="monitor_users">Monitor Users</string>
     <string name="usage">Usage</string>
     <string name="monitor_traffic_desc">Monitor admin traffic\nusage over time</string>
-    <string name="days_7">7 days</string>
-    <string name="auto">Auto</string>
     <string name="trending_up">Trending up by %1$d%% ↗</string>
     <string name="trending_down">Trending down by %1$d%% ↘</string>
     <string name="no_trend">No trend yet</string>
     <string name="usage_during_period">Usage During Period: %1$s</string>
     <string name="total_traffic_desc">Total traffic usage across all servers</string>
     <string name="debtors">Debtors</string>
-    <string name="debtor_count">Debtor Count</string>
-    <string name="debtor_total">Total Debt</string>
     <string name="offline_state">Offline — %1$s</string>
-    <string name="total_admins">Total Admins</string>
     <string name="uptime">Uptime</string>
     <string name="download">Download</string>
     <string name="upload">Upload</string>
@@ -81,22 +70,16 @@
     <string name="nodes_desc">Select a node to view detailed statistics</string>
     <string name="traffic_usage">Traffic Usage</string>
     <string name="traffic_usage_desc">Total traffic usage across all servers</string>
-    <string name="usage_during_period_title">Usage During Period</string>
     <string name="user_count">User Count</string>
     <string name="user_count_desc">Online, expired, and limited user activity counts over time</string>
     <string name="status_history_note">Status changes can skew history. Usage resets clear chart history only if chart-data cleanup is enabled.</string>
-    <string name="group_by_node">Group by node</string>
     <string name="count_during_period">Count During Period</string>
-    <string name="overall">Overall</string>
-    <string name="more">More</string>
-    <string name="all_admins">All admins</string>
 
     <!-- Drawer -->
     <string name="platform">Platform</string>
     <string name="support_us">Support Us</string>
     <string name="star_count">★ Star  2,484</string>
     <string name="up_to_date">Up to date</string>
-    <string name="coming_soon">Soon</string>
 
     <!-- Users -->
     <string name="control_users_desc">Control, Update, and Arrange User Accounts</string>
@@ -114,17 +97,8 @@
     <string name="remaining_credit">Remaining credit</string>
     <string name="online">Online</string>
     <string name="offline">Offline</string>
-    <string name="copy_link">Copy link</string>
-    <string name="show_qr">Show QR</string>
-    <string name="bulk_actions_on">Bulk actions on %1$d users</string>
-    <string name="select_all">Select all</string>
     <string name="cancel">Cancel</string>
-    <string name="enable">Enable</string>
     <string name="disable">Disable</string>
-    <string name="reset_usage">Reset usage</string>
-    <string name="apply_template">Apply template</string>
-    <string name="export">Export</string>
-    <string name="delete_all">Delete all</string>
     <string name="filter">Filter</string>
     <string name="sort">Sort</string>
     <string name="no_user_found">No user found</string>
@@ -160,17 +134,9 @@
     <string name="cd_expand">Expand section</string>
     <string name="cd_collapse">Collapse section</string>
     <string name="appearance_desc">Personalization, monitoring and account security</string>
-    <string name="user_details">User Details</string>
-    <string name="basic_info">Basic Info</string>
-    <string name="volume_and_time">Volume and Time</string>
-    <string name="access_and_details">Access and Details</string>
     <string name="groups_title">Groups</string>
     <string name="templates_title">Templates</string>
     <string name="save_changes">Save Changes</string>
-    <string name="edit_user_title">Edit User</string>
-    <string name="create_user_title">Create User</string>
-    <string name="user_status">Subscription Status</string>
-    <string name="quick_actions">Quick Actions</string>
     <string name="all_nodes">All nodes</string>
     <string name="usage_in_range">Usage During Period</string>
     <string name="no_chart_data">No data for this period</string>
@@ -185,7 +151,6 @@
     <string name="delete_group_confirm">Are you sure you want to delete the group \"%1$s\"?</string>
     <string name="delete_group_warning">This group is assigned to %1$d user(s). They will lose access to its inbounds.</string>
     <string name="group_disabled">Disabled</string>
-    <string name="group_enabled">Enabled</string>
     <string name="group_is_disabled_label">Disable this group</string>
     <string name="group_users_count">%1$d users</string>
     <string name="no_groups">No groups yet</string>
@@ -331,7 +296,6 @@
     <string name="set_logout">Log out</string>
     <string name="set_logout_desc">Clears the current session and returns to the login screen</string>
     <string name="set_github">GitHub</string>
-    <string name="set_back">Back</string>
     <string name="lamp_gold">PasarGuard Yellow</string>
     <string name="lamp_magenta">Berry Rose</string>
     <string name="lamp_turquoise">Aegean Teal</string>
@@ -466,7 +430,6 @@
     <string name="set_rs_ok_toast">Restore successful</string>
     <!-- دیالوگ جزئیات کاربر (بازطراحی) -->
     <string name="ud_used">Used</string>
-    <string name="ud_total">Total</string>
     <string name="ud_remaining_time">Time left</string>
     <string name="ud_remaining_data">Data left</string>
     <string name="ud_note">Note</string>
@@ -528,7 +491,6 @@
     <string name="ue_search_groups">Search groups</string>
     <string name="ue_no_groups">No groups found</string>
     <string name="ue_no_templates">No templates found</string>
-    <string name="ue_selected_count">%1$d selected</string>
     <string name="ue_cancel">Cancel</string>
     <string name="ue_create">Create user</string>
     <string name="ue_save">Save changes</string>
@@ -646,7 +608,6 @@
     <string name="inv_payable">Amount payable</string>
     <string name="inv_payable_remaining">Remaining to pay</string>
     <string name="inv_settled">Fully settled</string>
-    <string name="inv_partial">Partly paid — %1$s %2$s left</string>
     <string name="inv_note">Note</string>
     <string name="inv_note_optional">Note (optional)</string>
     <string name="inv_note_hint">e.g. for a one-month subscription, valid until…</string>
@@ -796,7 +757,6 @@
     <string name="cc_apply_template">Apply template</string>
     <string name="cc_export">Export</string>
     <string name="cc_select_all">Select all</string>
-    <string name="lamp_custom">Custom</string>
     <string name="re_title">Reset subscription time</string>
     <string name="re_subtitle">Enter the real length of the subscription. Expiry is recalculated from today.</string>
     <string name="re_days_label">Subscription length (days)</string>
@@ -854,10 +814,8 @@
     <string name="login_err_https">Only https is supported. Use an https address.</string>
     <string name="db_admins">Admins</string>
     <string name="db_admins_desc">Accounts that manage this panel</string>
-    <string name="db_admins_none">No admin list — your account cannot read it</string>
     <string name="db_admin_users">%1$d users</string>
     <string name="db_admin_owner">Owner</string>
-    <string name="db_chart_range">Range</string>
     <string name="ud_group_names">Groups</string>
     <string name="ud_created_at">Created</string>
     <string name="ud_lifetime">Lifetime usage</string>
@@ -909,4 +867,20 @@
     <string name="ue_next_plan_desc">Applied automatically when this plan runs out</string>
     <string name="ue_next_plan_none">None</string>
     <string name="ue_next_plan_carry">Carry over leftover traffic</string>
+    <string name="us_bulk_days">Add days</string>
+    <string name="us_bulk_data">Add data</string>
+    <string name="us_bulk_revoke">New links</string>
+    <string name="us_bulk_amount_days">Days (use a minus sign to take away)</string>
+    <string name="us_bulk_amount_gb">Gigabytes (use a minus sign to take away)</string>
+    <string name="us_bulk_apply">Apply</string>
+    <string name="us_bulk_revoke_title">Issue new links for %1$d users?</string>
+    <string name="us_bulk_revoke_msg">Every current link stops working at once. Each user has to receive their new one.</string>
+    <string name="us_cleanup">Clean up expired</string>
+    <string name="us_cleanup_none">Nothing to clean up</string>
+    <string name="us_cleanup_title">Delete %1$d expired users?</string>
+    <string name="us_cleanup_msg">These accounts are past their expiry date. Deleting them cannot be undone.</string>
+    <string name="us_cleanup_done">%1$d users deleted</string>
+    <string name="ue_reset_strategy">Traffic reset</string>
+    <string name="ue_auto_delete">Auto delete after expiry (days)</string>
+    <string name="ue_auto_delete_hint">Empty means never delete automatically.</string>
 </resources>

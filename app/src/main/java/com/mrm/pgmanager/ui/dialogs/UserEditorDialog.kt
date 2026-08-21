@@ -100,6 +100,9 @@ fun UserEditorDialog(
     var nextPlanTemplate by remember { mutableStateOf(initial?.nextPlan?.templateId) }
     var nextPlanCarry by remember { mutableStateOf(initial?.nextPlan?.addRemainingTraffic ?: false) }
     var nextPlanMenu by remember { mutableStateOf(false) }
+    // دو فیلدی که پنل داشت و فرمِ اپ نه: استراتژیِ ریستِ حجم و حذفِ خودکار.
+    var resetStrategy by remember { mutableStateOf(TemplateOptions.RESET_NO_RESET) }
+    var autoDeleteDays by remember { mutableStateOf("") }
     var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
     var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
     var active by remember { mutableStateOf(initial?.status != "disabled") }
@@ -630,6 +633,36 @@ fun UserEditorDialog(
                                         )
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        FieldLabel(stringResource(R.string.ue_reset_strategy))
+                                        ChipSelector(
+                                            values = TemplateOptions.RESET_STRATEGIES,
+                                            labels = listOf(
+                                                stringResource(R.string.tpl_reset_no_reset),
+                                                stringResource(R.string.tpl_reset_day),
+                                                stringResource(R.string.tpl_reset_week),
+                                                stringResource(R.string.tpl_reset_month),
+                                                stringResource(R.string.tpl_reset_year)
+                                            ),
+                                            selected = resetStrategy,
+                                            onSelect = { resetStrategy = it }
+                                        )
+                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        FieldLabel(stringResource(R.string.ue_auto_delete))
+                                        UserFormTextField(
+                                            value = autoDeleteDays,
+                                            onValueChange = { autoDeleteDays = it.filter { c -> c.isDigit() } },
+                                            placeholder = stringResource(R.string.tpl_unlimited),
+                                            keyboardType = KeyboardType.Number,
+                                            leading = AppIcon.Delete
+                                        )
+                                        Text(
+                                            stringResource(R.string.ue_auto_delete_hint),
+                                            fontSize = 9.sp, color = theme.mutedColor,
+                                            modifier = Modifier.padding(start = 2.dp)
+                                        )
+                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                         FieldLabel(stringResource(R.string.ue_note))
                                         UserFormTextField(
                                             value = note,
@@ -689,6 +722,8 @@ fun UserEditorDialog(
                             val hwidValue = hwid.toIntOrNull() ?: 0
                             val values = UserEditorValues(
                                 username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
+                                resetStrategy = resetStrategy,
+                                autoDeleteDays = autoDeleteDays.toIntOrNull(),
                                 nextPlan = com.mrm.pgmanager.data.model.NextPlan(
                                     templateId = nextPlanTemplate,
                                     addRemainingTraffic = nextPlanCarry

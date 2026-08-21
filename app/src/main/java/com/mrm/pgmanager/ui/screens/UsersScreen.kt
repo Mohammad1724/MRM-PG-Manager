@@ -239,6 +239,12 @@ fun UsersScreen(
     // انتخابگرِ گروه برای عملیاتِ گروهی
     var bulkGroupPicker by remember { mutableStateOf(false) }
     var bulkGroupAdd by remember { mutableStateOf(true) }
+    // دیالوگِ عددی برای تمدید/افزودنِ حجمِ گروهی
+    var bulkAmountKind by remember { mutableStateOf<String?>(null) }   // "days" یا "data"
+    var bulkAmountText by remember { mutableStateOf("") }
+    var bulkRevokeConfirm by remember { mutableStateOf(false) }
+    // پاک‌سازیِ منقضی‌ها
+    var cleanupNames by remember { mutableStateOf<List<String>?>(null) }
     var currentSort by remember { mutableStateOf(UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(store.readViewMode()) }
     var createMenuOpen by remember { mutableStateOf(false) }
@@ -641,6 +647,13 @@ fun UsersScreen(
                                 }
                                 Box(Modifier.animateItem()) { LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
+                            if (loadingMore) {
+                                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                    }
+                                }
+                            }
                         }
                         ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
@@ -649,6 +662,13 @@ fun UsersScreen(
                                 }
                                 Box(Modifier.animateItem()) { LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
+                            if (loadingMore) {
+                                item {
+                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                    }
+                                }
+                            }
                         }
                         ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
@@ -656,6 +676,13 @@ fun UsersScreen(
                                     LaunchedEffect(index, processedUsers.size) { loadMore() }
                                 }
                                 Box(Modifier.animateItem()) { LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                            }
+                            if (loadingMore) {
+                                item {
+                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                    }
+                                }
                             }
                         }
                         }
@@ -739,6 +766,39 @@ fun UsersScreen(
                     groupFilterId = groupFilterId,
                     onGroupFilterChange = { groupFilterId = it }
                 )
+                // چند تا از چند تا — با صفحه‌بندی، دانستنش لازم است.
+                if (serverMode && totalMatches > processedUsers.size) {
+                    Text(
+                        stringResource(R.string.us_showing_count, processedUsers.size, totalMatches),
+                        fontSize = 9.5.sp, color = themeState.mutedColor,
+                        modifier = Modifier.padding(top = 6.dp, start = 2.dp)
+                    )
+                }
+                // پاک‌سازیِ منقضی‌ها: فقط وقتی فیلترِ «منقضی» فعال است پیدایش می‌شود،
+                // چون همان‌جاست که به آدم فکرِ حذفِ دسته‌جمعی می‌رسد. اول فهرست را
+                // از پنل می‌گیریم تا کاربر ببیند چه کسانی حذف می‌شوند.
+                if (currentFilter == UserFilter.EXPIRED) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm)
+                            .background(GlassRed.copy(0.10f))
+                            .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.26f)), DsRadius.Sm)
+                            .pressScale(0.98f)
+                            .clickable {
+                                scope.launch {
+                                    val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
+                                    if (names.isEmpty()) {
+                                        android.widget.Toast.makeText(context, context.getString(R.string.us_cleanup_none), android.widget.Toast.LENGTH_SHORT).show()
+                                    } else cleanupNames = names
+                                }
+                            }
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
+                        Text(stringResource(R.string.us_cleanup), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                    }
+                }
                 offlineAt?.let { cachedAt ->
                     Row(
                         Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp),
@@ -771,7 +831,10 @@ fun UsersScreen(
                             showBulkTemplateDialog = true
                         },
                         onGroupAdd = { bulkGroupAdd = true; bulkGroupPicker = true },
-                        onGroupRemove = { bulkGroupAdd = false; bulkGroupPicker = true }
+                        onGroupRemove = { bulkGroupAdd = false; bulkGroupPicker = true },
+                        onAddDays = { bulkAmountText = ""; bulkAmountKind = "days" },
+                        onAddData = { bulkAmountText = ""; bulkAmountKind = "data" },
+                        onRevokeSubs = { bulkRevokeConfirm = true }
                     )
                 }
             }
@@ -801,6 +864,79 @@ fun UsersScreen(
             },
             isLoading = quickTemplatesLoading,
             loadFailed = quickTemplatesFailed
+        )
+    }
+
+    bulkAmountKind?.let { kind ->
+        val ids = selectedUserIds.toSet()
+        val theme = LocalThemeState.current
+        Dialog(onDismissRequest = { bulkAmountKind = null }) {
+            Column(
+                Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    stringResource(if (kind == "days") R.string.us_bulk_days else R.string.us_bulk_data),
+                    fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor
+                )
+                Text(
+                    stringResource(R.string.us_bulk_group_title, ids.size) + " · " +
+                        stringResource(if (kind == "days") R.string.us_bulk_amount_days else R.string.us_bulk_amount_gb),
+                    fontSize = 11.sp, color = theme.mutedColor
+                )
+                GlassSearchBar(query = bulkAmountText, onQueryChange = { text ->
+                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن».
+                    bulkAmountText = text.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
+                })
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SecondaryButton(stringResource(R.string.us_cancel), onClick = { bulkAmountKind = null }, modifier = Modifier.weight(1f))
+                    PrimaryButton(
+                        text = stringResource(R.string.us_bulk_apply),
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val amount = bulkAmountText.toDoubleOrNull()
+                            bulkAmountKind = null
+                            if (amount == null || amount == 0.0) return@PrimaryButton
+                            selectedUserIds = emptySet()
+                            runAction {
+                                if (kind == "days") PanelApi.bulkAddDays(session, ids, amount.toInt())
+                                else PanelApi.bulkAddData(session, ids, amount)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    if (bulkRevokeConfirm) {
+        val ids = selectedUserIds.toSet()
+        ConfirmActionDialog(
+            title = stringResource(R.string.us_bulk_revoke_title, ids.size),
+            message = stringResource(R.string.us_bulk_revoke_msg),
+            onDismiss = { bulkRevokeConfirm = false },
+            onConfirm = {
+                bulkRevokeConfirm = false
+                selectedUserIds = emptySet()
+                runAction { PanelApi.bulkRevokeSubs(session, ids) }
+            }
+        )
+    }
+
+    cleanupNames?.let { names ->
+        ConfirmActionDialog(
+            title = stringResource(R.string.us_cleanup_title, names.size),
+            message = stringResource(R.string.us_cleanup_msg) + "\n\n" + names.take(12).joinToString("، ") +
+                if (names.size > 12) " …" else "",
+            onDismiss = { cleanupNames = null },
+            onConfirm = {
+                val count = names.size
+                cleanupNames = null
+                runAction(notification = null) { PanelApi.deleteCleanupCandidates(session) }
+                android.widget.Toast.makeText(context, context.getString(R.string.us_cleanup_done, count), android.widget.Toast.LENGTH_SHORT).show()
+            }
         )
     }
 
@@ -927,7 +1063,7 @@ fun UsersScreen(
             user = user,
             onDismiss = { selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan) }
+                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays) }
             },
             onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },
@@ -989,7 +1125,7 @@ fun UsersScreen(
         }
     }
     if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan) }
+        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays) }
     }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
         createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)

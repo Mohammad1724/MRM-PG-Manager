@@ -422,5 +422,9 @@ data class UserEditorValues(
      * پلنی که پس از تمام‌شدنِ این پلن خودکار جایش می‌نشیند.
      * `null` یعنی دست نزن؛ [NextPlan] با همهٔ فیلدهای خالی یعنی پاکش کن.
      */
-    val nextPlan: NextPlan? = null
+    val nextPlan: NextPlan? = null,
+    /** no_reset / day / week / month / year */
+    val resetStrategy: String = TemplateOptions.RESET_NO_RESET,
+    /** حذفِ خودکار پس از انقضا؛ null یعنی هرگز. */
+    val autoDeleteDays: Int? = null
 )

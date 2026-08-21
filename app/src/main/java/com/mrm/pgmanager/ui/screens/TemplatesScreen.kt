@@ -50,6 +50,7 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
+import com.mrm.pgmanager.ui.dialogs.ChipSelector
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -435,45 +436,7 @@ private fun TemplateRow(
  * برای ۲ تا ۵ گزینه از dropdown بهتر است: همهٔ گزینه‌ها دیده می‌شوند و
  * یک ضربه کافی است. [labels] هم‌اندازهٔ [values] است.
  */
-@Composable
-private fun ChipSelector(
-    values: List<String>,
-    labels: List<String>,
-    selected: String?,
-    onSelect: (String) -> Unit
-) {
-    val theme = LocalThemeState.current
-    // FlowRow نمی‌خواهیم (وابستگیِ آزمایشی)؛ ردیفِ قابل اسکرول کافی است.
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        values.forEachIndexed { i, v ->
-            val active = v == selected
-            Box(
-                Modifier.clip(DsRadius.Sm)
-                    .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                    .border(
-                        BorderStroke(
-                            DsBorder.Hairline,
-                            if (active) theme.accentPrimary.copy(0.45f) else theme.borderColor
-                        ),
-                        DsRadius.Sm
-                    )
-                    .clickable { onSelect(v) }
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
-            ) {
-                Text(
-                    labels.getOrElse(i) { v },
-                    fontSize = 11.sp,
-                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (active) theme.accentPrimary else theme.mutedColor,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
+
 
 /** برچسبِ کوچکِ بالای هر فیلد. */
 @Composable

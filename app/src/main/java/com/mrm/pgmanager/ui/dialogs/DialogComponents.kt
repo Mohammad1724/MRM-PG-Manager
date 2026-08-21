@@ -310,3 +310,49 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
         }
     }
 }
+
+
+/**
+ * ردیفی از چیپ‌های تک‌انتخابی — برای enumهای کوتاهِ پنل (استراتژیِ ریست،
+ * وضعیتِ اولیه…). از صفحهٔ قالب‌ها به اینجا منتقل شد چون فرمِ کاربر هم لازمش
+ * داشت و آنجا `private` بود.
+ */
+@Composable
+fun ChipSelector(
+    values: List<String>,
+    labels: List<String>,
+    selected: String?,
+    onSelect: (String) -> Unit
+) {
+    val theme = LocalThemeState.current
+    // FlowRow نمی‌خواهیم (وابستگیِ آزمایشی)؛ ردیفِ قابل اسکرول کافی است.
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        values.forEachIndexed { i, v ->
+            val active = v == selected
+            Box(
+                Modifier.clip(DsRadius.Sm)
+                    .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+                    .border(
+                        BorderStroke(
+                            DsBorder.Hairline,
+                            if (active) theme.accentPrimary.copy(0.45f) else theme.borderColor
+                        ),
+                        DsRadius.Sm
+                    )
+                    .clickable { onSelect(v) }
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    labels.getOrElse(i) { v },
+                    fontSize = 11.sp,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (active) theme.accentPrimary else theme.mutedColor,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}

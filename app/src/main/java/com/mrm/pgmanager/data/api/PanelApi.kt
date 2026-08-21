@@ -460,22 +460,27 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
         nextPlanJson(nextPlan)?.let { body.put("next_plan", it) }
+        resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
+        autoDeleteDays?.let { body.put("auto_delete_in_days", it) }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
         // null یعنی «دست نزن»؛ قالبِ خالی یعنی «پاکش کن».
         if (nextPlan != null) body.put("next_plan", nextPlanJson(nextPlan) ?: JSONObject.NULL)
+        resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
+        // null یعنی «دست نزن»، عددِ صفر یعنی «حذفِ خودکار را بردار».
+        autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
         executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
@@ -965,6 +970,70 @@ object PanelApi {
     suspend fun bulkEnableUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/enable").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    /**
+     * افزودن/کاستنِ زمان برای چند کاربر — `POST /api/users/bulk/expire`.
+     * `amount` بر حسب **ثانیه** است؛ منفی یعنی کم کن.
+     *
+     * توجه: این اندپوینت برخلافِ بقیهٔ bulkها کلیدش `users` است نه `ids`،
+     * و اگر خالی بماند پنل روی *همهٔ* کاربران اعمالش می‌کند — پس خالی نمی‌فرستیم.
+     */
+    suspend fun bulkAddDays(session: Session, userIds: Set<Long>, days: Int) = withContext(Dispatchers.IO) {
+        if (userIds.isEmpty() || days == 0) return@withContext
+        val body = JSONObject().apply {
+            put("amount", days.toLong() * 86_400L)
+            put("users", org.json.JSONArray(userIds))
+        }
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/users/bulk/expire")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** افزودن/کاستنِ حجم برای چند کاربر — `POST /api/users/bulk/data_limit` (بایت). */
+    suspend fun bulkAddData(session: Session, userIds: Set<Long>, gb: Double) = withContext(Dispatchers.IO) {
+        if (userIds.isEmpty() || gb == 0.0) return@withContext
+        val body = JSONObject().apply {
+            put("amount", (gb * 1_073_741_824.0).toLong())
+            put("users", org.json.JSONArray(userIds))
+        }
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/users/bulk/data_limit")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** باطل‌کردنِ لینکِ اشتراکِ چند کاربر — `POST /api/users/bulk/revoke_sub`. */
+    suspend fun bulkRevokeSubs(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
+        if (userIds.isEmpty()) return@withContext
+        val body = JSONObject().apply { put("ids", org.json.JSONArray(userIds)) }
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/users/bulk/revoke_sub")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+    }
+
+    /**
+     * کاربرانی که هدفِ پاک‌سازی‌اند — `GET /api/users/expired?target=…`.
+     * `target` یکی از expired / limited / on_hold / disabled. پاسخ آرایه‌ای از
+     * نام‌های کاربری است، پس می‌شود قبل از حذف نشانشان داد.
+     */
+    suspend fun cleanupCandidates(session: Session, target: String = "expired"): List<String> =
+        withContext(Dispatchers.IO) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").get().build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("Expired list failed: ${response.code}")
+                val arr = org.json.JSONArray(response.body?.string() ?: "[]")
+                List(arr.length()) { i -> arr.optString(i) }
+            }
+        }
+
+    /** حذفِ همان فهرست — `DELETE /api/users/expired?target=…`. */
+    suspend fun deleteCleanupCandidates(session: Session, target: String = "expired") = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").delete().build()
+        )
     }
 
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
