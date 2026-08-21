@@ -243,7 +243,18 @@ internal val CompactLabelStyle = TextStyle(
 )
 
 @Composable
-internal fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (UserFilter) -> Unit, currentSort: UserSort, onSortChange: (UserSort) -> Unit, viewMode: ViewMode, onViewModeChange: (ViewMode) -> Unit, debtorCount: Int = 0) {
+internal fun FilterAndControlBar(
+    currentFilter: UserFilter,
+    onFilterChange: (UserFilter) -> Unit,
+    currentSort: UserSort,
+    onSortChange: (UserSort) -> Unit,
+    viewMode: ViewMode,
+    onViewModeChange: (ViewMode) -> Unit,
+    debtorCount: Int = 0,
+    groups: List<com.mrm.pgmanager.data.model.Group> = emptyList(),
+    groupFilterId: Int? = null,
+    onGroupFilterChange: (Int?) -> Unit = {}
+) {
     val theme = LocalThemeState.current
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
@@ -257,7 +268,7 @@ internal fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (Use
                     // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(stringResource(R.string.filter), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(when(currentFilter){ UserFilter.ALL->stringResource(R.string.all); UserFilter.ACTIVE->stringResource(R.string.active); UserFilter.NEAR_LIMIT->stringResource(R.string.near_limit); UserFilter.EXPIRED->stringResource(R.string.expired); UserFilter.DISABLED->stringResource(R.string.disabled); UserFilter.DEBTOR->stringResource(R.string.debtor)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(filterLabel(currentFilter), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
@@ -277,6 +288,44 @@ internal fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (Use
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
             }
         }
+        // فیلترِ گروه — پنل خودش اعمالش می‌کند (`?group=`)
+        if (groups.isNotEmpty()) {
+            var groupMenu by remember { mutableStateOf(false) }
+            val selectedName = groups.firstOrNull { it.id == groupFilterId }?.name
+            Box {
+                Row(
+                    Modifier.height(38.dp).clip(DsRadius.Sm)
+                        .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+                        .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
+                        .pressScale(0.97f)
+                        .clickable { groupMenu = true }
+                        .padding(horizontal = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    RoundedAppIcon(AppIcon.Folder, tint = if (groupFilterId != null) theme.accentPrimary else theme.mutedColor, size = 13.dp)
+                    Text(
+                        selectedName ?: stringResource(R.string.us_group_filter),
+                        fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
+                        color = if (groupFilterId != null) theme.accentPrimary else theme.mutedColor,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 84.dp)
+                    )
+                }
+                androidx.compose.material3.DropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(stringResource(R.string.us_group_all), fontSize = 12.sp) },
+                        onClick = { onGroupFilterChange(null); groupMenu = false }
+                    )
+                    groups.forEach { g ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(g.name, fontSize = 12.sp) },
+                            onClick = { onGroupFilterChange(g.id); groupMenu = false }
+                        )
+                    }
+                }
+            }
+        }
         // View mode compact
         Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
@@ -288,7 +337,16 @@ internal fun FilterAndControlBar(currentFilter: UserFilter, onFilterChange: (Use
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                listOf(stringResource(R.string.all) to UserFilter.ALL, stringResource(R.string.active) to UserFilter.ACTIVE, stringResource(R.string.near_limit) to UserFilter.NEAR_LIMIT, stringResource(R.string.expired) to UserFilter.EXPIRED, stringResource(R.string.disabled) to UserFilter.DISABLED, (if(debtorCount>0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR).forEach { (label, f) ->
+                listOf(
+                    stringResource(R.string.all) to UserFilter.ALL,
+                    stringResource(R.string.active) to UserFilter.ACTIVE,
+                    stringResource(R.string.expired) to UserFilter.EXPIRED,
+                    stringResource(R.string.limited) to UserFilter.LIMITED,
+                    stringResource(R.string.on_hold) to UserFilter.ON_HOLD,
+                    stringResource(R.string.disabled) to UserFilter.DISABLED,
+                    stringResource(R.string.near_limit) to UserFilter.NEAR_LIMIT,
+                    (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
+                ).forEach { (label, f) ->
                     val sel = currentFilter == f
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
@@ -345,4 +403,17 @@ internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit)
     Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) theme.accentPrimary else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         RoundedAppIcon(icon, tint = if (selected) Color(0xFF422006) else theme.mutedColor, size = 18.dp)
     }
+}
+
+/** برچسبِ فارسی/انگلیسیِ هر فیلتر — یک‌جا تا با اضافه‌شدنِ فیلتر جا نماند. */
+@Composable
+private fun filterLabel(f: UserFilter): String = when (f) {
+    UserFilter.ALL -> stringResource(R.string.all)
+    UserFilter.ACTIVE -> stringResource(R.string.active)
+    UserFilter.EXPIRED -> stringResource(R.string.expired)
+    UserFilter.LIMITED -> stringResource(R.string.limited)
+    UserFilter.ON_HOLD -> stringResource(R.string.on_hold)
+    UserFilter.DISABLED -> stringResource(R.string.disabled)
+    UserFilter.NEAR_LIMIT -> stringResource(R.string.near_limit)
+    UserFilter.DEBTOR -> stringResource(R.string.debtor)
 }

@@ -267,8 +267,51 @@ object TemplateValidation {
         ?: validateExpire(expireSeconds)
 }
 
-enum class UserFilter { ALL, ACTIVE, NEAR_LIMIT, EXPIRED, DISABLED, DEBTOR }
-enum class UserSort { NAME, USAGE, EXPIRY, CREATED }
+/**
+ * فیلترهای فهرستِ کاربران.
+ *
+ * پنج‌تای اول را **پنل** فیلتر می‌کند (`status` روی `/api/users`)، پس فقط همان
+ * کاربرها از شبکه می‌آیند. دوتای آخر مفهومِ محلی‌اند: «نزدیک به سقف» با درصدِ
+ * دلخواهِ کاربر حساب می‌شود و «بدهکار» اصلاً در پنل وجود ندارد؛ برای آن دو،
+ * فهرستِ کامل گرفته و در گوشی فیلتر می‌شود.
+ */
+enum class UserFilter(val panelStatus: String?) {
+    ALL(null),
+    ACTIVE("active"),
+    EXPIRED("expired"),
+    LIMITED("limited"),
+    ON_HOLD("on_hold"),
+    DISABLED("disabled"),
+    NEAR_LIMIT(null),
+    DEBTOR(null);
+
+    /** آیا پنل می‌تواند این فیلتر را خودش اعمال کند؟ */
+    val serverSide: Boolean get() = this == ALL || panelStatus != null
+}
+
+/**
+ * پارامترهای جست‌وجوی سمتِ سرور — `GET /api/users`.
+ * نام‌ها دقیقاً مطابقِ `UserListQuery` پنل‌اند.
+ */
+data class UserQuery(
+    val search: String? = null,
+    val status: String? = null,
+    val groupId: Int? = null,
+    /** مقدارهای مجاز پنل: `username`, `used_traffic`, `expire`, `created_at`… با `-` برای نزولی. */
+    val sort: String? = null,
+    val offset: Int = 0,
+    val limit: Int = 60
+)
+
+/** یک صفحه از فهرستِ کاربران به‌همراه تعدادِ کلِ نتیجه. */
+data class UsersPage(val users: List<PanelUser>, val total: Int)
+/** ترتیبِ فهرست — به کلیدهای `sort` پنل نگاشت می‌شود. */
+enum class UserSort(val panelSort: String) {
+    NAME("username"),
+    USAGE("-used_traffic"),
+    EXPIRY("expire"),
+    CREATED("-created_at")
+}
 enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
 
 data class DebtorInfo(

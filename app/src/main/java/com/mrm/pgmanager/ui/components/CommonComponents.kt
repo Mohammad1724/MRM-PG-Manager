@@ -553,7 +553,9 @@ fun BulkActionsBar(
     onEnable: () -> Unit,
     onApplyTemplate: () -> Unit,
     onSelectAll: () -> Unit = {},
-    onExport: () -> Unit = {}
+    onExport: () -> Unit = {},
+    onGroupAdd: () -> Unit = {},
+    onGroupRemove: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
@@ -613,6 +615,16 @@ fun BulkActionsBar(
                     DropdownMenuItem(
                         text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
                         onClick = { onApplyTemplate(); expanded = false }
+                    )
+                    // افزودن/برداشتنِ گروه برای چند کاربر یک‌جا — قبلاً باید
+                    // تک‌تکِ کاربرها را ویرایش می‌کردی.
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_group_add), color = theme.inkColor) } },
+                        onClick = { onGroupAdd(); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Folder, tint = theme.mutedColor, size = 14.dp); Text(stringResource(R.string.us_bulk_group_remove), color = theme.inkColor) } },
+                        onClick = { onGroupRemove(); expanded = false }
                     )
                     DropdownMenuItem(
                         text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_export) else "Export", color = theme.inkColor) } },

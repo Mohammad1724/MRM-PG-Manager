@@ -8,6 +8,8 @@ import com.mrm.pgmanager.data.model.GroupDetail
 import com.mrm.pgmanager.data.model.PanelAdmin
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.PanelUser
+import com.mrm.pgmanager.data.model.UserQuery
+import com.mrm.pgmanager.data.model.UsersPage
 import com.mrm.pgmanager.data.model.UserTemplateItem
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.StatsRange
@@ -272,6 +274,81 @@ object PanelApi {
             }
         }
         all
+    }
+
+    /**
+     * یک صفحه از فهرستِ کاربران با فیلترِ سمتِ سرور — `GET /api/users`.
+     *
+     * چرا مهم است: تا امروز اپ **همهٔ** کاربران را می‌گرفت و بعد در گوشی
+     * جست‌وجو/فیلتر/مرتب می‌کرد. روی پنلی با چند هزار کاربر یعنی چند مگابایت
+     * دانلود در هر رفرش و کندیِ محسوس. پنل خودش `search`, `status`, `group`,
+     * `sort` و صفحه‌بندی دارد؛ حالا از همان‌ها استفاده می‌شود و فقط همان چند ده
+     * کاربری که روی صفحه دیده می‌شوند از شبکه می‌آیند.
+     *
+     * نام‌ها دقیقاً مطابق `UserListQuery` پنل‌اند: `group` نامِ مستعارِ
+     * `group_ids` است و `sort` با پیشوندِ `-` نزولی می‌شود.
+     */
+    suspend fun usersPage(session: Session, query: UserQuery): UsersPage = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/users")
+            append("?offset="); append(query.offset)
+            append("&limit="); append(query.limit)
+            query.search?.takeIf { it.isNotBlank() }?.let {
+                append("&search="); append(URLEncoder.encode(it, "UTF-8"))
+            }
+            query.status?.let { append("&status="); append(it) }
+            query.groupId?.let { append("&group="); append(it) }
+            query.sort?.let { append("&sort="); append(URLEncoder.encode(it, "UTF-8")) }
+        }
+        val request = requestBuilder(session, url).get().build()
+        val page = client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Request failed: ${response.code}")
+            val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
+            val arr = obj.getJSONArray("users")
+            UsersPage(List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }, obj.optInt("total", arr.length()))
+        }
+        attachGroupNames(session, page.users)
+        page
+    }
+
+    /**
+     * پاسخِ فهرستِ کاربران `group_names` ندارد (پنل عمداً حذفش می‌کند)، پس نگاشتِ
+     * id→name را از یک واکشیِ سبک می‌گیریم و روی کاربرها می‌نشانیم.
+     */
+    private suspend fun attachGroupNames(session: Session, users: List<PanelUser>) {
+        if (users.none { it.groupNames.isEmpty() && it.groupIds.isNotEmpty() }) return
+        val groupMap = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
+        if (groupMap.isEmpty()) return
+        users.forEach { u ->
+            if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
+                u.groupNames = u.groupIds.mapNotNull { groupMap[it] }
+            }
+        }
+    }
+
+    /**
+     * افزودن یا برداشتنِ گروه برای چند کاربر یک‌جا —
+     * `POST /api/groups/bulk/add` و `POST /api/groups/bulk/remove`.
+     *
+     * هشدارِ مهم: اگر `users` خالی بماند پنل عملیات را روی **همهٔ کاربران**
+     * اجرا می‌کند؛ برای همین اینجا فهرستِ خالی اصلاً درخواست نمی‌فرستد.
+     */
+    suspend fun bulkGroupMembership(
+        session: Session,
+        groupIds: Set<Int>,
+        userIds: Set<Long>,
+        add: Boolean
+    ) = withContext(Dispatchers.IO) {
+        if (groupIds.isEmpty() || userIds.isEmpty()) return@withContext
+        val body = JSONObject().apply {
+            put("group_ids", org.json.JSONArray(groupIds.toList()))
+            put("users", org.json.JSONArray(userIds.toList()))
+        }
+        val path = if (add) "add" else "remove"
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/groups/bulk/$path")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
     }
 
     /** واکشی تکی یک کاربر (با subscription_url) — برای دریافت لینک اشتراک فقط در صورت نیاز. */

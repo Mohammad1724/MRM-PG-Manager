@@ -19,9 +19,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -224,6 +226,19 @@ fun UsersScreen(
     var lastUserStates by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
 
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
+    // فیلترِ گروه — پنل خودش با پارامترِ `group` اعمالش می‌کند.
+    var groupFilterId by remember { mutableStateOf<Int?>(null) }
+    var groupOptions by remember(session) { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
+    // صفحه‌بندیِ سمتِ سرور
+    var totalMatches by remember { mutableStateOf(0) }
+    var loadingMore by remember { mutableStateOf(false) }
+    var endReached by remember { mutableStateOf(false) }
+    // شمارنده‌های سربرگ دیگر از روی فهرستِ دانلودشده حساب نمی‌شوند (چون حالا فقط
+    // یک صفحه دانلود می‌شود)، بلکه از خودِ پنل می‌آیند.
+    var counts by remember(session) { mutableStateOf<com.mrm.pgmanager.data.model.SystemStats?>(null) }
+    // انتخابگرِ گروه برای عملیاتِ گروهی
+    var bulkGroupPicker by remember { mutableStateOf(false) }
+    var bulkGroupAdd by remember { mutableStateOf(true) }
     var currentSort by remember { mutableStateOf(UserSort.CREATED) }
     var viewMode by remember { mutableStateOf(store.readViewMode()) }
     var createMenuOpen by remember { mutableStateOf(false) }
@@ -275,7 +290,65 @@ fun UsersScreen(
     // با اسکرول به پایین دکمهٔ «کاربر جدید» پنهان و با اسکرول به بالا دوباره ظاهر می‌شود
     val fabVisible = remember { mutableStateOf(true) }
 
-    fun load(resetHeader: Boolean = true, silent: Boolean = false) {
+    /** آیا فیلترِ فعلی را پنل می‌تواند اعمال کند؟ (بدهکار و نزدیک‌به‌سقف محلی‌اند) */
+    val serverMode = currentFilter.serverSide
+
+    fun buildQuery(offset: Int) = com.mrm.pgmanager.data.model.UserQuery(
+        search = query.trim().takeIf { it.isNotBlank() },
+        status = currentFilter.panelStatus,
+        groupId = groupFilterId,
+        sort = currentSort.panelSort,
+        offset = offset,
+        limit = 60
+    )
+
+    /**
+     * بارگذاریِ صفحه‌ایِ سمتِ سرور — حالتِ عادی.
+     * فقط همان چند ده کاربری که دیده می‌شوند از شبکه می‌آیند.
+     */
+    fun loadPage(silent: Boolean = false, resetHeader: Boolean = true) {
+        scope.launch {
+            if (!silent) loading = true
+            error = null
+            endReached = false
+            runCatching { PanelApi.usersPage(session, buildQuery(0)) }.onSuccess { page ->
+                users = page.users
+                totalMatches = page.total
+                endReached = page.users.isEmpty() || page.users.size >= page.total
+                offlineAt = null
+                if (resetHeader) scrollOffset.value = 0f
+            }.onFailure {
+                if (it.message?.contains("401") == true) {
+                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
+                    onLogout()
+                } else if (!silent) error = it.message
+            }
+            // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
+            runCatching { PanelApi.systemStats(session) }.onSuccess { counts = it; onlineCount = it.onlineUsers }
+            loading = false
+        }
+    }
+
+    /** صفحهٔ بعدی — با نزدیک‌شدن به تهِ فهرست صدا زده می‌شود. */
+    fun loadMore() {
+        if (!serverMode || loadingMore || endReached || loading) return
+        loadingMore = true
+        scope.launch {
+            runCatching { PanelApi.usersPage(session, buildQuery(users.size)) }.onSuccess { page ->
+                val seen = users.map { it.id }.toSet()
+                users = users + page.users.filterNot { seen.contains(it.id) }
+                totalMatches = page.total
+                endReached = page.users.isEmpty() || users.size >= page.total
+            }.onFailure { endReached = true }
+            loadingMore = false
+        }
+    }
+
+    /**
+     * بارگذاریِ کاملِ فهرست — فقط برای فیلترهایی که پنل نمی‌شناسد (بدهکار،
+     * نزدیک‌به‌سقف) و برای کشِ آفلاین و تشخیصِ تغییرِ وضعیتِ کاربران.
+     */
+    fun loadAll(resetHeader: Boolean = true, silent: Boolean = false) {
         scope.launch {
             if (!silent) loading = true
             error = null
@@ -328,6 +401,13 @@ fun UsersScreen(
             loading = false
         }
     }
+
+    /** مسیرِ درست را خودش انتخاب می‌کند. */
+    fun load(resetHeader: Boolean = true, silent: Boolean = false) {
+        if (serverMode) loadPage(silent = silent, resetHeader = resetHeader)
+        else loadAll(resetHeader = resetHeader, silent = silent)
+    }
+
     fun runAction(notification: Pair<String, String>? = null, action: suspend () -> Unit) {
         scope.launch {
             runCatching { action() }.onFailure {
@@ -363,10 +443,22 @@ fun UsersScreen(
         exportPending = format to chosen
         if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
+    var firstLoad by remember(session) { mutableStateOf(true) }
+    LaunchedEffect(session, query, currentFilter, currentSort, groupFilterId) {
+        if (firstLoad) {
+            firstLoad = false
+            // فقط وقتی داده کهنه است سراغِ پنل می‌رویم؛ وگرنه سوایپ بینِ تب‌ها هر
+            // بار یک درخواست می‌شد و همان‌جا انیمیشن می‌پرید.
+            if (!PanelCache.isFresh(usersKey)) load(silent = users.isNotEmpty())
+            return@LaunchedEffect
+        }
+        // دیبانس: با هر حرفی که تایپ می‌شود درخواست نفرست.
+        kotlinx.coroutines.delay(350)
+        load(resetHeader = false, silent = users.isNotEmpty())
+    }
+    // فهرستِ گروه‌ها برای فیلتر — یک‌بار و سبک.
     LaunchedEffect(session) {
-        // فقط وقتی داده کهنه است سراغِ پنل می‌رویم؛ وگرنه سوایپ بینِ تب‌ها هر بار
-        // یک درخواستِ کامل می‌شد و همان‌جا انیمیشن می‌پرید.
-        if (!PanelCache.isFresh(usersKey)) load(silent = users.isNotEmpty())
+        runCatching { PanelApi.groups(session) }.onSuccess { groupOptions = it }
     }
     LaunchedEffect(deepLinkUsername, users) {
         val name = deepLinkUsername ?: return@LaunchedEffect
@@ -404,19 +496,19 @@ fun UsersScreen(
         }
     }
 
-    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent, debtorByUsername) {
+    // در حالتِ سمتِ سرور، پنل قبلاً فیلتر و مرتب کرده؛ دوباره‌کاری در گوشی فقط
+    // نتیجه را خراب می‌کند (مثلاً صفحهٔ دوم را با معیارِ دیگری مرتب می‌کند).
+    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent, debtorByUsername, serverMode) {
+        if (serverMode) return@remember users
         val q = query.trim()
         var list = if (q.isEmpty()) users else users.filter {
             it.username.contains(q, ignoreCase = true) ||
             (it.note ?: "").contains(q, ignoreCase = true)
         }
         list = when (currentFilter) {
-            UserFilter.ALL -> list
-            UserFilter.ACTIVE -> list.filter { it.status == "active" }
             UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
-            UserFilter.EXPIRED -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= 1.0 || it.status == "expired" || it.status == "limited" }
-            UserFilter.DISABLED -> list.filter { it.status == "disabled" }
             UserFilter.DEBTOR -> list.filter { debtorByUsername.containsKey(it.username) }
+            else -> currentFilter.panelStatus?.let { st -> list.filter { it.status == st } } ?: list
         }
         when (currentSort) {
             UserSort.NAME -> list.sortedBy { it.username.lowercase() }
@@ -543,17 +635,26 @@ fun UsersScreen(
                     else -> androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
                         when (mode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
-                            items(processedUsers, key = { it.id }) { user ->
+                            itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
+                                if (index >= processedUsers.lastIndex - 4) {
+                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                }
                                 Box(Modifier.animateItem()) { LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                         }
                         ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
-                            items(processedUsers, key = { it.id }) { user ->
+                            itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
+                                if (index >= processedUsers.lastIndex - 4) {
+                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                }
                                 Box(Modifier.animateItem()) { LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                         }
                         ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
-                            items(processedUsers, key = { it.id }) { user ->
+                            itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
+                                if (index >= processedUsers.lastIndex - 4) {
+                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                }
                                 Box(Modifier.animateItem()) { LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                         }
@@ -613,13 +714,31 @@ fun UsersScreen(
                         // زیرِ سربرگ باقی می‌ماند.
                         .padding(top = 10.dp)
                 ) {
-                    StatsCardsRow(totalUsers = users.size, activeUsers = users.count { it.status == "active" }, onlineUsers = onlineCount, debtorCount = debtorCount)
+                            StatsCardsRow(
+                            // از خودِ پنل، نه از روی صفحهٔ دانلودشده — وگرنه با
+                            // صفحه‌بندی، «۷۳ کاربر» می‌شد «۶۰ کاربر».
+                            totalUsers = counts?.totalUsers ?: users.size,
+                            activeUsers = counts?.activeUsers ?: users.count { it.status == "active" },
+                            onlineUsers = counts?.onlineUsers ?: onlineCount,
+                            debtorCount = debtorCount
+                        )
                 }
 
                 Spacer(Modifier.height(6.dp))
                 GlassSearchBar(query = query, onQueryChange = { query = it })
                 Spacer(Modifier.height(8.dp))
-                FilterAndControlBar(currentFilter = currentFilter, onFilterChange = { currentFilter = it }, currentSort = currentSort, onSortChange = { currentSort = it }, viewMode = viewMode, onViewModeChange = { viewMode = it; store.saveViewMode(it) }, debtorCount = debtorCount)
+                FilterAndControlBar(
+                    currentFilter = currentFilter,
+                    onFilterChange = { currentFilter = it },
+                    currentSort = currentSort,
+                    onSortChange = { currentSort = it },
+                    viewMode = viewMode,
+                    onViewModeChange = { viewMode = it; store.saveViewMode(it) },
+                    debtorCount = debtorCount,
+                    groups = groupOptions,
+                    groupFilterId = groupFilterId,
+                    onGroupFilterChange = { groupFilterId = it }
+                )
                 offlineAt?.let { cachedAt ->
                     Row(
                         Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp),
@@ -650,7 +769,9 @@ fun UsersScreen(
                         onEnable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size)) { PanelApi.bulkEnableUsers(session, ids) } }) },
                         onApplyTemplate = {
                             showBulkTemplateDialog = true
-                        }
+                        },
+                        onGroupAdd = { bulkGroupAdd = true; bulkGroupPicker = true },
+                        onGroupRemove = { bulkGroupAdd = false; bulkGroupPicker = true }
                     )
                 }
             }
@@ -681,6 +802,63 @@ fun UsersScreen(
             isLoading = quickTemplatesLoading,
             loadFailed = quickTemplatesFailed
         )
+    }
+
+    if (bulkGroupPicker) {
+        val ids = selectedUserIds.toSet()
+        val theme = LocalThemeState.current
+        Dialog(onDismissRequest = { bulkGroupPicker = false }) {
+            Column(
+                Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    stringResource(if (bulkGroupAdd) R.string.us_bulk_group_add else R.string.us_bulk_group_remove),
+                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                )
+                Text(
+                    stringResource(R.string.us_bulk_group_title, ids.size) + " · " + stringResource(R.string.us_bulk_group_pick),
+                    fontSize = 11.sp, color = theme.mutedColor
+                )
+                if (groupOptions.isEmpty()) {
+                    Text(stringResource(R.string.ue_no_groups), fontSize = 11.sp, color = theme.mutedColor)
+                }
+                groupOptions.forEach { g ->
+                    Box(
+                        Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(DsRadius.Sm)
+                            .background(theme.searchBgColor)
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+                            .pressScale(0.98f)
+                            .clickable {
+                                bulkGroupPicker = false
+                                selectedUserIds = emptySet()
+                                val add = bulkGroupAdd
+                                runAction(
+                                    notification = null
+                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(
+                                        if (add) R.string.us_bulk_group_added else R.string.us_bulk_group_removed,
+                                        ids.size
+                                    ),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp)
+                            Text(g.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
+                        }
+                    }
+                }
+                SecondaryButton(stringResource(R.string.us_cancel), onClick = { bulkGroupPicker = false }, modifier = Modifier.fillMaxWidth())
+            }
+        }
     }
 
     if (showBulkTemplateDialog) {

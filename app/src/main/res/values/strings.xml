@@ -868,4 +868,15 @@
     <string name="ud_revoke_title">Issue a new subscription link?</string>
     <string name="ud_revoke_msg">The current link stops working immediately. Anyone using it — including the user — has to receive the new one.</string>
     <string name="ud_revoked">A new subscription link was issued</string>
+    <string name="on_hold">On hold</string>
+    <string name="us_group_filter">Group</string>
+    <string name="us_group_all">All groups</string>
+    <string name="us_bulk_group_add">Add to group</string>
+    <string name="us_bulk_group_remove">Remove from group</string>
+    <string name="us_bulk_group_title">%1$d users</string>
+    <string name="us_bulk_group_pick">Pick a group</string>
+    <string name="us_bulk_group_added">Group added to %1$d users</string>
+    <string name="us_bulk_group_removed">Group removed from %1$d users</string>
+    <string name="us_loading_more">Loading more…</string>
+    <string name="us_showing_count">%1$d of %2$d</string>
 </resources>

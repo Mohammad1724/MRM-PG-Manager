@@ -868,4 +868,15 @@
     <string name="ud_revoke_title">لینک اشتراک تازه صادر شود؟</string>
     <string name="ud_revoke_msg">لینک فعلی همان لحظه از کار می‌افتد. هرکسی که از آن استفاده می‌کند — از جمله خود کاربر — باید لینک تازه را بگیرد.</string>
     <string name="ud_revoked">لینک اشتراک تازه صادر شد</string>
+    <string name="on_hold">در انتظار</string>
+    <string name="us_group_filter">گروه</string>
+    <string name="us_group_all">همهٔ گروه‌ها</string>
+    <string name="us_bulk_group_add">افزودن به گروه</string>
+    <string name="us_bulk_group_remove">برداشتن از گروه</string>
+    <string name="us_bulk_group_title">%1$d کاربر</string>
+    <string name="us_bulk_group_pick">یک گروه انتخاب کن</string>
+    <string name="us_bulk_group_added">گروه به %1$d کاربر اضافه شد</string>
+    <string name="us_bulk_group_removed">گروه از %1$d کاربر برداشته شد</string>
+    <string name="us_loading_more">در حال گرفتن ادامه…</string>
+    <string name="us_showing_count">%1$d از %2$d</string>
 </resources>
