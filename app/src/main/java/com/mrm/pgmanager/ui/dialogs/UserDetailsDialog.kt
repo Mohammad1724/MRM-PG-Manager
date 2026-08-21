@@ -499,15 +499,17 @@ fun UserDetailsDialog(
                     // ── ۴) عملیات: ویرایش پررنگ‌ترین است، بقیه هم‌وزن در یک شبکه
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(stringResource(R.string.ud_manage))
-                        // سه کاشی در هر ردیف به‌جای دو: یک ردیفِ کامل کمتر، بدونِ
-                        // اینکه دکمه‌ای حذف شود.
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        // سه ردیفِ دوتایی. یک‌بار سه‌تایی شد تا صفحه کوتاه‌تر شود،
+                        // ولی کاشیِ باریک برچسبش را می‌خورد و خوانا نبود؛ ارتفاعی
+                        // که آنجا صرفه‌جویی می‌شد، از جای دیگر (حذفِ نمودار و
+                        // جمع‌شدنِ جزئیات) درآمد.
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActionTile(
                                 icon = AppIcon.Edit,
                                 label = stringResource(R.string.ud_edit),
                                 accent = theme.accentPrimary,
                                 filled = true,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(2f)
                             ) { editOpen = true }
                             ActionTile(
                                 icon = AppIcon.Template,
@@ -515,20 +517,22 @@ fun UserDetailsDialog(
                                 accent = theme.accentPrimary,
                                 modifier = Modifier.weight(1f)
                             ) { templatePickerOpen = true }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActionTile(
                                 icon = AppIcon.Reset,
                                 label = stringResource(R.string.ud_reset_data),
                                 accent = DsSemantic.Violet,
                                 modifier = Modifier.weight(1f)
                             ) { usageConfirm = true }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             ActionTile(
                                 icon = AppIcon.Calendar,
                                 label = stringResource(R.string.ud_reset_time),
                                 accent = DsSemantic.Violet,
                                 modifier = Modifier.weight(1f)
                             ) { expiryConfirm = true }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActionTile(
                                 icon = if (isActive) AppIcon.StatusDisabled else AppIcon.CheckCircle,
                                 label = stringResource(if (isActive) R.string.ud_disable else R.string.ud_enable),
