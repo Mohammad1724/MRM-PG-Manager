@@ -107,7 +107,7 @@ private fun ActionTile(
     Column(
         // ارتفاعِ کف به‌جای ارتفاعِ ثابت: با فونتِ بزرگِ سیستم، برچسب بریده نشود.
         modifier
-            .heightIn(min = 50.dp)
+            .heightIn(min = 46.dp)
             .clip(DsRadius.Lg)
             .background(bg)
             .border(
@@ -221,6 +221,7 @@ fun UserDetailsDialog(
     var templatesFailed by remember { mutableStateOf(false) }
     var billingOpen by remember { mutableStateOf(false) }
     var revokeConfirm by remember { mutableStateOf(false) }
+    var moreOpen by remember { mutableStateOf(false) }
     var devicesResetConfirm by remember { mutableStateOf(false) }
     var nextPlanConfirm by remember { mutableStateOf(false) }
     // دستگاه‌های ثبت‌شده (HWID). اپ تا حالا فقط سقفِ تعداد را می‌گرفت و خودِ
@@ -231,17 +232,6 @@ fun UserDetailsDialog(
         scope.launch { runCatching { PanelApi.userDevices(session, currentUser.id) }.onSuccess { devices = it } }
     }
     LaunchedEffect(user.id, session) { reloadDevices() }
-    // نمودارِ مصرفِ خودِ کاربر. تابعِ واکشی از قبل در PanelApi بود ولی هیچ‌جا
-    // صدا زده نمی‌شد؛ حالا وصل شده.
-    var usagePoints by remember(user.username) { mutableStateOf<List<com.mrm.pgmanager.data.model.TrafficPoint>>(emptyList()) }
-    var usageLoading by remember(user.username) { mutableStateOf(session != null) }
-    LaunchedEffect(user.username, session) {
-        if (session == null) return@LaunchedEffect
-        usageLoading = true
-        runCatching { PanelApi.userTrafficUsage(session, currentUser.username) }
-            .onSuccess { usagePoints = it }
-        usageLoading = false
-    }
 
     val copiedMsg = stringResource(R.string.ud_copied)
     val closeLabel = stringResource(R.string.ud_close)
@@ -251,10 +241,9 @@ fun UserDetailsDialog(
     val createdLabel = stringResource(R.string.ud_created_at)
     val lifetimeLabel = stringResource(R.string.ud_lifetime)
     val ownerLabel = stringResource(R.string.ud_owner)
-    val usageChartLabel = stringResource(R.string.ud_usage_chart)
-    val usageEmptyLabel = stringResource(R.string.ud_usage_empty)
     val revokedMsg = stringResource(R.string.ud_revoked)
     val devicesLabel = stringResource(R.string.ud_devices)
+    val moreLabel = stringResource(R.string.ud_more)
     val nextPlanLabel = stringResource(R.string.ud_next_plan)
 
     // دریافتِ لینکِ اشتراک به‌صورت lazy (بعضی پاسخ‌های پنل subUrl ندارند).
@@ -395,17 +384,17 @@ fun UserDetailsDialog(
                     Modifier
                         .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 14.dp)
-                        .padding(top = 10.dp, bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 12.dp)
+                        .padding(top = 8.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // ── ۲) کارتِ قهرمان: مصرف
                     Column(
                         Modifier.fillMaxWidth().clip(DsRadius.Xl)
                             .background(theme.cardSurfaceColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                            .padding(11.dp),
-                        verticalArrangement = Arrangement.spacedBy(9.dp)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(7.dp)
                     ) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -471,6 +460,127 @@ fun UserDetailsDialog(
                         }
                     }
 
+                    // ── ۳) لینک اشتراک
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SectionLabel(stringResource(R.string.ud_subscription))
+                        Row(
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                                .background(theme.searchBgColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 15.dp)
+                            MrmText(
+                                currentUser.subUrl.ifBlank { "—" },
+                                fontSize = 10.sp,
+                                color = theme.mutedColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                isTechnical = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            SubChip(AppIcon.Copy, stringResource(R.string.ud_copy)) {
+                                ensureSub { url ->
+                                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
+                                    android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            SubChip(AppIcon.Qr, stringResource(R.string.ud_qr)) { ensureSub { qrOpen = true } }
+                            // باطل‌کردنِ لینک: تنها واکنشِ درست به لو رفتنِ لینک.
+                            if (session != null) {
+                                SubChip(AppIcon.Reset, stringResource(R.string.ud_revoke)) { revokeConfirm = true }
+                            }
+                        }
+                    }
+
+                    // ── ۴) عملیات: ویرایش پررنگ‌ترین است، بقیه هم‌وزن در یک شبکه
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SectionLabel(stringResource(R.string.ud_manage))
+                        // سه کاشی در هر ردیف به‌جای دو: یک ردیفِ کامل کمتر، بدونِ
+                        // اینکه دکمه‌ای حذف شود.
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            ActionTile(
+                                icon = AppIcon.Edit,
+                                label = stringResource(R.string.ud_edit),
+                                accent = theme.accentPrimary,
+                                filled = true,
+                                modifier = Modifier.weight(1f)
+                            ) { editOpen = true }
+                            ActionTile(
+                                icon = AppIcon.Template,
+                                label = stringResource(R.string.ud_template),
+                                accent = theme.accentPrimary,
+                                modifier = Modifier.weight(1f)
+                            ) { templatePickerOpen = true }
+                            ActionTile(
+                                icon = AppIcon.Reset,
+                                label = stringResource(R.string.ud_reset_data),
+                                accent = DsSemantic.Violet,
+                                modifier = Modifier.weight(1f)
+                            ) { usageConfirm = true }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            ActionTile(
+                                icon = AppIcon.Calendar,
+                                label = stringResource(R.string.ud_reset_time),
+                                accent = DsSemantic.Violet,
+                                modifier = Modifier.weight(1f)
+                            ) { expiryConfirm = true }
+                            ActionTile(
+                                icon = if (isActive) AppIcon.StatusDisabled else AppIcon.CheckCircle,
+                                label = stringResource(if (isActive) R.string.ud_disable else R.string.ud_enable),
+                                accent = if (isActive) GlassAmber else GlassGreen,
+                                modifier = Modifier.weight(1f)
+                            ) { onToggle() }
+                            ActionTile(
+                                icon = AppIcon.Delete,
+                                label = stringResource(R.string.ud_delete),
+                                accent = GlassRed,
+                                modifier = Modifier.weight(1f)
+                            ) { onDelete() }
+                        }
+                    }
+
+                    // ── جزئیاتِ بیشتر: جمع‌شونده
+                    //
+                    // این شیت داشت بلند می‌شد و همه‌چیز پشتِ اسکرول می‌رفت. چیزی که
+                    // کاربر برایش این صفحه را باز می‌کند (مصرف، لینک، دکمه‌های
+                    // مدیریت) بالا و بدونِ اسکرول می‌ماند؛ گروه‌ها، تاریخ، دستگاه‌ها
+                    // و یادداشت که گاه‌به‌گاه لازم‌اند، اینجا جمع شده‌اند.
+                    Column(
+                        Modifier.fillMaxWidth().clip(DsRadius.Lg)
+                            .background(theme.cardSurfaceColor)
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                            .padding(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 36.dp).clip(DsRadius.Md)
+                                .pressScale(0.985f)
+                                .clickable { moreOpen = !moreOpen }
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 15.dp)
+                            Text(
+                                moreLabel, fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
+                                color = theme.inkColor, modifier = Modifier.weight(1f)
+                            )
+                            Text(if (moreOpen) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor)
+                        }
+                        AnimatedVisibility(
+                            visible = moreOpen,
+                            enter = DsTransition.expandEnter,
+                            exit = DsTransition.expandExit
+                        ) {
+                            Column(
+                                Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                     // ── حقایقِ کاربر: گروه‌ها، تاریخِ ساخت، مصرفِ مادام‌العمر، مالک
                     //
                     // هیچ‌کدامِ این‌ها قبلاً نشان داده نمی‌شدند، در حالی که پنل
@@ -617,34 +727,6 @@ fun UserDetailsDialog(
                         }
                     }
 
-                    // ── نمودارِ مصرفِ همین کاربر (۷ روزِ گذشته)
-                    if (session != null) {
-                        Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
-                                .background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 13.dp)
-                                Text(usageChartLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            }
-                            when {
-                                usageLoading -> Box(Modifier.fillMaxWidth().height(70.dp), contentAlignment = Alignment.Center) {
-                                    Text("…", fontSize = 14.sp, color = theme.mutedColor)
-                                }
-                                usagePoints.isEmpty() -> Text(usageEmptyLabel, fontSize = 10.sp, color = theme.mutedColor)
-                                else -> UsageChart(
-                                    points = usagePoints,
-                                    accent = theme.accentPrimary,
-                                    themeIsDark = theme.isDark,
-                                    valueFormatter = ::formatBytes
-                                )
-                            }
-                        }
-                    }
-
                     // ── توضیحاتِ کاربر (فقط اگر وجود داشته باشد)
                     if (!currentUser.note.isNullOrBlank()) {
                         Row(
@@ -669,88 +751,7 @@ fun UserDetailsDialog(
                             }
                         }
                     }
-
-                    // ── ۳) لینک اشتراک
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        SectionLabel(stringResource(R.string.ud_subscription))
-                        Row(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg)
-                                .background(theme.searchBgColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 15.dp)
-                            MrmText(
-                                currentUser.subUrl.ifBlank { "—" },
-                                fontSize = 10.sp,
-                                color = theme.mutedColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                isTechnical = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            SubChip(AppIcon.Copy, stringResource(R.string.ud_copy)) {
-                                ensureSub { url ->
-                                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                    cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url))
-                                    android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
-                                }
                             }
-                            SubChip(AppIcon.Qr, stringResource(R.string.ud_qr)) { ensureSub { qrOpen = true } }
-                            // باطل‌کردنِ لینک: تنها واکنشِ درست به لو رفتنِ لینک.
-                            if (session != null) {
-                                SubChip(AppIcon.Reset, stringResource(R.string.ud_revoke)) { revokeConfirm = true }
-                            }
-                        }
-                    }
-
-                    // ── ۴) عملیات: ویرایش پررنگ‌ترین است، بقیه هم‌وزن در یک شبکه
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SectionLabel(stringResource(R.string.ud_manage))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionTile(
-                                icon = AppIcon.Edit,
-                                label = stringResource(R.string.ud_edit),
-                                accent = theme.accentPrimary,
-                                filled = true,
-                                modifier = Modifier.weight(2f)
-                            ) { editOpen = true }
-                            ActionTile(
-                                icon = AppIcon.Template,
-                                label = stringResource(R.string.ud_template),
-                                accent = theme.accentPrimary,
-                                modifier = Modifier.weight(1f)
-                            ) { templatePickerOpen = true }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionTile(
-                                icon = AppIcon.Reset,
-                                label = stringResource(R.string.ud_reset_data),
-                                accent = DsSemantic.Violet,
-                                modifier = Modifier.weight(1f)
-                            ) { usageConfirm = true }
-                            ActionTile(
-                                icon = AppIcon.Calendar,
-                                label = stringResource(R.string.ud_reset_time),
-                                accent = DsSemantic.Violet,
-                                modifier = Modifier.weight(1f)
-                            ) { expiryConfirm = true }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionTile(
-                                icon = if (isActive) AppIcon.StatusDisabled else AppIcon.CheckCircle,
-                                label = stringResource(if (isActive) R.string.ud_disable else R.string.ud_enable),
-                                accent = if (isActive) GlassAmber else GlassGreen,
-                                modifier = Modifier.weight(1f)
-                            ) { onToggle() }
-                            ActionTile(
-                                icon = AppIcon.Delete,
-                                label = stringResource(R.string.ud_delete),
-                                accent = GlassRed,
-                                modifier = Modifier.weight(1f)
-                            ) { onDelete() }
                         }
                     }
 

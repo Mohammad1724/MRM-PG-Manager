@@ -820,8 +820,6 @@
     <string name="ud_created_at">ساخته شده</string>
     <string name="ud_lifetime">مصرف کل</string>
     <string name="ud_owner">ادمین مالک</string>
-    <string name="ud_usage_chart">مصرف در طول زمان</string>
-    <string name="ud_usage_empty">در این بازه ترافیکی ثبت نشده</string>
     <string name="ud_revoke">لینک تازه</string>
     <string name="ud_revoke_title">لینک اشتراک تازه صادر شود؟</string>
     <string name="ud_revoke_msg">لینک فعلی همان لحظه از کار می‌افتد. هرکسی که از آن استفاده می‌کند — از جمله خود کاربر — باید لینک تازه را بگیرد.</string>
@@ -883,4 +881,5 @@
     <string name="ue_reset_strategy">ریست ترافیک</string>
     <string name="ue_auto_delete">حذف خودکار پس از انقضا (روز)</string>
     <string name="ue_auto_delete_hint">خالی یعنی هیچ‌وقت خودکار حذف نشود.</string>
+    <string name="ud_more">جزئیات بیشتر</string>
 </resources>
