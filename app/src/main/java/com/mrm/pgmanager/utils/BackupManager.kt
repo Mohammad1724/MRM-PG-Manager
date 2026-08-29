@@ -209,7 +209,9 @@ object BackupManager {
     ): BackupInfo {
         val store = SessionStore(context)
         val isEncrypted = password.isNotBlank()
-        val payload = buildPayload(store, includeTokens = isEncrypted)
+        // همیشه توکن‌ها را شامل می‌کنیم تا بازیابی حساب‌ها کار کند؛
+        // هشدار امنیتی برای بکاپ بدون رمز در UI نمایش داده می‌شود.
+        val payload = buildPayload(store, includeTokens = true)
         val meta = JSONObject().apply {
             put("v", BACKUP_VERSION)
             put("ts", System.currentTimeMillis())
@@ -250,19 +252,18 @@ object BackupManager {
     fun inspect(context: Context, input: InputStream, password: String = ""): BackupInfo {
         val bytes = input.use { it.readBytes() }
         return try {
-            // First try parse as plain JSON
+            // Try JSON parse first; if fails treat as encrypted
             val s = String(bytes, Charsets.UTF_8)
-            if (s.trimStart().startsWith("{")) {
+            val isJson = try { JSONObject(s); true } catch (_: Exception) { s.trimStart().startsWith("{") }
+            if (isJson) {
                 parseBackupInfo(context, JSONObject(s))
             } else {
-                // Encrypted binary
                 require(password.isNotBlank()) { context.getString(R.string.bk_encrypted_short) }
                 val dec = decrypt(context, bytes, password)
                 parseBackupInfo(context, JSONObject(String(dec, Charsets.UTF_8)))
             }
         } catch (e: Exception) {
             if (password.isBlank() && bytes.size > SALT_LEN + IV_LEN) {
-                // Likely encrypted but password not provided
                 throw IllegalArgumentException(context.getString(R.string.bk_encrypted_long), e)
             }
             throw e
@@ -297,7 +298,8 @@ object BackupManager {
         val bytes = input.use { it.readBytes() }
         val container: JSONObject
         val s0 = String(bytes, Charsets.UTF_8)
-        container = if (s0.trimStart().startsWith("{")) {
+        val looksJson = try { JSONObject(s0); true } catch (_: Exception) { s0.trimStart().startsWith("{") }
+        container = if (looksJson) {
             JSONObject(s0)
         } else {
             require(password.isNotBlank()) { context.getString(R.string.bk_need_password) }

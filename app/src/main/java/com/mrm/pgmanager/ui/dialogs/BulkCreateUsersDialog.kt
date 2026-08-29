@@ -81,7 +81,7 @@ fun BulkCreateUsersDialog(
     }
 
     val canStart = !templatesLoading && (!useTemplate || selectedTemplate != null) &&
-        (useTemplate || limitGb.toDoubleOrNull() != null) && pattern.prefix.isNotBlank()
+        (useTemplate || com.mrm.pgmanager.utils.normalizePersianDigits(limitGb).toDoubleOrNull() != null) && pattern.prefix.isNotBlank()
 
     fun friendlyError(e: Throwable?): String = when {
         e?.message?.contains("409") == true -> context.getString(R.string.bc_err_duplicate)

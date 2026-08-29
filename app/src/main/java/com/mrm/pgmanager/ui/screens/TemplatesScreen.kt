@@ -488,10 +488,10 @@ private fun TemplateEditorDialog(
     var touched by remember { mutableStateOf(false) }
     var serverError by remember(initial.id) { mutableStateOf<String?>(null) }
 
-    // تبدیلِ ورودی‌های فرم به واحدهای پنل.
-    val dataBytes = dataGb.trim().toLongOrNull()?.times(BYTES_PER_GB)
-    val expireSeconds = days.trim().toLongOrNull()?.times(SECONDS_PER_DAY)
-    val onHoldSeconds = onHoldDays.trim().toLongOrNull()?.times(SECONDS_PER_DAY)
+    // تبدیلِ ورودی‌های فرم به واحدهای پنل — با نرمال‌سازی ارقام فارسی
+    val dataBytes = com.mrm.pgmanager.utils.normalizePersianDigits(dataGb).trim().toLongOrNull()?.times(BYTES_PER_GB)
+    val expireSeconds = com.mrm.pgmanager.utils.normalizePersianDigits(days).trim().toLongOrNull()?.times(SECONDS_PER_DAY)
+    val onHoldSeconds = com.mrm.pgmanager.utils.normalizePersianDigits(onHoldDays).trim().toLongOrNull()?.times(SECONDS_PER_DAY)
 
     val errorKey = TemplateValidation.validateAll(
         name = name,
@@ -575,7 +575,10 @@ private fun TemplateEditorDialog(
                         FieldLabel(stringResource(R.string.tpl_data_limit) + " (" + stringResource(R.string.tpl_gb) + ")")
                         CompactGlassField(
                             value = dataGb,
-                            onValueChange = { dataGb = it.filter { c -> c.isDigit() }; touched = true; serverError = null },
+                            onValueChange = { raw ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                dataGb = n.filter { c -> c.isDigit() }; touched = true; serverError = null
+                            },
                             placeholder = stringResource(R.string.tpl_unlimited)
                         )
                     }
@@ -583,7 +586,10 @@ private fun TemplateEditorDialog(
                         FieldLabel(stringResource(R.string.tpl_expire_duration) + " (" + stringResource(R.string.tpl_days) + ")")
                         CompactGlassField(
                             value = days,
-                            onValueChange = { days = it.filter { c -> c.isDigit() }; touched = true; serverError = null },
+                            onValueChange = { raw ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                days = n.filter { c -> c.isDigit() }; touched = true; serverError = null
+                            },
                             placeholder = stringResource(R.string.tpl_unlimited)
                         )
                     }
@@ -685,7 +691,10 @@ private fun TemplateEditorDialog(
                             )
                             CompactGlassField(
                                 value = onHoldDays,
-                                onValueChange = { onHoldDays = it.filter { c -> c.isDigit() }; touched = true },
+                                onValueChange = { raw ->
+                                    val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                    onHoldDays = n.filter { c -> c.isDigit() }; touched = true
+                                },
                                 placeholder = stringResource(R.string.tpl_unlimited)
                             )
                         }
@@ -710,7 +719,10 @@ private fun TemplateEditorDialog(
                         )
                         CompactGlassField(
                             value = hwid,
-                            onValueChange = { hwid = it.filter { c -> c.isDigit() }; touched = true },
+                            onValueChange = { raw ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                hwid = n.filter { c -> c.isDigit() }; touched = true
+                            },
                             placeholder = stringResource(R.string.tpl_unlimited)
                         )
                     }
@@ -794,7 +806,7 @@ private fun TemplateEditorDialog(
                                 name = name.trim(),
                                 dataLimit = dataBytes,
                                 expireDuration = expireSeconds,
-                                hwidLimit = hwid.trim().toIntOrNull(),
+                                hwidLimit = com.mrm.pgmanager.utils.normalizePersianDigits(hwid).trim().toIntOrNull(),
                                 usernamePrefix = prefix.trim().takeIf { it.isNotEmpty() },
                                 usernameSuffix = suffix.trim().takeIf { it.isNotEmpty() },
                                 groupIds = selectedGroups.toList(),

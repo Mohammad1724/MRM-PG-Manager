@@ -546,25 +546,29 @@ object PanelApi {
         var isOnline = user.optBoolean("online", false)
         var onlineAtStr: String? = null
 
-        // Check online_at field - could be ISO string or timestamp
+        // Check online_at field - could be ISO string, naive datetime, or timestamp
         if (!user.isNull("online_at")) {
             onlineAtStr = user.optString("online_at").takeIf { it != "null" && it.isNotBlank() }
             if (onlineAtStr != null) {
-                // Try to parse as ISO date first, then as timestamp
                 val now = System.currentTimeMillis()
                 val onlineTime = try {
-                    // Try ISO format: "2024-01-15T10:30:00Z"
+                    // Try ISO instant first: "2024-01-15T10:30:00Z"
                     java.time.Instant.parse(onlineAtStr.replace(" ", "T")).toEpochMilli()
                 } catch (e: Exception) {
                     try {
-                        // Try timestamp (seconds or milliseconds)
-                        val ts = onlineAtStr.toLong()
-                        if (ts < 1_000_000_000_000L) ts * 1000 else ts // Convert seconds to ms if needed
+                        // Try LocalDateTime without Z (panel may return naive): "2024-01-15T10:30:00"
+                        java.time.LocalDateTime.parse(onlineAtStr.replace(" ", "T")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
                     } catch (e2: Exception) {
-                        0L
+                        try {
+                            // Try timestamp (seconds or milliseconds)
+                            val ts = onlineAtStr.toLong()
+                            if (ts < 1_000_000_000_000L) ts * 1000 else ts
+                        } catch (e3: Exception) {
+                            0L
+                        }
                     }
                 }
-                if (onlineTime > 0L && now - onlineTime < 300_000L) { // 5 minutes
+                if (onlineTime > 0L && now - onlineTime < 300_000L) {
                     isOnline = true
                 }
             }
@@ -607,28 +611,36 @@ object PanelApi {
      * می‌دهد و صداکننده باید بخش را پنهان کند (نه اینکه خطا نشان بدهد).
      */
     suspend fun admins(session: Session): List<PanelAdmin> = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${session.baseUrl}/api/admins?limit=100").get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Admins failed: ${response.code}")
-            val body = response.body?.string().orEmpty()
-            // پاسخ `{admins, total}` است، ولی برای مقاومت در برابر تغییرِ شکل،
-            // آرایهٔ خام هم پذیرفته می‌شود.
-            val arr = runCatching { JSONObject(body).optJSONArray("admins") }.getOrNull()
-                ?: runCatching { org.json.JSONArray(body) }.getOrNull()
-                ?: return@use emptyList()
-            List(arr.length()) { i ->
-                val a = arr.getJSONObject(i)
-                PanelAdmin(
-                    id = a.optInt("id"),
-                    username = a.optString("username"),
-                    totalUsers = a.optInt("total_users", 0),
-                    usedTraffic = a.optLong("used_traffic", 0L),
-                    dataLimit = if (a.isNull("data_limit")) null else a.optLong("data_limit").takeIf { it > 0L },
-                    status = a.optString("status", "active"),
-                    isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false
-                )
+        val all = mutableListOf<PanelAdmin>()
+        var offset = 0
+        val limit = 100
+        while (true) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/admins?limit=$limit&offset=$offset").get().build()
+            val chunk = client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("Admins failed: ${response.code}")
+                val body = response.body?.string().orEmpty()
+                val arr = runCatching { JSONObject(body).optJSONArray("admins") }.getOrNull()
+                    ?: runCatching { org.json.JSONArray(body) }.getOrNull()
+                    ?: return@use emptyList<PanelAdmin>()
+                List(arr.length()) { i ->
+                    val a = arr.getJSONObject(i)
+                    PanelAdmin(
+                        id = a.optInt("id"),
+                        username = a.optString("username"),
+                        totalUsers = a.optInt("total_users", 0),
+                        usedTraffic = a.optLong("used_traffic", 0L),
+                        dataLimit = if (a.isNull("data_limit")) null else a.optLong("data_limit").takeIf { it > 0L },
+                        status = a.optString("status", "active"),
+                        isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false
+                    )
+                }
             }
+            all.addAll(chunk)
+            if (chunk.size < limit) break
+            offset += limit
+            if (offset > 10_000) break
         }
+        all
     }
 
     /**
@@ -649,33 +661,52 @@ object PanelApi {
     }
 
     suspend fun groups(session: Session): List<Group> = withContext(Dispatchers.IO) {
-        // ابتدا endpoint ساده؛ در صورتِ ناموفق‌بودن، fallback می‌زند.
-        val simple: List<Group>? = runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/groups/simple?limit=200").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching null
-                val obj = JSONObject(res.body?.string() ?: "{}")
-                val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching null
-                List(arr.length()) { i ->
-                    val g = arr.getJSONObject(i)
-                    Group(id = g.optInt("id"), name = g.optString("name"))
+        // صفحه‌بندی: پنل‌های بزرگ ممکن است بیش از ۲۰۰ گروه داشته باشند
+        val all = mutableListOf<Group>()
+        var offset = 0
+        val limit = 200
+        while (true) {
+            val chunk: List<Group>? = runCatching {
+                val req = requestBuilder(session, "${session.baseUrl}/api/groups/simple?limit=$limit&offset=$offset").get().build()
+                client.newCall(req).execute().use { res ->
+                    if (!res.isSuccessful) return@runCatching null
+                    val obj = JSONObject(res.body?.string() ?: "{}")
+                    val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching null
+                    List(arr.length()) { i ->
+                        val g = arr.getJSONObject(i)
+                        Group(id = g.optInt("id"), name = g.optString("name"))
+                    }
                 }
-            }
-        }.getOrNull()
-        if (simple != null) return@withContext simple
-        // fallback: endpoint کامل
-        runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/groups").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<Group>()
-                val obj = JSONObject(res.body?.string() ?: "{}")
-                val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching emptyList<Group>()
-                List(arr.length()) { i ->
-                    val g = arr.getJSONObject(i)
-                    Group(id = g.optInt("id"), name = g.optString("name"))
+            }.getOrNull()
+            if (chunk == null) break
+            all.addAll(chunk)
+            if (chunk.size < limit) break
+            offset += limit
+            if (offset > 10_000) break
+        }
+        if (all.isNotEmpty()) return@withContext all
+        // fallback: endpoint کامل با صفحه‌بندی
+        all.clear()
+        offset = 0
+        while (true) {
+            val chunk = runCatching {
+                val req = requestBuilder(session, "${session.baseUrl}/api/groups?limit=$limit&offset=$offset").get().build()
+                client.newCall(req).execute().use { res ->
+                    if (!res.isSuccessful) return@runCatching emptyList<Group>()
+                    val obj = JSONObject(res.body?.string() ?: "{}")
+                    val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: return@runCatching emptyList<Group>()
+                    List(arr.length()) { i ->
+                        val g = arr.getJSONObject(i)
+                        Group(id = g.optInt("id"), name = g.optString("name"))
+                    }
                 }
-            }
-        }.getOrDefault(emptyList())
+            }.getOrDefault(emptyList())
+            all.addAll(chunk)
+            if (chunk.size < limit) break
+            offset += limit
+            if (offset > 10_000) break
+        }
+        all
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -691,15 +722,25 @@ object PanelApi {
     //  اشتباه‌گرفتنِ مفرد/جمع باعث 404 می‌شود.
     // ─────────────────────────────────────────────────────────────
 
-    /** فهرستِ کاملِ گروه‌ها همراه با inbound tags و تعداد کاربر. */
+    /** فهرستِ کاملِ گروه‌ها همراه با inbound tags و تعداد کاربر — با صفحه‌بندی. */
     suspend fun groupsDetailed(session: Session): List<GroupDetail> = withContext(Dispatchers.IO) {
-        val req = requestBuilder(session, "${session.baseUrl}/api/groups?limit=200").get().build()
-        client.newCall(req).execute().use { res ->
-            if (!res.isSuccessful) error("Load groups failed: ${res.code}")
-            val obj = JSONObject(res.body?.string() ?: "{}")
-            val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: org.json.JSONArray()
-            List(arr.length()) { i -> parseGroupDetail(arr.getJSONObject(i)) }
+        val all = mutableListOf<GroupDetail>()
+        var offset = 0
+        val limit = 200
+        while (true) {
+            val req = requestBuilder(session, "${session.baseUrl}/api/groups?limit=$limit&offset=$offset").get().build()
+            val chunk = client.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) error("Load groups failed: ${res.code}")
+                val obj = JSONObject(res.body?.string() ?: "{}")
+                val arr = obj.optJSONArray("groups") ?: obj.optJSONArray("items") ?: org.json.JSONArray()
+                List(arr.length()) { i -> parseGroupDetail(arr.getJSONObject(i)) }
+            }
+            all.addAll(chunk)
+            if (chunk.size < limit) break
+            offset += limit
+            if (offset > 10_000) break
         }
+        all
     }
 
     /** تگ‌های inbound موجود در پنل — برای انتخاب در فرمِ گروه. */
