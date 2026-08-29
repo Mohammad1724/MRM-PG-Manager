@@ -1,183 +1,598 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- نسخهٔ سازگار با اندروید ۱۱ و قدیمی‌تر (بدون رنگ داینامیک) -->
+<!-- Legacy widget layout (< Android 12) — 16dp radius, compact + expandable rows -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="12dp">
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:gravity="top">
 
+    <!-- HEADER: host + offline badge + refresh -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="MRM PG Manager"
-            android:textColor="#F4C928"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <ImageView
-            android:id="@+id/w_refresh"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_widget_refresh"
-            android:contentDescription="@string/widget_refresh"
-            android:padding="6dp"
-            android:background="@drawable/widget_btn_bg_circle"
-            android:scaleType="fitCenter" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:gravity="center">
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:background="@drawable/widget_tile_bg"
-            android:padding="6dp"
-            android:layout_marginEnd="3dp">
+            android:orientation="vertical">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:id="@+id/w_host"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/widget_online"
-                android:textColor="#B9BAC0"
-                android:textSize="9sp" />
+                android:text="panel.example.com"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical|bottom">
+                android:gravity="center_vertical"
+                android:layout_marginTop="2dp">
 
                 <TextView
-                    android:id="@+id/w_online"
+                    android:id="@+id/w_uptime_val"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="-"
-                    android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:text="12d 3h"
+                    android:textSize="10sp"
+                    android:textColor="#99FFFFFF"
+                    android:maxLines="1" />
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="#66FFFFFF" />
 
                 <TextView
-                    android:id="@+id/w_total"
+                    android:id="@+id/w_updated"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="2dp"
-                    android:text=""
-                    android:textColor="#B9BAC0"
-                    android:textSize="9sp" />
+                    android:text="5m ago"
+                    android:textSize="10sp"
+                    android:textColor="#99FFFFFF"
+                    android:maxLines="1" />
             </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/w_offline_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Offline"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF"
+            android:background="@drawable/widget_badge_offline_bg"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:layout_marginEnd="6dp"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:id="@+id/w_refresh"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_widget_refresh"
+                android:contentDescription="@string/widget_refresh" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/widget_divider" />
+
+    <!-- ROW 1: Online / Total / Active — always visible (3x2 minimal) -->
+    <LinearLayout
+        android:id="@+id/w_row_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3">
+
+        <LinearLayout
+            android:id="@+id/w_tile_online"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_tile_accent_bg"
+            android:orientation="vertical"
+            android:padding="10dp">
 
             <TextView
-                android:id="@+id/w_debtors"
+                android:id="@+id/w_online_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="#8B8C93"
-                android:textSize="9sp"
-                android:maxLines="1" />
+                android:text="24"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_online"
+                android:textSize="10sp"
+                android:textColor="#B3FFFFFF"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/w_tile_total"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
             android:background="@drawable/widget_tile_bg"
-            android:padding="6dp"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp">
+            android:orientation="vertical"
+            android:padding="10dp">
 
             <TextView
+                android:id="@+id/w_total_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="RAM"
-                android:textColor="#B9BAC0"
-                android:textSize="9sp" />
-
-            <TextView
-                android:id="@+id/w_ram_val"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-"
-                android:textColor="#FFFFFF"
+                android:text="128"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF"
+                android:fontFamily="sans-serif-medium" />
 
             <TextView
-                android:id="@+id/w_ram_sub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="#8B8C93"
-                android:textSize="9sp"
-                android:maxLines="1" />
+                android:text="@string/wg_total_users"
+                android:textSize="10sp"
+                android:textColor="#B3FFFFFF"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/w_tile_active"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
+            android:layout_marginStart="4dp"
             android:background="@drawable/widget_tile_bg"
-            android:padding="6dp"
-            android:layout_marginStart="3dp">
+            android:orientation="vertical"
+            android:padding="10dp">
 
             <TextView
+                android:id="@+id/w_active_val"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CPU"
-                android:textColor="#B9BAC0"
-                android:textSize="9sp" />
-
-            <TextView
-                android:id="@+id/w_cpu_val"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="-"
-                android:textColor="#FFFFFF"
+                android:text="96"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF"
+                android:fontFamily="sans-serif-medium" />
 
             <TextView
-                android:id="@+id/w_cpu_sub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="#8B8C93"
-                android:textSize="9sp"
-                android:maxLines="1" />
+                android:text="@string/wg_active"
+                android:textSize="10sp"
+                android:textColor="#B3FFFFFF"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/w_updated"
+    <!-- ROW 2: Expired / Limited / Disabled — visible when height >= 140dp -->
+    <LinearLayout
+        android:id="@+id/w_row_status2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_marginTop="6dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_expired_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/expired"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_limited_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="8"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/limited"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_disabled_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/disabled"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ROW 3: OnHold / Debtors / Traffic summary — visible when height >= 170dp -->
+    <LinearLayout
+        android:id="@+id/w_row_status3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_marginTop="6dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_onhold_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="5"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/on_hold"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/w_tile_debtors"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_debtors_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="2"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/debtors"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/w_traffic_val"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1.2 TB"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/w_traffic_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/wg_traffic"
+                android:textSize="9sp"
+                android:textColor="#99FFFFFF"
+                android:layout_marginTop="1dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ROW 4: Resources — CPU / RAM / Disk with progress bars — visible when height >= 210dp -->
+    <LinearLayout
+        android:id="@+id/w_row_resources"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_marginTop="6dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wg_cpu"
+                    android:textSize="9sp"
+                    android:textColor="#99FFFFFF" />
+
+                <TextView
+                    android:id="@+id/w_cpu_val"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="42%"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFFFF"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/w_cpu_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="4dp"
+                android:max="100"
+                android:progress="42"
+                android:progressDrawable="@drawable/widget_progress_fill" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wg_ram"
+                    android:textSize="9sp"
+                    android:textColor="#99FFFFFF" />
+
+                <TextView
+                    android:id="@+id/w_ram_val"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="68%"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFFFF"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/w_ram_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="4dp"
+                android:max="100"
+                android:progress="68"
+                android:progressDrawable="@drawable/widget_progress_fill" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/widget_tile_bg"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/wg_disk"
+                    android:textSize="9sp"
+                    android:textColor="#99FFFFFF" />
+
+                <TextView
+                    android:id="@+id/w_disk_val"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="51%"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFFFF"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/w_disk_bar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="4dp"
+                android:max="100"
+                android:progress="51"
+                android:progressDrawable="@drawable/widget_progress_fill" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ROW 5: Bandwidth details — visible when height >= 250dp -->
+    <LinearLayout
+        android:id="@+id/w_row_traffic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginTop="6dp"
-        android:gravity="end"
-        android:text=""
-        android:textColor="#8B8C93"
-        android:textSize="9sp"
-        android:maxLines="1" />
+        android:background="@drawable/widget_tile_bg"
+        android:padding="8dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↓"
+            android:textSize="10sp"
+            android:textColor="#99FFFFFF" />
+
+        <TextView
+            android:id="@+id/w_incoming_val"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12.4 GB"
+            android:textSize="10sp"
+            android:textColor="#FFFFFFFF"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↑"
+            android:textSize="10sp"
+            android:textColor="#99FFFFFF"
+            android:layout_marginStart="10dp" />
+
+        <TextView
+            android:id="@+id/w_outgoing_val"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="48.2 GB"
+            android:textSize="10sp"
+            android:textColor="#FFFFFFFF"
+            android:layout_marginStart="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/w_cores_val"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4 cores"
+            android:textSize="9sp"
+            android:textColor="#66FFFFFF" />
+    </LinearLayout>
+
 </LinearLayout>

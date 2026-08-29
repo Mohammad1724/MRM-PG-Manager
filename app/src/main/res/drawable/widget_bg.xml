@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- پس‌زمینه ویجت - تم تیره با اکسنت طلایی (نسخهٔ قدیمی) -->
+<!-- Legacy widget background (< Android 12) — dark translucent with 16dp radius -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="#E6141418" />
     <corners android:radius="16dp" />
