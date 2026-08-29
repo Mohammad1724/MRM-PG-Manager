@@ -158,14 +158,44 @@ object PdfInvoiceGenerator {
         y += 22f
 
         // ==== محاسبات اطلاعات ====
+        // تاریخ پایان
         val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { context.getString(R.string.inv_unlimited) }
-        val daysRemaining = runCatching {
-            val e = try { Instant.parse(user.expire).atZone(ZoneId.systemDefault()).toLocalDate() }
+        val endDate: LocalDate? = runCatching {
+            try { Instant.parse(user.expire).atZone(ZoneId.systemDefault()).toLocalDate() }
             catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-            ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0L)
-        }.getOrDefault(0L)
-        val durationDays = daysRemaining.coerceAtLeast(0L)
-        val startJalali = JalaliCalendar.isoToShamsi(LocalDate.now().toString()).ifBlank { "-" }
+        }.getOrNull()
+
+        // تاریخ شروع: از created_at واقعی کاربر، نه امروز!
+        // اگر created_at موجود نباشد، از امروز منهای مدت باقی‌مانده حساب نمی‌کنیم، بلکه امروز را به عنوان fallback می‌گذاریم
+        // اما مدت کل باید از شروع تا پایان باشد، نه فقط باقی‌مانده
+        val startDate: LocalDate? = runCatching {
+            val created = user.createdAt
+            if (created.isNullOrBlank() || created == "0" || created == "null") null
+            else try { Instant.parse(created).atZone(ZoneId.systemDefault()).toLocalDate() }
+            catch (_: Exception) { LocalDate.parse(created.take(10)) }
+        }.getOrNull()
+
+        val effectiveStartDate = startDate ?: run {
+            // اگر createdAt نداریم، شروع را از روی مدت باقی‌مانده تخمین نزن، فقط امروز را بگذار
+            // اما اگر endDate داریم، مدت را از امروز تا پایان حساب نکن، بلکه اگر createdAt نیست،
+            // شروع = امروز و مدت = باقی‌مانده است (برای کاربر تازه ساخته شده منطقی است)
+            // برای کاربر قدیمی که createdAt ندارد، حداقل شروع را امروز نگذار که گمراه کننده است - از 30 روز قبل تخمین بزن؟
+            // بهترین: اگر createdAt نداریم، شروع را امروز بگذار ولی مدت را از امروز تا پایان حساب کن
+            LocalDate.now()
+        }
+
+        val durationDays = if (endDate != null) {
+            val s = startDate ?: effectiveStartDate
+            ChronoUnit.DAYS.between(s, endDate).coerceAtLeast(0L)
+        } else 0L
+
+        val startJalali = if (startDate != null) {
+            JalaliCalendar.isoToShamsi(startDate.toString()).ifBlank { "-" }
+        } else {
+            // اگر createdAt نداریم، سعی کن از روی مدت باقی‌مانده، شروع واقعی را حدس بزنی؟
+            // برای فاکتور، بهتر است تاریخ ساخت واقعی را نشان دهیم، اگر نداریم امروز را نشان بده ولی با برچسب «شروع دوره»
+            JalaliCalendar.isoToShamsi(effectiveStartDate.toString()).ifBlank { "-" }
+        }
         val durationText = when {
             durationDays <= 0L -> context.getString(R.string.inv_unlimited)
             durationDays == 1L -> context.getString(R.string.inv_one_day)

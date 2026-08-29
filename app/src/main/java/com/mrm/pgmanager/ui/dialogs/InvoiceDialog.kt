@@ -92,14 +92,31 @@ fun InvoiceDialog(
     // ==== محاسبات تاریخ ====
     val unlimitedLabel = stringResource(R.string.inv_unlimited)
     val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { unlimitedLabel }
-    val daysRemaining = runCatching {
-        val e = try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+
+    val endDate: LocalDate? = runCatching {
+        try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
         catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-        ChronoUnit.DAYS.between(LocalDate.now(), e).coerceAtLeast(0L)
-    }.getOrDefault(0L)
-    val durationDays = daysRemaining.coerceAtLeast(0L)
-    val startLocalDate = LocalDate.now()
-    val startJalali = JalaliCalendar.isoToShamsi(startLocalDate.toString()).ifBlank { "-" }
+    }.getOrNull()
+
+    val startDate: LocalDate? = runCatching {
+        val created = user.createdAt
+        if (created.isNullOrBlank() || created == "0" || created == "null") null
+        else try { java.time.Instant.parse(created).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
+        catch (_: Exception) { LocalDate.parse(created.take(10)) }
+    }.getOrNull()
+
+    val effectiveStartDate = startDate ?: LocalDate.now()
+
+    val durationDays = if (endDate != null) {
+        val s = startDate ?: effectiveStartDate
+        ChronoUnit.DAYS.between(s, endDate).coerceAtLeast(0L)
+    } else 0L
+
+    val startJalali = if (startDate != null) {
+        JalaliCalendar.isoToShamsi(startDate.toString()).ifBlank { "-" }
+    } else {
+        JalaliCalendar.isoToShamsi(effectiveStartDate.toString()).ifBlank { "-" }
+    }
 
     val durationText = when {
         durationDays <= 0L -> stringResource(R.string.inv_unlimited)
@@ -119,9 +136,9 @@ fun InvoiceDialog(
     val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
 
     // ==== محاسبه مبالغ ====
-    val currentPrice = currentPriceText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val previousDebt = previousDebtText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val paidAmount = paidAmountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val currentPrice = com.mrm.pgmanager.utils.normalizePersianDigits(currentPriceText).filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val previousDebt = com.mrm.pgmanager.utils.normalizePersianDigits(previousDebtText).filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val paidAmount = com.mrm.pgmanager.utils.normalizePersianDigits(paidAmountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
     val totalBilled = currentPrice + previousDebt
     val remainingDebt = (totalBilled - paidAmount).coerceAtLeast(0L)
     val isFullyPaid = totalBilled > 0L && paidAmount >= totalBilled
@@ -326,7 +343,10 @@ fun InvoiceDialog(
                         Text(stringResource(R.string.inv_price), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = currentPriceText,
-                            onValueChange = { v -> currentPriceText = v.filter { it.isDigit() } },
+                            onValueChange = { v ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(v)
+                                currentPriceText = n.filter { it.isDigit() }
+                            },
                             placeholder = stringResource(R.string.inv_price_hint),
                             keyboardType = KeyboardType.Number,
                             leading = currency
@@ -337,7 +357,10 @@ fun InvoiceDialog(
                         Text(stringResource(R.string.inv_previous_debt), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = previousDebtText,
-                            onValueChange = { v -> previousDebtText = v.filter { it.isDigit() } },
+                            onValueChange = { v ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(v)
+                                previousDebtText = n.filter { it.isDigit() }
+                            },
                             placeholder = "0",
                             keyboardType = KeyboardType.Number,
                             leading = currency
@@ -348,7 +371,10 @@ fun InvoiceDialog(
                         Text(stringResource(R.string.inv_paid_amount), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = paidAmountText,
-                            onValueChange = { v -> paidAmountText = v.filter { it.isDigit() } },
+                            onValueChange = { v ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(v)
+                                paidAmountText = n.filter { it.isDigit() }
+                            },
                             placeholder = stringResource(R.string.inv_paid_hint),
                             keyboardType = KeyboardType.Number,
                             leading = currency

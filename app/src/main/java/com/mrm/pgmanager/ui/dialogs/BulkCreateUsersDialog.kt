@@ -95,7 +95,9 @@ fun BulkCreateUsersDialog(
         store.saveUsernamePattern(pattern)
         running = true; done = false; progress = 0; successCount = 0; errors.clear()
         job = scope.launch {
-            val isoExpire = if (!useTemplate) days.toIntOrNull()?.takeIf { it > 0 }?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: "" else ""
+            val normalizedDays = com.mrm.pgmanager.utils.normalizePersianDigits(days)
+            val normalizedLimit = com.mrm.pgmanager.utils.normalizePersianDigits(limitGb)
+            val isoExpire = if (!useTemplate) normalizedDays.toIntOrNull()?.takeIf { it > 0 }?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: "" else ""
 
             // مسیرِ سریع: اگر از تمپلت می‌سازیم، پنل خودش می‌تواند دسته‌ای بسازد
             // (یک درخواست به‌جای N درخواست). در صورتِ خطا به حلقهٔ تکی برمی‌گردیم.
@@ -130,7 +132,7 @@ fun BulkCreateUsersDialog(
                 val name = if (pattern.sequential) pattern.sequentialName(i) else pattern.randomName()
                 val result = runCatching {
                     if (useTemplate) PanelApi.createUserFromTemplate(session, name, selectedTemplate ?: -1, note)
-                    else PanelApi.createUser(session, name, limitGb.toDoubleOrNull() ?: 0.0, isoExpire, note, null, emptyList())
+                    else PanelApi.createUser(session, name, normalizedLimit.toDoubleOrNull() ?: 0.0, isoExpire, note, null, emptyList())
                 }
                 result.onSuccess { successCount++ }.onFailure { errors += "$name: ${friendlyError(it)}" }
                 progress = i + 1
@@ -204,8 +206,14 @@ fun BulkCreateUsersDialog(
                         }
                         if (!useTemplate) {
                             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                CompactGlassField(limitGb, { limitGb = it.filter { c -> c.isDigit() || c == '.' } }, stringResource(R.string.bc_data_gb), Modifier.weight(1f), KeyboardType.Decimal, fieldHeight = 38.dp)
-                                CompactGlassField(days, { days = it.filter(Char::isDigit) }, stringResource(R.string.bc_duration_days), Modifier.weight(1f), KeyboardType.Number, fieldHeight = 38.dp)
+                                CompactGlassField(limitGb, { raw ->
+                                    val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                    limitGb = n.filter { c -> c.isDigit() || c == '.' }
+                                }, stringResource(R.string.bc_data_gb), Modifier.weight(1f), KeyboardType.Decimal, fieldHeight = 38.dp)
+                                CompactGlassField(days, { raw ->
+                                    val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                    days = n.filter(Char::isDigit)
+                                }, stringResource(R.string.bc_duration_days), Modifier.weight(1f), KeyboardType.Number, fieldHeight = 38.dp)
                             }
                         }
                     }

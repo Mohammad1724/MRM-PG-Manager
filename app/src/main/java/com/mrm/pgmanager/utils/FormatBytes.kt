@@ -1,5 +1,24 @@
 package com.mrm.pgmanager.utils
 
+/**
+ * تبدیل ارقام فارسی/عربی به انگلیسی برای پارس عددی.
+ * کاربر فارسی ممکن است با کیبورد فارسی عدد تایپ کند (۰۱۲۳) که toIntOrNull آن را null برمی‌گرداند و باعث باگ «نامحدود شدن» می‌شود.
+ */
+fun normalizePersianDigits(input: String): String {
+    val sb = StringBuilder(input.length)
+    for (ch in input) {
+        val normalized = when (ch) {
+            '۰' -> '0'; '۱' -> '1'; '۲' -> '2'; '۳' -> '3'; '۴' -> '4'
+            '۵' -> '5'; '۶' -> '6'; '۷' -> '7'; '۸' -> '8'; '۹' -> '9'
+            '٠' -> '0'; '١' -> '1'; '٢' -> '2'; '٣' -> '3'; '٤' -> '4'
+            '٥' -> '5'; '٦' -> '6'; '٧' -> '7'; '٨' -> '8'; '٩' -> '9'
+            else -> ch
+        }
+        sb.append(normalized)
+    }
+    return sb.toString()
+}
+
 fun formatBytes(value: Long): String {
     if (value <= 0L) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")

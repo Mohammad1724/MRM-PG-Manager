@@ -131,7 +131,7 @@ fun DebtorEditDialog(
     val theme = LocalThemeState.current
     var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
-    val amountLong = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
+    val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -144,7 +144,10 @@ fun DebtorEditDialog(
                         Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                         androidx.compose.foundation.text.BasicTextField(
                             value = amountText,
-                            onValueChange = { amountText = it.filter { c -> c.isDigit() } },
+                            onValueChange = { raw ->
+                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                                amountText = n.filter { c -> c.isDigit() }
+                            },
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                             textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
@@ -887,8 +890,9 @@ fun UsersScreen(
                     fontSize = 11.sp, color = theme.mutedColor
                 )
                 GlassSearchBar(query = bulkAmountText, onQueryChange = { text ->
-                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن».
-                    bulkAmountText = text.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
+                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن». + نرمال‌سازی فارسی
+                    val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
+                    bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
                 })
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SecondaryButton(stringResource(R.string.us_cancel), onClick = { bulkAmountKind = null }, modifier = Modifier.weight(1f))
@@ -896,7 +900,8 @@ fun UsersScreen(
                         text = stringResource(R.string.us_bulk_apply),
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            val amount = bulkAmountText.toDoubleOrNull()
+                            val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(bulkAmountText)
+                            val amount = normalized.toDoubleOrNull()
                             bulkAmountKind = null
                             if (amount == null || amount == 0.0) return@PrimaryButton
                             selectedUserIds = emptySet()

@@ -276,7 +276,25 @@ fun UserDetailsDialog(
         animationSpec = DsAnim.enter(),
         label = "usageBar"
     )
-    val isActive = currentUser.status != "disabled"
+    // وضعیت واقعی کاربر - قبلاً فقط disabled چک می‌شد و expired/limited هم فعال نشان داده می‌شد
+    val isDisabled = currentUser.status == "disabled"
+    val isActive = currentUser.status == "active"
+    val statusColor = when (currentUser.status) {
+        "active" -> GlassGreen
+        "expired" -> GlassRed
+        "limited" -> GlassAmber
+        "disabled" -> Color(0xFF8A8A8A)
+        "on_hold" -> DsSemantic.Violet
+        else -> theme.mutedColor
+    }
+    val statusLabel = when (currentUser.status) {
+        "active" -> stringResource(R.string.active)
+        "expired" -> stringResource(R.string.expired)
+        "limited" -> stringResource(R.string.limited)
+        "disabled" -> stringResource(R.string.disabled)
+        "on_hold" -> stringResource(R.string.on_hold)
+        else -> currentUser.status
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
@@ -350,23 +368,23 @@ fun UserDetailsDialog(
                             isTechnical = true
                         )
                     }
-                    // وضعیت به‌صورت نقطه + متن؛ کوچک ولی خوانا.
+                    // وضعیت به‌صورت نقطه + متن؛ حالا وضعیت واقعی (منقضی/محدود/غیرفعال) را نشان می‌دهد نه فقط فعال/غیرفعال
                     Row(
                         Modifier.height(26.dp).clip(DsRadius.Full)
-                            .background((if (isActive) GlassGreen else GlassRed).copy(0.13f))
+                            .background(statusColor.copy(0.13f))
                             .padding(horizontal = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Box(
                             Modifier.size(6.dp).clip(RoundedCornerShape(50))
-                                .background(if (isActive) GlassGreen else GlassRed)
+                                .background(statusColor)
                         )
                         Text(
-                            stringResource(if (isActive) R.string.active else R.string.disabled),
+                            statusLabel,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isActive) GlassGreen else GlassRed
+                            color = statusColor
                         )
                     }
                     Box(
@@ -534,9 +552,9 @@ fun UserDetailsDialog(
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ActionTile(
-                                icon = if (isActive) AppIcon.StatusDisabled else AppIcon.CheckCircle,
-                                label = stringResource(if (isActive) R.string.ud_disable else R.string.ud_enable),
-                                accent = if (isActive) GlassAmber else GlassGreen,
+                                icon = if (isDisabled) AppIcon.CheckCircle else AppIcon.StatusDisabled,
+                                label = stringResource(if (isDisabled) R.string.ud_enable else R.string.ud_disable),
+                                accent = if (isDisabled) GlassGreen else GlassAmber,
                                 modifier = Modifier.weight(1f)
                             ) { onToggle() }
                             ActionTile(

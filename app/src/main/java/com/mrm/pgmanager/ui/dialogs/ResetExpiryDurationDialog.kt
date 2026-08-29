@@ -41,7 +41,10 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
             Text(stringResource(R.string.re_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
             Text(stringResource(R.string.re_subtitle), fontSize = 11.sp, color = theme.mutedColor)
             Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                BasicTextField(days, { days = it.filter(Char::isDigit); error = null }, textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
+                BasicTextField(days, { raw ->
+                    val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                    days = n.filter(Char::isDigit); error = null
+                }, textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth())
                 if (days.isEmpty()) Text(stringResource(R.string.re_days_label), color = theme.mutedColor)
             }
             error?.let { Text(it, fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium) }
@@ -53,7 +56,8 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                 PrimaryButton(
                     text = stringResource(R.string.re_apply),
                     onClick = {
-                        val n = days.toIntOrNull()?.takeIf { it > 0 }
+                        val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(days)
+                        val n = normalized.toIntOrNull()?.takeIf { it > 0 }
                         if (n == null) error = invalidMsg
                         else onConfirm(n)
                     },

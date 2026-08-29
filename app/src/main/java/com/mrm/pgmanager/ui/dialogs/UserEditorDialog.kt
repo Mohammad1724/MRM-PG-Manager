@@ -297,7 +297,10 @@ fun UserEditorDialog(
                             FieldLabel(stringResource(R.string.ue_data_limit))
                             UserFormTextField(
                                 value = limitGb,
-                                onValueChange = { limitGb = it.filter { c -> c.isDigit() || c == '.' } },
+                                onValueChange = { raw ->
+                                    val normalized = normalizePersianDigits(raw)
+                                    limitGb = normalized.filter { c -> c.isDigit() || c == '.' }
+                                },
                                 placeholder = stringResource(R.string.ue_data_limit_hint),
                                 keyboardType = KeyboardType.Decimal,
                                 leading = AppIcon.Storage
@@ -308,7 +311,10 @@ fun UserEditorDialog(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 UserFormTextField(
                                     value = days,
-                                    onValueChange = { days = it.filter { c -> c.isDigit() } },
+                                    onValueChange = { raw ->
+                                        val normalized = normalizePersianDigits(raw)
+                                        days = normalized.filter { c -> c.isDigit() }
+                                    },
                                     placeholder = stringResource(R.string.ue_expiry_hint),
                                     keyboardType = KeyboardType.Number,
                                     leading = AppIcon.Timer,
@@ -335,7 +341,10 @@ fun UserEditorDialog(
                                             .background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
                                             .pressScale(0.93f)
-                                            .clickable { days = ((days.toIntOrNull() ?: 0) + value).toString() }
+                                            .clickable {
+                                                val current = normalizePersianDigits(days).toIntOrNull() ?: 0
+                                                days = (current + value).toString()
+                                            }
                                             .padding(horizontal = 11.dp, vertical = 6.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -621,7 +630,10 @@ fun UserEditorDialog(
                                         FieldLabel(stringResource(R.string.ue_hwid))
                                         UserFormTextField(
                                             value = hwid,
-                                            onValueChange = { hwid = it.filter { c -> c.isDigit() } },
+                                            onValueChange = { raw ->
+                                                val normalized = normalizePersianDigits(raw)
+                                                hwid = normalized.filter { c -> c.isDigit() }
+                                            },
                                             placeholder = stringResource(R.string.ue_hwid_hint),
                                             keyboardType = KeyboardType.Number,
                                             leading = AppIcon.Device
@@ -651,7 +663,10 @@ fun UserEditorDialog(
                                         FieldLabel(stringResource(R.string.ue_auto_delete))
                                         UserFormTextField(
                                             value = autoDeleteDays,
-                                            onValueChange = { autoDeleteDays = it.filter { c -> c.isDigit() } },
+                                            onValueChange = { raw ->
+                                                val normalized = normalizePersianDigits(raw)
+                                                autoDeleteDays = normalized.filter { c -> c.isDigit() }
+                                            },
                                             placeholder = stringResource(R.string.tpl_unlimited),
                                             keyboardType = KeyboardType.Number,
                                             leading = AppIcon.Delete
@@ -716,14 +731,20 @@ fun UserEditorDialog(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save),
                         modifier = Modifier.weight(0.65f),
                         onClick = {
-                            val expire = days.toIntOrNull()?.takeIf { it >= 0 }
+                            // نرمال‌سازی ارقام فارسی قبل از پارس - باگ اصلی که باعث نامحدود شدن می‌شد
+                            val normalizedDays = normalizePersianDigits(days)
+                            val normalizedLimit = normalizePersianDigits(limitGb)
+                            val normalizedHwid = normalizePersianDigits(hwid)
+                            val normalizedAutoDelete = normalizePersianDigits(autoDeleteDays)
+
+                            val expire = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }
                                 ?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) }
                                 ?: ""
-                            val hwidValue = hwid.toIntOrNull() ?: 0
+                            val hwidValue = normalizedHwid.toIntOrNull() ?: 0
                             val values = UserEditorValues(
-                                username, limitGb.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
+                                username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
                                 resetStrategy = resetStrategy,
-                                autoDeleteDays = autoDeleteDays.toIntOrNull(),
+                                autoDeleteDays = normalizedAutoDelete.toIntOrNull(),
                                 nextPlan = com.mrm.pgmanager.data.model.NextPlan(
                                     templateId = nextPlanTemplate,
                                     addRemainingTraffic = nextPlanCarry

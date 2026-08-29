@@ -76,7 +76,17 @@ fun QuickActionSheet(
                             MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                         }
-                        Box(Modifier.clip(DsRadius.Md).background(theme.accentPrimary.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(stringResource(if (user.status == "disabled") R.string.disabled else R.string.active), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        run {
+                            val (c, label) = when (user.status) {
+                                "active" -> GlassGreen to stringResource(R.string.active)
+                                "expired" -> GlassRed to stringResource(R.string.expired)
+                                "limited" -> GlassAmber to stringResource(R.string.limited)
+                                "disabled" -> Color(0xFF8A8A8A) to stringResource(R.string.disabled)
+                                "on_hold" -> DsSemantic.Violet to stringResource(R.string.on_hold)
+                                else -> theme.mutedColor to user.status
+                            }
+                            Box(Modifier.clip(DsRadius.Md).background(c.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = c) }
+                        }
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
