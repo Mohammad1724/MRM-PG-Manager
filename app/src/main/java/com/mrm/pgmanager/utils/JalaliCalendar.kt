@@ -79,10 +79,19 @@ object JalaliCalendar {
 
 private fun faNum(n: Long): String = n.toString().map { if (it in '0'..'9') ('۰' + (it - '0')) else it }.joinToString("")
 
-private fun parseOnlineMillis(raw: String?): Long? {
+/**
+ * ماژول‌محور (نه private) تا SessionStore هم بتواند همین منطقِ پارس را برای بازسازیِ isOnline از کش استفاده کند.
+ *
+ * هم‌راستا با fallbackِ `PanelApi.parseUser`: علاوه‌بر ISO-instant (با Z) و
+ * timestamp، حالتِ naive datetime (بدونِ timezone، مثلِ `"2024-01-15 10:30:00"`)
+ * را هم با `LocalDateTime` + zoneِ دستگاه پوشش می‌دهد — قبلاً این تابع فقط
+ * حالتِ اول و سوم را می‌فهمید و برای naive همیشه null برمی‌گرداند.
+ */
+internal fun parseOnlineMillis(raw: String?): Long? {
     if (raw.isNullOrBlank()) return null
     val s = raw.replace(" ", "T")
     runCatching { return java.time.Instant.parse(s).toEpochMilli() }
+    runCatching { return java.time.LocalDateTime.parse(s).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }
     runCatching { val ts = raw.trim().toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
     return null
 }
