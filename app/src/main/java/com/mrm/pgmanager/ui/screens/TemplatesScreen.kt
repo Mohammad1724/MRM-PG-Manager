@@ -62,6 +62,18 @@ private const val BYTES_PER_GB = 1_073_741_824L
 private const val SECONDS_PER_DAY = 86_400L
 
 /**
+ * بایت → رشتهٔ گیگابایتِ اعشاری، بدونِ صفرهای اضافه (۱ نه ۱٫۰۰، ۱٫۵ همان ۱٫۵).
+ *
+ * قبلاً همه‌جا از تقسیمِ صحیح (`it / BYTES_PER_GB`) استفاده می‌شد؛ برای حجم‌هایی
+ * که دقیقاً مضربِ گیگابایت نیستند (مثلاً تمپلتی که حجمش مستقیم از API/دیتابیس
+ * ۱٫۵ گیگ ست شده) این گرد به پایین می‌کرد و هم در خلاصهٔ فهرست و هم در فرمِ
+ * ویرایش، مقدارِ واقعی را اشتباه نشان می‌داد — و اگر کاربر بدونِ دست‌زدن به این
+ * فیلد ذخیره می‌کرد، حجمِ واقعیِ تمپلت بی‌سروصدا به عددِ گردشده کم می‌شد.
+ */
+private fun formatGbTrim(bytes: Long): String =
+    "%.2f".format(java.util.Locale.US, bytes / BYTES_PER_GB.toDouble()).trimEnd('0').trimEnd('.')
+
+/**
  * صفحهٔ مدیریت تمپلت‌های کاربر — فهرست، ساخت، ویرایش و حذف.
  *
  * چرا این صفحه لازم بود: اپ از قبل تمپلت‌ها را در پنج جا **مصرف** می‌کرد
@@ -379,7 +391,8 @@ private fun TemplateRow(
     val summary = remember(template, groups, unlimited, daysLabel, gbLabel) {
         val parts = mutableListOf<String>()
         parts += template.dataLimit
-            ?.let { "${it / BYTES_PER_GB} $gbLabel" }
+            // تقسیمِ اعشاری: تقسیمِ صحیح قبلی حجم‌های غیرِرندِ گیگابایتی (مثلاً ۱٫۵ گیگ) را به ۱ گیگ گرد می‌کرد.
+            ?.let { "${formatGbTrim(it)} $gbLabel" }
             ?: unlimited
         template.expireDuration?.takeIf { it > 0 }?.let { parts += "${it / SECONDS_PER_DAY} $daysLabel" }
         val names = template.groupIds.mapNotNull { id -> groups.firstOrNull { it.id == id }?.name }
@@ -465,7 +478,7 @@ private fun TemplateEditorDialog(
     var name by remember(initial.id) { mutableStateOf(initial.name) }
     // حجم و مدت در فرم گیگابایت/روز هستند؛ خالی یعنی نامحدود.
     var dataGb by remember(initial.id) {
-        mutableStateOf(initial.dataLimit?.let { (it / BYTES_PER_GB).toString() } ?: "")
+        mutableStateOf(initial.dataLimit?.let { formatGbTrim(it) } ?: "")
     }
     var days by remember(initial.id) {
         mutableStateOf(initial.expireDuration?.takeIf { it > 0 }?.let { (it / SECONDS_PER_DAY).toString() } ?: "")
@@ -489,7 +502,9 @@ private fun TemplateEditorDialog(
     var serverError by remember(initial.id) { mutableStateOf<String?>(null) }
 
     // تبدیلِ ورودی‌های فرم به واحدهای پنل — با نرمال‌سازی ارقام فارسی
-    val dataBytes = com.mrm.pgmanager.utils.normalizePersianDigits(dataGb).trim().toLongOrNull()?.times(BYTES_PER_GB)
+    // toDoubleOrNull به‌جای toLongOrNull تا مقدارِ اعشاری (۱٫۵ گیگ) هم پارس شود، نه فقط عددِ صحیح.
+    val dataBytes = com.mrm.pgmanager.utils.normalizePersianDigits(dataGb).trim().toDoubleOrNull()
+        ?.let { (it * BYTES_PER_GB).toLong() }
     val expireSeconds = com.mrm.pgmanager.utils.normalizePersianDigits(days).trim().toLongOrNull()?.times(SECONDS_PER_DAY)
     val onHoldSeconds = com.mrm.pgmanager.utils.normalizePersianDigits(onHoldDays).trim().toLongOrNull()?.times(SECONDS_PER_DAY)
 
@@ -577,8 +592,10 @@ private fun TemplateEditorDialog(
                             value = dataGb,
                             onValueChange = { raw ->
                                 val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
-                                dataGb = n.filter { c -> c.isDigit() }; touched = true; serverError = null
+                                // نقطه هم مجاز است تا حجمِ اعشاری (۱٫۵ گیگ) قابلِ واردکردن باشد.
+                                dataGb = n.filter { c -> c.isDigit() || c == '.' }; touched = true; serverError = null
                             },
+                            keyboardType = KeyboardType.Decimal,
                             placeholder = stringResource(R.string.tpl_unlimited)
                         )
                     }
