@@ -1,9 +1,3 @@
-// هشدارِ منسوخ‌بودن در سطحِ فایل خاموش شده چون تنها منشأش دو importِ
-// androidx.security است؛ خودِ آن پکیج «deprecated» شده ولی جایگزینِ رسمی ندارد
-// (توضیح کامل کنارِ ساختِ prefs). Kotlin راهی برای بی‌صداکردنِ هشدارِ import
-// جز سطحِ فایل ندارد.
-@file:Suppress("DEPRECATION")
-
 package com.mrm.pgmanager.data.storage
 
 import android.content.Context
@@ -17,6 +11,7 @@ import com.mrm.pgmanager.data.model.UsernamePattern
 import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.ui.theme.LampColor
 import com.mrm.pgmanager.ui.theme.ThemeState
+import com.mrm.pgmanager.utils.parseOnlineMillis
 
 class SessionStore(context: Context) {
     // androidx.security.crypto از نسخهٔ 1.1 «deprecated» علامت خورده ولی جایگزینِ
@@ -227,7 +222,14 @@ class SessionStore(context: Context) {
         prefs.edit().putString("users_cache", arr.toString()).putLong("users_cache_ts", System.currentTimeMillis()).apply()
     }
 
-    /** زوج (لیست کاربران، زمان کش)؛ null یعنی کش در دسترس نیست. isOnline همیشه false بازیابی می‌شود. */
+    /**
+     * زوج (لیست کاربران، زمان کش)؛ null یعنی کش در دسترس نیست.
+     *
+     * `isOnline` از روی `onlineAt` بازسازی می‌شود (همان آستانهٔ ۵ دقیقه‌ای که
+     * `PanelApi.parseUser` هنگام واکشیِ زنده استفاده می‌کند)، نه اینکه همیشه
+     * false باشد — قبلاً با هر بازیابیِ کش، نشانگرِ آنلاینِ همهٔ کاربران خاموش
+     * می‌شد حتی اگر لحظهٔ ذخیرهٔ کش واقعاً آنلاین بوده باشند.
+     */
     fun readUsersCache(): Pair<List<PanelUser>, Long>? {
         val raw = prefs.getString("users_cache", null) ?: return null
         val ts = prefs.getLong("users_cache_ts", 0L)
@@ -236,11 +238,16 @@ class SessionStore(context: Context) {
             val arr = org.json.JSONArray(raw)
             (0 until arr.length()).mapNotNull { i ->
                 val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                val onlineAt = o.optString("online_at").ifBlank { null }
+                // زمانِ مبنا برای «تازگی» خودِ لحظهٔ ذخیرهٔ کش است (ts)، نه اکنون؛
+                // وگرنه با گذشتِ ۵ دقیقه از ذخیرهٔ کش، حتی کاربرانی که *در لحظهٔ کش* آنلاین بودند هم آفلاین نشان داده می‌شدند.
+                val onlineMs = onlineAt?.let { parseOnlineMillis(it) }
+                val wasOnline = onlineMs != null && onlineMs > 0L && (ts - onlineMs) < 300_000L
                 PanelUser(
                     id = o.optLong("id"), username = o.optString("username"), status = o.optString("status"),
                     usedTraffic = o.optLong("used_traffic"), dataLimit = o.optLong("data_limit"),
                     expire = o.optString("expire").ifBlank { null }, createdAt = o.optString("created_at").ifBlank { null },
-                    subUrl = o.optString("sub_url"), onlineAt = o.optString("online_at").ifBlank { null }, isOnline = false,
+                    subUrl = o.optString("sub_url"), onlineAt = onlineAt, isOnline = wasOnline,
                     note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit") && !o.isNull("hwid_limit")) o.optInt("hwid_limit").takeIf { it > 0 } else null,
                     groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
                     groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
