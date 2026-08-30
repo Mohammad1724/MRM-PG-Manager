@@ -220,6 +220,9 @@ fun UserDetailsDialog(
     var templatesLoading by remember { mutableStateOf(false) }
     var templatesFailed by remember { mutableStateOf(false) }
     var billingOpen by remember { mutableStateOf(false) }
+    // بازشدن/بسته‌شدنِ کادرِ یادداشت — قبلاً برای دیدنِ متنِ کامل باید ویرایشگرِ
+    // کاربر (شیتِ جداگانه) باز می‌شد؛ حالا با یک ضربه همین‌جا باز/جمع می‌شود.
+    var noteExpanded by remember(user.id) { mutableStateOf(false) }
     var revokeConfirm by remember { mutableStateOf(false) }
     var moreOpen by remember { mutableStateOf(false) }
     var devicesResetConfirm by remember { mutableStateOf(false) }
@@ -750,17 +753,21 @@ fun UserDetailsDialog(
                     }
 
                     // ── توضیحاتِ کاربر (فقط اگر وجود داشته باشد)
+                    // با ضربه باز/جمع می‌شود؛ همیشه به‌صورتِ کامل در همینجا خوانده می‌شود
+                    // و دیگر نیازی به بازکردنِ شیتِ ویرایش فقط برای دیدنِ متنِ کامل نیست.
                     if (!currentUser.note.isNullOrBlank()) {
                         Row(
                             Modifier.fillMaxWidth().clip(DsRadius.Lg)
                                 .background(theme.searchBgColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                                .pressScale(0.985f)
+                                .clickable { noteExpanded = !noteExpanded }
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 15.dp)
-                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text(
                                     stringResource(R.string.ud_note),
                                     fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
@@ -768,9 +775,19 @@ fun UserDetailsDialog(
                                 Text(
                                     currentUser.note.orEmpty(),
                                     fontSize = 11.5.sp, color = theme.inkColor,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis
+                                    maxLines = if (noteExpanded) Int.MAX_VALUE else 2,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            val noteRotation by animateFloatAsState(
+                                targetValue = if (noteExpanded) 180f else 0f,
+                                animationSpec = DsAnim.normal(),
+                                label = "noteChevron"
+                            )
+                            RoundedAppIcon(
+                                AppIcon.ChevronDown, tint = theme.mutedColor, size = 14.dp,
+                                modifier = Modifier.graphicsLayer { rotationZ = noteRotation }
+                            )
                         }
                     }
                             }
