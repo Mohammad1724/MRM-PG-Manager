@@ -1076,6 +1076,7 @@ private fun NotePreviewCard(
  * - متنِ کاملِ یادداشت با قابلیتِ انتخاب و اسکرول
  * - دکمه‌های کپی و ویرایش
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun NotesSheetDialog(
     note: String,
@@ -1085,124 +1086,112 @@ private fun NotesSheetDialog(
     val theme = LocalThemeState.current
     val context = LocalContext.current
     val copiedMsg = stringResource(R.string.ud_note_copied)
-    // usePlatformDefaultWidth=false برای تمام‌عرض شدنِ شیت و جلوگیری از بریده‌شدنِ پس‌زمینه
-    // مثلِ عکسِ کاربر که شیت سفید وسطِ یک دیالوگِ کوچک گیر کرده بود
-    androidx.compose.ui.window.Dialog(
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    // ModalBottomSheet استاندارد Material3 — اسکریم، درگ، اینست‌ها خودکار
+    // مشکلِ عکسِ قبلی (فضای سیاهِ خالیِ بالا + دکمه‌های بریده) به خاطرِ Dialog تودرتو بود
+    androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true
-        )
-    ) {
-        // لایه‌ی ریشه تمام‌صفحه، bottom-aligned
-        Box(
-            Modifier.fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.45f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            // کارتِ شیت — روی scrim کلیک را مصرف می‌کند تا بسته نشود
-            Column(
-                Modifier.fillMaxWidth()
-                    .heightIn(max = 560.dp)
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(theme.dialogBgColor)
-                    .border(
-                        BorderStroke(DsBorder.Hairline, theme.borderColor),
-                        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                    )
-                    .clickable(enabled = false) {} // جلوگیری از انتشارِ کلیک به scrim
-                    .navigationBarsPadding()
-                    .imePadding()
+        sheetState = sheetState,
+        containerColor = theme.dialogBgColor,
+        contentColor = theme.inkColor,
+        tonalElevation = 0.dp,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = {
+            Box(
+                Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // دستگیره‌ی شیت
                 Box(
-                    Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp),
+                    Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full)
+                        .background(theme.borderColor)
+                )
+            }
+        }
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(bottom = 8.dp)
+        ) {
+            // هدر
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    Modifier.size(32.dp).clip(DsRadius.Md)
+                        .background(theme.accentPrimary.copy(0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full)
-                            .background(theme.borderColor)
-                    )
+                    RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 16.dp)
                 }
-                // هدر
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        Modifier.size(32.dp).clip(DsRadius.Md)
-                            .background(theme.accentPrimary.copy(0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 16.dp)
-                    }
+                Text(
+                    stringResource(R.string.ud_note_sheet_title),
+                    fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor,
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    Modifier.size(32.dp).clip(DsRadius.Full)
+                        .background(theme.searchBgColor)
+                        .pressScale(0.9f)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) { Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
+            }
+            Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
+            // متنِ کامل — قابلِ اسکرول و انتخاب، بدونِ weightِ مشکل‌ساز
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                androidx.compose.foundation.text.selection.SelectionContainer {
                     Text(
-                        stringResource(R.string.ud_note_sheet_title),
-                        fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor,
-                        modifier = Modifier.weight(1f)
+                        note.trim(),
+                        fontSize = 13.5.sp, color = theme.inkColor,
+                        lineHeight = 20.sp
                     )
-                    Box(
-                        Modifier.size(32.dp).clip(DsRadius.Full)
-                            .background(theme.searchBgColor)
-                            .pressScale(0.9f)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                 }
-                Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
-                // متنِ کامل — قابلِ اسکرول و انتخاب
-                Column(
-                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    androidx.compose.foundation.text.selection.SelectionContainer {
-                        Text(
-                            note.trim(),
-                            fontSize = 13.5.sp, color = theme.inkColor,
-                            lineHeight = 20.sp
-                        )
-                    }
-                }
-                // اکشن‌ها — با فاصله از navigation bar
+            }
+            // اکشن‌ها — همیشه دیده می‌شوند، بریده نمی‌شوند
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // کپی
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).padding(bottom = 6.dp),
+                    Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg)
+                        .background(theme.searchBgColor)
+                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+                        .pressScale(0.97f)
+                        .clickable {
+                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note))
+                            android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // کپی
-                    Row(
-                        Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg)
-                            .background(theme.searchBgColor)
-                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                            .pressScale(0.97f)
-                            .clickable {
-                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note))
-                                android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                            .padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RoundedAppIcon(AppIcon.Copy, tint = theme.mutedColor, size = 16.dp)
-                        Text(stringResource(R.string.ud_note_copy), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                    }
-                    // ویرایش
-                    Row(
-                        Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg)
-                            .background(theme.accentPrimary)
-                            .pressScale(0.97f)
-                            .clickable { onDismiss(); onEdit() }
-                            .padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 16.dp)
-                        Text(stringResource(R.string.ud_note_edit), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006))
-                    }
+                    RoundedAppIcon(AppIcon.Copy, tint = theme.mutedColor, size = 16.dp)
+                    Text(stringResource(R.string.ud_note_copy), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                }
+                // ویرایش
+                Row(
+                    Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg)
+                        .background(theme.accentPrimary)
+                        .pressScale(0.97f)
+                        .clickable { onDismiss(); onEdit() }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 16.dp)
+                    Text(stringResource(R.string.ud_note_edit), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006))
                 }
             }
         }
