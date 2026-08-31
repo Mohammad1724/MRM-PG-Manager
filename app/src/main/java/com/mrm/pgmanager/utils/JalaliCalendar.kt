@@ -50,21 +50,41 @@ object JalaliCalendar {
     }
     fun isoToShamsi(iso: String?): String {
         if (iso.isNullOrBlank() || iso == "0" || iso == "null") return ""
-        val parts = iso.take(10).split("-")
-        if (parts.size != 3) return iso.take(10)
-        val gy = parts[0].toIntOrNull() ?: return iso.take(10)
-        val gm = parts[1].toIntOrNull() ?: return iso.take(10)
-        val gd = parts[2].toIntOrNull() ?: return iso.take(10)
+        val normalized = normalizePersianDigits(iso).trim()
+        if (normalized.isBlank() || normalized == "0" || normalized == "null") return ""
+        val parts = normalized.take(10).split("-")
+        if (parts.size != 3) return normalized.take(10)
+        val gy = parts[0].toIntOrNull() ?: return normalized.take(10)
+        val gm = parts[1].toIntOrNull() ?: return normalized.take(10)
+        val gd = parts[2].toIntOrNull() ?: return normalized.take(10)
         return gregorianToJalali(gy, gm, gd).toString()
     }
     fun shamsiToIso(shamsi: String): String {
         if (shamsi.isBlank()) return ""
-        val clean = shamsi.replace("-", "/").split("/")
-        if (clean.size != 3) return shamsi
-        val jy = clean[0].toIntOrNull() ?: return shamsi
-        val jm = clean[1].toIntOrNull() ?: return shamsi
-        val jd = clean[2].toIntOrNull() ?: return shamsi
-        return jalaliToGregorian(jy, jm, jd)
+        val normalized = normalizePersianDigits(shamsi).trim()
+        if (normalized.isBlank()) return ""
+        // اگر ورودی از قبل میلادی است (yyyy-MM-dd) با سال ۱۹۰۰-۲۱۰۰، همان را برگردان
+        if (normalized.matches(Regex("\\d{4}-\\d{2}-\\d{2}.*"))) {
+            val y = normalized.take(4).toIntOrNull()
+            if (y != null && y in 1900..2100) return normalized.take(10)
+        }
+        if (normalized.matches(Regex("\\d{4}/\\d{2}/\\d{2}"))) {
+            val y = normalized.take(4).toIntOrNull()
+            if (y != null && y in 1900..2100) return normalized.replace("/", "-").take(10)
+        }
+        val clean = normalized.replace("-", "/").split("/")
+        if (clean.size != 3) return normalized
+        val jy = clean[0].toIntOrNull() ?: return normalized
+        val jm = clean[1].toIntOrNull() ?: return normalized
+        val jd = clean[2].toIntOrNull() ?: return normalized
+        // فقط اگر سال در بازه جلالی معتبر باشد تبدیل کن
+        return if (jy in 1300..1500 && jm in 1..12 && jd in 1..31) {
+            jalaliToGregorian(jy, jm, jd)
+        } else if (jy in 1900..2100) {
+            "%04d-%02d-%02d".format(jy, jm.coerceIn(1, 12), jd.coerceIn(1, 31))
+        } else {
+            normalized
+        }
     }
     fun todayJalali(): Date {
         val today = LocalDate.now()
@@ -72,7 +92,7 @@ object JalaliCalendar {
     }
     fun addDaysToIso(iso: String?, daysToAdd: Int): String {
         val baseDate = if (iso.isNullOrBlank() || iso == "0" || iso == "null") LocalDate.now()
-        else runCatching { LocalDate.parse(iso.take(10)) }.getOrDefault(LocalDate.now())
+        else runCatching { LocalDate.parse(normalizePersianDigits(iso).take(10)) }.getOrDefault(LocalDate.now())
         return baseDate.plusDays(daysToAdd.toLong()).toString()
     }
 }
@@ -89,10 +109,10 @@ private fun faNum(n: Long): String = n.toString().map { if (it in '0'..'9') ('۰
  */
 internal fun parseOnlineMillis(raw: String?): Long? {
     if (raw.isNullOrBlank()) return null
-    val s = raw.replace(" ", "T")
+    val s = normalizePersianDigits(raw).replace(" ", "T")
     runCatching { return java.time.Instant.parse(s).toEpochMilli() }
     runCatching { return java.time.LocalDateTime.parse(s).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }
-    runCatching { val ts = raw.trim().toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
+    runCatching { val ts = s.trim().toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
     return null
 }
 

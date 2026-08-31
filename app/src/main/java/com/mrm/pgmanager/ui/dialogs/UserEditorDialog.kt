@@ -385,7 +385,7 @@ fun UserEditorDialog(
                                         Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Full)
                                             .background(if (sel) theme.accentPrimary else Color.Transparent)
                                             .pressScale(0.96f)
-                                            .clickable { activeTab = index },
+                                            .clickable { activeTab = index; if (index == 0) selectedTemplate = null },
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.Center
                                     ) {
@@ -750,9 +750,13 @@ fun UserEditorDialog(
                                     addRemainingTraffic = nextPlanCarry
                                 )
                             )
-                            if (selectedTemplate != null && isCreating && onSaveWithTemplate != null) {
+                            // فقط اگر تبِ تمپلت فعال باشد، انتخابِ تمپلت اعمال شود
+                            // باگِ گزارش‌شده: وقتی کاربر از تبِ گروه‌ها روز را از ۶۰ به ۳۰ تغییر می‌داد،
+                            // چون selectedTemplate از قبل پر بود، به جای ذخیره‌ی دستی، تمپلت (نامحدود) اعمال می‌شد
+                            // و زمان نامحدود می‌شد — اسکرین‌شاتِ Abed_safari
+                            if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) {
                                 onSaveWithTemplate(username, selectedTemplate!!, note)
-                            } else if (selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) {
+                            } else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) {
                                 // در حالتِ ویرایش، انتخابِ قالب قبلاً بی‌اثر بود:
                                 // تبِ «قالب‌ها» اجازهٔ انتخاب می‌داد ولی موقعِ ذخیره
                                 // نادیده گرفته می‌شد. حالا قالب واقعاً روی کاربر
