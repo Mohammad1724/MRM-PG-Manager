@@ -737,8 +737,11 @@ fun UserEditorDialog(
                             val normalizedHwid = normalizePersianDigits(hwid)
                             val normalizedAutoDelete = normalizePersianDigits(autoDeleteDays)
 
+                            // مستقیم میلادی تولید می‌کنیم تا از باگِ رفت‌وبرگشتِ جلالی جلوگیری شود
+                            // قبلاً isoToShamsi می‌کردیم و بعد در UsersScreen دوباره shamsiToIso که برای میلادی اشتباه تبدیل می‌کرد
+                            // و گاهی خالی برمی‌گرداند -> نامحدود
                             val expire = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }
-                                ?.let { JalaliCalendar.isoToShamsi(LocalDate.now().plusDays(it.toLong()).toString()) }
+                                ?.let { LocalDate.now().plusDays(it.toLong()).toString() }
                                 ?: ""
                             val hwidValue = normalizedHwid.toIntOrNull() ?: 0
                             val values = UserEditorValues(
