@@ -901,4 +901,11 @@
     <string name="ue_auto_delete">حذف خودکار پس از انقضا (روز)</string>
     <string name="ue_auto_delete_hint">خالی یعنی هیچ‌وقت خودکار حذف نشود.</string>
     <string name="ud_more">جزئیات بیشتر</string>
+    <string name="ud_note_empty">بدون یادداشت</string>
+    <string name="ud_note_add">افزودن یادداشت</string>
+    <string name="ud_note_view_full">نمایش کامل</string>
+    <string name="ud_note_sheet_title">یادداشت</string>
+    <string name="ud_note_copy">کپی یادداشت</string>
+    <string name="ud_note_edit">ویرایش یادداشت</string>
+    <string name="ud_note_copied">یادداشت کپی شد</string>
 </resources>

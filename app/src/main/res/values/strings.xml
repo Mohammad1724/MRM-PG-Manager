@@ -901,4 +901,11 @@
     <string name="ue_auto_delete">Auto delete after expiry (days)</string>
     <string name="ue_auto_delete_hint">Empty means never delete automatically.</string>
     <string name="ud_more">More details</string>
+    <string name="ud_note_empty">No note</string>
+    <string name="ud_note_add">Add note</string>
+    <string name="ud_note_view_full">View full note</string>
+    <string name="ud_note_sheet_title">Note</string>
+    <string name="ud_note_copy">Copy note</string>
+    <string name="ud_note_edit">Edit note</string>
+    <string name="ud_note_copied">Note copied</string>
 </resources>
