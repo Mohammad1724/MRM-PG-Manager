@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,17 +42,13 @@ import java.time.LocalDate
 import java.util.Locale
 
 /* ──────────────────────────────────────────────────────────────────────────
- *  ساخت/ویرایش کاربر — هم‌زبانِ دیالوگِ جزئیات کاربر
- *
- *  همان سه‌لایه‌ای که در جزئیات پیاده شد اینجا هم برقرار است:
- *    ۱. سربرگِ ثابت (بیرونِ اسکرول)
- *    ۲. بدنهٔ اسکرول‌شونده، تقسیم‌شده به بخش‌های عنوان‌دار: هویت / پلن /
- *       پیشرفته / دسترسی
- *    ۳. نوارِ پایینِ ثابت برای انصراف و ذخیره — قبلاً با اسکرول بالا و پایین
- *       می‌رفت و در فرم‌های بلند باید تا ته اسکرول می‌کردی تا ذخیره را ببینی
- *
- *  همهٔ فیلدها و گزینه‌های قبلی سرجایشان هستند؛ فقط گروه‌بندی، وزنِ بصری و
- *  متن‌ها (که هاردکد بودند) درست شده‌اند.
+ *  ویرایش کاربر — نسخه فشرده داشبوردی v0.8.2
+ *  هم‌زبان با جزئیات جدید:
+ *  - هدر 28dp مربع گرد، بدون گرادینت
+ *  - کارت‌ها Md (نه Xl)، پدینگ 8dp
+ *  - فیلدها 32dp ارتفاع، فونت 12sp
+ *  - چیپ‌ها کوچک 26dp
+ *  - فاصله‌ها 8dp
  * ────────────────────────────────────────────────────────────────────────── */
 
 @Composable
@@ -62,12 +57,9 @@ fun UserEditorDialog(
     onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
     onToggle: (() -> Unit)?,
-    // نکته: حذف/صفرکردنِ مصرف/تمدید عمداً اینجا نیستند؛ آن‌ها کارِ دیالوگِ
-    // «جزئیات کاربر» هستند. قبلاً به‌عنوان پارامتر گرفته می‌شدند ولی هرگز صدا
-    // زده نمی‌شدند و فقط این تصور را می‌ساختند که ویرایشگر آن‌ها را انجام می‌دهد.
     onSaveWithTemplate: ((username: String, templateId: Int, note: String) -> Unit)? = null,
     onApplyTemplateToUser: ((templateId: Int, note: String) -> Unit)? = null,
-    session: com.mrm.pgmanager.data.model.Session? = null
+    session: Session? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -96,11 +88,9 @@ fun UserEditorDialog(
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
-    // پلنِ بعدی: کدام قالب، و آیا حجمِ باقی‌مانده منتقل شود.
     var nextPlanTemplate by remember { mutableStateOf(initial?.nextPlan?.templateId) }
     var nextPlanCarry by remember { mutableStateOf(initial?.nextPlan?.addRemainingTraffic ?: false) }
     var nextPlanMenu by remember { mutableStateOf(false) }
-    // دو فیلدی که پنل داشت و فرمِ اپ نه: استراتژیِ ریستِ حجم و حذفِ خودکار.
     var resetStrategy by remember { mutableStateOf(TemplateOptions.RESET_NO_RESET) }
     var autoDeleteDays by remember { mutableStateOf("") }
     var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
@@ -108,7 +98,7 @@ fun UserEditorDialog(
     var active by remember { mutableStateOf(initial?.status != "disabled") }
     var selectedTemplate by remember { mutableStateOf<Int?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
-    var activeTab by remember { mutableStateOf(0) } // 0 = گروه‌ها، 1 = تمپلت‌ها
+    var activeTab by remember { mutableStateOf(0) }
     var groupSearchQuery by remember { mutableStateOf("") }
     var advancedOpen by remember { mutableStateOf(!isCreating) }
 
@@ -124,382 +114,189 @@ fun UserEditorDialog(
     }
 
     val filteredGroups = remember(groups, groupSearchQuery) {
-        if (groupSearchQuery.isBlank()) groups
-        else groups.filter { it.name.contains(groupSearchQuery, ignoreCase = true) }
+        if (groupSearchQuery.isBlank()) groups else groups.filter { it.name.contains(groupSearchQuery, ignoreCase = true) }
     }
 
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Column(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 760.dp)
-                    .clip(DsRadius.Xxl)
-                    .background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
+                    .background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
             ) {
-                // ── ۱) سربرگِ ثابت
+                // هدر جدید 28dp
                 Row(
-                    Modifier.fillMaxWidth()
-                        .background(theme.cardSurfaceColor)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
-                        Modifier.size(36.dp).clip(DsRadius.Full)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(theme.accentPrimary.copy(0.30f), theme.accentPrimary.copy(0.12f))
-                                )
-                            )
-                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full),
+                        Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        RoundedAppIcon(
-                            if (isCreating) AppIcon.UserAdd else AppIcon.Edit,
-                            tint = theme.accentPrimary, size = 17.dp
-                        )
+                        RoundedAppIcon(if (isCreating) AppIcon.UserAdd else AppIcon.Edit, tint = theme.mutedColor, size = 14.dp)
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            stringResource(if (isCreating) R.string.ue_create_title else R.string.ue_edit_title),
-                            fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub),
-                            fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(stringResource(if (isCreating) R.string.ue_create_title else R.string.ue_edit_title), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Box(
-                        Modifier.size(28.dp).clip(DsRadius.Full)
-                            .background(theme.searchBgColor)
-                            .semantics { contentDescription = closeLabel }
-                            .pressScale(0.9f)
-                            .clickable(onClick = onDismiss),
+                        Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                            .semantics { contentDescription = closeLabel }.pressScale(0.9f).clickable(onClick = onDismiss),
                         contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
+                    ) { Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                 }
                 Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
 
-                // ── ۲) بدنه
                 Column(
-                    Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 14.dp)
-                        .padding(top = 10.dp, bottom = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp).padding(top = 10.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // ── هویت: نام کاربری + وضعیت
+                    // هویت
                     EditorSection(stringResource(R.string.ue_identity)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Column(Modifier.weight(0.62f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Column(Modifier.weight(0.60f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 FieldLabel(stringResource(R.string.ue_username))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                     if (isCreating) {
-                                        UserFormTextField(
-                                            value = username,
-                                            onValueChange = { username = it },
-                                            placeholder = stringResource(R.string.ue_username_hint),
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        UserFormTextField(value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
                                         Box(
-                                            Modifier.size(36.dp).clip(DsRadius.Md)
-                                                .background(theme.accentPrimary.copy(0.12f))
-                                                .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.30f)), DsRadius.Md)
-                                                .semantics { contentDescription = randomLabel }
-                                                .pressScale(0.92f)
+                                            Modifier.size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                                                .semantics { contentDescription = randomLabel }.pressScale(0.92f)
                                                 .clickable { username = store.readUsernamePattern().randomName() },
                                             contentAlignment = Alignment.Center
-                                        ) { RoundedAppIcon(AppIcon.Random, tint = theme.accentPrimary, size = 18.dp) }
+                                        ) { RoundedAppIcon(AppIcon.Random, tint = theme.mutedColor, size = 14.dp) }
                                     } else {
-                                        // نام کاربری بعد از ساخت قابل تغییر نیست (مثل پنل وب).
                                         Row(
-                                            Modifier.weight(1f).height(36.dp).clip(DsRadius.Md)
-                                                .background(theme.searchBgColor)
-                                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                                                .padding(horizontal = 12.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                            Modifier.weight(1f).height(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 13.dp)
-                                            MrmText(
-                                                initial?.username.orEmpty(),
-                                                fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                                                maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true
-                                            )
+                                            RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 11.dp)
+                                            MrmText(initial?.username.orEmpty(), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                                         }
                                     }
                                 }
                             }
-                            Column(Modifier.weight(0.38f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Column(Modifier.weight(0.40f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 FieldLabel(stringResource(R.string.ue_status))
                                 var statusMenuExpanded by remember { mutableStateOf(false) }
                                 val statusColor = if (active) GlassGreen else GlassRed
                                 Box {
                                     Row(
-                                        Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
-                                            .background(statusColor.copy(0.12f))
-                                            .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.32f)), DsRadius.Md)
-                                            .pressScale(0.96f)
-                                            .clickable { statusMenuExpanded = true }
-                                            .padding(horizontal = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(statusColor.copy(0.10f))
+                                            .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.25f)), DsRadius.Md).pressScale(0.96f)
+                                            .clickable { statusMenuExpanded = true }.padding(horizontal = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
-                                        Box(
-                                            Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(statusColor)
-                                        )
-                                        Text(
-                                            stringResource(if (active) R.string.active else R.string.disabled),
-                                            fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = statusColor,
-                                            modifier = Modifier.weight(1f), maxLines = 1
-                                        )
-                                        RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 13.dp)
+                                        Box(Modifier.size(5.dp).clip(RoundedCornerShape(50)).background(statusColor))
+                                        Text(stringResource(if (active) R.string.active else R.string.disabled), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
+                                        RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
-                                    DropdownMenu(
-                                        expanded = statusMenuExpanded,
-                                        onDismissRequest = { statusMenuExpanded = false },
-                                        modifier = Modifier.background(theme.cardSurfaceColor)
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    stringResource(R.string.active),
-                                                    color = GlassGreen, fontWeight = FontWeight.Bold
-                                                )
-                                            },
-                                            onClick = { active = true; statusMenuExpanded = false }
-                                        )
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    stringResource(R.string.disabled),
-                                                    color = GlassRed, fontWeight = FontWeight.Bold
-                                                )
-                                            },
-                                            onClick = { active = false; statusMenuExpanded = false }
-                                        )
+                                    DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { active = true; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { active = false; statusMenuExpanded = false })
                                     }
                                 }
                             }
                         }
                     }
 
-                    // ── پلن: حجم و انقضا، دو چیزی که همیشه تغییر می‌کنند
+                    // پلن
                     EditorSection(stringResource(R.string.ue_plan)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             FieldLabel(stringResource(R.string.ue_data_limit))
                             UserFormTextField(
                                 value = limitGb,
-                                onValueChange = { raw ->
-                                    val normalized = normalizePersianDigits(raw)
-                                    limitGb = normalized.filter { c -> c.isDigit() || c == '.' }
-                                },
+                                onValueChange = { raw -> val normalized = normalizePersianDigits(raw); limitGb = normalized.filter { c -> c.isDigit() || c == '.' } },
                                 placeholder = stringResource(R.string.ue_data_limit_hint),
-                                keyboardType = KeyboardType.Decimal,
-                                leading = AppIcon.Storage
+                                keyboardType = KeyboardType.Decimal, leading = AppIcon.Storage
                             )
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             FieldLabel(stringResource(R.string.ue_expiry))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 UserFormTextField(
-                                    value = days,
-                                    onValueChange = { raw ->
-                                        val normalized = normalizePersianDigits(raw)
-                                        days = normalized.filter { c -> c.isDigit() }
-                                    },
-                                    placeholder = stringResource(R.string.ue_expiry_hint),
-                                    keyboardType = KeyboardType.Number,
-                                    leading = AppIcon.Timer,
-                                    modifier = Modifier.weight(1f)
+                                    value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() } },
+                                    placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Timer, modifier = Modifier.weight(1f)
                                 )
                                 Box(
-                                    Modifier.size(36.dp).clip(DsRadius.Md)
-                                        .background(theme.accentPrimary.copy(0.12f))
-                                        .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.30f)), DsRadius.Md)
-                                        .semantics { contentDescription = pickDateLabel }
-                                        .pressScale(0.92f)
-                                        .clickable { showCalendar = true },
+                                    Modifier.size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                        .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                                        .semantics { contentDescription = pickDateLabel }.pressScale(0.92f).clickable { showCalendar = true },
                                     contentAlignment = Alignment.Center
-                                ) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 18.dp) }
+                                ) { RoundedAppIcon(AppIcon.Calendar, tint = theme.mutedColor, size = 14.dp) }
                             }
-                            // چیپ‌های افزودنِ سریع — کپسولی، هم‌شکلِ چیپ‌های اپ.
-                            Row(
-                                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
-                                        Modifier.clip(DsRadius.Full)
-                                            .background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
-                                            .pressScale(0.93f)
-                                            .clickable {
-                                                val current = normalizePersianDigits(days).toIntOrNull() ?: 0
-                                                days = (current + value).toString()
-                                            }
-                                            .padding(horizontal = 11.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            stringResource(R.string.ue_add_days, value),
-                                            fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
-                                        )
-                                    }
+                                        Modifier.height(26.dp).clip(DsRadius.Full).background(theme.searchBgColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
+                                            .clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString() }
+                                            .padding(horizontal = 9.dp), contentAlignment = Alignment.Center
+                                    ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                                 }
                             }
                         }
                     }
 
-                    // ── دسترسی: گروه‌ها / تمپلت‌ها
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    // دسترسی
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         EditorSectionLabel(stringResource(R.string.ue_access))
                         Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                                .background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // سگمنتِ کپسولی — هم‌شکلِ سگمنت‌های تنظیمات
                             Row(
-                                Modifier.fillMaxWidth().height(34.dp).clip(DsRadius.Full)
-                                    .background(theme.searchBgColor)
-                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
-                                    .padding(3.dp),
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                Modifier.fillMaxWidth().height(30.dp).clip(DsRadius.Full).background(theme.searchBgColor)
+                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                listOf(
-                                    stringResource(R.string.ue_groups) to AppIcon.Users,
-                                    stringResource(R.string.ue_templates) to AppIcon.Template
-                                ).forEachIndexed { index, (label, icon) ->
+                                listOf(stringResource(R.string.ue_groups) to AppIcon.Users, stringResource(R.string.ue_templates) to AppIcon.Template).forEachIndexed { index, (label, icon) ->
                                     val sel = activeTab == index
                                     Row(
-                                        Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Full)
-                                            .background(if (sel) theme.accentPrimary else Color.Transparent)
-                                            .pressScale(0.96f)
-                                            .clickable { activeTab = index; if (index == 0) selectedTemplate = null },
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                        Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Full).background(if (sel) theme.inkColor else Color.Transparent)
+                                            .pressScale(0.96f).clickable { activeTab = index; if (index == 0) selectedTemplate = null },
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
                                     ) {
-                                        RoundedAppIcon(
-                                            icon,
-                                            tint = if (sel) Color(0xFF422006) else theme.mutedColor,
-                                            size = 14.dp
-                                        )
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(
-                                            label, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                                            color = if (sel) Color(0xFF422006) else theme.mutedColor
-                                        )
+                                        RoundedAppIcon(icon, tint = if (sel) theme.cardSurfaceColor else theme.mutedColor, size = 12.dp)
+                                        Spacer(Modifier.width(5.dp))
+                                        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (sel) theme.cardSurfaceColor else theme.mutedColor)
                                         if (index == 0 && groupIds.isNotEmpty()) {
-                                            Spacer(Modifier.width(6.dp))
-                                            // شمارندهٔ گروه‌ها: قبلاً یک کپسولِ
-                                            // نیمه‌شفاف با پدینگِ افقی بود که کشیده
-                                            // و بدقواره می‌شد و عدد هم به‌خاطرِ
-                                            // فونت‌پدینگ وسط نمی‌نشست. حالا یک نشانِ
-                                            // توپرِ گرد است با عددِ دقیقاً وسط.
-                                            Box(
-                                                Modifier
-                                                    .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
-                                                    .clip(DsRadius.Full)
-                                                    .background(if (sel) Color(0xFF422006) else theme.accentPrimary)
-                                                    .padding(horizontal = 4.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    "${groupIds.size}",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = if (sel) theme.accentPrimary else Color(0xFF422006),
-                                                    maxLines = 1,
-                                                    style = TextStyle(
-                                                        platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                                                            includeFontPadding = false
-                                                        )
-                                                    )
-                                                )
+                                            Spacer(Modifier.width(5.dp))
+                                            Box(Modifier.defaultMinSize(minWidth = 14.dp, minHeight = 14.dp).clip(RoundedCornerShape(50)).background(if (sel) theme.cardSurfaceColor else theme.inkColor).padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
+                                                Text("${groupIds.size}", fontSize = 8.sp, fontWeight = FontWeight.ExtraBold, color = if (sel) theme.inkColor else theme.cardSurfaceColor, style = TextStyle(platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)))
                                             }
                                         }
                                     }
                                 }
                             }
 
-                            AnimatedContent(
-                                targetState = activeTab,
-                                transitionSpec = DsTransition.tabSwitch<Int>(activeTab == 1),
-                                label = "editorAccessTab"
-                            ) { tab ->
+                            AnimatedContent(targetState = activeTab, transitionSpec = DsTransition.tabSwitch<Int>(activeTab == 1), label = "editorAccessTab") { tab ->
                                 if (tab == 0) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                                        UserFormTextField(
-                                            value = groupSearchQuery,
-                                            onValueChange = { groupSearchQuery = it },
-                                            placeholder = stringResource(R.string.ue_search_groups),
-                                            leading = AppIcon.Search
-                                        )
-                                        if (filteredGroups.isEmpty()) {
-                                            EmptyHint(stringResource(R.string.ue_no_groups))
-                                        } else {
-                                            filteredGroups.forEach { g ->
-                                                val picked = groupIds.contains(g.id)
-                                                PickerRow(
-                                                    icon = AppIcon.Folder,
-                                                    label = g.name,
-                                                    selected = picked,
-                                                    onClick = {
-                                                        groupIds = if (picked) groupIds - g.id else groupIds + g.id
-                                                    }
-                                                ) {
-                                                    CheckboxIcon(selected = picked, onToggle = {
-                                                        groupIds = if (picked) groupIds - g.id else groupIds + g.id
-                                                    })
-                                                }
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        UserFormTextField(value = groupSearchQuery, onValueChange = { groupSearchQuery = it }, placeholder = stringResource(R.string.ue_search_groups), leading = AppIcon.Search)
+                                        if (filteredGroups.isEmpty()) EmptyHint(stringResource(R.string.ue_no_groups))
+                                        else filteredGroups.forEach { g ->
+                                            val picked = groupIds.contains(g.id)
+                                            PickerRow(icon = AppIcon.Folder, label = g.name, selected = picked, onClick = { groupIds = if (picked) groupIds - g.id else groupIds + g.id }) {
+                                                CheckboxIcon(selected = picked, onToggle = { groupIds = if (picked) groupIds - g.id else groupIds + g.id })
                                             }
                                         }
                                     }
                                 } else {
-                                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                                        if (templates.isEmpty()) {
-                                            EmptyHint(stringResource(R.string.ue_no_templates))
-                                        } else {
-                                            templates.forEach { t ->
-                                                val picked = selectedTemplate == t.id
-                                                PickerRow(
-                                                    icon = AppIcon.Template,
-                                                    label = t.name,
-                                                    selected = picked,
-                                                    onClick = {
-                                                        selectedTemplate = t.id
-                                                        t.dataLimit?.let {
-                                                            limitGb = "%.2f".format(Locale.US, it / 1073741824.0)
-                                                                .trimEnd('0').trimEnd('.')
-                                                        }
-                                                        t.expireDuration?.let { days = (it / 86400L).toString() }
-                                                    }
-                                                ) {
-                                                    androidx.compose.animation.AnimatedVisibility(
-                                                        visible = picked,
-                                                        enter = androidx.compose.animation.scaleIn(DsAnim.bouncy()) +
-                                                            androidx.compose.animation.fadeIn(DsAnim.fast()),
-                                                        exit = androidx.compose.animation.scaleOut(DsAnim.exit()) +
-                                                            androidx.compose.animation.fadeOut(DsAnim.exit())
-                                                    ) {
-                                                        Box(
-                                                            Modifier.size(18.dp).clip(RoundedCornerShape(50))
-                                                                .background(theme.accentPrimary),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            RoundedAppIcon(AppIcon.Check, tint = Color(0xFF422006), size = 11.dp)
-                                                        }
-                                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        if (templates.isEmpty()) EmptyHint(stringResource(R.string.ue_no_templates))
+                                        else templates.forEach { t ->
+                                            val picked = selectedTemplate == t.id
+                                            PickerRow(icon = AppIcon.Template, label = t.name, selected = picked, onClick = {
+                                                selectedTemplate = t.id
+                                                t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
+                                                t.expireDuration?.let { days = (it / 86400L).toString() }
+                                            }) {
+                                                androidx.compose.animation.AnimatedVisibility(visible = picked, enter = androidx.compose.animation.scaleIn(DsAnim.bouncy()) + androidx.compose.animation.fadeIn(DsAnim.fast()), exit = androidx.compose.animation.scaleOut(DsAnim.exit()) + androidx.compose.animation.fadeOut(DsAnim.exit())) {
+                                                    Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(theme.inkColor), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.cardSurfaceColor, size = 10.dp) }
                                                 }
                                             }
                                         }
@@ -509,204 +306,76 @@ fun UserEditorDialog(
                         }
                     }
 
-                    // ── پلنِ بعدی
-                    //
-                    // پنل این را دارد و اپ نداشت: پلنی که با تمام‌شدنِ حجم یا
-                    // روزهای فعلی، خودکار جایگزین می‌شود. اینجا از روی قالب‌ها
-                    // انتخاب می‌شود چون همان چیزی است که در عمل استفاده می‌شود.
                     if (templates.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             EditorSectionLabel(stringResource(R.string.ue_next_plan))
                             Column(
-                                Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                                    .background(theme.cardSurfaceColor)
-                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                                    .padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(stringResource(R.string.ue_next_plan_desc), fontSize = 10.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.ue_next_plan_desc), fontSize = 9.sp, color = theme.mutedColor)
                                 Box {
                                     Row(
-                                        Modifier.fillMaxWidth().heightIn(min = 38.dp).clip(DsRadius.Md)
-                                            .background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                                            .pressScale(0.98f)
-                                            .clickable { nextPlanMenu = true }
-                                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).pressScale(0.98f)
+                                            .clickable { nextPlanMenu = true }.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 15.dp)
-                                        Text(
-                                            templates.firstOrNull { it.id == nextPlanTemplate }?.name
-                                                ?: stringResource(R.string.ue_next_plan_none),
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text("▾", fontSize = 10.sp, color = theme.mutedColor)
+                                        RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 12.dp)
+                                        Text(templates.firstOrNull { it.id == nextPlanTemplate }?.name ?: stringResource(R.string.ue_next_plan_none), fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        Text("▾", fontSize = 9.sp, color = theme.mutedColor)
                                     }
                                     DropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 12.sp) },
-                                            onClick = { nextPlanTemplate = null; nextPlanMenu = false }
-                                        )
-                                        templates.forEach { t ->
-                                            DropdownMenuItem(
-                                                text = { Text(t.name, fontSize = 12.sp) },
-                                                onClick = { nextPlanTemplate = t.id; nextPlanMenu = false }
-                                            )
-                                        }
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanMenu = false })
+                                        templates.forEach { t -> DropdownMenuItem(text = { Text(t.name, fontSize = 11.sp) }, onClick = { nextPlanTemplate = t.id; nextPlanMenu = false }) }
                                     }
                                 }
                                 if (nextPlanTemplate != null) {
-                                    Row(
-                                        Modifier.fillMaxWidth().clip(DsRadius.Md)
-                                            .pressScale(0.99f)
-                                            .clickable { nextPlanCarry = !nextPlanCarry }
-                                            .padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
+                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).pressScale(0.99f).clickable { nextPlanCarry = !nextPlanCarry }.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         CheckboxIcon(selected = nextPlanCarry, onToggle = { nextPlanCarry = !nextPlanCarry })
-                                        Text(
-                                            stringResource(R.string.ue_next_plan_carry),
-                                            fontSize = 11.sp, color = theme.inkColor, modifier = Modifier.weight(1f)
-                                        )
+                                        Text(stringResource(R.string.ue_next_plan_carry), fontSize = 10.sp, color = theme.inkColor, modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
                         }
                     }
 
-                    // ── پیشرفته: جمع‌شونده و بعد از «دسترسی»، چون گروه/قالب
-                    // چیزی است که تقریباً همیشه تنظیم می‌شود و «پیشرفته» فقط
-                    // گاهی؛ پرکاربردتر باید بالاتر بنشیند.
-                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         EditorSectionLabel(stringResource(R.string.ue_advanced))
                         Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                                .background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                                .padding(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Lg)
-                                    .pressScale(0.985f)
-                                    .clickable { advancedOpen = !advancedOpen }
-                                    .padding(horizontal = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(9.dp)
+                                Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).pressScale(0.985f).clickable { advancedOpen = !advancedOpen }.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
-                                RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 16.dp)
-                                Text(
-                                    stringResource(R.string.ue_advanced),
-                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                                    color = theme.inkColor, modifier = Modifier.weight(1f)
-                                )
-                                val rot by animateFloatAsState(
-                                    targetValue = if (advancedOpen) 180f else 0f,
-                                    animationSpec = DsAnim.normal(), label = "advChevron"
-                                )
-                                RoundedAppIcon(
-                                    AppIcon.ChevronDown, tint = theme.mutedColor, size = 15.dp,
-                                    modifier = Modifier.graphicsLayer { rotationZ = rot }
-                                )
+                                RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
+                                Text(stringResource(R.string.ue_advanced), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                val rot by animateFloatAsState(targetValue = if (advancedOpen) 180f else 0f, animationSpec = DsAnim.normal(), label = "advChevron")
+                                RoundedAppIcon(AppIcon.ChevronDown, tint = theme.mutedColor, size = 12.dp, modifier = Modifier.graphicsLayer { rotationZ = rot })
                             }
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = advancedOpen,
-                                enter = DsTransition.expandEnter,
-                                exit = DsTransition.expandExit
-                            ) {
-                                Column(
-                                    Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            androidx.compose.animation.AnimatedVisibility(visible = advancedOpen, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
+                                Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_hwid))
-                                        UserFormTextField(
-                                            value = hwid,
-                                            onValueChange = { raw ->
-                                                val normalized = normalizePersianDigits(raw)
-                                                hwid = normalized.filter { c -> c.isDigit() }
-                                            },
-                                            placeholder = stringResource(R.string.ue_hwid_hint),
-                                            keyboardType = KeyboardType.Number,
-                                            leading = AppIcon.Device
-                                        )
-                                        Text(
-                                            stringResource(R.string.ue_hwid_help),
-                                            fontSize = 9.sp, color = theme.mutedColor,
-                                            modifier = Modifier.padding(start = 2.dp)
-                                        )
+                                        UserFormTextField(value = hwid, onValueChange = { raw -> val n = normalizePersianDigits(raw); hwid = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.ue_hwid_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Device)
+                                        Text(stringResource(R.string.ue_hwid_help), fontSize = 8.5.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_reset_strategy))
-                                        ChipSelector(
-                                            values = TemplateOptions.RESET_STRATEGIES,
-                                            labels = listOf(
-                                                stringResource(R.string.tpl_reset_no_reset),
-                                                stringResource(R.string.tpl_reset_day),
-                                                stringResource(R.string.tpl_reset_week),
-                                                stringResource(R.string.tpl_reset_month),
-                                                stringResource(R.string.tpl_reset_year)
-                                            ),
-                                            selected = resetStrategy,
-                                            onSelect = { resetStrategy = it }
-                                        )
+                                        ChipSelector(values = TemplateOptions.RESET_STRATEGIES, labels = listOf(stringResource(R.string.tpl_reset_no_reset), stringResource(R.string.tpl_reset_day), stringResource(R.string.tpl_reset_week), stringResource(R.string.tpl_reset_month), stringResource(R.string.tpl_reset_year)), selected = resetStrategy, onSelect = { resetStrategy = it })
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_auto_delete))
-                                        UserFormTextField(
-                                            value = autoDeleteDays,
-                                            onValueChange = { raw ->
-                                                val normalized = normalizePersianDigits(raw)
-                                                autoDeleteDays = normalized.filter { c -> c.isDigit() }
-                                            },
-                                            placeholder = stringResource(R.string.tpl_unlimited),
-                                            keyboardType = KeyboardType.Number,
-                                            leading = AppIcon.Delete
-                                        )
-                                        Text(
-                                            stringResource(R.string.ue_auto_delete_hint),
-                                            fontSize = 9.sp, color = theme.mutedColor,
-                                            modifier = Modifier.padding(start = 2.dp)
-                                        )
+                                        UserFormTextField(value = autoDeleteDays, onValueChange = { raw -> val n = normalizePersianDigits(raw); autoDeleteDays = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.tpl_unlimited), keyboardType = KeyboardType.Number, leading = AppIcon.Delete)
+                                        Text(stringResource(R.string.ue_auto_delete_hint), fontSize = 8.5.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_note))
-                                        UserFormTextField(
-                                            value = note,
-                                            onValueChange = { note = it.take(500) },
-                                            placeholder = stringResource(R.string.ue_note_hint),
-                                            singleLine = false,
-                                            modifier = Modifier.height(58.dp)
-                                        )
-                                    }
-                                    // ردیفِ تنظیماتِ پروکسی (نمایشی — مدیریتش در پنل است)
-                                    Row(
-                                        Modifier.fillMaxWidth().clip(DsRadius.Lg)
-                                            .background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                            .padding(horizontal = 10.dp, vertical = 7.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(9.dp)
-                                    ) {
-                                        RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 15.dp)
-                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            Text(
-                                                stringResource(R.string.ue_proxy),
-                                                fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
-                                            )
-                                            Text(
-                                                stringResource(R.string.ue_proxy_hint),
-                                                fontSize = 9.sp, color = theme.mutedColor
-                                            )
-                                        }
+                                        UserFormTextField(value = note, onValueChange = { note = it.take(500) }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.height(52.dp))
                                     }
                                 }
                             }
@@ -714,62 +383,24 @@ fun UserEditorDialog(
                     }
                 }
 
-                // ── ۳) نوارِ پایینِ ثابت
                 Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
-                Row(
-                    Modifier.fillMaxWidth()
-                        .background(theme.cardSurfaceColor)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    SecondaryButton(
-                        text = stringResource(R.string.ue_cancel),
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(0.35f)
-                    )
+                Row(Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
                     PrimaryButton(
-                        text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save),
-                        modifier = Modifier.weight(0.65f),
+                        text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
                         onClick = {
-                            // نرمال‌سازی ارقام فارسی قبل از پارس - باگ اصلی که باعث نامحدود شدن می‌شد
                             val normalizedDays = normalizePersianDigits(days)
                             val normalizedLimit = normalizePersianDigits(limitGb)
                             val normalizedHwid = normalizePersianDigits(hwid)
                             val normalizedAutoDelete = normalizePersianDigits(autoDeleteDays)
-
-                            // مستقیم میلادی تولید می‌کنیم تا از باگِ رفت‌وبرگشتِ جلالی جلوگیری شود
-                            // قبلاً isoToShamsi می‌کردیم و بعد در UsersScreen دوباره shamsiToIso که برای میلادی اشتباه تبدیل می‌کرد
-                            // و گاهی خالی برمی‌گرداند -> نامحدود
-                            val expire = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }
-                                ?.let { LocalDate.now().plusDays(it.toLong()).toString() }
-                                ?: ""
+                            val expire = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: ""
                             val hwidValue = normalizedHwid.toIntOrNull() ?: 0
-                            val values = UserEditorValues(
-                                username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
-                                resetStrategy = resetStrategy,
-                                autoDeleteDays = normalizedAutoDelete.toIntOrNull(),
-                                nextPlan = com.mrm.pgmanager.data.model.NextPlan(
-                                    templateId = nextPlanTemplate,
-                                    addRemainingTraffic = nextPlanCarry
-                                )
-                            )
-                            // فقط اگر تبِ تمپلت فعال باشد، انتخابِ تمپلت اعمال شود
-                            // باگِ گزارش‌شده: وقتی کاربر از تبِ گروه‌ها روز را از ۶۰ به ۳۰ تغییر می‌داد،
-                            // چون selectedTemplate از قبل پر بود، به جای ذخیره‌ی دستی، تمپلت (نامحدود) اعمال می‌شد
-                            // و زمان نامحدود می‌شد — اسکرین‌شاتِ Abed_safari
-                            if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) {
-                                onSaveWithTemplate(username, selectedTemplate!!, note)
-                            } else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) {
-                                // در حالتِ ویرایش، انتخابِ قالب قبلاً بی‌اثر بود:
-                                // تبِ «قالب‌ها» اجازهٔ انتخاب می‌داد ولی موقعِ ذخیره
-                                // نادیده گرفته می‌شد. حالا قالب واقعاً روی کاربر
-                                // اعمال می‌شود — همان کارِ دکمهٔ «قالب» در جزئیات.
-                                onApplyTemplateToUser(selectedTemplate!!, note)
-                            } else {
+                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetStrategy, autoDeleteDays = normalizedAutoDelete.toIntOrNull(), nextPlan = NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry))
+                            if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) onSaveWithTemplate(username, selectedTemplate!!, note)
+                            else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) onApplyTemplateToUser(selectedTemplate!!, note)
+                            else {
                                 onSave(values, expire)
-                                if (initial != null && active != (initial.status != "disabled")) {
-                                    onToggle?.invoke()
-                                }
+                                if (initial != null && active != (initial.status != "disabled")) onToggle?.invoke()
                             }
                         }
                     )
@@ -779,174 +410,68 @@ fun UserEditorDialog(
     }
 
     if (showCalendar) {
-        ShamsiCalendarPickerDialog(
-            initialDateShamsi = JalaliCalendar.todayJalali().toString(),
-            onDismiss = { showCalendar = false }
-        ) { shamsi ->
-            days = runCatching {
-                java.time.temporal.ChronoUnit.DAYS.between(
-                    LocalDate.now(),
-                    LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))
-                ).coerceAtLeast(0L).toString()
-            }.getOrDefault("")
+        ShamsiCalendarPickerDialog(initialDateShamsi = JalaliCalendar.todayJalali().toString(), onDismiss = { showCalendar = false }) { shamsi ->
+            days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("")
         }
     }
 }
 
-/** عنوانِ کوچکِ بالای هر بخش — هم‌شکلِ دیالوگِ جزئیات کاربر. */
 @Composable
 private fun EditorSectionLabel(text: String) {
-    Text(
-        text,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        color = LocalThemeState.current.mutedColor,
-        modifier = Modifier.padding(start = 4.dp)
-    )
+    Text(text, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.7f), letterSpacing = 0.3.sp, modifier = Modifier.padding(start = 2.dp))
 }
 
-/** یک بخشِ کارت‌شده با عنوان. */
 @Composable
 private fun EditorSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     val theme = LocalThemeState.current
-    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         EditorSectionLabel(title)
-        Column(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                .background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp),
-            content = content
-        )
+        Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(8.dp), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
     }
 }
 
-/** برچسبِ بالای هر فیلد. */
 @Composable
 private fun FieldLabel(text: String) {
-    Text(
-        text,
-        fontSize = 10.5.sp,
-        fontWeight = FontWeight.Bold,
-        color = LocalThemeState.current.mutedColor
-    )
+    Text(text, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.8f))
 }
 
-/** پیامِ «چیزی نیست» با فاصله‌گذاریِ درست به‌جای متنِ لخت. */
 @Composable
 private fun EmptyHint(text: String) {
     val theme = LocalThemeState.current
-    Box(
-        Modifier.fillMaxWidth().clip(DsRadius.Lg)
-            .background(theme.searchBgColor)
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
-    ) { Text(text, fontSize = 11.sp, color = theme.mutedColor) }
+    Box(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).padding(vertical = 10.dp), contentAlignment = Alignment.Center) { Text(text, fontSize = 10.sp, color = theme.mutedColor) }
 }
 
-/** ردیفِ انتخابِ گروه/تمپلت. */
 @Composable
-private fun PickerRow(
-    icon: AppIcon,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    trailing: @Composable () -> Unit
-) {
+private fun PickerRow(icon: AppIcon, label: String, selected: Boolean, onClick: () -> Unit, trailing: @Composable () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Lg)
-            .background(if (selected) theme.accentPrimary.copy(0.12f) else theme.searchBgColor)
-            .border(
-                BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(0.40f) else theme.borderColor),
-                DsRadius.Lg
-            )
-            .pressScale(0.98f)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md).background(if (selected) theme.inkColor.copy(0.06f) else theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, if (selected) theme.inkColor.copy(0.15f) else theme.borderColor), DsRadius.Md).pressScale(0.98f).clickable(onClick = onClick).padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        RoundedAppIcon(icon, tint = if (selected) theme.accentPrimary else theme.mutedColor, size = 15.dp)
-        Text(
-            label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = theme.inkColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
+        RoundedAppIcon(icon, tint = if (selected) theme.inkColor else theme.mutedColor, size = 13.dp)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         trailing()
     }
 }
 
-/**
- * فیلدِ متنیِ فرم.
- *
- * ⚠️ همان باگِ هم‌ترازیِ کِرسر که در صفحهٔ ورود گرفته شد اینجا هم بود: متنِ
- * راهنما `lineHeight` را از LocalTextStyle (۲۴sp) ارث می‌برد در حالی که
- * استایلِ فیلد lineHeight نداشت، پس کِرسر بالاتر از راهنما می‌نشست. حالا هر
- * دو از یک استایلِ واحد تغذیه می‌شوند و داخلِ یک Box وسط‌چین قرار دارند.
- */
 @Composable
-private fun UserFormTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    singleLine: Boolean = true,
-    leading: AppIcon? = null
-) {
+private fun UserFormTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, keyboardType: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, leading: AppIcon? = null) {
     val theme = LocalThemeState.current
     var isFocused by remember { mutableStateOf(false) }
-    val borderColor by androidx.compose.animation.animateColorAsState(
-        targetValue = if (isFocused) theme.accentPrimary else theme.borderColor,
-        animationSpec = DsAnim.fast(), label = "fieldBorder"
-    )
-    val fieldStyle = TextStyle(
-        fontSize = 13.sp,
-        lineHeight = 16.sp,
-        color = theme.inkColor,
-        fontWeight = FontWeight.Medium
-    )
+    val borderColor by androidx.compose.animation.animateColorAsState(targetValue = if (isFocused) theme.inkColor.copy(0.3f) else theme.borderColor, animationSpec = DsAnim.fast(), label = "fieldBorder")
+    val fieldStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(if (singleLine) 36.dp else Dp.Unspecified)
-            .clip(DsRadius.Md)
-            .background(theme.searchBgColor)
-            .border(BorderStroke(if (isFocused) 1.2.dp else DsBorder.Hairline, borderColor), DsRadius.Md)
-            .padding(horizontal = 12.dp, vertical = if (singleLine) 0.dp else 10.dp),
-        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxWidth().height(if (singleLine) 32.dp else Dp.Unspecified).clip(DsRadius.Md).background(theme.searchBgColor)
+            .border(BorderStroke(if (isFocused) 1.dp else DsBorder.Hairline, borderColor), DsRadius.Md).padding(horizontal = 10.dp, vertical = if (singleLine) 0.dp else 8.dp),
+        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        if (leading != null) RoundedAppIcon(leading, tint = theme.mutedColor, size = 14.dp)
+        if (leading != null) RoundedAppIcon(leading, tint = theme.mutedColor, size = 12.dp)
         BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = singleLine,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            textStyle = fieldStyle,
-            cursorBrush = SolidColor(theme.accentPrimary),
-            modifier = Modifier
-                .weight(1f)
-                .onFocusChanged { isFocused = it.isFocused },
-            decorationBox = { inner ->
-                Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) {
-                    if (value.isEmpty()) {
-                        Text(
-                            placeholder,
-                            style = fieldStyle.copy(color = theme.mutedColor.copy(0.6f)),
-                            maxLines = if (singleLine) 1 else 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    inner()
-                }
-            }
+            value = value, onValueChange = onValueChange, singleLine = singleLine,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType), textStyle = fieldStyle, cursorBrush = SolidColor(theme.inkColor),
+            modifier = Modifier.weight(1f).onFocusChanged { isFocused = it.isFocused },
+            decorationBox = { inner -> Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) { if (value.isEmpty()) Text(placeholder, style = fieldStyle.copy(color = theme.mutedColor.copy(0.5f)), maxLines = if (singleLine) 1 else 2, overflow = TextOverflow.Ellipsis); inner() } }
         )
     }
 }
