@@ -14,12 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -39,24 +37,6 @@ import com.mrm.pgmanager.ui.theme.*
 import com.mrm.pgmanager.utils.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-
-/* ──────────────────────────────────────────────────────────────────────────
- *  دیالوگ جزئیات کاربر — نسخه داشبوردی (v0.8.0)
- *
- *  هدف: خلوت کردن صفحه شلوغ قبلی
- *  - قبل: 6 کاشی رنگی + 2 بخش جمع‌شونده + هیرو + اشتراک همه با یک وزن
- *  - الان: یک قهرمان دایره‌ای وسط، بقیه سلسله‌مراتب‌دار
- *
- *  لایه‌ها:
- *   1. هدر مینیمال (آواتار 40dp، نام، وضعیت)
- *   2. هیرو دایره‌ای: دایره مصرف 140dp وسط، داخلش درصد + استفاده شده
- *   3. دو آمار کوچک زیر دایره (زمان باقی‌مانده، حجم باقی‌مانده)
- *   4. کارت اشتراک جمع‌وجور (یک ردیف)
- *   5. نوت اگر باشد (کارت کوچک)
- *   6. اکشن اصلی: ویرایش تمام عرض، پررنگ
- *   7. اکشن‌های ثانویه: گرید 4 تایی با آیکون خاکستری، پس‌زمینه خنثی
- *   8. اطلاعات تکمیلی + دستگاه‌ها + مالی: لیست ساده، بدون رنگ اضافه
- * ────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun daysLeftLabel(expire: String?): String {
@@ -79,14 +59,15 @@ private fun daysLeftLabel(expire: String?): String {
 private fun SectionLabel(text: String) {
     Text(
         text,
-        fontSize = 10.sp,
+        fontSize = 9.5.sp,
         fontWeight = FontWeight.Bold,
-        color = LocalThemeState.current.mutedColor.copy(alpha = 0.8f),
-        letterSpacing = 0.5.sp,
-        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        color = LocalThemeState.current.mutedColor.copy(alpha = 0.7f),
+        letterSpacing = 0.4.sp,
+        modifier = Modifier.padding(start = 2.dp, bottom = 1.dp)
     )
 }
 
+// دایره کوچک‌تر: 100dp به‌جای 148dp
 @Composable
 private fun CircularUsage(
     percentage: Int,
@@ -101,15 +82,11 @@ private fun CircularUsage(
         animationSpec = DsAnim.enter(),
         label = "circular"
     )
-    Box(
-        modifier = Modifier.size(148.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // پس‌زمینه دایره
+    Box(modifier = Modifier.size(100.dp), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 10.dp.toPx()
+            val stroke = 6.dp.toPx()
             drawArc(
-                color = if (theme.isDark) Color.White.copy(0.08f) else Color(0xFFE9EBEF),
+                color = if (theme.isDark) Color.White.copy(0.07f) else Color(0xFFE9EBEF),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -117,9 +94,7 @@ private fun CircularUsage(
             )
             if (animated > 0f) {
                 drawArc(
-                    brush = Brush.sweepGradient(
-                        listOf(color.copy(0.7f), color, color.copy(0.9f))
-                    ),
+                    brush = Brush.sweepGradient(listOf(color.copy(0.7f), color)),
                     startAngle = -90f,
                     sweepAngle = 360f * animated,
                     useCenter = false,
@@ -127,32 +102,15 @@ private fun CircularUsage(
                 )
             }
         }
-        // محتوای وسط
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                if (unlimited) "∞" else "$percentage%",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = color
-            )
-            Spacer(Modifier.height(2.dp))
-            MrmText(
-                usedLabel,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = theme.inkColor,
-                isTechnical = true
-            )
-            MrmText(
-                "/ $totalLabel",
-                fontSize = 9.5.sp,
-                color = theme.mutedColor,
-                isTechnical = true
-            )
+            Text(if (unlimited) "∞" else "$percentage%", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
+            MrmText(usedLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
+            MrmText("/ $totalLabel", fontSize = 8.sp, color = theme.mutedColor, isTechnical = true)
         }
     }
 }
 
+// خیلی کوچک‌تر: چیپ 32dp ارتفاع، ردیفی
 @Composable
 private fun MiniStat(
     icon: AppIcon,
@@ -161,18 +119,21 @@ private fun MiniStat(
     modifier: Modifier = Modifier
 ) {
     val theme = LocalThemeState.current
-    Column(
+    Row(
         modifier
-            .clip(DsRadius.Lg)
+            .height(32.dp)
+            .clip(DsRadius.Md)
             .background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        RoundedAppIcon(icon, tint = theme.mutedColor, size = 14.dp)
-        Text(label, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        MrmText(value, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, textAlign = TextAlign.Center)
+        RoundedAppIcon(icon, tint = theme.mutedColor, size = 11.dp)
+        Column(verticalArrangement = Arrangement.Center) {
+            Text(label, fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1, lineHeight = 8.sp)
+            MrmText(value, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+        }
     }
 }
 
@@ -182,41 +143,41 @@ private fun CompactAction(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color? = null
+    tint: Color? = null,
+    isDestructive: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val bg = when {
+        isDestructive -> GlassRed.copy(0.10f)
+        else -> theme.searchBgColor
+    }
+    val border = when {
+        isDestructive -> GlassRed.copy(0.18f)
+        else -> theme.borderColor
+    }
     Column(
         modifier
-            .clip(DsRadius.Lg)
-            .background(theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .clip(DsRadius.Md)
+            .background(bg)
+            .border(BorderStroke(DsBorder.Hairline, border), DsRadius.Md)
             .pressScale(0.96f)
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = 8.dp, horizontal = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Box(
-            Modifier.size(32.dp).clip(CircleShape).background(theme.cardSurfaceColor),
-            contentAlignment = Alignment.Center
-        ) {
-            RoundedAppIcon(icon, tint = tint ?: theme.inkColor, size = 16.dp)
-        }
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        RoundedAppIcon(icon, tint = tint ?: if (isDestructive) GlassRed else theme.inkColor, size = 14.dp)
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDestructive) GlassRed else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun InfoRow(icon: AppIcon, label: String, value: String, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
-    Row(
-        modifier.fillMaxWidth().padding(vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        RoundedAppIcon(icon, tint = theme.mutedColor, size = 14.dp)
-        Text(label, fontSize = 10.5.sp, color = theme.mutedColor, modifier = Modifier.width(72.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        MrmText(value, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+    Row(modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        RoundedAppIcon(icon, tint = theme.mutedColor, size = 12.dp)
+        Text(label, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.width(64.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        MrmText(value, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
 }
 
@@ -271,11 +232,8 @@ fun UserDetailsDialog(
         if (currentUser.subUrl.isNotBlank()) onResult(currentUser.subUrl)
         else if (session != null) {
             scope.launch {
-                runCatching { PanelApi.user(session, currentUser.username) }.onSuccess {
-                    currentUser = it; onResult(it.subUrl)
-                }.onFailure {
-                    android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show()
-                }
+                runCatching { PanelApi.user(session, currentUser.username) }.onSuccess { currentUser = it; onResult(it.subUrl) }
+                    .onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() }
             }
         } else onResult(currentUser.subUrl)
     }
@@ -301,259 +259,169 @@ fun UserDetailsDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 760.dp).clip(DsRadius.Xxl)
-                    .background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-            ) {
-                // ── هدر مینیمال
+            Column(Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)) {
+                // ── هدر جدید: آواتار مینیمال 28dp بدون گرادینت
                 Row(
-                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                        Box(
-                            Modifier.size(40.dp).clip(CircleShape)
-                                .background(Brush.verticalGradient(listOf(theme.accentPrimary.copy(0.28f), theme.accentPrimary.copy(0.10f))))
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(currentUser.username.take(1).uppercase(), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+                    // آواتار جدید: مربع گرد 28dp با پس‌زمینه خنثی + حرف اول کوچک
+                    Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                        Text(currentUser.username.take(1).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            MrmText(currentUser.username, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                            if (currentUser.isOnline) Box(Modifier.size(6.dp).clip(CircleShape).background(GlassGreen))
                         }
-                        if (currentUser.isOnline) {
-                            Box(Modifier.align(Alignment.BottomEnd).size(12.dp).clip(CircleShape).background(theme.cardSurfaceColor), contentAlignment = Alignment.Center) {
-                                Box(Modifier.size(8.dp).clip(CircleShape).background(GlassGreen))
-                            }
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(5.dp).clip(CircleShape).background(statusColor))
+                            Text(statusLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = statusColor)
+                            Text("·", fontSize = 9.sp, color = theme.mutedColor)
+                            MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                         }
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        MrmText(currentUser.username, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(6.dp).clip(CircleShape).background(statusColor))
-                            Text(statusLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor)
-                            Text("·", fontSize = 10.sp, color = theme.mutedColor)
-                            MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 10.5.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
-                        }
+                    Box(Modifier.size(28.dp).clip(CircleShape).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+                        Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
-                    Box(
-                        Modifier.size(30.dp).clip(CircleShape).background(theme.searchBgColor)
-                            .semantics { contentDescription = closeLabel }.pressScale(0.9f).clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
-                    ) { Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                 }
                 Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
 
-                // ── محتوا اسکرول
                 Column(
-                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 14.dp).padding(top = 18.dp, bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp).padding(top = 12.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp), horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // ── هیرو دایره‌ای
-                    CircularUsage(
-                        percentage = percentage,
-                        usedLabel = formatBytes(currentUser.usedTraffic),
-                        totalLabel = totalLabel,
-                        unlimited = unlimitedData,
-                        color = if (unlimitedData) theme.accentPrimary else usageColor
-                    )
+                    // دایره کوچک‌تر
+                    CircularUsage(percentage = percentage, usedLabel = formatBytes(currentUser.usedTraffic), totalLabel = totalLabel, unlimited = unlimitedData, color = if (unlimitedData) theme.accentPrimary else usageColor)
 
-                    // ── دو آمار کوچک
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // کادرهای خیلی کوچک‌تر
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         MiniStat(icon = AppIcon.Timer, label = stringResource(R.string.ud_remaining_time), value = daysLeftLabel(currentUser.expire), modifier = Modifier.weight(1f))
                         MiniStat(icon = AppIcon.Storage, label = stringResource(R.string.ud_remaining_data), value = if (unlimitedData) unlimitedLabel else formatBytes(remainingData), modifier = Modifier.weight(1f))
                     }
 
-                    // ── اشتراک - یک ردیف جمع‌وجور
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // اشتراک جمع‌وجور
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         SectionLabel(stringResource(R.string.ud_subscription))
                         Row(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 16.dp)
-                            MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 10.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(
-                                    Modifier.size(30.dp).clip(CircleShape).background(theme.searchBgColor)
-                                        .pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show() } },
-                                    contentAlignment = Alignment.Center
-                                ) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 14.dp) }
-                                Box(
-                                    Modifier.size(30.dp).clip(CircleShape).background(theme.searchBgColor)
-                                        .pressScale(0.9f).clickable { ensureSub { qrOpen = true } },
-                                    contentAlignment = Alignment.Center
-                                ) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 14.dp) }
+                            RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 13.dp)
+                            MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show() } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
+                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { qrOpen = true } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
                             }
                         }
                     }
 
-                    // ── نوت
                     if (!currentUser.note.isNullOrBlank()) {
                         Row(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.accentPrimary.copy(0.07f))
-                                .border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.15f)), DsRadius.Lg)
-                                .pressScale(0.98f).clickable { notesSheetOpen = true }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.12f)), DsRadius.Md)
+                                .pressScale(0.98f).clickable { notesSheetOpen = true }.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 14.dp)
-                            Text(currentUser.note!!.trim(), fontSize = 11.5.sp, color = theme.inkColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), lineHeight = 15.sp)
-                            Text("↗", fontSize = 11.sp, color = theme.accentPrimary)
+                            RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 12.dp)
+                            Text(currentUser.note!!.trim(), fontSize = 10.5.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text("↗", fontSize = 10.sp, color = theme.accentPrimary)
                         }
                     }
 
-                    // ── اکشن اصلی
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // ── اکشن‌ها با چینش جدید + delete داخل گرید
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(stringResource(R.string.ud_manage))
-                        // ویرایش - تمام عرض، پررنگ
+                        // ویرایش تمام عرض
                         Row(
-                            Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Lg).background(theme.accentPrimary)
-                                .pressScale(0.98f).clickable { editOpen = true }
-                                .padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Md).background(theme.accentPrimary).pressScale(0.98f).clickable { editOpen = true }.padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 18.dp)
-                            Text(stringResource(R.string.ud_edit), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF422006), modifier = Modifier.weight(1f))
-                            Text("›", fontSize = 18.sp, color = Color(0xFF422006).copy(0.7f))
+                            RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 16.dp)
+                            Text(stringResource(R.string.ud_edit), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF422006), modifier = Modifier.weight(1f))
+                            Text("›", fontSize = 16.sp, color = Color(0xFF422006).copy(0.6f))
                         }
-                        // گرید ثانویه 4 تایی
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // ردیف اول: 3 تایی
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             CompactAction(icon = AppIcon.Template, label = stringResource(R.string.ud_template), onClick = { templatePickerOpen = true }, modifier = Modifier.weight(1f))
                             CompactAction(icon = AppIcon.Reset, label = stringResource(R.string.ud_reset_data), onClick = { usageConfirm = true }, modifier = Modifier.weight(1f))
                             CompactAction(icon = AppIcon.Calendar, label = stringResource(R.string.ud_reset_time), onClick = { expiryConfirm = true }, modifier = Modifier.weight(1f))
-                            CompactAction(icon = if (isDisabled) AppIcon.CheckCircle else AppIcon.StatusDisabled, label = stringResource(if (isDisabled) R.string.ud_enable else R.string.ud_disable), onClick = { onToggle() }, modifier = Modifier.weight(1f), tint = if (isDisabled) GlassGreen else GlassAmber)
+                        }
+                        // ردیف دوم: فعال/غیرفعال + حذف (چینش جدید)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            CompactAction(
+                                icon = if (isDisabled) AppIcon.CheckCircle else AppIcon.StatusDisabled,
+                                label = stringResource(if (isDisabled) R.string.ud_enable else R.string.ud_disable),
+                                onClick = { onToggle() }, modifier = Modifier.weight(1f),
+                                tint = if (isDisabled) GlassGreen else GlassAmber
+                            )
+                            CompactAction(icon = AppIcon.Delete, label = stringResource(R.string.ud_delete), onClick = { onDelete() }, modifier = Modifier.weight(1f), isDestructive = true)
                         }
                     }
 
-                    // ── اطلاعات تکمیلی - لیست ساده
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // اطلاعات بیشتر
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             SectionLabel(stringResource(R.string.ud_more))
                             Spacer(Modifier.weight(1f))
-                            Text(if (showMore) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(4.dp))
+                            Text(if (showMore) "▴" else "▾", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(4.dp))
                         }
                         AnimatedVisibility(visible = showMore, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
-                            Column(
-                                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                            ) {
+                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 10.dp, vertical = 2.dp)) {
                                 if (currentUser.groupNames.isNotEmpty()) InfoRow(AppIcon.Folder, stringResource(R.string.ud_group_names), currentUser.groupNames.joinToString("، "))
                                 currentUser.createdAt?.takeIf { it.isNotBlank() }?.let { InfoRow(AppIcon.Calendar, stringResource(R.string.ud_created_at), JalaliCalendar.isoToShamsi(it).ifBlank { it.take(10) }) }
                                 if (currentUser.lifetimeUsedTraffic > currentUser.usedTraffic) InfoRow(AppIcon.Storage, stringResource(R.string.ud_lifetime), formatBytes(currentUser.lifetimeUsedTraffic))
                                 currentUser.ownerAdmin?.let { InfoRow(AppIcon.User, stringResource(R.string.ud_owner), it) }
-                                if (currentUser.groupNames.isEmpty() && currentUser.createdAt.isNullOrBlank() && currentUser.ownerAdmin == null) {
-                                    Text("—", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(vertical = 8.dp))
-                                }
                             }
                         }
                     }
 
-                    // ── دستگاه‌ها اگر باشد
                     if (session != null && (devices.isNotEmpty() || currentUser.hwidLimit != null)) {
-                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             SectionLabel(stringResource(R.string.ud_devices))
-                            Column(
-                                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                    if (devices.isNotEmpty()) {
-                                        Box(
-                                            Modifier.clip(DsRadius.Full).background(GlassRed.copy(0.12f)).pressScale(0.95f)
-                                                .clickable { devicesResetConfirm = true }.padding(horizontal = 10.dp, vertical = 5.dp)
-                                        ) { Text(stringResource(R.string.ud_devices_reset), fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
-                                    }
+                                    Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                    if (devices.isNotEmpty()) Box(Modifier.clip(DsRadius.Full).background(GlassRed.copy(0.10f)).pressScale(0.95f).clickable { devicesResetConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
-                                if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 10.sp, color = theme.mutedColor)
-                                devices.take(3).forEach { d ->
-                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Column(Modifier.weight(1f)) {
-                                            MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(12) }, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        Box(
-                                            Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.25f)), DsRadius.Sm)
-                                                .pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) { Text(stringResource(R.string.ud_device_forget), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 9.5.sp, color = theme.mutedColor)
+                                devices.take(2).forEach { d ->
+                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = 6.dp, vertical = 3.dp)) { Text(stringResource(R.string.ud_device_forget), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                     }
                                 }
                             }
                         }
                     }
 
-                    // ── پلن بعدی
                     currentUser.nextPlan?.let { np ->
-                        Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.accentPrimary.copy(0.07f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.18f)), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.15f)), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 13.dp)
-                                Text(stringResource(R.string.ud_next_plan), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                if (session != null) {
-                                    Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 10.dp, vertical = 5.dp)) {
-                                        Text(stringResource(R.string.ud_next_plan_activate), fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006))
-                                    }
-                                }
+                                RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 11.dp)
+                                Text(stringResource(R.string.ud_next_plan), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006)) }
                             }
-                            val desc = when {
-                                np.templateId != null -> "Template #${np.templateId}"
-                                else -> "${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d"
-                            }
-                            Text(desc, fontSize = 10.sp, color = theme.mutedColor)
+                            Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 9.sp, color = theme.mutedColor)
                         }
                     }
 
-                    // ── مالی جمع‌وجور
                     if (debtorInfo != null || onMarkDebtor != null) {
-                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            SectionLabel(stringResource(R.string.ud_financial))
-                            Row(
-                                Modifier.fillMaxWidth().clip(DsRadius.Lg)
-                                    .background(if (debtorInfo != null) GlassRed.copy(0.08f) else theme.cardSurfaceColor)
-                                    .border(BorderStroke(DsBorder.Hairline, if (debtorInfo != null) GlassRed.copy(0.2f) else theme.borderColor), DsRadius.Lg)
-                                    .pressScale(0.98f).clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }
-                                    .padding(horizontal = 12.dp, vertical = 11.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                RoundedAppIcon(if (debtorInfo != null) AppIcon.Warning else AppIcon.Money, tint = if (debtorInfo != null) GlassRed else theme.accentPrimary, size = 16.dp)
-                                Column(Modifier.weight(1f)) {
-                                    Text(if (debtorInfo != null) stringResource(R.string.ud_debt_of, debtorInfo.amount.toString(), debtorInfo.currency) else stringResource(R.string.ud_invoice), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (debtorInfo != null) GlassRed else theme.inkColor)
-                                    if (debtorInfo != null && debtorInfo.notes.isNotBlank()) Text(debtorInfo.notes, fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                                Text("›", fontSize = 16.sp, color = theme.mutedColor)
-                            }
+                        Row(
+                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(if (debtorInfo != null) GlassRed.copy(0.06f) else theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, if (debtorInfo != null) GlassRed.copy(0.15f) else theme.borderColor), DsRadius.Md)
+                                .pressScale(0.98f).clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }.padding(horizontal = 10.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            RoundedAppIcon(if (debtorInfo != null) AppIcon.Warning else AppIcon.Money, tint = if (debtorInfo != null) GlassRed else theme.accentPrimary, size = 14.dp)
+                            Text(if (debtorInfo != null) stringResource(R.string.ud_debt_of, debtorInfo.amount.toString(), debtorInfo.currency) else stringResource(R.string.ud_invoice), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (debtorInfo != null) GlassRed else theme.inkColor, modifier = Modifier.weight(1f))
+                            Text("›", fontSize = 14.sp, color = theme.mutedColor)
                         }
                     }
 
-                    // ── حذف - کم‌رنگ
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(
-                            Modifier.weight(1f).height(42.dp).clip(DsRadius.Lg).background(theme.searchBgColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .pressScale(0.98f).clickable(onClick = onDismiss),
-                            contentAlignment = Alignment.Center
-                        ) { Text(closeLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                        Box(
-                            Modifier.weight(1f).height(42.dp).clip(DsRadius.Lg).background(GlassRed.copy(0.10f))
-                                .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.20f)), DsRadius.Lg)
-                                .pressScale(0.98f).clickable { onDelete() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 14.dp)
-                                Text(stringResource(R.string.ud_delete), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GlassRed)
-                            }
-                        }
-                    }
+                    // بستن تنها
+                    Box(
+                        Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                            .pressScale(0.98f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center
+                    ) { Text(closeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
             }
         }
@@ -575,11 +443,6 @@ fun UserDetailsDialog(
     if (nextPlanConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_next_plan_activate_title), message = stringResource(R.string.ud_next_plan_activate_msg), onDismiss = { nextPlanConfirm = false }, onConfirm = { nextPlanConfirm = false; scope.launch { runCatching { PanelApi.activateNextPlan(session, currentUser.username) }.onSuccess { runCatching { PanelApi.user(session, currentUser.username) }.onSuccess { currentUser = it } } } })
     if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser.username) }.onSuccess { currentUser = it; android.widget.Toast.makeText(context, revokedMsg, android.widget.Toast.LENGTH_SHORT).show() }.onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() } } })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
-}
-
-@Composable
-private fun NotePreviewCard(note: String?, onOpen: () -> Unit, onAdd: () -> Unit) {
-    // kept for compatibility but not used in dashboard version - inline handled
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
