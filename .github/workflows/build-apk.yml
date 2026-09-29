@@ -59,6 +59,44 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
+      # بیلدِ ریلیز (R8 + کوچک‌سازیِ منابع) همین‌جا هم ساخته می‌شود: بیلدِ debug
+      # ذاتاً کندتر است (debuggable، بدونِ R8، بدونِ پروفایلِ پایه) و برای حس‌کردنِ
+      # سرعتِ واقعیِ اپ باید APK ریلیز را نصب کرد. اگر کلیدِ امضا در Secrets باشد
+      # APK امضاشده آپلود می‌شود؛ وگرنه فقط پیکربندیِ R8 آزمایش می‌شود تا خطای
+      # قواعد همین‌جا معلوم شود، نه موقعِ انتشار.
+      - name: Restore signing key (if configured)
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > app/mrm-release.p12
+            test -s app/mrm-release.p12
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.available == 'true'
+        run: |
+          ./gradlew :app:assembleRelease \
+            -PRELEASE_STORE_FILE=app/mrm-release.p12 \
+            -PRELEASE_STORE_PASSWORD="${{ secrets.SIGNING_STORE_PASSWORD }}" \
+            -PRELEASE_KEY_ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}"
+
+      - name: Check release R8 / resource shrinking (no signing key)
+        if: steps.signing.outputs.available != 'true'
+        run: ./gradlew :app:minifyReleaseWithR8 :app:shrinkReleaseRes
+
+      - name: Upload release APK
+        if: steps.signing.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MRM-PG-Manager-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

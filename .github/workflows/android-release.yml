@@ -55,6 +55,14 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
+      # فایلِ نگاشتِ R8 (برای retrace کردنِ stack traceهای inline‌شده).
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: MRM-PG-Manager-release-mapping
+          path: app/build/outputs/mapping/release/
+          if-no-files-found: ignore
+
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
         with:
