@@ -134,7 +134,11 @@ def collect_defs():
                     required.append(nm)
             trailing = bool(params) and "@Composable" in params[-1] or (
                 bool(params) and "->" in params[-1].split(":", 1)[-1])
-            defs[name] = (names, required, trailing, kt.name)
+            # یک نام می‌تواند چند تعریف داشته باشد: overload در یک فایل، یا
+            # تابعِ private با همان نام در فایل‌های مختلف (مثل InfoRow در
+            # InvoiceDialog و UserDetailsDialog). قبلاً فقط آخری نگه داشته
+            # می‌شد و فراخوانی‌های فایلِ دیگر به‌اشتباه خطا می‌گرفتند.
+            defs.setdefault(name, []).append((names, required, trailing, kt.name))
     return defs
 
 
@@ -147,7 +151,8 @@ def check_file(path, defs):
         name = m.group(1)
         if name not in defs:
             continue
-        names, required, trailing, _ = defs[name]
+        # اول تعریف‌های همین فایل (private/فایل‌محور) و اگر نبود، همهٔ تعریف‌ها.
+        candidates = [d for d in defs[name] if d[3] == path.name] or defs[name]
         i = m.end() - 1
         depth, j = 0, i
         while j < len(s):
@@ -182,9 +187,11 @@ def check_file(path, defs):
         # گزارش می‌شدند — روی فایل‌هایی که ماه‌هاست سالم کامپایل می‌شوند.
         # در مقابل، «این تابع پارامتری با این نام ندارد» یک واقعیتِ نحوی است و
         # هیچ ابهامی ندارد؛ همان چیزی که باگِ CheckboxIcon را لو داد.
-        for k in kw:
-            if k not in names:
-                problems.append((line, name, f"پارامتر نام‌دار '{k}' وجود ندارد؛ مجاز: {names}"))
+        # فراخوانی وقتی معتبر است که با «یکی» از overloadها بخواند.
+        if kw and not any(all(k in c[0] for k in kw) for c in candidates):
+            allowed = sorted({n for c in candidates for n in c[0]})
+            missing = [k for k in kw if k not in allowed]
+            problems.append((line, name, f"پارامتر نام‌دار {missing} وجود ندارد؛ مجاز: {allowed}"))
     return problems
 
 
