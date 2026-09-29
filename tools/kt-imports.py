@@ -67,9 +67,22 @@ def strip_code(src: str) -> str:
     return "".join(out)
 
 
+# اعلانِ سطحِ بالا (ستونِ صفر) — تابع/مقدار/کلاسِ غیرخصوصی؛ گیرندهٔ اکستنشن (مثل List<X>.) هم مجاز است.
+TOPLEVEL_RE = re.compile(
+    r"^(?:@\w+(?:\([^)\n]*\))?\s*)*(?:public |internal |abstract |sealed |open |data |enum |annotation |value |inline |suspend )*"
+    r"(?:class|interface|object|fun|val|var)\s+(?:<[^>\n]+>\s+)?(?:[\w.<>?, ]+?\.)?(\w+)", re.M)
+
+
 def build_index():
-    """نماد → مجموعهٔ پکیج‌هایی که در مخزن از آن‌ها import شده."""
-    idx, declared = {}, {}
+    """
+    نماد → مجموعهٔ پکیج‌هایی که در مخزن از آن‌ها import شده (idx)،
+    نماد → پکیج‌هایی که در آن‌ها اعلان شده (declared)،
+    نماد → پکیج‌هایی که در آن‌ها به‌صورتِ سطحِ بالا و غیرخصوصی اعلان شده (toplevel).
+
+    `toplevel` همان چیزی است که قبلاً از دست می‌رفت: تابعِ تازه‌ای مثل `remainingText`
+    که هنوز هیچ‌جا import نشده بود، در idx نبود و بررسی نمی‌شد — و CI قرمز شد.
+    """
+    idx, declared, toplevel = {}, {}, {}
     for kt in JAVA.rglob("*.kt"):
         text = kt.read_text(encoding="utf-8")
         for m in re.finditer(r"^import\s+([\w.]+(?:\.\*)?)(?:\s+as\s+\w+)?$", text, re.M):
@@ -85,10 +98,13 @@ def build_index():
             r"^\s*(?:@\w+\s+)*(?:public |private |internal |abstract |sealed |open |data |enum |annotation |value )*"
             r"(?:class|interface|object|fun|val|var)\s+(\w+)", body, re.M):
             declared.setdefault(m.group(1), set()).add(pkg)
-    return idx, declared
+        for m in TOPLEVEL_RE.finditer(body):
+            toplevel.setdefault(m.group(1), set()).add(pkg)
+    return idx, declared, toplevel
 
 
-def check(path: Path, idx, declared):
+def check(path: Path, idx, declared, toplevel=None):
+    toplevel = toplevel or {}
     text = path.read_text(encoding="utf-8")
     pkg_m = re.search(r"^package\s+([\w.]+)", text, re.M)
     own_pkg = pkg_m.group(1) if pkg_m else ""
@@ -116,13 +132,13 @@ def check(path: Path, idx, declared):
         sym = m.group(1)
         if sym in seen:
             continue
-        # فقط نمادهایی که جای دیگری در مخزن صریح import شده‌اند ارزش بررسی دارند
-        if sym not in idx:
+        # نمادهایی که جایی import شده‌اند، یا در مخزن به‌صورتِ سطحِ بالا اعلان شده‌اند
+        if sym not in idx and sym not in toplevel:
             continue
         seen.add(sym)
         if sym in BUILTIN or sym in explicit or sym in local:
             continue
-        homes = idx[sym]
+        homes = set(idx.get(sym, set())) | set(toplevel.get(sym, set()))
         if any(w in homes for w in wildcard):
             continue
         if own_pkg in homes or own_pkg in declared.get(sym, set()):
@@ -142,11 +158,11 @@ def rel(p: Path) -> str:
 
 
 if __name__ == "__main__":
-    idx, declared = build_index()
+    idx, declared, toplevel = build_index()
     targets = [Path(p).resolve() for p in sys.argv[1:]] or list(JAVA.rglob("*.kt"))
     bad = 0
     for t in targets:
-        probs = check(t, idx, declared)
+        probs = check(t, idx, declared, toplevel)
         if probs:
             bad += 1
             print(f"❌ {rel(t)}")
