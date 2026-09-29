@@ -138,7 +138,7 @@ internal fun cardStatusText(user: PanelUser): String = when (user.status) {
     "disabled" -> stringResource(R.string.disabled)
     "expired" -> stringResource(R.string.expired)
     "limited" -> stringResource(R.string.limited)
-    "on_hold" -> stringResource(R.string.on_hold_users)
+    "on_hold" -> user.onHoldDays?.let { stringResource(R.string.dl_on_hold_days, it) } ?: stringResource(R.string.on_hold_users)
     else -> daysLeftText(user.expire)
 }
 
@@ -382,7 +382,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(stringResource(R.string.remaining_credit), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
-                    MrmText(daysLeftText(user.expire), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
+                    MrmText(remainingText(user), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
                 }
             }
 
@@ -424,7 +424,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     MrmText(traffic, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
-                    MrmText(daysLeftText(user.expire), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
+                    MrmText(remainingText(user), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
                 Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
                     if (actualProgress > 0.01f) Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))

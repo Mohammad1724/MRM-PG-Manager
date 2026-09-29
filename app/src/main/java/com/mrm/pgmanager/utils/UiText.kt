@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.model.PanelUser
 
 /*
  *  پلِ بینِ منطق و زبان.
@@ -30,6 +31,16 @@ fun daysLeftText(expire: String?): String = when (val d = DateLogic.daysLeft(exp
     is DateLogic.DaysLeft.Days ->
         if (d.count == 1) stringResource(R.string.dl_one_day)
         else stringResource(R.string.dl_days, d.count)
+}
+
+/**
+ * زمانِ باقی‌ماندهٔ کاربر با درنظرگرفتنِ on_hold: برای کاربرِ در انتظار، «N روز پس از اولین اتصال»
+ * نشان می‌دهد (چون expire ندارد)؛ برای بقیه همان [daysLeftText].
+ */
+@Composable
+fun remainingText(user: PanelUser): String {
+    val onHoldDays = user.onHoldDays
+    return if (onHoldDays != null) stringResource(R.string.dl_on_hold_days, onHoldDays) else daysLeftText(user.expire)
 }
 
 /** نسخهٔ غیرکامپوزبل برای جاهایی مثل رندرِ کارتِ اشتراک روی بوم. */

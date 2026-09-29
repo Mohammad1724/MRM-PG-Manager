@@ -138,6 +138,86 @@ class PanelApiContractTest {
         assertEquals("POST", reset.method); assertEquals("/api/user/by-id/7/reset", reset.path)
     }
 
+    // ── on_hold ──────────────────────────────────────────────
+    // قاعدهٔ پنل (UserValidator.validate_status): on_hold فقط با on_hold_expire_duration > 0 و بدون expire.
+
+    @Test fun `createUser on_hold sends duration and no expire`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.createUser(session, "ali", 10.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 30L * 86_400L, onHoldTimeoutSeconds = 7L * 86_400L)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertEquals("on_hold", body.getString("status"))
+        assertEquals(2_592_000L, body.getLong("on_hold_expire_duration"))
+        assertEquals(604_800L, body.getLong("on_hold_timeout"))
+        assertFalse(body.has("expire"))
+    }
+
+    @Test fun `createUser without on_hold keeps the classic active body`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.createUser(session, "ali", 10.0, "2026-12-01")
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertEquals("active", body.getString("status"))
+        assertTrue(body.has("expire"))
+        assertFalse(body.has("on_hold_expire_duration"))
+        assertFalse(body.has("on_hold_timeout"))
+    }
+
+    @Test fun `createUser ignores on_hold without a positive duration`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.createUser(session, "ali", 10.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 0L)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertEquals("active", body.getString("status"))
+        assertTrue(body.has("expire"))
+        assertFalse(body.has("on_hold_expire_duration"))
+    }
+
+    @Test fun `modifyUser to on_hold drops expire and can clear the timeout`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 86_400L, onHoldTimeoutSeconds = 0L)
+        val req = server.takeRequest()
+        val body = JSONObject(req.body.readUtf8())
+
+        assertEquals("PUT", req.method)
+        assertEquals("/api/user/by-id/7", req.path)
+        assertEquals("on_hold", body.getString("status"))
+        assertEquals(86_400L, body.getLong("on_hold_expire_duration"))
+        assertEquals(0L, body.getLong("on_hold_timeout"))
+        assertFalse(body.has("expire"))
+    }
+
+    @Test fun `modifyUser back to active sends status and expire`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01", status = "active")
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertEquals("active", body.getString("status"))
+        assertTrue(body.has("expire"))
+        assertFalse(body.has("on_hold_expire_duration"))
+    }
+
+    @Test fun `modifyUser without status never touches the panel status`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01")
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertFalse(body.has("status"))
+        assertTrue(body.has("expire"))
+    }
+
+    @Test fun `parseUser reads on_hold fields and derives days`() {
+        val onHold = PanelApi.parseUser(JSONObject("""{"id":3,"username":"hold","status":"on_hold","used_traffic":0,"data_limit":0,"expire":null,"on_hold_expire_duration":2592000,"on_hold_timeout":"2026-10-15T00:00:00Z"}"""))
+        assertEquals(2_592_000L, onHold.onHoldExpireDuration)
+        assertEquals("2026-10-15T00:00:00Z", onHold.onHoldTimeout)
+        assertEquals(30, onHold.onHoldDays)
+
+        val active = PanelApi.parseUser(JSONObject("""{"id":4,"username":"act","status":"active","used_traffic":0,"data_limit":0,"expire":null,"on_hold_expire_duration":null,"on_hold_timeout":null}"""))
+        assertNull(active.onHoldExpireDuration)
+        assertNull(active.onHoldTimeout)
+        assertNull(active.onHoldDays)
+    }
+
     @Test fun `modifyUserFromTemplate uses by-id route`() = runBlocking {
         server.enqueue(MockResponse().setBody("{}"))
         PanelApi.modifyUserFromTemplate(session, user(7, "ali"), templateId = 3)

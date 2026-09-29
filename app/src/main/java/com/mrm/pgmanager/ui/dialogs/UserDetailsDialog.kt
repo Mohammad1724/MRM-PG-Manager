@@ -296,7 +296,7 @@ fun UserDetailsDialog(
 
                     // کادرهای خیلی کوچک‌تر
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        MiniStat(icon = AppIcon.Timer, label = stringResource(R.string.ud_remaining_time), value = daysLeftLabel(currentUser.expire), modifier = Modifier.weight(1f))
+                        MiniStat(icon = AppIcon.Timer, label = stringResource(R.string.ud_remaining_time), value = currentUser.onHoldDays?.let { stringResource(R.string.dl_on_hold_days, it) } ?: daysLeftLabel(currentUser.expire), modifier = Modifier.weight(1f))
                         MiniStat(icon = AppIcon.Storage, label = stringResource(R.string.ud_remaining_data), value = if (unlimitedData) unlimitedLabel else formatBytes(remainingData), modifier = Modifier.weight(1f))
                     }
 

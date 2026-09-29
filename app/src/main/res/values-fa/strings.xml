@@ -495,6 +495,11 @@
     <string name="ue_data_limit_hint">مثلاً ۳۰ — برای نامحدود خالی بگذارید</string>
     <string name="ue_expiry">انقضا (روز)</string>
     <string name="ue_expiry_hint">مثلاً ۳۰</string>
+    <string name="ue_on_hold_duration">اعتبار (روز، پس از اولین اتصال)</string>
+    <string name="ue_on_hold_hint">شمارش اعتبار با اولین اتصال کاربر شروع می‌شود</string>
+    <string name="ue_on_hold_days_required">مدت باید بزرگ‌تر از صفر باشد</string>
+    <string name="ue_on_hold_timeout">مهلت فعال‌سازی (روز، اختیاری)</string>
+    <string name="ue_on_hold_timeout_hint">اگر تا آن زمان وصل نشود، پنل خودش کاربر را فعال می‌کند؛ خالی یعنی بدون مهلت</string>
     <string name="ue_pick_date">انتخاب تاریخ</string>
     <string name="ue_add_days">+%1$d روز</string>
     <string name="ue_advanced">پیشرفته</string>
@@ -836,6 +841,7 @@
     <string name="dl_today">امروز</string>
     <string name="dl_one_day">۱ روز</string>
     <string name="dl_days">%1$d روز</string>
+    <string name="dl_on_hold_days">%1$d روز پس از اولین اتصال</string>
     <string name="up_days_hours">%1$d روز و %2$d ساعت</string>
     <string name="up_hours_minutes">%1$d ساعت و %2$d دقیقه</string>
     <string name="up_minutes">%1$d دقیقه</string>

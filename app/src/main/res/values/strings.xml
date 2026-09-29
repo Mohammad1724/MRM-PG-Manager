@@ -495,6 +495,11 @@
     <string name="ue_data_limit_hint">e.g. 30 — leave empty for unlimited</string>
     <string name="ue_expiry">Expires in (days)</string>
     <string name="ue_expiry_hint">e.g. 30</string>
+    <string name="ue_on_hold_duration">Valid for (days after first connection)</string>
+    <string name="ue_on_hold_hint">The countdown starts when the user connects for the first time</string>
+    <string name="ue_on_hold_days_required">Enter a duration greater than zero</string>
+    <string name="ue_on_hold_timeout">Activation deadline (days, optional)</string>
+    <string name="ue_on_hold_timeout_hint">If the user has not connected by then, the panel activates them anyway; leave empty for no deadline</string>
     <string name="ue_pick_date">Pick a date</string>
     <string name="ue_add_days">+%1$d d</string>
     <string name="ue_advanced">Advanced</string>
@@ -836,6 +841,7 @@
     <string name="dl_today">Today</string>
     <string name="dl_one_day">1 day</string>
     <string name="dl_days">%1$d days</string>
+    <string name="dl_on_hold_days">%1$d days after first connection</string>
     <string name="up_days_hours">%1$dd %2$dh</string>
     <string name="up_hours_minutes">%1$dh %2$dm</string>
     <string name="up_minutes">%1$d min</string>

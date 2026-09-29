@@ -243,6 +243,8 @@ class SessionStore(context: Context) {
                 put("expire", u.expire ?: ""); put("created_at", u.createdAt ?: "")
                 put("sub_url", u.subUrl); put("online_at", u.onlineAt ?: ""); put("note", u.note ?: "")
                 if (u.hwidLimit != null) put("hwid_limit", u.hwidLimit)
+                if (u.onHoldExpireDuration != null) put("on_hold_expire_duration", u.onHoldExpireDuration)
+                if (u.onHoldTimeout != null) put("on_hold_timeout", u.onHoldTimeout)
                 put("group_ids", org.json.JSONArray(u.groupIds)); put("group_names", org.json.JSONArray(u.groupNames))
             })
         }
@@ -277,7 +279,9 @@ class SessionStore(context: Context) {
                     subUrl = o.optString("sub_url"), onlineAt = onlineAt, isOnline = wasOnline,
                     note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit") && !o.isNull("hwid_limit")) o.optInt("hwid_limit").takeIf { it > 0 } else null,
                     groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
-                    groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList()
+                    groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
+                    onHoldExpireDuration = if (o.has("on_hold_expire_duration") && !o.isNull("on_hold_expire_duration")) o.optLong("on_hold_expire_duration").takeIf { it > 0L } else null,
+                    onHoldTimeout = o.optString("on_hold_timeout").ifBlank { null }
                 )
             }
         }.getOrDefault(emptyList())

@@ -600,8 +600,19 @@ object PanelApi {
         }
     }
 
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("username", username).put("status", "active").put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
+    /**
+     * ساخت کاربر. اگر `status == "on_hold"` باشد، طبق قاعدهٔ پنل (`UserValidator.validate_status`)
+     * به‌جای `expire` فقط `on_hold_expire_duration` (ثانیه، > 0) فرستاده می‌شود؛ شمارش اعتبار
+     * با اولین اتصال کاربر شروع می‌شود.
+     */
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+        val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
+        val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", gbToBytes(limitGb))
+        if (onHold) {
+            body.put("on_hold_expire_duration", onHoldExpireSeconds)
+            // پنل عددِ صحیح را «ثانیه از الان» تعبیر می‌کند.
+            if (onHoldTimeoutSeconds != null && onHoldTimeoutSeconds > 0L) body.put("on_hold_timeout", onHoldTimeoutSeconds)
+        } else body.put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
@@ -611,8 +622,23 @@ object PanelApi {
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
+    /**
+     * ویرایش کاربر. `status` فقط در دو حالت فرستاده می‌شود:
+     *  - `on_hold` → همراه `on_hold_expire_duration` و بدون `expire` (پنل خودش expire را پاک می‌کند)؛
+     *  - `active` → برای بیرون‌آوردن کاربر از on_hold، همراه `expire` تازه.
+     * در بقیهٔ حالت‌ها وضعیت دست نمی‌خورد تا وضعیت‌های محاسبه‌شدهٔ پنل (expired/limited) خراب نشود.
+     */
+    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+        val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
+        val body = JSONObject().put("data_limit", gbToBytes(limitGb))
+        if (onHold) {
+            body.put("status", "on_hold").put("on_hold_expire_duration", onHoldExpireSeconds)
+            // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
+            onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
+        } else {
+            body.put("expire", expireValue(expireIso))
+            if (status == "active") body.put("status", "active")
+        }
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
@@ -623,6 +649,10 @@ object PanelApi {
         autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
         executeJson(requestBuilder(session, userUrl(session, user)).put(body.toString().toRequestBody(jsonType)).build())
     }
+
+    /** on_hold فقط وقتی معتبر است که مدتِ مثبت داشته باشد؛ در غیر این صورت مثل درخواستِ عادی رفتار می‌شود. */
+    private fun isOnHoldRequest(status: String?, onHoldExpireSeconds: Long?): Boolean =
+        status == "on_hold" && (onHoldExpireSeconds ?: 0L) > 0L
 
     suspend fun resetUsage(session: Session, user: PanelUser) = withContext(Dispatchers.IO) {
         executeJson(requestBuilder(session, "${userUrl(session, user)}/reset").post("".toRequestBody(jsonType)).build())
@@ -659,7 +689,7 @@ object PanelApi {
         }
     }
 
-    private fun parseUser(user: JSONObject): PanelUser {
+    internal fun parseUser(user: JSONObject): PanelUser {
         val groupIds = mutableListOf<Int>()
         val groupNames = mutableListOf<String>()
         if (!user.isNull("group_ids")) {
@@ -714,7 +744,9 @@ object PanelApi {
             },
             // `admin` یک آبجکتِ AdminBase است؛ فقط نامش را نگه می‌داریم.
             ownerAdmin = user.optJSONObject("admin")?.optString("username")
-                ?.takeIf { it.isNotBlank() && it != "null" }
+                ?.takeIf { it.isNotBlank() && it != "null" },
+            onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
+            onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" }
         )
     }
 

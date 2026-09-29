@@ -75,7 +75,7 @@ fun UserEditorDialog(
         )
     }
     var days by remember {
-        mutableStateOf(runCatching {
+        mutableStateOf(initial?.onHoldDays?.toString() ?: runCatching {
             initial?.let { user ->
                 val expires = try {
                     java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
@@ -96,7 +96,14 @@ fun UserEditorDialog(
     var autoDeleteDays by remember { mutableStateOf("") }
     var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
     var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
-    var active by remember { mutableStateOf(initial?.status != "disabled") }
+    // وضعیتِ انتخاب‌شده در ویرایشگر: active / on_hold / disabled (پنل فقط همین سه تا را می‌پذیرد).
+    var editorStatus by remember {
+        mutableStateOf(when (initial?.status) { "disabled" -> "disabled"; "on_hold" -> "on_hold"; else -> "active" })
+    }
+    val isOnHold = editorStatus == "on_hold"
+    // مهلت فعال‌سازی (on_hold_timeout) به روز؛ فقط اگر کاربر دست بزند فرستاده می‌شود.
+    var onHoldTimeoutDays by remember { mutableStateOf(initial?.onHoldTimeout?.let { DateLogic.remainingDays(it)?.coerceAtLeast(0L)?.toString() } ?: "") }
+    var onHoldTimeoutDirty by remember { mutableStateOf(false) }
     var selectedTemplate by remember { mutableStateOf<Int?>(null) }
     var showCalendar by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(0) }
@@ -193,7 +200,8 @@ fun UserEditorDialog(
                             Column(Modifier.weight(0.40f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 FieldLabel(stringResource(R.string.ue_status))
                                 var statusMenuExpanded by remember { mutableStateOf(false) }
-                                val statusColor = if (active) GlassGreen else GlassRed
+                                val statusColor = when (editorStatus) { "active" -> GlassGreen; "on_hold" -> DsSemantic.Violet; else -> GlassRed }
+                                val statusLabel = when (editorStatus) { "active" -> R.string.active; "on_hold" -> R.string.on_hold; else -> R.string.disabled }
                                 Box {
                                     Row(
                                         Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(statusColor.copy(0.10f))
@@ -202,12 +210,14 @@ fun UserEditorDialog(
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
                                         Box(Modifier.size(5.dp).clip(RoundedCornerShape(50)).background(statusColor))
-                                        Text(stringResource(if (active) R.string.active else R.string.disabled), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
+                                        Text(stringResource(statusLabel), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
                                     DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { active = true; statusMenuExpanded = false })
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { active = false; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; statusMenuExpanded = false })
+                                        // پنل اجازهٔ ساختِ کاربرِ غیرفعال نمی‌دهد (UserStatusCreate = active | on_hold).
+                                        if (!isCreating) DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "disabled"; statusMenuExpanded = false })
                                     }
                                 }
                             }
@@ -226,18 +236,26 @@ fun UserEditorDialog(
                             )
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            FieldLabel(stringResource(R.string.ue_expiry))
+                            FieldLabel(stringResource(if (isOnHold) R.string.ue_on_hold_duration else R.string.ue_expiry))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 UserFormTextField(
                                     value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() } },
                                     placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Timer, modifier = Modifier.weight(1f)
                                 )
-                                Box(
+                                // تقویم فقط برای تاریخِ انقضای مطلق معنا دارد؛ on_hold مدت نسبی است.
+                                if (!isOnHold) Box(
                                     Modifier.size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
                                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                         .semantics { contentDescription = pickDateLabel }.pressScale(0.92f).clickable { showCalendar = true },
                                     contentAlignment = Alignment.Center
                                 ) { RoundedAppIcon(AppIcon.Calendar, tint = theme.mutedColor, size = 14.dp) }
+                            }
+                            if (isOnHold) {
+                                val onHoldDaysValue = normalizePersianDigits(days).toIntOrNull() ?: 0
+                                Text(
+                                    stringResource(if (onHoldDaysValue > 0) R.string.ue_on_hold_hint else R.string.ue_on_hold_days_required),
+                                    fontSize = 9.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
+                                )
                             }
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
@@ -249,6 +267,15 @@ fun UserEditorDialog(
                                     ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                                 }
                             }
+                        }
+                        if (isOnHold) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FieldLabel(stringResource(R.string.ue_on_hold_timeout))
+                            UserFormTextField(
+                                value = onHoldTimeoutDays,
+                                onValueChange = { raw -> val normalized = normalizePersianDigits(raw); onHoldTimeoutDays = normalized.filter { c -> c.isDigit() }; onHoldTimeoutDirty = true },
+                                placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Calendar
+                            )
+                            Text(stringResource(R.string.ue_on_hold_timeout_hint), fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -400,20 +427,33 @@ fun UserEditorDialog(
                     SecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
                     PrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
-                        enabled = !(isCreating && usernameErrorKey != null),
+                        enabled = !(isCreating && usernameErrorKey != null) && !(isOnHold && (normalizePersianDigits(days).toIntOrNull() ?: 0) <= 0),
                         onClick = {
                             val normalizedDays = normalizePersianDigits(days)
                             val normalizedLimit = normalizePersianDigits(limitGb)
                             val normalizedHwid = normalizePersianDigits(hwid)
                             val normalizedAutoDelete = normalizePersianDigits(autoDeleteDays)
-                            val expire = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: ""
+                            val daysValue = normalizedDays.toIntOrNull()?.takeIf { it >= 0 }
+                            // کاربرِ on_hold (چه بماند چه غیرفعال شود) expire ندارد؛ فیلدِ روز برایش «مدت» است نه تاریخ.
+                            val keepsOnHoldDuration = isOnHold || (initial?.status == "on_hold" && editorStatus == "disabled")
+                            val expire = if (keepsOnHoldDuration) "" else daysValue?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: ""
                             val hwidValue = normalizedHwid.toIntOrNull() ?: 0
-                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetStrategy, autoDeleteDays = normalizedAutoDelete.toIntOrNull(), nextPlan = NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry))
+                            // `status` فقط برای رفتن به on_hold یا بیرون‌آمدن از آن فرستاده می‌شود؛ غیرفعال‌کردن از مسیر /disabled می‌رود.
+                            val statusToSend = when {
+                                isOnHold -> "on_hold"
+                                editorStatus == "active" && initial?.status == "on_hold" -> "active"
+                                else -> null
+                            }
+                            val onHoldSeconds = if (isOnHold) (daysValue ?: 0) * 86_400L else null
+                            val timeoutSeconds = if (isOnHold && onHoldTimeoutDirty) (normalizePersianDigits(onHoldTimeoutDays).toLongOrNull() ?: 0L) * 86_400L else null
+                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetStrategy, autoDeleteDays = normalizedAutoDelete.toIntOrNull(), nextPlan = NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry), status = statusToSend, onHoldExpireSeconds = onHoldSeconds, onHoldTimeoutSeconds = timeoutSeconds)
                             if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) onSaveWithTemplate(username, selectedTemplate!!, note)
                             else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) onApplyTemplateToUser(selectedTemplate!!, note)
                             else {
                                 onSave(values, expire)
-                                if (initial != null && active != (initial.status != "disabled")) onToggle?.invoke()
+                                // on_hold/active در بدنهٔ PUT می‌روند؛ /disabled فقط برای غیرفعال‌کردن یا فعال‌کردنِ دوبارهٔ کاربرِ غیرفعال.
+                                val wasDisabled = initial?.status == "disabled"
+                                if (initial != null && wasDisabled != (editorStatus == "disabled") && statusToSend == null) onToggle?.invoke()
                             }
                         }
                     )

@@ -71,8 +71,17 @@ data class PanelUser(
     /** ادمینِ مالکِ کاربر (در پنل‌های چندادمینی). */
     val ownerAdmin: String? = null,
     /** پلنی که پس از تمام‌شدنِ پلنِ فعلی خودکار اعمال می‌شود. */
-    val nextPlan: NextPlan? = null
-)
+    val nextPlan: NextPlan? = null,
+    /** فقط برای `on_hold`: مدت اعتبار (ثانیه) که با اولین اتصال کاربر شروع می‌شود. */
+    val onHoldExpireDuration: Long? = null,
+    /** فقط برای `on_hold`: اگر تا این زمان وصل نشود، پنل خودش فعالش می‌کند (اختیاری). */
+    val onHoldTimeout: String? = null
+) {
+    /** مدت اعتبارِ on_hold به روز (گِرد به بالا)؛ null اگر کاربر on_hold نیست. */
+    val onHoldDays: Int?
+        get() = onHoldExpireDuration?.takeIf { status == "on_hold" && it > 0 }
+            ?.let { ((it + 86_399L) / 86_400L).toInt() }
+}
 
 /**
  * ادمینِ پنل — برای بخشِ «ادمین‌ها» در داشبورد.
@@ -509,5 +518,15 @@ data class UserEditorValues(
     /** no_reset / day / week / month / year */
     val resetStrategy: String = TemplateOptions.RESET_NO_RESET,
     /** حذفِ خودکار پس از انقضا؛ null یعنی هرگز. */
-    val autoDeleteDays: Int? = null
+    val autoDeleteDays: Int? = null,
+    /**
+     * وضعیتی که باید به پنل فرستاده شود: `on_hold` (با [onHoldExpireSeconds]) یا
+     * `active` (برای بیرون‌آوردن از on_hold). null یعنی وضعیت را دست نزن؛
+     * غیرفعال/فعال‌کردن همچنان از مسیر `/disabled` می‌رود.
+     */
+    val status: String? = null,
+    /** مدت اعتبار پس از اولین اتصال (ثانیه) — فقط وقتی [status] برابر `on_hold` است. */
+    val onHoldExpireSeconds: Long? = null,
+    /** مهلت فعال‌سازی از الان (ثانیه)؛ 0 یعنی پاکش کن؛ null یعنی دست نزن. */
+    val onHoldTimeoutSeconds: Long? = null
 )
