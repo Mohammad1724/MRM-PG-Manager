@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.model.CountMetric
+import com.mrm.pgmanager.data.model.NodeUsage
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.StatsRange
@@ -73,6 +75,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     var nodes by remember(session) {
         mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList())
     }
+    // ترافیکِ گزارش‌شده توسطِ خودِ نودها (`/api/node/usage`) — null یعنی هنوز نیامده یا نقش اجازه ندارد.
+    val nodeUsageKey = PanelCache.statsNodeUsageKey(session.baseUrl)
+    var nodeUsage by remember(session) { mutableStateOf(PanelCache.get<List<NodeUsage>>(nodeUsageKey)) }
+    val canNodeStats = AdminAccess.can("nodes", "stats")
     // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
     // هیچ‌جا روی صفحه دیده نمی‌شد.
     var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
@@ -97,6 +103,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             .onSuccess { countPoints = it; PanelCache.put(countKey, it) }
         runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it; PanelCache.put(nodesKey, it) }
         runCatching { PanelApi.nodeRealtimeStats(session) }.onSuccess { nodeStats = it }
+        if (canNodeStats) runCatching { PanelApi.nodeUsage(session, trafficRange, selectedNode?.id) }
+            .onSuccess { nodeUsage = it; PanelCache.put(nodeUsageKey, it) }
         loading = false
     }
 
@@ -361,6 +369,17 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
                 }
 
+                // ── Node Traffic (uplink/downlink reported by the nodes themselves)
+                val nodeUsageList = nodeUsage
+                if (canNodeStats && nodeUsageList != null) {
+                    NodeTrafficCard(
+                        usage = nodeUsageList,
+                        nodes = nodes,
+                        range = trafficRange,
+                        scopeLabel = selectedNode?.name ?: stringResource(R.string.all_nodes)
+                    )
+                }
+
                 // ── User Count
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
@@ -393,6 +412,58 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
                     UsageChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
                     Spacer(Modifier.height(56.dp))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * کارتِ «ترافیک نودها»: نمودارِ جمعِ up+down در بازهٔ انتخابیِ همان کارتِ ترافیک،
+ * و زیرش سهمِ هر نود با تفکیکِ دانلود/آپلود. بازه و نود از فیلترهای بالای صفحه می‌آیند.
+ */
+@Composable
+private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, range: StatsRange, scopeLabel: String) {
+    val theme = LocalThemeState.current
+    val merged = remember(usage) { NodeUsage.merge(usage) }
+    val totalUp = remember(usage) { usage.sumOf { it.uplink } }
+    val totalDown = remember(usage) { usage.sumOf { it.downlink } }
+    val grandTotal = totalUp + totalDown
+    Column(
+        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp)
+            Text(stringResource(R.string.st_node_traffic), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor, modifier = Modifier.weight(1f))
+            Text("${range.label} · $scopeLabel", fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium, maxLines = 1)
+        }
+        Text(stringResource(R.string.st_node_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 13.sp)
+        if (usage.isEmpty() || grandTotal == 0L) {
+            Text(stringResource(R.string.st_node_traffic_empty), fontSize = 10.sp, color = theme.mutedColor)
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                MrmText(stringResource(R.string.st_node_traffic_down, formatBytes(totalDown)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
+                MrmText(stringResource(R.string.st_node_traffic_up, formatBytes(totalUp)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.accentPrimary)
+                MrmText(formatBytes(grandTotal), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+            UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
+            // سهمِ هر نود — پرمصرف‌ترین اول (PanelApi از قبل مرتب کرده).
+            usage.filter { it.total > 0L }.forEach { n ->
+                val name = nodes.firstOrNull { it.id == n.nodeId }?.name ?: stringResource(R.string.st_node_unknown, n.nodeId)
+                val share = (n.total.toDouble() / grandTotal).toFloat().coerceIn(0f, 1f)
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        MrmText(name, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
+                        MrmText(
+                            "↓ ${formatBytes(n.downlink)}  ↑ ${formatBytes(n.uplink)}  ·  ${formatPercent(share * 100f)}%",
+                            isTechnical = true, fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                        )
+                    }
+                    Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6))) {
+                        if (share > 0.005f) Box(Modifier.fillMaxWidth(share).fillMaxHeight().background(DsSemantic.Success, RoundedCornerShape(50)))
+                    }
                 }
             }
         }

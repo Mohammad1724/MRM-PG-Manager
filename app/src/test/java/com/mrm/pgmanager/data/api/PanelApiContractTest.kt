@@ -85,6 +85,35 @@ class PanelApiContractTest {
         assertFalse(path.contains("/by-id/"))
     }
 
+    // ── node usage ───────────────────────────────────────────
+
+    @Test fun `nodeUsage groups by node and parses uplink downlink`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"period":"hour","stats":{"1":[{"period_start":"2026-08-10T01:00:00Z","uplink":10,"downlink":90},{"period_start":"2026-08-10T00:00:00Z","uplink":5,"downlink":5}],"2":[{"period_start":"2026-08-10T00:00:00Z","uplink":1000,"downlink":2000}]}}"""))
+        val usage = PanelApi.nodeUsage(session, StatsRange.LAST_24H, nodeId = null)
+        val path = server.takeRequest().path!!
+
+        assertTrue(path, path.startsWith("/api/node/usage?period=hour&start="))
+        assertTrue(path, path.contains("group_by_node=true"))
+        assertFalse(path, path.contains("node_id="))
+        // پرمصرف‌ترین نود اول
+        assertEquals(listOf(2, 1), usage.map { it.nodeId })
+        assertEquals(3000L, usage[0].total)
+        assertEquals(15L, usage[1].uplink)
+        assertEquals(95L, usage[1].downlink)
+        // نقاط بر اساس زمان مرتب می‌شوند
+        assertEquals(listOf("2026-08-10T00:00:00Z", "2026-08-10T01:00:00Z"), usage[1].points.map { it.timestamp })
+        val merged = com.mrm.pgmanager.data.model.NodeUsage.merge(usage)
+        assertEquals(listOf(3010L, 100L), merged.map { it.totalTraffic })
+    }
+
+    @Test fun `nodeUsage forwards node_id when a node is selected`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"stats":{}}"""))
+        val usage = PanelApi.nodeUsage(session, StatsRange.LAST_7D, nodeId = 4)
+        val path = server.takeRequest().path!!
+        assertTrue(path, path.contains("period=day") && path.contains("node_id=4"))
+        assertTrue(usage.isEmpty())
+    }
+
     // ── فهرستِ کاربران: فیلترِ آنلاین سمتِ سرور ──────────────
 
     @Test fun `usersPage passes online=true only for the online filter`() = runBlocking {

@@ -898,6 +898,12 @@
     <string name="st_node_reconnecting">Reconnecting…</string>
     <string name="st_node_speed">↓ %1$s/s  ↑ %2$s/s</string>
     <string name="st_node_none">This panel has no nodes</string>
+    <string name="st_node_traffic">Node traffic</string>
+    <string name="st_node_traffic_desc">Uplink/downlink reported by the nodes themselves (including protocol overhead), split per node.</string>
+    <string name="st_node_traffic_empty">No node traffic was recorded in this range.</string>
+    <string name="st_node_traffic_down">↓ %1$s</string>
+    <string name="st_node_traffic_up">↑ %1$s</string>
+    <string name="st_node_unknown">Node #%1$d</string>
     <string name="ud_devices">Devices</string>
     <string name="ud_devices_count">%1$d of %2$d</string>
     <string name="ud_devices_empty">No device has connected yet</string>

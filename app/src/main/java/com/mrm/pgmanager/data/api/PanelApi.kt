@@ -21,6 +21,8 @@ import com.mrm.pgmanager.data.model.StatsRange
 import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TemplateOptions
 import com.mrm.pgmanager.data.model.TrafficPoint
+import com.mrm.pgmanager.data.model.NodeUsage
+import com.mrm.pgmanager.data.model.NodeTrafficPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -329,6 +331,40 @@ object PanelApi {
                 for (i in 0 until arr.length()) { val p = arr.optJSONObject(i) ?: continue; val time = p.optString("period_start"); totals[time] = (totals[time] ?: 0L) + p.optLong("total_traffic") }
             }
             totals.entries.sortedBy { it.key }.map { TrafficPoint(it.key, it.value) }
+        }
+    }
+
+    /**
+     * ترافیکِ نودها به تفکیکِ نود — `GET /api/node/usage?group_by_node=true` (مجوزِ `nodes.stats`).
+     * پاسخ: `{"stats": {"<node_id>": [{"period_start", "uplink", "downlink"}, …]}}`.
+     * با `nodeId` فقط همان نود می‌آید؛ پنل فقط سطل‌های کاملِ زمانی را برمی‌گرداند.
+     */
+    suspend fun nodeUsage(
+        session: Session,
+        range: StatsRange = StatsRange.LAST_24H,
+        nodeId: Int? = null
+    ): List<NodeUsage> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/node/usage")
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+            append("&group_by_node=true")
+            if (nodeId != null) { append("&node_id="); append(nodeId) }
+        }
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Node usage failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val stats = root.optJSONObject("stats") ?: return@use emptyList()
+            stats.keys().asSequence().mapNotNull { key ->
+                val id = key.toIntOrNull() ?: return@mapNotNull null
+                val arr = stats.optJSONArray(key) ?: return@mapNotNull null
+                val points = (0 until arr.length()).mapNotNull { i ->
+                    val p = arr.optJSONObject(i) ?: return@mapNotNull null
+                    NodeTrafficPoint(p.optString("period_start"), p.optLong("uplink"), p.optLong("downlink"))
+                }.sortedBy { it.timestamp }
+                NodeUsage(id, points)
+            }.sortedByDescending { it.total }.toList()
         }
     }
 

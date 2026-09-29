@@ -898,6 +898,12 @@
     <string name="st_node_reconnecting">در حال اتصال…</string>
     <string name="st_node_speed">↓ %1$s/ث  ↑ %2$s/ث</string>
     <string name="st_node_none">این پنل نودی ندارد</string>
+    <string name="st_node_traffic">ترافیک نودها</string>
+    <string name="st_node_traffic_desc">دانلود/آپلودی که خودِ نودها گزارش کرده‌اند (با سربار پروتکل)، به تفکیک هر نود.</string>
+    <string name="st_node_traffic_empty">در این بازه ترافیکی برای نودها ثبت نشده است.</string>
+    <string name="st_node_traffic_down">↓ %1$s</string>
+    <string name="st_node_traffic_up">↑ %1$s</string>
+    <string name="st_node_unknown">نود #%1$d</string>
     <string name="ud_devices">دستگاه‌ها</string>
     <string name="ud_devices_count">%1$d از %2$d</string>
     <string name="ud_devices_empty">هنوز دستگاهی وصل نشده</string>

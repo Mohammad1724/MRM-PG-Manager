@@ -61,6 +61,7 @@ object PanelCache {
     fun trafficKey(baseUrl: String) = "traffic:$baseUrl"
     fun statsTrafficKey(baseUrl: String) = "stats.traffic:$baseUrl"
     fun statsCountKey(baseUrl: String) = "stats.count:$baseUrl"
+    fun statsNodeUsageKey(baseUrl: String) = "stats.nodeusage:$baseUrl"
     fun nodesKey(baseUrl: String) = "nodes:$baseUrl"
     fun usersKey(baseUrl: String) = "users:$baseUrl"
     fun groupsKey(baseUrl: String) = "groups:$baseUrl"

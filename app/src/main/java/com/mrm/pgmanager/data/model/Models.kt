@@ -121,6 +121,31 @@ data class SystemStats(
 
 data class TrafficPoint(val timestamp: String, val totalTraffic: Long)
 
+/** یک نقطهٔ نمودارِ ترافیکِ نود — `NodeUsageStat` پنل (uplink/downlink جدا). */
+data class NodeTrafficPoint(val timestamp: String, val uplink: Long, val downlink: Long) {
+    val total: Long get() = uplink + downlink
+}
+
+/**
+ * ترافیکِ یک نود در بازهٔ انتخابی — از `GET /api/node/usage?group_by_node=true`.
+ * برخلافِ `/api/users/usage` که فقط مصرفِ کاربران را می‌شمارد، این همان چیزی است که
+ * خودِ نود گزارش کرده (شاملِ سربارِ پروتکل). نودِ شمارهٔ 0 یعنی «نامشخص» (رکوردهای بدونِ نود).
+ */
+data class NodeUsage(val nodeId: Int, val points: List<NodeTrafficPoint>) {
+    val uplink: Long get() = points.sumOf { it.uplink }
+    val downlink: Long get() = points.sumOf { it.downlink }
+    val total: Long get() = uplink + downlink
+
+    companion object {
+        /** جمعِ چند نود روی محورِ زمان — برای نمودارِ کلی. */
+        fun merge(usage: List<NodeUsage>): List<TrafficPoint> {
+            val totals = sortedMapOf<String, Long>()
+            usage.forEach { node -> node.points.forEach { p -> totals[p.timestamp] = (totals[p.timestamp] ?: 0L) + p.total } }
+            return totals.map { TrafficPoint(it.key, it.value) }
+        }
+    }
+}
+
 data class Group(val id: Int, val name: String)
 
 /**
