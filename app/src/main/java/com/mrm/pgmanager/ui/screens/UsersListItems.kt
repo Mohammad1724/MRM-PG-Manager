@@ -85,6 +85,7 @@ import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.lastSeenText
 import com.mrm.pgmanager.utils.lastSeenShort
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.remainingText
 import com.mrm.pgmanager.utils.NotificationHelper
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
