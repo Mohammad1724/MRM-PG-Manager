@@ -142,7 +142,7 @@ fun MrmFloatingNav(
 
 /**
  * یک چیپِ داخلِ کپسول. برچسبِ همهٔ بخش‌ها همیشه دیده می‌شود (کپسول اسکرول
- * می‌شود، پس نیازی به کوچک‌کردنشان نیست) و بخشِ فعال پس‌زمینهٔ اکسنت می‌گیرد.
+ * می‌شود، پس نیازی به کوچک‌کردنشان نیست) و بخشِ فعال پرکنندهٔ اصلیِ تم را می‌گیرد.
  */
 @Composable
 private fun NavChip(
@@ -154,11 +154,11 @@ private fun NavChip(
 ) {
     val theme = LocalThemeState.current
     val bg by animateColorAsState(
-        if (selected) theme.accentPrimary else Color.Transparent,
+        if (selected) theme.primaryFill else Color.Transparent,
         animationSpec = DsAnim.normal(), label = "navChipBg"
     )
     val tint by animateColorAsState(
-        if (selected) Color(0xFF422006) else theme.mutedColor,
+        if (selected) theme.onPrimary else theme.mutedColor,
         animationSpec = DsAnim.normal(), label = "navChipTint"
     )
     Row(

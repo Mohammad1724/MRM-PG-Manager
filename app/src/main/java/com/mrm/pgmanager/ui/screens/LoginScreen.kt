@@ -148,9 +148,9 @@ fun LoginScreen(
                     }
                 }
 
-                // Primary yellow button — توکن‌محور
+                // دکمهٔ ورود — پرکنندهٔ اصلیِ تم (مرکبی یا رنگِ تم)
                 Box(
-                    Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(themeState.accentPrimary)
+                    Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(themeState.primaryFill)
                         .clickable(enabled = !loading) {
                             if (loading) return@clickable
                             loading = true; error = null
@@ -176,8 +176,8 @@ fun LoginScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF422006), strokeWidth = 2.dp)
-                    else Text(stringResource(R.string.sign_in), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
+                    if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = themeState.onPrimary, strokeWidth = 2.dp)
+                    else Text(stringResource(R.string.sign_in), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = themeState.onPrimary)
                 }
 
                 // info row

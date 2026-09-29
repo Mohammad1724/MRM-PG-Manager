@@ -31,6 +31,8 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
+import com.mrm.pgmanager.ui.components.MrmButton
+import com.mrm.pgmanager.ui.components.MrmButtonStyle
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
 import com.mrm.pgmanager.ui.designsystem.DsAnim
@@ -47,6 +49,7 @@ import com.mrm.pgmanager.ui.dialogs.SettingsSwitchRow
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
+import com.mrm.pgmanager.ui.theme.ButtonTone
 import com.mrm.pgmanager.ui.theme.LampColor
 import kotlinx.coroutines.launch
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -170,7 +173,7 @@ fun SettingsScreen(
                 val selected = section == id
                 Box(
                     Modifier.height(34.dp).clip(DsRadius.Md)
-                        .background(if (selected) theme.accentPrimary.copy(.78f) else Color.Transparent)
+                        .background(if (selected) theme.primaryFill else Color.Transparent)
                         .pressScale(0.95f)
                         .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
                         .padding(horizontal = 12.dp),
@@ -178,7 +181,7 @@ fun SettingsScreen(
                 ) {
                     Text(
                         label, fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                        color = if (selected) Color(0xFF202124) else theme.mutedColor, maxLines = 1
+                        color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1
                     )
                 }
             }
@@ -506,6 +509,22 @@ private fun AppearanceSection(
 
     CustomColorCard(themeState = themeState, onThemeChange = onThemeChange)
 
+    // لحنِ دکمه‌های اصلی — پیش‌فرض «مرکبی» است تا با تمِ زردِ پُر، دکمه‌ها و FAB
+    // تمام‌زرد نشوند؛ کاربری که ظاهرِ قدیمی را می‌خواهد با یک لمس برمی‌گردد.
+    SettingsCard(stringResource(R.string.set_button_tone), AppIcon.Tune) {
+        SegmentedControl(
+            options = listOf(
+                stringResource(R.string.set_button_tone_ink),
+                stringResource(R.string.set_button_tone_accent)
+            ),
+            selectedIndex = if (themeState.buttonTone == ButtonTone.ACCENT) 1 else 0,
+            onSelect = { index ->
+                onThemeChange(themeState.copy(buttonTone = if (index == 1) ButtonTone.ACCENT else ButtonTone.INK))
+            }
+        )
+        Text(stringResource(R.string.set_button_tone_desc), fontSize = 11.sp, color = theme.mutedColor)
+    }
+
     ThemePreviewCard(themeState = themeState)
 
     if (themeState.isDark) {
@@ -743,6 +762,17 @@ private fun ThemePreviewCard(themeState: ThemeState) {
             ) {
                 Text(stringResource(R.string.search), fontSize = 11.sp, color = theme.mutedColor)
             }
+        }
+        // نمونهٔ دکمه‌ها — تا اثرِ «سبکِ دکمه» بدون رفتن به صفحه‌های دیگر دیده شود.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MrmButton(
+                text = stringResource(R.string.cancel), onClick = {}, modifier = Modifier.weight(1f),
+                style = MrmButtonStyle.Secondary, compact = true
+            )
+            MrmButton(
+                text = stringResource(R.string.save_changes), onClick = {}, modifier = Modifier.weight(1f),
+                style = MrmButtonStyle.Primary, compact = true
+            )
         }
         Text(stringResource(R.string.set_preview_hint), fontSize = 9.sp, color = theme.mutedColor)
     }

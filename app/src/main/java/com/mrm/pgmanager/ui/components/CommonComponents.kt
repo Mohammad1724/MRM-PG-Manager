@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -58,13 +59,12 @@ import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsGlass
-import com.mrm.pgmanager.ui.designsystem.DsGradients
 import com.mrm.pgmanager.ui.designsystem.DsMotion
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 
@@ -263,6 +263,67 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
     SmallButton(text = text, onClick = onClick, modifier = modifier, isRed = isRed)
 }
 
+/**
+ * دکمهٔ شناورِ مشترکِ صفحه‌ها (کاربران، گروه‌ها، قالب‌ها).
+ *
+ * دایرهٔ ۵۲dp با پرکنندهٔ اصلیِ تم؛ در لحنِ مرکبی آیکون به رنگِ تم است تا رنگ در
+ * صفحه حضور داشته باشد بدون اینکه یک مربعِ زردِ بزرگ گوشهٔ صفحه بنشیند. با
+ * [visible] هنگامِ اسکرول محو می‌شود و در اولین نمایش با یک جهشِ کوچک می‌آید.
+ * سه صفحه قبلاً هرکدام نسخهٔ خودشان را داشتند (۴۴ یا ۵۲dp، با/بی حاشیه).
+ */
+@Composable
+fun MrmFab(
+    icon: AppIcon,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    visible: Boolean = true,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressFactor by animateFloatAsState(
+        targetValue = if (pressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = DsMotion.PressBounceDamping, stiffness = DsMotion.PressBounceStiffness),
+        label = "fabPress"
+    )
+    // ورودِ اول با فنرِ سرزنده؛ محو/ظهورِ هنگامِ اسکرول با tween کوتاه تا با هر
+    // اسکرول «نپرد».
+    var introduced by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { introduced = true }
+    val shown by animateFloatAsState(
+        targetValue = if (visible && introduced) 1f else 0f,
+        animationSpec = when {
+            !visible -> DsAnim.exit()
+            !introduced -> DsAnim.bouncy()
+            else -> DsAnim.enter()
+        },
+        label = "fabShown"
+    )
+    Box(
+        modifier
+            .size(52.dp)
+            .graphicsLayer {
+                scaleX = pressFactor * shown
+                scaleY = pressFactor * shown
+                alpha = shown
+            }
+            .shadow(
+                elevation = 6.dp, shape = CircleShape, clip = false,
+                ambientColor = theme.primaryFill.copy(alpha = 0.28f),
+                spotColor = theme.primaryFill.copy(alpha = 0.45f)
+            )
+            .clip(CircleShape)
+            .background(theme.primaryFill)
+            .semantics { this.contentDescription = contentDescription }
+            // وقتی دکمه محو است نباید لمس را بگیرد.
+            .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(icon, tint = theme.onPrimaryAccent, size = 22.dp)
+    }
+}
+
 sealed class MrmButtonStyle {
     object Primary : MrmButtonStyle()
     object Secondary : MrmButtonStyle()
@@ -296,9 +357,10 @@ fun MrmButton(
     val shape = DsRadius.Lg
     val (backgroundColor, contentColor, borderStroke) = when (style) {
         MrmButtonStyle.Primary -> {
+            // پرکنندهٔ اصلی از تم می‌آید (مرکبی یا رنگِ تم — تنظیمات ← ظاهر ← سبکِ دکمه‌ها).
             Triple(
-                DsGradients.accentVertical(theme.accentPrimary, theme.accentPrimary.copy(alpha = 0.82f)),
-                DsAccent.OnAccent,
+                theme.primaryFillBrush,
+                theme.onPrimary,
                 null
             )
         }
@@ -330,36 +392,25 @@ fun MrmButton(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .height(if (compact) DsComponent.ButtonCompact else DsComponent.Button)
-            .clip(shape)
             .let {
                 if (style == MrmButtonStyle.Primary && active) {
-                    // Multi-layer depth: ambient glow + tight spot shadow
+                    // سایهٔ نرمِ هم‌رنگِ پرکننده؛ قبلاً بعد از clip می‌آمد و عملاً بریده می‌شد،
+                    // و درخششِ اکسنت + لایهٔ براقِ Canvas حسِ پلاستیکی می‌داد.
                     it.shadow(
-                        elevation = (if (isPressed) DsElevation.Medium.ambient * 0.4f else DsElevation.High.ambient).dp,
+                        elevation = if (isPressed) 1.dp else 4.dp,
                         shape = shape,
-                        ambientColor = theme.accentPrimary.copy(0.45f),
-                        spotColor = theme.accentPrimary
+                        clip = false,
+                        ambientColor = theme.primaryFill.copy(alpha = 0.30f),
+                        spotColor = theme.primaryFill.copy(alpha = 0.45f)
                     )
                 } else it
             }
+            .clip(shape)
             .background(backgroundColor)
             .let { if (borderStroke != null) it.border(borderStroke, shape) else it }
             .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // High-end glass reflection effect (primary only)
-        if (style == MrmButtonStyle.Primary && active) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val path = androidx.compose.ui.graphics.Path().apply {
-                    addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx()))
-                }
-                drawContext.canvas.save()
-                drawContext.canvas.clipPath(path)
-                drawRect(brush = DsGradients.gloss(), size = size)
-                drawContext.canvas.restore()
-            }
-        }
-
         Row(
             modifier = Modifier.padding(horizontal = if (compact) 14.dp else 22.dp).graphicsLayer(alpha = contentAlpha),
             verticalAlignment = Alignment.CenterVertically,

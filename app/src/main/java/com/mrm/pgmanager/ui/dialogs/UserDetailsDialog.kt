@@ -67,9 +67,12 @@ private fun CircularUsage(
     color: Color
 ) {
     val theme = LocalThemeState.current
+    // با بازشدنِ دیالوگ، کمان از صفر تا مقدارش جارو می‌شود؛ تغییراتِ بعدی (تمدید/ریست) از مقدارِ قبلی می‌لغزند.
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
     val animated by animateFloatAsState(
-        targetValue = if (unlimited) 1f else percentage / 100f,
-        animationSpec = DsAnim.enter(),
+        targetValue = if (!started) 0f else if (unlimited) 1f else percentage / 100f,
+        animationSpec = DsAnim.counter(),
         label = "circular"
     )
     Box(modifier = Modifier.size(100.dp), contentAlignment = Alignment.Center) {
@@ -346,12 +349,12 @@ fun UserDetailsDialog(
                         SectionLabel(stringResource(R.string.ud_manage))
                         // ویرایش تمام عرض
                         Row(
-                            Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Md).background(theme.accentPrimary).pressScale(0.98f).clickable { editOpen = true }.padding(horizontal = 12.dp),
+                            Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Md).background(theme.primaryFill).pressScale(0.98f).clickable { editOpen = true }.padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 16.dp)
-                            Text(stringResource(R.string.ud_edit), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF422006), modifier = Modifier.weight(1f))
-                            Text("›", fontSize = 16.sp, color = Color(0xFF422006).copy(0.6f))
+                            RoundedAppIcon(AppIcon.Edit, tint = theme.onPrimary, size = 16.dp)
+                            Text(stringResource(R.string.ud_edit), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.onPrimary, modifier = Modifier.weight(1f))
+                            Text("›", fontSize = 16.sp, color = theme.onPrimary.copy(0.6f))
                         }
                         // ردیف اول: 3 تایی
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -465,7 +468,7 @@ fun UserDetailsDialog(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 11.dp)
                                 Text(stringResource(R.string.ud_next_plan), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006)) }
+                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryFill).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
                             }
                             Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 9.sp, color = theme.mutedColor)
                         }
@@ -538,8 +541,8 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                 Row(Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).pressScale(0.97f).clickable { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note)); android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RoundedAppIcon(AppIcon.Copy, tint = theme.mutedColor, size = 16.dp); Text(stringResource(R.string.ud_note_copy), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 }
-                Row(Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg).background(theme.accentPrimary).pressScale(0.97f).clickable { onDismiss(); onEdit() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RoundedAppIcon(AppIcon.Edit, tint = Color(0xFF422006), size = 16.dp); Text(stringResource(R.string.ud_note_edit), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF422006))
+                Row(Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg).background(theme.primaryFill).pressScale(0.97f).clickable { onDismiss(); onEdit() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RoundedAppIcon(AppIcon.Edit, tint = theme.onPrimary, size = 16.dp); Text(stringResource(R.string.ud_note_edit), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary)
                 }
             }
         }

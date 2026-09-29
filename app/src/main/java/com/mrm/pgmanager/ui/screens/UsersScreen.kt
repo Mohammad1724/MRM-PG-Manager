@@ -3,9 +3,6 @@ package com.mrm.pgmanager.ui.screens
 import android.content.Context
 import androidx.compose.animation.core.*
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,8 +10,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -94,14 +89,13 @@ import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
-import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
-import com.mrm.pgmanager.ui.designsystem.DsMotion
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.listIntro
+import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.DsTileRadius
@@ -646,34 +640,13 @@ fun UsersScreen(
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         // ادمینی که مجوزِ users.create ندارد، دکمهٔ ساخت را نمی‌بیند (پنل ۴۰۳ می‌داد).
         if (selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
-            val fabShape = DsRadius.Lg
-            val fabInteraction = remember { MutableInteractionSource() }
-            val isFabPressed by fabInteraction.collectIsPressedAsState()
-            val fabScale by animateFloatAsState(targetValue = if (isFabPressed) 0.95f else 1f, animationSpec = DsMotion.ScaleSpring, label = "fabScale")
-            // هنگام اسکرول به پایین، دکمه به‌آرامی کوچک و محو می‌شود تا جلوی ردیف‌ها را نگیرد
-            val fabShown by animateFloatAsState(
-                targetValue = if (fabVisible.value) 1f else 0f,
-                animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing),
-                label = "fabShown"
-            )
-            Box(
-                modifier = Modifier
-                    .padding(bottom = 74.dp, end = 4.dp)
-                    .size(44.dp)
-                    .graphicsLayer(
-                        scaleX = fabScale * fabShown,
-                        scaleY = fabScale * fabShown,
-                        alpha = fabShown
-                    )
-                    .clip(fabShape)
-                    .background(themeState.accentPrimary)
-                    .border(BorderStroke(DsBorder.Hairline, themeState.accentPrimary), fabShape)
-                    // وقتی دکمه محو است نباید لمس را بگیرد
-                    .clickable(enabled = fabVisible.value, interactionSource = fabInteraction, indication = null) { createMenuOpen = true },
-                contentAlignment = Alignment.Center
-            ) {
-                RoundedAppIcon(AppIcon.UserAdd, tint = DsAccent.OnAccent, size = 20.dp)
-            }
+            // هنگام اسکرول به پایین محو می‌شود تا جلوی ردیف‌ها را نگیرد (MrmFab).
+            MrmFab(
+                icon = AppIcon.UserAdd,
+                contentDescription = stringResource(R.string.create_user),
+                modifier = Modifier.padding(bottom = 72.dp, end = 4.dp),
+                visible = fabVisible.value
+            ) { createMenuOpen = true }
         }
     }) { padding ->
         val topInsets = padding.calculateTopPadding()
@@ -741,14 +714,17 @@ fun UsersScreen(
                             }
                         }
                     }
-                    else -> androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
+                    else -> {
+                    // ورودِ پلکانیِ ردیف‌های اول — فقط در اولین نمایش بعد از بارگذاری.
+                    val listIntro = rememberListIntro()
+                    androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
                         when (mode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { loadMore() }
                                 }
-                                Box(Modifier.animateItem()) { LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                             if (loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
@@ -763,7 +739,7 @@ fun UsersScreen(
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { loadMore() }
                                 }
-                                Box(Modifier.animateItem()) { LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                             if (loadingMore) {
                                 item {
@@ -778,7 +754,7 @@ fun UsersScreen(
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { loadMore() }
                                 }
-                                Box(Modifier.animateItem()) { LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
                             }
                             if (loadingMore) {
                                 item {
@@ -789,6 +765,7 @@ fun UsersScreen(
                             }
                         }
                         }
+                    }
                     }
                 }
                 }

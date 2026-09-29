@@ -264,13 +264,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 15.dp)
                     }
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         // قبلاً اینجا «3 day, 4 hour» دستی ساخته می‌شد و در حالتِ
                         // فارسی هم انگلیسی می‌ماند؛ حالا از همان مسیرِ ترجمه‌شدهٔ
                         // صفحهٔ آمار رد می‌شود.
                         MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), isTechnical = true, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
+                    // نسخهٔ پنل (از GET /api/system) — قبلاً فقط تهِ تنظیمات دیده می‌شد.
+                    if (s.version.isNotBlank()) PGBadge("PasarGuard v${s.version}")
                 }
 
                 // ── Users section — mirrors PG Dashboard Users block

@@ -12,7 +12,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.LayoutDirection
+import com.mrm.pgmanager.ui.designsystem.DsAnim
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -209,7 +216,7 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 }
 
 // ─────────────────────────────────────────────────────────────
-//  PGPrimaryButton — yellow warm button
+//  PGPrimaryButton — دکمهٔ اصلیِ کوچک (پرکننده از تم: مرکبی یا رنگِ تم)
 // ─────────────────────────────────────────────────────────────
 @Composable
 fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null, enabled: Boolean = true) {
@@ -219,14 +226,14 @@ fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
         modifier
             .height(DsComponent.ButtonCompact)
             .clip(shape)
-            .background(if (enabled) t.accentPrimary else DsNeutral.HairlineLight)
+            .background(if (enabled) t.primaryFill else DsNeutral.HairlineLight)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (icon != null) RoundedAppIcon(icon, tint = Color(0xFF422006), size = 14.dp)
-            Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF422006))
+            if (icon != null) RoundedAppIcon(icon, tint = t.onPrimary, size = 14.dp)
+            Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.onPrimary)
         }
     }
 }
@@ -274,14 +281,31 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
 // ─────────────────────────────────────────────────────────────
 //  PGProgressBar — thin rounded track, green fill
 // ─────────────────────────────────────────────────────────────
+/**
+ * نوارِ مصرفِ نازک. پُرشدنش انیمیت می‌شود (تغییرِ مقدار بعد از تمدید/ریست به‌جای
+ * پرش، سُر می‌خورد) و چون فقط در فازِ draw کشیده می‌شود، هر فریمِ انیمیشن
+ * نه recomposition دارد نه relayout — برای صدها ردیفِ لیست مهم است.
+ * از راست‌چین پیروی می‌کند (در RTL از راست پُر می‌شود).
+ */
 @Composable
 fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4.dp, track: Color? = null, fill: Color = DsSemantic.Success) {
     val t = LocalThemeState.current
     val resolvedTrack = track ?: if (t.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6)
-    val shape = RoundedCornerShape(50)
-    Box(modifier.clip(shape).background(resolvedTrack).height(height)) {
-        Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().clip(shape).background(fill))
-    }
+    val target = progress.coerceIn(0f, 1f)
+    val animated = animateFloatAsState(targetValue = target, animationSpec = DsAnim.counter(), label = "usageBar")
+    Box(
+        modifier
+            .height(height)
+            .drawBehind {
+                val r = CornerRadius(size.height / 2f, size.height / 2f)
+                drawRoundRect(color = resolvedTrack, cornerRadius = r)
+                val w = size.width * animated.value
+                if (w > 0.5f) {
+                    val left = if (layoutDirection == LayoutDirection.Rtl) size.width - w else 0f
+                    drawRoundRect(color = fill, topLeft = Offset(left, 0f), size = Size(w, size.height), cornerRadius = r)
+                }
+            }
+    )
 }
 
 @Composable

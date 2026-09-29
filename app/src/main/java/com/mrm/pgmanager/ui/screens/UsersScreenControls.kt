@@ -104,6 +104,7 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.DsTileRadius
+import com.mrm.pgmanager.ui.designsystem.animatedCount
 
 /* ──────────────────────────────────────────────────────────────────────────
  *  نوارهای بالای صفحهٔ کاربران
@@ -224,13 +225,13 @@ internal fun StatsCardsRow(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = AppIcon.User, label = stringResource(R.string.online_users), value = "$onlineUsers", accent = GlassGreen, modifier = Modifier.weight(1f))
-            StatGlassCard(icon = AppIcon.Check, label = stringResource(R.string.active_users), value = "$activeUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.User, label = stringResource(R.string.online_users), value = "${animatedCount(onlineUsers)}", accent = GlassGreen, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Check, label = stringResource(R.string.active_users), value = "${animatedCount(activeUsers)}", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            StatGlassCard(icon = AppIcon.Users, label = stringResource(R.string.users_section), value = "$totalUsers", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
+            StatGlassCard(icon = AppIcon.Users, label = stringResource(R.string.users_section), value = "${animatedCount(totalUsers)}", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
             if (debtorCount > 0) {
-                StatGlassCard(icon = AppIcon.Warning, label = stringResource(R.string.debtor), value = "$debtorCount", accent = GlassRed, modifier = Modifier.weight(1f))
+                StatGlassCard(icon = AppIcon.Warning, label = stringResource(R.string.debtor), value = "${animatedCount(debtorCount)}", accent = GlassRed, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -364,8 +365,8 @@ internal fun FilterAndControlBar(
                     (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
                 ).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.primaryFill else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
                 // مالک (`admin=`) — فقط وقتی پنل بیش از یک ادمین دارد.
@@ -387,8 +388,8 @@ internal fun FilterAndControlBar(
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED, stringResource(R.string.us_sort_last_online) to UserSort.LAST_ONLINE).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.primaryFill else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
             }
@@ -403,13 +404,13 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
     Box(modifier = Modifier
         .height(32.dp)
         .clip(shape)
-        .background(if (selected) theme.accentPrimary else theme.searchBgColor)
-        .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else theme.borderColor), shape)
+        .background(if (selected) theme.primaryFill else theme.searchBgColor)
+        .border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else theme.borderColor), shape)
         .clickable(onClick = onClick)
         .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+        Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
 
@@ -417,8 +418,8 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
 internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clip(shape).background(if (selected) theme.accentPrimary else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
-        Text(label, color = if (selected) Color(0xFF422006) else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+    Box(modifier = Modifier.clip(shape).background(if (selected) theme.primaryFill else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
+        Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
 
@@ -426,8 +427,8 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) theme.accentPrimary else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) Color(0xFF422006) else theme.mutedColor, size = 18.dp)
+    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) theme.primaryFill else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
     }
 }
 

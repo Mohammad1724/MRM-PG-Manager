@@ -81,17 +81,17 @@ fun BulkApplyTemplateDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
                             val sel = selectedTemplateId == t.id
-                            // ردیف انتخاب تمپلت: انتخاب‌شده = کپسول اکسنت ۷۸٪ + متن تیره، بقیه = کاشی خاکستری.
+                            // ردیف انتخاب تمپلت: انتخاب‌شده = پرکنندهٔ اصلیِ تم + متنِ روی آن، بقیه = کاشی خاکستری.
                             Box(
                                 Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
-                                    .background(if (sel) theme.accentPrimary.copy(.78f) else theme.searchBgColor)
-                                    .border(BorderStroke(1.dp, if (sel) theme.searchBgColor else theme.borderColor), DsRadius.Md)
+                                    .background(if (sel) theme.primaryFill else theme.searchBgColor)
+                                    .border(BorderStroke(1.dp, if (sel) theme.primaryFill else theme.borderColor), DsRadius.Md)
                                     .clickable { selectedTemplateId = t.id }.padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) Color(0xFF202124) else theme.inkColor)
-                                    if (sel) Text(stringResource(R.string.bt_selected), fontSize = 10.sp, color = Color(0xFF202124), fontWeight = FontWeight.Bold)
+                                    Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) theme.onPrimary else theme.inkColor)
+                                    if (sel) Text(stringResource(R.string.bt_selected), fontSize = 10.sp, color = theme.onPrimary.copy(alpha = 0.85f), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

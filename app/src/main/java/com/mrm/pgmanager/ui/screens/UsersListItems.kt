@@ -201,10 +201,8 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                     isTechnical = true
                 )
             }
-            // thin PG progress — 4dp, rounded, green fill, neutral track
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
-                if (displayProgress > 0f) Box(Modifier.fillMaxWidth(displayProgress).fillMaxHeight().clip(RoundedCornerShape(50)).background(progressColor))
-            }
+            // نوارِ نازکِ مصرف — ۴dp، انیمیت‌شونده (PGProgressBar در فازِ draw می‌کشد).
+            PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
@@ -388,9 +386,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
-                    if (shownProgress > 0.01f) Box(Modifier.fillMaxWidth(shownProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
-                }
+                PGProgressBar(progress = shownProgress, modifier = Modifier.weight(1f), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
         }
@@ -427,9 +423,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
                     MrmText(traffic, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
                     MrmText(remainingText(user), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (LocalThemeState.current.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))) {
-                    if (actualProgress > 0.01f) Box(Modifier.fillMaxWidth(actualProgress).fillMaxHeight().background(progressColor, RoundedCornerShape(50)))
-                }
+                PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
             }
             IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
             IconRowAction(AppIcon.Qr, Modifier.size(24.dp), contentDesc = "QR") { onQrClick(user) }

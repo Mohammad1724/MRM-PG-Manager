@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.InspectorInfo
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 
 /**
  * سیستمِ حرکتِ اپ.
@@ -171,6 +172,45 @@ fun animatedCount(target: Int): Int {
         label = "animatedCount"
     )
     return value
+}
+
+/**
+ * ورودِ پلکانیِ آیتم‌های لیست در اولین نمایش.
+ *
+ * فقط ردیف‌های اولِ روی صفحه ([MAX_ITEMS]) و فقط در پنجرهٔ کوتاهی بعد از ساختِ
+ * لیست ([WINDOW_MS]) انیمیت می‌شوند؛ آیتم‌هایی که بعداً با اسکرول، فیلتر یا
+ * رفرشِ بی‌صدا می‌آیند بدون انیمیشن ظاهر می‌شوند تا اسکرولِ تند «چشمک» نزند.
+ * حرکت = محوشدن + ۱۴dp بالا آمدن، همه در graphicsLayer (نه recomposition، نه relayout).
+ */
+class ListIntro internal constructor(private val bornAtNanos: Long) {
+    fun shouldAnimate(index: Int): Boolean =
+        index in 0 until MAX_ITEMS && (System.nanoTime() - bornAtNanos) / 1_000_000L < WINDOW_MS
+
+    companion object {
+        const val MAX_ITEMS = 10
+        const val WINDOW_MS = 900L
+        const val STAGGER_MS = 38L
+    }
+}
+
+/** یک [ListIntro] برای هر بارِ ساخته‌شدنِ لیست (با پاک‌شدنِ لیست از ترکیب، دوباره از نو). */
+@Composable
+fun rememberListIntro(): ListIntro = remember { ListIntro(System.nanoTime()) }
+
+@Composable
+fun Modifier.listIntro(intro: ListIntro, index: Int): Modifier {
+    val animate = remember { intro.shouldAnimate(index) }
+    if (!animate) return this
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(index * ListIntro.STAGGER_MS)
+        progress.animateTo(1f, tween(DsDuration.Slow, easing = DsEasing.Decelerate))
+    }
+    return this.graphicsLayer {
+        val p = progress.value
+        alpha = p
+        translationY = (1f - p) * 14.dp.toPx()
+    }
 }
 
 /**

@@ -85,9 +85,9 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                     LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
                         items((1..daysInMonth).toList()) { day ->
                             val sel = day == d
-                            // روز انتخاب‌شده = کپسول اکسنت ۷۸٪ و متن تیره؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
-                            Box(Modifier.aspectRatio(1f).clip(DsRadius.Md).background(if (sel) theme.accentPrimary.copy(.78f) else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
-                                Text("$day", color = if (sel) Color(0xFF202124) else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                            // روز انتخاب‌شده = پرکنندهٔ اصلیِ تم و متنِ روی آن؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
+                            Box(Modifier.aspectRatio(1f).clip(DsRadius.Md).background(if (sel) theme.primaryFill else Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                                Text("$day", color = if (sel) theme.onPrimary else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                             }
                         }
                     }

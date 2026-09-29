@@ -12,7 +12,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
@@ -45,17 +47,74 @@ enum class LampColor(
 private fun Color.lightened(factor: Float = 0.80f): Color =
     Color(red + (1f - red) * factor, green + (1f - green) * factor, blue + (1f - blue) * factor, alpha)
 
+/** کمی تیره‌تر — برای آیکونِ رنگی روی سطحِ روشنِ حالتِ شب تا شسته‌رفته نشود. */
+private fun Color.darkened(factor: Float = 0.18f): Color =
+    Color(red * (1f - factor), green * (1f - factor), blue * (1f - factor), alpha)
+
+/**
+ * لحنِ سطوحِ «اصلی» — دکمهٔ اصلی، FAB، آیتمِ فعالِ نوارِ پایین و چیپ‌های انتخاب‌شده.
+ *
+ *  - [INK]: پرکنندهٔ تیره (در حالتِ شب روشن) به سبکِ shadcn/iOS؛ رنگِ تم فقط برای
+ *    آیکون، بَج، نمودار و درصدها می‌ماند. با یک تم زردِ پُر، دکمه‌های تمام‌زرد
+ *    چشم را می‌زد و با نوارِ کنترلِ تیرهٔ «گروه‌ها/قالب‌ها» هم ناهماهنگ بود.
+ *  - [ACCENT]: همان رفتارِ قدیمی؛ سطوحِ اصلی با رنگِ تم پُر می‌شوند.
+ */
+enum class ButtonTone(val prefKey: String) {
+    INK("ink"),
+    ACCENT("accent");
+
+    companion object {
+        fun fromPref(value: String?): ButtonTone = entries.firstOrNull { it.prefKey == value } ?: INK
+    }
+}
+
 data class ThemeState(
     val lamp: LampColor = LampColor.GOLD,
     val customColor: Color? = null,
     val isDark: Boolean = false,
     val followSystem: Boolean = false,
-    val amoledDark: Boolean = false
+    val amoledDark: Boolean = false,
+    val buttonTone: ButtonTone = ButtonTone.INK
 ) {
     val accentPrimary: Color get() = customColor ?: lamp.primary
     val accentLight: Color get() = customColor?.lightened() ?: lamp.light
     val accentSpotHigh: Color get() = customColor?.copy(alpha = 0.34f) ?: lamp.spotHigh
     val accentSpotLow: Color get() = customColor?.copy(alpha = 0.08f) ?: lamp.spotLow
+
+    /** رنگِ متن/آیکونی که مستقیم روی [accentPrimary] می‌نشیند (زرد → تیره، آبی/سبز → سفید). */
+    val onAccent: Color get() = if (accentPrimary.luminance() > 0.45f) DsAccent.OnAccentWarm else Color.White
+
+    /** پرکنندهٔ سطوحِ اصلی؛ بسته به [buttonTone] یا مرکب یا رنگِ تم. */
+    val primaryFill: Color get() = when (buttonTone) {
+        ButtonTone.INK -> if (isDark) DsNeutral.InkDark else DsNeutral.Ink
+        ButtonTone.ACCENT -> accentPrimary
+    }
+
+    /** رنگِ محتوا روی [primaryFill]. */
+    val onPrimary: Color get() = when (buttonTone) {
+        ButtonTone.INK -> if (isDark) DsNeutral.Ink else Color.White
+        ButtonTone.ACCENT -> onAccent
+    }
+
+    /**
+     * آیکونِ داخلِ FAB: در لحنِ مرکب، آیکون به رنگِ تم است تا رنگِ تم در صفحه
+     * «حضور» داشته باشد بدون اینکه کلِ دکمه رنگی شود.
+     */
+    val onPrimaryAccent: Color get() = when (buttonTone) {
+        ButtonTone.INK -> if (isDark) accentPrimary.darkened() else accentPrimary
+        ButtonTone.ACCENT -> onAccent
+    }
+
+    /** گرادیانِ عمودیِ بسیار ملایم برای دکمهٔ اصلی — بالا کمی روشن‌تر تا برجسته حس شود. */
+    val primaryFillBrush: Brush get() {
+        val top = when (buttonTone) {
+            ButtonTone.INK -> if (isDark) Color.White else DsNeutral.InkSoft
+            ButtonTone.ACCENT -> accentLightened()
+        }
+        return Brush.verticalGradient(listOf(top, primaryFill))
+    }
+
+    private fun accentLightened(): Color = accentPrimary.lightened(0.12f)
 
     val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
     val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted

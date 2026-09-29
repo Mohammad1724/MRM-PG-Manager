@@ -508,7 +508,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 Modifier.weight(1f).height(42.dp).clip(DsRadius.Lg)
-                    .background(theme.accentPrimary.copy(0.78f))
+                    .background(theme.primaryFill)
                     .clickable { invoiceLogoLauncher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
@@ -516,13 +516,13 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    RoundedAppIcon(AppIcon.Upload, tint = Color(0xFF1A1A1A), size = 16.dp)
+                    RoundedAppIcon(AppIcon.Upload, tint = theme.onPrimary, size = 16.dp)
                     Text(
                         stringResource(
                             if (invoiceLogoPath != null) R.string.set_inv_change_logo
                             else R.string.set_inv_pick_logo
                         ),
-                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A1A1A)
+                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary
                     )
                 }
             }
@@ -797,22 +797,22 @@ internal fun BackupSection(
             Box(
                 Modifier.weight(1f).height(46.dp).clip(DsRadius.Lg)
                     .background(
-                        if (backupBusy) theme.accentPrimary.copy(0.5f) else theme.accentPrimary.copy(0.78f)
+                        if (backupBusy) theme.primaryFill.copy(alpha = 0.6f) else theme.primaryFill
                     )
                     .clickable(enabled = !backupBusy) { performBackup(manual = true) },
                 contentAlignment = Alignment.Center
             ) {
                 if (backupBusy) {
-                    CircularProgressIndicator(Modifier.size(18.dp), color = Color(0xFF1A1A1A), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(18.dp), color = theme.onPrimary, strokeWidth = 2.dp)
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        RoundedAppIcon(AppIcon.Backup, tint = Color(0xFF1A1A1A), size = 16.dp)
+                        RoundedAppIcon(AppIcon.Backup, tint = theme.onPrimary, size = 16.dp)
                         Text(
                             stringResource(R.string.set_bk_manual), fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A1A)
+                            fontWeight = FontWeight.ExtraBold, color = theme.onPrimary
                         )
                     }
                 }

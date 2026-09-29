@@ -56,6 +56,8 @@ object DsAccent {
     val GoldSpotHigh = Color(0x33FACC15)
     val GoldSpotLow = Color(0x0FFACC15)
     val OnAccent = Color(0xFF1A1A1A)
+    /** متنِ گرمِ تیره روی اکسنت‌های روشن (زرد/طلایی) — همان قهوه‌ایِ سوخته‌ای که قبلاً هاردکد بود. */
+    val OnAccentWarm = Color(0xFF422006)
     val IconBg = Color(0xFFFFFBEB)        // faint yellow icon container bg
 }
 

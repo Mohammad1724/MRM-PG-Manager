@@ -6,7 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,8 +42,9 @@ import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsTransition
-import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.listIntro
+import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
@@ -130,18 +131,11 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (canCreate) Box(
-                Modifier
-                    .padding(bottom = 72.dp, end = 4.dp)
-                    .size(52.dp)
-                    .clip(DsRadius.Lg)
-                    .background(theme.accentPrimary)
-                    .semantics { contentDescription = addGroupLabel }
-                    .clickable { editing = GroupDetail(id = 0, name = "") },
-                contentAlignment = Alignment.Center
-            ) {
-                RoundedAppIcon(AppIcon.Add, tint = com.mrm.pgmanager.ui.designsystem.DsAccent.OnAccent, size = DsComponent.IconLg)
-            }
+            if (canCreate) MrmFab(
+                icon = AppIcon.Add,
+                contentDescription = addGroupLabel,
+                modifier = Modifier.padding(bottom = 72.dp, end = 4.dp)
+            ) { editing = GroupDetail(id = 0, name = "") }
         }
     ) { padding ->
         val pullState = rememberPullToRefreshState()
@@ -274,12 +268,13 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
 
                     else -> {
+                        val listIntro = rememberListIntro()
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = 140.dp)
                         ) {
-                            items(filtered, key = { it.id }) { group ->
-                                Box(Modifier.animateItem()) {
+                            itemsIndexed(filtered, key = { _, g -> g.id }) { index, group ->
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) {
                                     GroupRow(
                                         group = group,
                                         onEdit = { editing = group },

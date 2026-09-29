@@ -16,7 +16,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,11 +107,16 @@ fun RingChart(
     val track = if (trackColor != Color.Unspecified) trackColor
     else if (t.isDark) Color.White.copy(0.10f) else Color(0xFFEDEFF3)
 
+    // در اولین نمایش، حلقه از صفر تا مقدارش «جارو» می‌شود (فریمِ اول صفر است و
+    // بلافاصله به هدف انیمیت می‌شود)؛ رفرش‌های بعدی فقط از مقدارِ قبلی می‌لغزند.
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+
     // forEach درون‌خطی است، پس صدا زدنِ animateFloatAsState داخلش مجاز است.
     val animated = ArrayList<Pair<Float, Color>>(segments.size)
     segments.forEach { seg ->
         val f by animateFloatAsState(
-            targetValue = seg.fraction.coerceIn(0f, 1f),
+            targetValue = if (started) seg.fraction.coerceIn(0f, 1f) else 0f,
             animationSpec = DsAnim.counter(),
             label = "ringSegment"
         )

@@ -124,13 +124,13 @@ fun SegmentedControl(
             val selected = index == selectedIndex
             Box(
                 Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Md)
-                    .background(if (selected) theme.accentPrimary.copy(.85f) else Color.Transparent)
+                    .background(if (selected) theme.primaryFill else Color.Transparent)
                     .clickable(enabled = enabled) { onSelect(index) },
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) Color(0xFF1A1A1A) else theme.mutedColor, size = 16.dp)
-                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) Color(0xFF1A1A1A) else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) theme.onPrimary else theme.mutedColor, size = 16.dp)
+                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
