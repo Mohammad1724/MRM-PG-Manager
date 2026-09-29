@@ -571,7 +571,7 @@ object PanelApi {
         while (true) {
             val request = requestBuilder(session, "${session.baseUrl}/api/users?offset=$offset&limit=$limit").get().build()
             val chunk = client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("Request failed: ${response.code}")
+                if (!response.isSuccessful) error("Request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
                 val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
                 val arr = obj.getJSONArray("users")
                 List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }
@@ -584,7 +584,7 @@ object PanelApi {
         }
         // نام گروه‌ها در پاسخ لیست کاربران نیست (پنل group_names را exclude می‌کند)؛
         // پس با یک واکشی سبک از /api/groups/simple نگاشت id→name انجام می‌دهیم.
-        val groupMap = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
+        val groupMap = groupNameMap(session)
         if (groupMap.isNotEmpty()) {
             all.forEach { u ->
                 if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
@@ -629,7 +629,8 @@ object PanelApi {
         }
         val request = requestBuilder(session, url).get().build()
         val page = client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Request failed: ${response.code}")
+            // ۴۰۳ (نقشِ بدونِ users.read) و ۴۲۲ (پارامترِ نامعتبر) با پیامِ خودِ پنل، نه فقط عدد.
+            if (!response.isSuccessful) error("Request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
             val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
             val arr = obj.getJSONArray("users")
             UsersPage(List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }, obj.optInt("total", arr.length()))
@@ -644,7 +645,7 @@ object PanelApi {
      */
     private suspend fun attachGroupNames(session: Session, users: List<PanelUser>) {
         if (users.none { it.groupNames.isEmpty() && it.groupIds.isNotEmpty() }) return
-        val groupMap = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
+        val groupMap = groupNameMap(session)
         if (groupMap.isEmpty()) return
         users.forEach { u ->
             if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
@@ -652,6 +653,28 @@ object PanelApi {
             }
         }
     }
+
+    /**
+     * نگاشتِ id→name گروه‌ها با کشِ کوتاهِ درون‌حافظه‌ای (به‌ازای هر پنل).
+     *
+     * هر صفحهٔ کاربران (و هر رفرشِ خودکار، که می‌تواند هر ۵ ثانیه باشد) به این
+     * نگاشت نیاز دارد؛ بدونِ کش هر بار یک `GET /api/groups/simple` اضافه می‌رفت.
+     * گروه‌ها به‌ندرت عوض می‌شوند، و ساخت/ویرایش/حذفِ گروه از همین اپ کش را باطل می‌کند.
+     */
+    private val groupNameCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Map<Int, String>>>()
+    private const val GROUP_NAME_CACHE_MS = 60_000L
+
+    private suspend fun groupNameMap(session: Session): Map<Int, String> {
+        // nanoTime (یکنواخت و بدونِ وابستگی به اندروید — تست‌های JVM هم از این مسیر می‌گذرند).
+        val now = System.nanoTime() / 1_000_000L
+        groupNameCache[session.baseUrl]?.let { (at, map) -> if (now - at < GROUP_NAME_CACHE_MS && map.isNotEmpty()) return map }
+        val map = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
+        if (map.isNotEmpty()) groupNameCache[session.baseUrl] = now to map
+        return map
+    }
+
+    /** پس از ساخت/ویرایش/حذفِ گروه صدا زده می‌شود تا نامِ تازه فوراً روی کاربران بنشیند. */
+    private fun invalidateGroupNames(session: Session) { groupNameCache.remove(session.baseUrl) }
 
     /**
      * افزودن یا برداشتنِ گروه برای چند کاربر یک‌جا —
@@ -714,8 +737,17 @@ object PanelApi {
      *  - `on_hold` → همراه `on_hold_expire_duration` و بدون `expire` (پنل خودش expire را پاک می‌کند)؛
      *  - `active` → برای بیرون‌آوردن کاربر از on_hold، همراه `expire` تازه.
      * در بقیهٔ حالت‌ها وضعیت دست نمی‌خورد تا وضعیت‌های محاسبه‌شدهٔ پنل (expired/limited) خراب نشود.
+     *
+     * قواعدِ «دست‌نزدن» (همه بر اساسِ `crud.modify_user` پنل v5.4.1):
+     *  - `expireIso == null` → کلیدِ `expire` اصلاً فرستاده نمی‌شود (پنل تاریخِ فعلی را نگه می‌دارد).
+     *    `""` همچنان یعنی «نامحدود» (expire = 0).
+     *  - `note` همیشه فرستاده می‌شود، چون پنل `""` را «پاک کن» می‌فهمد و اگر کلید نیاید
+     *    یادداشتِ قبلی می‌ماند — قبلاً امکانِ پاک‌کردنِ یادداشت وجود نداشت.
+     *  - `next_plan`: پنل اگر این کلید در بدنه **نباشد**، پلنِ بعدیِ موجود را حذف می‌کند
+     *    (`elif db_user.next_plan is not None: delete`). پس اگر صداکننده چیزی نداده،
+     *    پلنِ فعلیِ خودِ کاربر دوباره فرستاده می‌شود تا با یک «تمدید» بی‌صدا از بین نرود.
      */
-    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String?, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
         val body = JSONObject().put("data_limit", gbToBytes(limitGb))
         if (onHold) {
@@ -723,14 +755,15 @@ object PanelApi {
             // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
             onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
         } else {
-            body.put("expire", expireValue(expireIso))
+            if (expireIso != null) body.put("expire", expireValue(expireIso))
             if (status == "active") body.put("status", "active")
         }
-        if (note.isNotBlank()) body.put("note", note)
+        body.put("note", note.trim())
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
-        // null یعنی «دست نزن»؛ قالبِ خالی یعنی «پاکش کن».
-        if (nextPlan != null) body.put("next_plan", nextPlanJson(nextPlan) ?: JSONObject.NULL)
+        // null یعنی «دست نزن» → پلنِ فعلیِ کاربر دوباره فرستاده می‌شود؛ قالبِ خالی یعنی «پاکش کن».
+        val planToSend = nextPlan ?: user.nextPlan
+        if (planToSend != null) body.put("next_plan", nextPlanJson(planToSend) ?: JSONObject.NULL)
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
         // null یعنی «دست نزن»، عددِ صفر یعنی «حذفِ خودکار را بردار».
         autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
@@ -833,7 +866,9 @@ object PanelApi {
             ownerAdmin = user.optJSONObject("admin")?.optString("username")
                 ?.takeIf { it.isNotBlank() && it != "null" },
             onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
-            onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" }
+            onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" },
+            dataLimitResetStrategy = if (user.isNull("data_limit_reset_strategy")) null else user.optString("data_limit_reset_strategy").takeIf { it.isNotBlank() && it != "null" },
+            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 }
         )
     }
 
@@ -1005,6 +1040,7 @@ object PanelApi {
             .put("inbound_tags", org.json.JSONArray(inboundTags))
             .put("is_disabled", isDisabled)
         executeJson(requestBuilder(session, "${session.baseUrl}/api/group").post(body.toString().toRequestBody(jsonType)).build())
+        invalidateGroupNames(session)
     }
 
     /** ویرایش گروه (PUT روی مسیرِ مفرد + شناسه). */
@@ -1014,6 +1050,7 @@ object PanelApi {
             .put("inbound_tags", org.json.JSONArray(inboundTags))
             .put("is_disabled", isDisabled)
         executeJson(requestBuilder(session, "${session.baseUrl}/api/group/$groupId").put(body.toString().toRequestBody(jsonType)).build())
+        invalidateGroupNames(session)
     }
 
     /** حذف گروه. پنل 204 برمی‌گرداند (بدنهٔ خالی). */
@@ -1021,10 +1058,11 @@ object PanelApi {
         val req = requestBuilder(session, "${session.baseUrl}/api/group/$groupId").delete().build()
         client.newCall(req).execute().use { res ->
             if (!res.isSuccessful) {
-                val details = res.body?.string()?.take(250).orEmpty()
-                error("Delete group failed: ${res.code} $details")
+                val details = errorDetail(res.body?.string())
+                error("Delete group failed: ${res.code} $details".trim())
             }
         }
+        invalidateGroupNames(session)
     }
 
     /** تبدیل JSON گروه به مدل. نامِ کلیدها مطابق GroupResponse پنل است. */

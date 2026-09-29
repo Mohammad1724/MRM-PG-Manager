@@ -116,6 +116,9 @@ import com.mrm.pgmanager.ui.designsystem.DsTileRadius
  * ────────────────────────────────────────────────────────────────────────── */
 
 
+/** اندازهٔ هر صفحه از فهرستِ کاربران (سمتِ سرور). */
+private const val PAGE_SIZE = 60
+
 /** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
 private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit, val danger: Boolean = false)
 
@@ -306,7 +309,12 @@ fun UsersScreen(
     /** آیا فیلترِ فعلی را پنل می‌تواند اعمال کند؟ (بدهکار و نزدیک‌به‌سقف محلی‌اند) */
     val serverMode = currentFilter.serverSide
 
-    fun buildQuery(offset: Int): com.mrm.pgmanager.data.model.UserQuery {
+    /** نمای پیش‌فرض (بدونِ جست‌وجو/فیلتر/مرتب‌سازیِ خاص) — تنها نمایی که کش می‌شود. */
+    fun isDefaultView(): Boolean =
+        query.isBlank() && currentFilter == UserFilter.ALL && groupFilterId == null &&
+            ownerFilter == null && currentSort == UserSort.CREATED
+
+    fun buildQuery(offset: Int, limit: Int = PAGE_SIZE): com.mrm.pgmanager.data.model.UserQuery {
         val expiring = if (currentFilter == UserFilter.EXPIRING_SOON)
             com.mrm.pgmanager.data.model.UserQuery.expiringWindow(com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays))
         else null
@@ -323,7 +331,7 @@ fun UsersScreen(
             noGroup = currentFilter.panelNoGroup,
             admin = ownerFilter,
             offset = offset,
-            limit = 60
+            limit = limit
         )
     }
 
@@ -336,17 +344,44 @@ fun UsersScreen(
             if (!silent) loading = true
             error = null
             endReached = false
-            runCatching { PanelApi.usersPage(session, buildQuery(0)) }.onSuccess { page ->
+            // رفرشِ بی‌صدا (خودکار/پس از عملیات) همان تعداد سطری را می‌گیرد که الان روی
+            // صفحه است؛ وگرنه کاربری که سه صفحه پایین رفته بود با هر رفرش به ۶۰ سطرِ اول
+            // پرت می‌شد.
+            val limit = if (silent && users.size > PAGE_SIZE) users.size.coerceAtMost(PAGE_SIZE * 10) else PAGE_SIZE
+            val defaultView = isDefaultView()
+            runCatching { PanelApi.usersPage(session, buildQuery(0, limit)) }.onSuccess { page ->
                 users = page.users
                 totalMatches = page.total
                 endReached = page.users.isEmpty() || page.users.size >= page.total
                 offlineAt = null
                 if (resetHeader) scrollOffset.value = 0f
+                if (defaultView) {
+                    // همان نقشی که loadAll برای کشِ حافظه/دیسک داشت — حالا در مسیرِ عادی هم:
+                    // برگشتن به این تب دوباره اسکلت+درخواست نمی‌شود و حالتِ آفلاین داده دارد.
+                    PanelCache.put(usersKey, page.users)
+                    if (monitoringSettings.offlineCacheEnabled) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            // فهرستِ کاملی که MonitoringWorker هر ۱۵ دقیقه می‌نویسد را با یک صفحه
+                            // خراب نمی‌کنیم؛ فقط اگر این صفحه خودش کلِ فهرست است یا کشِ دیسک کهنه/غایب است.
+                            val age = store.usersCacheAgeMs()
+                            if (page.users.size >= page.total || age == null || age > 30L * 60L * 1000L) store.saveUsersCache(page.users)
+                        }
+                    }
+                }
             }.onFailure {
                 if (PanelApi.isUnauthorized(it)) {
                     android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
                     onSessionExpired()
-                } else if (!silent) error = it.message
+                } else {
+                    // بدونِ شبکه: فهرستِ ذخیره‌شده با برچسبِ «آفلاین» بهتر از صفحهٔ خطای خالی است.
+                    val cache = if (defaultView && users.isEmpty() && monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
+                    if (cache != null) {
+                        users = cache.first
+                        offlineAt = cache.second
+                        endReached = true
+                        error = null
+                    } else if (!silent) error = it.message
+                }
             }
             // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
             runCatching { PanelApi.systemStats(session) }.onSuccess { counts = it; onlineCount = it.onlineUsers }
@@ -489,13 +524,19 @@ fun UsersScreen(
             runCatching { PanelApi.admins(session) }.onSuccess { adminOptions = it }
         }
     }
-    LaunchedEffect(deepLinkUsername, users) {
+    LaunchedEffect(deepLinkUsername, session) {
         val name = deepLinkUsername ?: return@LaunchedEffect
-        if (users.isEmpty()) return@LaunchedEffect
-        users.find { it.username == name }?.let {
+        // با صفحه‌بندیِ سمتِ سرور فقط ۶۰ کاربرِ اول در حافظه‌اند؛ اگر کاربرِ اعلان
+        // بینشان نبود، همان یک نفر را از پنل می‌پرسیم — قبلاً لمسِ اعلان بی‌صدا هیچ کاری نمی‌کرد.
+        val local = users.find { it.username == name }
+        val target = local ?: runCatching {
+            PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(search = name, limit = 5))
+                .users.firstOrNull { it.username == name }
+        }.getOrNull()
+        if (target != null) {
             query = ""
             currentFilter = UserFilter.ALL
-            selectedUser = it
+            selectedUser = target
         }
         onDeepLinkHandled()
     }
@@ -1096,7 +1137,7 @@ fun UsersScreen(
             user = user,
             onDismiss = { selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
+                selectedUser = null; runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
             },
             onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },

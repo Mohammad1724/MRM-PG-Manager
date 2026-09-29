@@ -245,10 +245,19 @@ class SessionStore(context: Context) {
                 if (u.hwidLimit != null) put("hwid_limit", u.hwidLimit)
                 if (u.onHoldExpireDuration != null) put("on_hold_expire_duration", u.onHoldExpireDuration)
                 if (u.onHoldTimeout != null) put("on_hold_timeout", u.onHoldTimeout)
+                if (u.dataLimitResetStrategy != null) put("data_limit_reset_strategy", u.dataLimitResetStrategy)
+                if (u.autoDeleteDays != null) put("auto_delete_in_days", u.autoDeleteDays)
                 put("group_ids", org.json.JSONArray(u.groupIds)); put("group_names", org.json.JSONArray(u.groupNames))
             })
         }
         prefs.edit().putString("users_cache", arr.toString()).putLong("users_cache_ts", System.currentTimeMillis()).apply()
+    }
+
+    /** سنِ کشِ کاربران (میلی‌ثانیه) بدونِ پارسِ خودِ فهرست؛ null یعنی کشی نیست. */
+    fun usersCacheAgeMs(): Long? {
+        val ts = prefs.getLong("users_cache_ts", 0L)
+        if (ts <= 0L || !prefs.contains("users_cache")) return null
+        return (System.currentTimeMillis() - ts).coerceAtLeast(0L)
     }
 
     /**
@@ -281,7 +290,9 @@ class SessionStore(context: Context) {
                     groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
                     groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
                     onHoldExpireDuration = if (o.has("on_hold_expire_duration") && !o.isNull("on_hold_expire_duration")) o.optLong("on_hold_expire_duration").takeIf { it > 0L } else null,
-                    onHoldTimeout = o.optString("on_hold_timeout").ifBlank { null }
+                    onHoldTimeout = o.optString("on_hold_timeout").ifBlank { null },
+                    dataLimitResetStrategy = o.optString("data_limit_reset_strategy").ifBlank { null },
+                    autoDeleteDays = if (o.has("auto_delete_in_days") && !o.isNull("auto_delete_in_days")) o.optInt("auto_delete_in_days").takeIf { it > 0 } else null
                 )
             }
         }.getOrDefault(emptyList())

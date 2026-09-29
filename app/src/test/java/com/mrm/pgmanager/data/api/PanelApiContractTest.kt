@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.CountMetric
+import com.mrm.pgmanager.data.model.NextPlan
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.StatsRange
@@ -277,6 +278,62 @@ class PanelApiContractTest {
 
         assertFalse(body.has("status"))
         assertTrue(body.has("expire"))
+    }
+
+    // ── قواعدِ «دست‌نزدن» در ویرایش (crud.modify_user پنل) ─────────────
+
+    @Test fun `modifyUser with null expire leaves the panel expiry untouched`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, expireIso = null)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertFalse(body.has("expire"))
+        assertFalse(body.has("status"))
+        assertTrue(body.has("data_limit"))
+    }
+
+    @Test fun `modifyUser always sends note so an emptied note is cleared`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01", note = "  ")
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        assertTrue(body.has("note"))
+        assertEquals("", body.getString("note"))
+    }
+
+    @Test fun `modifyUser re-sends the existing next plan when the caller passes none`() = runBlocking {
+        // پنل اگر next_plan در بدنه نباشد پلنِ بعدیِ موجود را حذف می‌کند.
+        val withPlan = user(7, "ali").copy(nextPlan = NextPlan(templateId = 3, dataLimit = 1_000L, expireSeconds = 86_400L, addRemainingTraffic = true))
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, withPlan, 5.0, "2026-12-01")
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+
+        val plan = body.getJSONObject("next_plan")
+        assertEquals(3, plan.getInt("user_template_id"))
+        assertEquals(1_000L, plan.getLong("data_limit"))
+        assertEquals(86_400L, plan.getLong("expire"))
+        assertTrue(plan.getBoolean("add_remaining_traffic"))
+
+        // ولی پلنِ خالیِ صریح یعنی «پاکش کن».
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, withPlan, 5.0, "2026-12-01", nextPlan = NextPlan())
+        val cleared = JSONObject(server.takeRequest().body.readUtf8())
+        assertTrue(cleared.isNull("next_plan"))
+
+        // کاربرِ بدونِ پلن و بدونِ درخواست → کلید اصلاً فرستاده نمی‌شود.
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01")
+        assertFalse(JSONObject(server.takeRequest().body.readUtf8()).has("next_plan"))
+    }
+
+    @Test fun `parseUser reads reset strategy and auto delete`() {
+        val u = PanelApi.parseUser(JSONObject("""{"id":5,"username":"m","status":"active","used_traffic":0,"data_limit":0,"expire":null,"data_limit_reset_strategy":"month","auto_delete_in_days":14}"""))
+        assertEquals("month", u.dataLimitResetStrategy)
+        assertEquals(14, u.autoDeleteDays)
+
+        val bare = PanelApi.parseUser(JSONObject("""{"id":6,"username":"n","status":"active","used_traffic":0,"data_limit":0,"expire":null,"data_limit_reset_strategy":null,"auto_delete_in_days":null}"""))
+        assertNull(bare.dataLimitResetStrategy)
+        assertNull(bare.autoDeleteDays)
     }
 
     @Test fun `parseUser reads on_hold fields and derives days`() {

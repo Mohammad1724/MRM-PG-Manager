@@ -75,25 +75,27 @@ fun UserEditorDialog(
         )
     }
     var days by remember {
-        mutableStateOf(initial?.onHoldDays?.toString() ?: runCatching {
-            initial?.let { user ->
-                val expires = try {
-                    java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                } catch (_: Exception) {
-                    LocalDate.parse(user.expire?.take(10) ?: "")
-                }
-                java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), expires).coerceAtLeast(0L).toString()
-            } ?: ""
-        }.getOrDefault(""))
+        mutableStateOf(
+            initial?.onHoldDays?.toString()
+                ?: initial?.let { user -> DateLogic.remainingDays(user.expire)?.coerceAtLeast(0L)?.toString() }
+                ?: ""
+        )
     }
+    // تا وقتی ادمین به زمان دست نزده، `expire` فرستاده نمی‌شود (نگاه کنید به UserEditorValues.keepExpire).
+    var daysDirty by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
     var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
     var nextPlanTemplate by remember { mutableStateOf(initial?.nextPlan?.templateId) }
     var nextPlanCarry by remember { mutableStateOf(initial?.nextPlan?.addRemainingTraffic ?: false) }
+    // اگر ادمین به «پلنِ بعدی» دست نزند، همان پلنِ فعلیِ کاربر (حتی نوعِ بدونِ قالب با حجم/مدتِ دستی) عیناً برمی‌گردد.
+    var nextPlanDirty by remember { mutableStateOf(false) }
     var nextPlanMenu by remember { mutableStateOf(false) }
-    var resetStrategy by remember { mutableStateOf(TemplateOptions.RESET_NO_RESET) }
-    var autoDeleteDays by remember { mutableStateOf("") }
+    // از مقادیرِ فعلیِ کاربر پیش‌پر می‌شوند؛ قبلاً همیشه no_reset/خالی بودند و ذخیرهٔ هر
+    // ویرایشی راهبردِ ریستِ کاربر را بی‌صدا به no_reset برمی‌گرداند.
+    val initialResetStrategy = initial?.dataLimitResetStrategy?.takeIf { it in TemplateOptions.RESET_STRATEGIES } ?: TemplateOptions.RESET_NO_RESET
+    var resetStrategy by remember { mutableStateOf(initialResetStrategy) }
+    var autoDeleteDays by remember { mutableStateOf(initial?.autoDeleteDays?.toString() ?: "") }
     var groups by remember { mutableStateOf<List<Group>>(emptyList()) }
     var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
     // وضعیتِ انتخاب‌شده در ویرایشگر: active / on_hold / disabled (پنل فقط همین سه تا را می‌پذیرد).
@@ -214,8 +216,8 @@ fun UserEditorDialog(
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
                                     DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; statusMenuExpanded = false })
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; daysDirty = true; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; daysDirty = true; statusMenuExpanded = false })
                                         // پنل اجازهٔ ساختِ کاربرِ غیرفعال نمی‌دهد (UserStatusCreate = active | on_hold).
                                         if (!isCreating) DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "disabled"; statusMenuExpanded = false })
                                     }
@@ -239,7 +241,7 @@ fun UserEditorDialog(
                             FieldLabel(stringResource(if (isOnHold) R.string.ue_on_hold_duration else R.string.ue_expiry))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 UserFormTextField(
-                                    value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() } },
+                                    value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() }; daysDirty = true },
                                     placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Timer, modifier = Modifier.weight(1f)
                                 )
                                 // تقویم فقط برای تاریخِ انقضای مطلق معنا دارد؛ on_hold مدت نسبی است.
@@ -262,7 +264,7 @@ fun UserEditorDialog(
                                     Box(
                                         Modifier.height(26.dp).clip(DsRadius.Full).background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
-                                            .clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString() }
+                                            .clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }
                                             .padding(horizontal = 9.dp), contentAlignment = Alignment.Center
                                     ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                                 }
@@ -332,7 +334,7 @@ fun UserEditorDialog(
                                             PickerRow(icon = AppIcon.Template, label = t.name, selected = picked, onClick = {
                                                 selectedTemplate = t.id
                                                 t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
-                                                t.expireDuration?.let { days = (it / 86400L).toString() }
+                                                t.expireDuration?.let { days = (it / 86400L).toString(); daysDirty = true }
                                             }) {
                                                 androidx.compose.animation.AnimatedVisibility(visible = picked, enter = androidx.compose.animation.scaleIn(DsAnim.bouncy()) + androidx.compose.animation.fadeIn(DsAnim.fast()), exit = androidx.compose.animation.scaleOut(DsAnim.exit()) + androidx.compose.animation.fadeOut(DsAnim.exit())) {
                                                     Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(theme.inkColor), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.cardSurfaceColor, size = 10.dp) }
@@ -366,13 +368,13 @@ fun UserEditorDialog(
                                         Text("▾", fontSize = 9.sp, color = theme.mutedColor)
                                     }
                                     DropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanMenu = false })
-                                        templates.forEach { t -> DropdownMenuItem(text = { Text(t.name, fontSize = 11.sp) }, onClick = { nextPlanTemplate = t.id; nextPlanMenu = false }) }
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanDirty = true; nextPlanMenu = false })
+                                        templates.forEach { t -> DropdownMenuItem(text = { Text(t.name, fontSize = 11.sp) }, onClick = { nextPlanTemplate = t.id; nextPlanDirty = true; nextPlanMenu = false }) }
                                     }
                                 }
                                 if (nextPlanTemplate != null) {
-                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).pressScale(0.99f).clickable { nextPlanCarry = !nextPlanCarry }.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        CheckboxIcon(selected = nextPlanCarry, onToggle = { nextPlanCarry = !nextPlanCarry })
+                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).pressScale(0.99f).clickable { nextPlanCarry = !nextPlanCarry; nextPlanDirty = true }.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        CheckboxIcon(selected = nextPlanCarry, onToggle = { nextPlanCarry = !nextPlanCarry; nextPlanDirty = true })
                                         Text(stringResource(R.string.ue_next_plan_carry), fontSize = 10.sp, color = theme.inkColor, modifier = Modifier.weight(1f))
                                     }
                                 }
@@ -437,6 +439,8 @@ fun UserEditorDialog(
                             // کاربرِ on_hold (چه بماند چه غیرفعال شود) expire ندارد؛ فیلدِ روز برایش «مدت» است نه تاریخ.
                             val keepsOnHoldDuration = isOnHold || (initial?.status == "on_hold" && editorStatus == "disabled")
                             val expire = if (keepsOnHoldDuration) "" else daysValue?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: ""
+                            // ویرایشِ بدونِ دست‌زدن به زمان → expire فرستاده نمی‌شود (کاربرِ منقضی دوباره زنده نمی‌شود).
+                            val keepExpire = !isCreating && !daysDirty && !keepsOnHoldDuration && initial?.status != "on_hold"
                             val hwidValue = normalizedHwid.toIntOrNull() ?: 0
                             // `status` فقط برای رفتن به on_hold یا بیرون‌آمدن از آن فرستاده می‌شود؛ غیرفعال‌کردن از مسیر /disabled می‌رود.
                             val statusToSend = when {
@@ -446,7 +450,11 @@ fun UserEditorDialog(
                             }
                             val onHoldSeconds = if (isOnHold) (daysValue ?: 0) * 86_400L else null
                             val timeoutSeconds = if (isOnHold && onHoldTimeoutDirty) (normalizePersianDigits(onHoldTimeoutDays).toLongOrNull() ?: 0L) * 86_400L else null
-                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetStrategy, autoDeleteDays = normalizedAutoDelete.toIntOrNull(), nextPlan = NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry), status = statusToSend, onHoldExpireSeconds = onHoldSeconds, onHoldTimeoutSeconds = timeoutSeconds)
+                            // راهبردِ ریست فقط وقتی تغییر کرده (یا در ساخت) فرستاده می‌شود؛ حذفِ خودکار: خالی‌کردنِ مقدارِ قبلی یعنی «بردار» (0).
+                            val resetToSend = if (isCreating || resetStrategy != initialResetStrategy) resetStrategy else null
+                            val autoDeleteToSend = normalizedAutoDelete.toIntOrNull() ?: if (initial?.autoDeleteDays != null) 0 else null
+                            val planToSend = if (isCreating || nextPlanDirty) NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry) else (initial?.nextPlan ?: NextPlan())
+                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetToSend, autoDeleteDays = autoDeleteToSend, keepExpire = keepExpire, nextPlan = planToSend, status = statusToSend, onHoldExpireSeconds = onHoldSeconds, onHoldTimeoutSeconds = timeoutSeconds)
                             if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) onSaveWithTemplate(username, selectedTemplate!!, note)
                             else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) onApplyTemplateToUser(selectedTemplate!!, note)
                             else {
@@ -465,6 +473,7 @@ fun UserEditorDialog(
     if (showCalendar) {
         ShamsiCalendarPickerDialog(initialDateShamsi = JalaliCalendar.todayJalali().toString(), onDismiss = { showCalendar = false }) { shamsi ->
             days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("")
+            daysDirty = true
         }
     }
 }

@@ -75,7 +75,15 @@ data class PanelUser(
     /** فقط برای `on_hold`: مدت اعتبار (ثانیه) که با اولین اتصال کاربر شروع می‌شود. */
     val onHoldExpireDuration: Long? = null,
     /** فقط برای `on_hold`: اگر تا این زمان وصل نشود، پنل خودش فعالش می‌کند (اختیاری). */
-    val onHoldTimeout: String? = null
+    val onHoldTimeout: String? = null,
+    /**
+     * راهبردِ ریستِ مصرف (`no_reset`/`day`/`week`/`month`/`year`) — همان چیزی که
+     * پنل در پاسخ می‌دهد؛ null یعنی پنل چیزی نفرستاده. ویرایشگر از همین پیش‌پر
+     * می‌شود تا ذخیرهٔ یک ویرایشِ ساده راهبردِ کاربر را بی‌صدا به no_reset برنگرداند.
+     */
+    val dataLimitResetStrategy: String? = null,
+    /** حذفِ خودکار N روز پس از انقضا؛ null یعنی هرگز. */
+    val autoDeleteDays: Int? = null
 ) {
     /** مدت اعتبارِ on_hold به روز (گِرد به بالا)؛ null اگر کاربر on_hold نیست. */
     val onHoldDays: Int?
@@ -594,10 +602,16 @@ data class UserEditorValues(
      * `null` یعنی دست نزن؛ [NextPlan] با همهٔ فیلدهای خالی یعنی پاکش کن.
      */
     val nextPlan: NextPlan? = null,
-    /** no_reset / day / week / month / year */
-    val resetStrategy: String = TemplateOptions.RESET_NO_RESET,
-    /** حذفِ خودکار پس از انقضا؛ null یعنی هرگز. */
+    /** no_reset / day / week / month / year؛ null یعنی «دست نزن» (ویرایش بدونِ تغییرِ این گزینه). */
+    val resetStrategy: String? = TemplateOptions.RESET_NO_RESET,
+    /** حذفِ خودکار پس از انقضا؛ null یعنی دست نزن، 0 یعنی بردار، عددِ مثبت یعنی تنظیم کن. */
     val autoDeleteDays: Int? = null,
+    /**
+     * در ویرایش: اگر ادمین به فیلدِ زمان دست نزده، `expire` اصلاً فرستاده نمی‌شود.
+     * وگرنه ویرایشِ یک یادداشت روی کاربرِ منقضی، او را تا آخرِ امشب دوباره فعال می‌کرد
+     * (روزهای باقی‌مانده به ۰ گِرد می‌شد و «۰ روز» یعنی «تا پایانِ امروز»).
+     */
+    val keepExpire: Boolean = false,
     /**
      * وضعیتی که باید به پنل فرستاده شود: `on_hold` (با [onHoldExpireSeconds]) یا
      * `active` (برای بیرون‌آوردن از on_hold). null یعنی وضعیت را دست نزن؛
