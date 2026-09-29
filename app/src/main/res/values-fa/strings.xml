@@ -484,6 +484,9 @@
     <string name="ue_identity">هویت</string>
     <string name="ue_username">نام کاربری</string>
     <string name="ue_username_hint">یک نام کاربری وارد کنید</string>
+    <string name="ue_username_err_length">۳ تا ۱۲۸ کاراکتر</string>
+    <string name="ue_username_err_chars">فقط حروف انگلیسی، رقم و - _ @ .</string>
+    <string name="ue_username_err_consecutive">دو کاراکتر خاص پشت‌سرهم مجاز نیست (مثل \"--\" یا \"_.\")</string>
     <string name="ue_random">نام تصادفی</string>
     <string name="ue_status">وضعیت</string>
     <string name="ue_plan">پلن</string>

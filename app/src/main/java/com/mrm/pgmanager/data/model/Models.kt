@@ -131,6 +131,33 @@ data class GroupDetail(
 }
 
 /** نتیجهٔ اعتبارسنجیِ فرمِ گروه — پیام خطا یا null اگر معتبر باشد. */
+/**
+ * قواعدِ نامِ کاربری — عیناً `UsernameValidatorMixin.validate_username` پنل:
+ * ۳ تا ۱۲۸ کاراکتر، فقط `a-z A-Z 0-9 - _ @ .`، بدونِ دو کاراکترِ خاصِ پشتِ‌سرِ‌هم.
+ * بررسیِ محلی فقط برای بازخوردِ فوری است؛ حرفِ آخر را پنل می‌زند (۴۲۲).
+ */
+object UsernameValidation {
+    const val MIN_LENGTH = 3
+    const val MAX_LENGTH = 128
+    const val ERR_LENGTH = "username_length"
+    const val ERR_CHARS = "username_chars"
+    const val ERR_CONSECUTIVE = "username_consecutive"
+
+    private val allowed = Regex("^[a-zA-Z0-9\\-_@.]+$")
+    private val consecutiveSpecials = Regex("[\\-_@.]{2,}")
+
+    /** کلیدِ خطا یا null اگر معتبر باشد. */
+    fun validate(raw: String): String? {
+        val username = raw.trim()
+        if (username.length !in MIN_LENGTH..MAX_LENGTH) return ERR_LENGTH
+        if (!allowed.matches(username)) return ERR_CHARS
+        if (consecutiveSpecials.containsMatchIn(username)) return ERR_CONSECUTIVE
+        return null
+    }
+
+    fun isValid(raw: String): Boolean = validate(raw) == null
+}
+
 object GroupValidation {
     /** کلیدهای خطا؛ ترجمه در لایهٔ UI انجام می‌شود تا منطق قابل تست بماند. */
     const val ERR_NAME_SHORT = "name_short"

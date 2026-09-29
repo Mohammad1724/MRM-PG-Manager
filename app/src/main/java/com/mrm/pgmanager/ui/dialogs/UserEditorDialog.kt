@@ -67,6 +67,7 @@ fun UserEditorDialog(
     val isCreating = initial == null
 
     var username by remember { mutableStateOf(initial?.username ?: "") }
+    val usernameErrorKey = if (initial == null) UsernameValidation.validate(username) else null
     var limitGb by remember {
         mutableStateOf(
             if (initial == null || initial.dataLimit == 0L) ""
@@ -158,7 +159,7 @@ fun UserEditorDialog(
                                 FieldLabel(stringResource(R.string.ue_username))
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                     if (isCreating) {
-                                        UserFormTextField(value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
+                                        UserFormTextField(value = username, onValueChange = { username = it.trim() }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
                                         Box(
                                             Modifier.size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
                                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
@@ -176,6 +177,17 @@ fun UserEditorDialog(
                                             MrmText(initial?.username.orEmpty(), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                                         }
                                     }
+                                }
+                                // بازخوردِ فوریِ قواعدِ پنل (۳..۱۲۸، حروف/رقم و - _ @ .، بدونِ کاراکترهای خاصِ پشتِ‌سرِ‌هم) — به‌جای ۴۲۲ بعد از ذخیره.
+                                if (isCreating && username.isNotEmpty()) usernameErrorKey?.let { key ->
+                                    Text(
+                                        when (key) {
+                                            UsernameValidation.ERR_LENGTH -> stringResource(R.string.ue_username_err_length)
+                                            UsernameValidation.ERR_CHARS -> stringResource(R.string.ue_username_err_chars)
+                                            else -> stringResource(R.string.ue_username_err_consecutive)
+                                        },
+                                        fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Medium
+                                    )
                                 }
                             }
                             Column(Modifier.weight(0.40f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -388,6 +400,7 @@ fun UserEditorDialog(
                     SecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
                     PrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
+                        enabled = !(isCreating && usernameErrorKey != null),
                         onClick = {
                             val normalizedDays = normalizePersianDigits(days)
                             val normalizedLimit = normalizePersianDigits(limitGb)

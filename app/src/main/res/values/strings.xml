@@ -484,6 +484,9 @@
     <string name="ue_identity">Identity</string>
     <string name="ue_username">Username</string>
     <string name="ue_username_hint">Enter a username</string>
+    <string name="ue_username_err_length">3 to 128 characters</string>
+    <string name="ue_username_err_chars">Only letters, digits and - _ @ .</string>
+    <string name="ue_username_err_consecutive">No consecutive special characters (e.g. \"--\" or \"_.\")</string>
     <string name="ue_random">Random name</string>
     <string name="ue_status">Status</string>
     <string name="ue_plan">Plan</string>
