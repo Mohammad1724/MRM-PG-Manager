@@ -291,6 +291,7 @@ class SessionStore(context: Context) {
             put("total_users", s.totalUsers); put("online_users", s.onlineUsers); put("active_users", s.activeUsers)
             put("expired_users", s.expiredUsers); put("limited_users", s.limitedUsers); put("disabled_users", s.disabledUsers); put("on_hold_users", s.onHoldUsers)
             put("incoming_bandwidth", s.incomingBandwidth); put("outgoing_bandwidth", s.outgoingBandwidth)
+            put("version", s.version)
         }.toString()).putLong("stats_cache_ts", System.currentTimeMillis()).apply()
     }
 
@@ -305,7 +306,8 @@ class SessionStore(context: Context) {
                 diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
                 totalUsers = o.optInt("total_users"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
                 expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
-                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
+                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
+                version = o.optString("version")
             ) to ts
         }.getOrNull()
     }

@@ -249,7 +249,8 @@ object PanelApi {
                 diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
                 totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
                 expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
-                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth")
+                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
+                version = o.optString("version").takeIf { it != "null" }.orEmpty()
             )
         }
     }

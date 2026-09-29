@@ -93,6 +93,11 @@ internal fun ConnectionSection(
         SettingsInfoRow(stringResource(R.string.set_conn_url), session.baseUrl, copyable = true)
         SettingsInfoRow(stringResource(R.string.set_conn_admin), session.username)
         SettingsInfoRow(stringResource(R.string.set_conn_auth), stringResource(if (session.isApiKey) R.string.set_conn_auth_api_key else R.string.set_conn_auth_password))
+        // نسخهٔ پنل از آخرین پاسخِ موفقِ /api/system (کشِ حافظه یا کشِ آفلاین) — بدونِ درخواستِ اضافه.
+        val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session.baseUrl))?.version
+            ?.takeIf { it.isNotBlank() }
+            ?: remember(session.baseUrl) { store.readStatsCache()?.first?.version.orEmpty() }
+        if (panelVersion.isNotBlank()) SettingsInfoRow(stringResource(R.string.set_conn_panel_version), "PasarGuard v$panelVersion")
         com.mrm.pgmanager.data.AdminAccess.current?.let { admin ->
             val role = when {
                 admin.isOwner -> stringResource(R.string.set_conn_role_owner)

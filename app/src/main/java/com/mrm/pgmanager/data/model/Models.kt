@@ -105,7 +105,9 @@ data class SystemStats(
     val disabledUsers: Int = 0,
     val onHoldUsers: Int = 0,
     val incomingBandwidth: Long = 0L,
-    val outgoingBandwidth: Long = 0L
+    val outgoingBandwidth: Long = 0L,
+    /** نسخهٔ پنل (`version` در `GET /api/system`) — برای نمایش در تنظیمات و عیب‌یابی. */
+    val version: String = ""
 )
 
 data class TrafficPoint(val timestamp: String, val totalTraffic: Long)

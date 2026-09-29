@@ -314,6 +314,7 @@
     <string name="cd_back">Back</string>
     <string name="set_version">Version %1$s</string>
     <string name="set_conn_panel">Panel Connection</string>
+    <string name="set_conn_panel_version">Panel version</string>
     <string name="set_conn_auth">Sign-in method</string>
     <string name="set_conn_auth_api_key">API key (does not expire)</string>
     <string name="set_conn_auth_password">Password (24-hour token)</string>

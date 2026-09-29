@@ -314,6 +314,7 @@
     <string name="cd_back">بازگشت</string>
     <string name="set_version">نسخهٔ %1$s</string>
     <string name="set_conn_panel">اتصال به پنل</string>
+    <string name="set_conn_panel_version">نسخهٔ پنل</string>
     <string name="set_conn_auth">روش ورود</string>
     <string name="set_conn_auth_api_key">کلید API (بدون انقضا)</string>
     <string name="set_conn_auth_password">رمز عبور (توکن ۲۴ ساعته)</string>
