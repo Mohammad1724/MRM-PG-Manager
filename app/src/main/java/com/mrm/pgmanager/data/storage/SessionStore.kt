@@ -252,7 +252,7 @@ class SessionStore(context: Context) {
     /**
      * زوج (لیست کاربران، زمان کش)؛ null یعنی کش در دسترس نیست.
      *
-     * `isOnline` از روی `onlineAt` بازسازی می‌شود (همان آستانهٔ ۵ دقیقه‌ای که
+     * `isOnline` از روی `onlineAt` بازسازی می‌شود (همان آستانهٔ ۲ دقیقه‌ایِ پنل که
      * `PanelApi.parseUser` هنگام واکشیِ زنده استفاده می‌کند)، نه اینکه همیشه
      * false باشد — قبلاً با هر بازیابیِ کش، نشانگرِ آنلاینِ همهٔ کاربران خاموش
      * می‌شد حتی اگر لحظهٔ ذخیرهٔ کش واقعاً آنلاین بوده باشند.
@@ -267,9 +267,9 @@ class SessionStore(context: Context) {
                 val o = arr.optJSONObject(i) ?: return@mapNotNull null
                 val onlineAt = o.optString("online_at").ifBlank { null }
                 // زمانِ مبنا برای «تازگی» خودِ لحظهٔ ذخیرهٔ کش است (ts)، نه اکنون؛
-                // وگرنه با گذشتِ ۵ دقیقه از ذخیرهٔ کش، حتی کاربرانی که *در لحظهٔ کش* آنلاین بودند هم آفلاین نشان داده می‌شدند.
+                // وگرنه با گذشتِ ۲ دقیقه از ذخیرهٔ کش، حتی کاربرانی که *در لحظهٔ کش* آنلاین بودند هم آفلاین نشان داده می‌شدند.
                 val onlineMs = onlineAt?.let { parseOnlineMillis(it) }
-                val wasOnline = onlineMs != null && onlineMs > 0L && (ts - onlineMs) < 300_000L
+                val wasOnline = onlineMs != null && onlineMs > 0L && (ts - onlineMs) < com.mrm.pgmanager.utils.DateLogic.ONLINE_WINDOW_MS
                 PanelUser(
                     id = o.optLong("id"), username = o.optString("username"), status = o.optString("status"),
                     usedTraffic = o.optLong("used_traffic"), dataLimit = o.optLong("data_limit"),

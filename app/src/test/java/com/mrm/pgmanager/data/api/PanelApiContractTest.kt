@@ -85,6 +85,36 @@ class PanelApiContractTest {
         assertFalse(path.contains("/by-id/"))
     }
 
+    // ── فهرستِ کاربران: فیلترِ آنلاین سمتِ سرور ──────────────
+
+    @Test fun `usersPage passes online=true only for the online filter`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"users":[],"total":0}"""))
+        server.enqueue(MockResponse().setBody("""{"users":[],"total":0}"""))
+        PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(online = true))
+        PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(status = "active"))
+
+        val onlinePath = server.takeRequest().path!!
+        val statusPath = server.takeRequest().path!!
+        assertTrue(onlinePath, onlinePath.contains("online=true"))
+        assertFalse(onlinePath.contains("status="))
+        assertFalse(statusPath, statusPath.contains("online="))
+        assertTrue(statusPath.contains("status=active"))
+    }
+
+    @Test fun `user is online only within the panel's two-minute window`() = runBlocking {
+        val fresh = java.time.Instant.now().minusSeconds(60).toString()
+        val stale = java.time.Instant.now().minusSeconds(200).toString()
+        server.enqueue(MockResponse().setBody(
+            """{"users":[{"id":1,"username":"a","status":"active","online_at":"$fresh"},""" +
+            """{"id":2,"username":"b","status":"active","online_at":"$stale"},""" +
+            """{"id":3,"username":"c","status":"active","online_at":null}],"total":3}"""
+        ))
+        val page = PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery())
+        server.takeRequest()
+
+        assertEquals(listOf(true, false, false), page.users.map { it.isOnline })
+    }
+
     // ── مسیرهای by-id برای عملیاتِ تک‌کاربره ─────────────────
 
     @Test fun `setDisabled uses by-id route with disabled body`() = runBlocking {

@@ -109,11 +109,8 @@ private fun faNum(n: Long): String = n.toString().map { if (it in '0'..'9') ('۰
  */
 internal fun parseOnlineMillis(raw: String?): Long? {
     if (raw.isNullOrBlank()) return null
-    val s = normalizePersianDigits(raw).replace(" ", "T")
-    runCatching { return java.time.Instant.parse(s).toEpochMilli() }
-    runCatching { return java.time.LocalDateTime.parse(s).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() }
-    runCatching { val ts = s.trim().toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
-    return null
+    // منطقِ واحد در DateLogic (offset/Z، naive = UTC مطابقِ پنل، timestamp).
+    return DateLogic.parseOnlineAtMillis(normalizePersianDigits(raw))
 }
 
 /** متنِ «آخرین آنلاین» به فارسی: آنلاین / X دقیقه پیش / X ساعت پیش / X روز پیش / ... */

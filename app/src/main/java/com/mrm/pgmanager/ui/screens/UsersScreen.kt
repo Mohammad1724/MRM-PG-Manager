@@ -306,6 +306,7 @@ fun UsersScreen(
     fun buildQuery(offset: Int) = com.mrm.pgmanager.data.model.UserQuery(
         search = query.trim().takeIf { it.isNotBlank() },
         status = currentFilter.panelStatus,
+        online = currentFilter.panelOnline,
         groupId = groupFilterId,
         sort = currentSort.panelSort,
         offset = offset,
@@ -516,6 +517,7 @@ fun UsersScreen(
             (it.note ?: "").contains(q, ignoreCase = true)
         }
         list = when (currentFilter) {
+            UserFilter.ONLINE -> list.filter { it.isOnline }
             UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
             UserFilter.DEBTOR -> list.filter { debtorByUsername.containsKey(it.username) }
             else -> currentFilter.panelStatus?.let { st -> list.filter { it.status == st } } ?: list

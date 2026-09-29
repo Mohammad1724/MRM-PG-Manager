@@ -340,6 +340,7 @@ internal fun FilterAndControlBar(
                 listOf(
                     stringResource(R.string.all) to UserFilter.ALL,
                     stringResource(R.string.active) to UserFilter.ACTIVE,
+                    stringResource(R.string.online) to UserFilter.ONLINE,
                     stringResource(R.string.expired) to UserFilter.EXPIRED,
                     stringResource(R.string.limited) to UserFilter.LIMITED,
                     stringResource(R.string.on_hold) to UserFilter.ON_HOLD,
@@ -410,6 +411,7 @@ internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit)
 private fun filterLabel(f: UserFilter): String = when (f) {
     UserFilter.ALL -> stringResource(R.string.all)
     UserFilter.ACTIVE -> stringResource(R.string.active)
+    UserFilter.ONLINE -> stringResource(R.string.online)
     UserFilter.EXPIRED -> stringResource(R.string.expired)
     UserFilter.LIMITED -> stringResource(R.string.limited)
     UserFilter.ON_HOLD -> stringResource(R.string.on_hold)

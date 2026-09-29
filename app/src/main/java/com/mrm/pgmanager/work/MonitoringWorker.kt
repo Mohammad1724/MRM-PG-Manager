@@ -41,10 +41,20 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             store.saveStatsCache(stats)
             // بروزرسانی ویجت پس از کش جدید
             com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(applicationContext)
-            val users = PanelApi.users(session)
-            store.saveUsersCache(users)
+
+            // فهرستِ کاملِ کاربران فقط وقتی دانلود می‌شود که واقعاً لازم باشد:
+            //  • اعلان‌های به‌ازای هر کاربر (limited/expired/near-limit/near-expiry) روشن باشند، یا
+            //  • کشِ آفلاین روشن باشد (فهرست برای حالتِ بی‌اینترنت).
+            // قبلاً هر ۱۵ دقیقه همهٔ کاربران (روی پنل‌های بزرگ چند مگابایت) گرفته می‌شد،
+            // حتی وقتی همهٔ این‌ها خاموش بودند و فقط سلامتِ سیستم مهم بود.
+            val perUserNotifications = settings.notificationsEnabled &&
+                (settings.notifyLimited || settings.notifyExpired || settings.notifyNearLimit || settings.notifyNearExpiry)
+            val needUsers = perUserNotifications || settings.offlineCacheEnabled
+            val users: List<com.mrm.pgmanager.data.model.PanelUser> = if (needUsers) PanelApi.users(session) else emptyList()
+            if (needUsers) store.saveUsersCache(users)
             // اعلان‌ها فقط در صورت فعال‌بودن؛ کش/ویجت بالا مستقل از اعلان‌هاست.
             if (settings.notificationsEnabled) {
+            if (perUserNotifications) {
             val oldStates = store.readNotificationStates()
             val newStates = users.associate { user ->
                 val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
@@ -62,9 +72,11 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 if (settings.notifyNearExpiry && now.substringAfterLast("|").toBoolean() && !old.substringAfterLast("|").toBoolean()) notify("near_expiry", applicationContext.getString(R.string.us_n_near_expiry), applicationContext.getString(R.string.us_n_near_expiry_body, user.username))
             }
             store.saveNotificationStates(newStates)
+            } // if perUserNotifications
 
             // وضعیت نودها: تغییر آنلاین/آفلاین در پس‌زمینه هم هشدار می‌دهد (baseline ذخیره می‌شود).
-            runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+            // فقط وقتی هشدارِ نود روشن است؛ وگرنه یک درخواستِ اضافه (و برای ادمینِ بدونِ nodes.stats یک ۴۰۳ بیهوده) است.
+            if (settings.notifyNodeOffline) runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
                 val oldNodes = store.readNodeStates()
                 if (settings.notifyNodeOffline && oldNodes.isNotEmpty()) states.forEach { (id, online) ->
                     val prev = oldNodes[id]
@@ -81,8 +93,13 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 debtors.forEach { d ->
                     if (d.autoDisabled) return@forEach
                     if (!d.isOverdue(settings.debtorAutoDisableAfterHours)) return@forEach
-                    // کاربر را در لیست پیدا کن
-                    val pu = users.find { it.username == d.username } ?: return@forEach
+                    // کاربر را در لیست پیدا کن؛ اگر فهرستِ کامل دانلود نشده، فقط همین یک نفر را از پنل می‌پرسیم.
+                    val pu = users.find { it.username == d.username }
+                        ?: runCatching {
+                            PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(search = d.username, limit = 5))
+                                .users.firstOrNull { it.username == d.username }
+                        }.getOrNull()
+                        ?: return@forEach
                     if (pu.status == "disabled") {
                         // اگر دستی غیرفعال شده، فقط فلگ را بزن
                         store.setDebtor(d.copy(autoDisabled = true))

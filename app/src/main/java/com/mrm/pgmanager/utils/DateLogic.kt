@@ -12,6 +12,36 @@ import java.time.temporal.ChronoUnit
 object DateLogic {
 
     /**
+     * پنجرهٔ «آنلاین» — دقیقاً همان `_ONLINE_USERS_WINDOW = 2 min` پنل (`app/db/crud/user.py`).
+     * قبلاً ۵ دقیقه بود و شمارندهٔ آنلاینِ اپ با «کاربران آنلاین» خودِ پنل نمی‌خواند.
+     */
+    const val ONLINE_WINDOW_MS: Long = 2L * 60L * 1000L
+
+    /**
+     * `online_at` پنل → epoch millis. پنل تاریخ‌ها را آگاه از timezone می‌دهد
+     * (`2026-09-29T07:20:04Z` یا با offset مثل `+03:30`)؛ رشتهٔ بدونِ timezone را — مطابق
+     * قراردادِ خودِ پنل (`fix_datetime_timezone`) — UTC فرض می‌کنیم، نه وقتِ محلیِ گوشی؛
+     * وگرنه در ایران (UTC+3:30) هر کاربرِ آنلاینی ۳٫۵ ساعت «پیش» دیده می‌شد.
+     * timestamp عددی (ثانیه یا میلی‌ثانیه) هم پذیرفته می‌شود.
+     */
+    fun parseOnlineAtMillis(raw: String?): Long? {
+        if (raw.isNullOrBlank()) return null
+        val s = raw.trim().replace(" ", "T")
+        if (s == "null") return null
+        runCatching { return java.time.OffsetDateTime.parse(s).toInstant().toEpochMilli() }
+        runCatching { return Instant.parse(s).toEpochMilli() }
+        runCatching { return java.time.LocalDateTime.parse(s).toInstant(java.time.ZoneOffset.UTC).toEpochMilli() }
+        runCatching { val ts = s.toLong(); return if (ts < 1_000_000_000_000L) ts * 1000 else ts }
+        return null
+    }
+
+    /** آیا با توجه به `online_at` کاربر در لحظهٔ `nowMillis` آنلاین محسوب می‌شود؟ */
+    fun isOnline(onlineAt: String?, nowMillis: Long = System.currentTimeMillis()): Boolean {
+        val at = parseOnlineAtMillis(onlineAt) ?: return false
+        return at > 0L && nowMillis - at < ONLINE_WINDOW_MS
+    }
+
+    /**
      * مقدار `expire` که به پنل فرستاده می‌شود.
      * - خالی / "null" / "0" → 0 (نامحدود طبق قرارداد پنل)
      * - در غیر این صورت: **پایانِ همان روزِ انتخاب‌شده** به وقتِ محلیِ دستگاه،

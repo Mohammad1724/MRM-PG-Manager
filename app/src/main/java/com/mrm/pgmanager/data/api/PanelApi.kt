@@ -535,6 +535,7 @@ object PanelApi {
                 append("&search="); append(URLEncoder.encode(it, "UTF-8"))
             }
             query.status?.let { append("&status="); append(it) }
+            query.online?.let { append("&online="); append(it) }
             query.groupId?.let { append("&group="); append(it) }
             query.sort?.let { append("&sort="); append(URLEncoder.encode(it, "UTF-8")) }
         }
@@ -680,37 +681,11 @@ object PanelApi {
             }
         }
 
-        // Parse online status - handle both boolean "online" and "online_at" string/ISO date
-        var isOnline = user.optBoolean("online", false)
-        var onlineAtStr: String? = null
-
-        // Check online_at field - could be ISO string, naive datetime, or timestamp
-        if (!user.isNull("online_at")) {
-            onlineAtStr = user.optString("online_at").takeIf { it != "null" && it.isNotBlank() }
-            if (onlineAtStr != null) {
-                val now = System.currentTimeMillis()
-                val onlineTime = try {
-                    // Try ISO instant first: "2024-01-15T10:30:00Z"
-                    java.time.Instant.parse(onlineAtStr.replace(" ", "T")).toEpochMilli()
-                } catch (e: Exception) {
-                    try {
-                        // Try LocalDateTime without Z (panel may return naive): "2024-01-15T10:30:00"
-                        java.time.LocalDateTime.parse(onlineAtStr.replace(" ", "T")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                    } catch (e2: Exception) {
-                        try {
-                            // Try timestamp (seconds or milliseconds)
-                            val ts = onlineAtStr.toLong()
-                            if (ts < 1_000_000_000_000L) ts * 1000 else ts
-                        } catch (e3: Exception) {
-                            0L
-                        }
-                    }
-                }
-                if (onlineTime > 0L && now - onlineTime < 300_000L) {
-                    isOnline = true
-                }
-            }
-        }
+        // وضعیتِ آنلاین: پنل فیلدِ boolean ندارد و فقط `online_at` می‌دهد؛ با همان پنجرهٔ
+        // ۲ دقیقه‌ایِ پنل (DateLogic.ONLINE_WINDOW_MS) و پارسرِ مشترک (offset/Z، naive=UTC) حساب می‌شود.
+        val onlineAtStr: String? = if (user.isNull("online_at")) null
+            else user.optString("online_at").takeIf { it != "null" && it.isNotBlank() }
+        val isOnline = user.optBoolean("online", false) || DateLogic.isOnline(onlineAtStr)
 
         return PanelUser(
             id = user.optLong("id", 0L),

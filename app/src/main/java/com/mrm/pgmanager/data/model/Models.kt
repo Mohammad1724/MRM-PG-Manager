@@ -379,6 +379,8 @@ object TemplateValidation {
 enum class UserFilter(val panelStatus: String?) {
     ALL(null),
     ACTIVE("active"),
+    /** کاربرانِ آنلاین — پنل خودش با `online=true` (پنجرهٔ ۲ دقیقه‌ای) فیلتر می‌کند. */
+    ONLINE(null),
     EXPIRED("expired"),
     LIMITED("limited"),
     ON_HOLD("on_hold"),
@@ -386,8 +388,11 @@ enum class UserFilter(val panelStatus: String?) {
     NEAR_LIMIT(null),
     DEBTOR(null);
 
+    /** پارامترِ `online` پنل؛ فقط برای فیلترِ آنلاین `true` است. */
+    val panelOnline: Boolean? get() = if (this == ONLINE) true else null
+
     /** آیا پنل می‌تواند این فیلتر را خودش اعمال کند؟ */
-    val serverSide: Boolean get() = this == ALL || panelStatus != null
+    val serverSide: Boolean get() = this == ALL || panelStatus != null || panelOnline != null
 }
 
 /**
@@ -397,6 +402,8 @@ enum class UserFilter(val panelStatus: String?) {
 data class UserQuery(
     val search: String? = null,
     val status: String? = null,
+    /** `online=true` → فقط کاربرانی که در پنجرهٔ آنلاینِ پنل (۲ دقیقه) فعال بوده‌اند. */
+    val online: Boolean? = null,
     val groupId: Int? = null,
     /** مقدارهای مجاز پنل: `username`, `used_traffic`, `expire`, `created_at`… با `-` برای نزولی. */
     val sort: String? = null,

@@ -2,6 +2,7 @@ package com.mrm.pgmanager.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
@@ -112,5 +113,38 @@ class DateLogicTest {
         assertEquals(DateLogic.DaysLeft.Unlimited, DateLogic.daysLeft("0"))
         assertEquals(DateLogic.DaysLeft.Today, DateLogic.daysLeft(DateLogic.expireValue(today().toString()) as String))
         assertEquals(DateLogic.DaysLeft.Expired, DateLogic.daysLeft(DateLogic.expireValue(today().minusDays(2).toString()) as String))
+    }
+
+    // ── online_at / پنجرهٔ آنلاین ─────────────────────────────
+
+    @Test fun `online window equals the panel's two minutes`() {
+        assertEquals(120_000L, DateLogic.ONLINE_WINDOW_MS)
+    }
+
+    @Test fun `parseOnlineAtMillis understands Z, offsets, naive-as-UTC and timestamps`() {
+        val expected = Instant.parse("2026-09-29T07:20:04Z").toEpochMilli()
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29T07:20:04Z"))
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29T07:20:04.000Z"))
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29T07:20:04+00:00"))
+        // offset تهران: همان لحظه، نوشته‌شده به وقتِ محلی
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29T10:50:04+03:30"))
+        // بدونِ timezone = UTC (قراردادِ پنل)، مستقل از timezone گوشی
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29T07:20:04"))
+        assertEquals(expected, DateLogic.parseOnlineAtMillis("2026-09-29 07:20:04"))
+        // timestamp ثانیه و میلی‌ثانیه
+        assertEquals(expected, DateLogic.parseOnlineAtMillis((expected / 1000).toString()))
+        assertEquals(expected, DateLogic.parseOnlineAtMillis(expected.toString()))
+        assertNull(DateLogic.parseOnlineAtMillis(null))
+        assertNull(DateLogic.parseOnlineAtMillis(""))
+        assertNull(DateLogic.parseOnlineAtMillis("null"))
+        assertNull(DateLogic.parseOnlineAtMillis("garbage"))
+    }
+
+    @Test fun `isOnline is true inside the window and false right after it`() {
+        val now = Instant.parse("2026-09-29T07:22:00Z").toEpochMilli()
+        assertTrue(DateLogic.isOnline("2026-09-29T07:20:01Z", now))   // ۱:۵۹ پیش
+        assertFalse(DateLogic.isOnline("2026-09-29T07:20:00Z", now))  // دقیقاً ۲ دقیقه → آفلاین
+        assertFalse(DateLogic.isOnline("2026-09-29T07:00:00Z", now))
+        assertFalse(DateLogic.isOnline(null, now))
     }
 }
