@@ -539,6 +539,13 @@ object PanelApi {
             query.online?.let { append("&online="); append(it) }
             query.groupId?.let { append("&group="); append(it) }
             query.sort?.let { append("&sort="); append(URLEncoder.encode(it, "UTF-8")) }
+            query.expireAfter?.let { append("&expire_after="); append(URLEncoder.encode(it, "UTF-8")) }
+            query.expireBefore?.let { append("&expire_before="); append(URLEncoder.encode(it, "UTF-8")) }
+            // پرچم‌های بولی فقط وقتی true معنا دارند؛ false همان پیش‌فرضِ پنل است.
+            if (query.noDataLimit == true) append("&no_data_limit=true")
+            if (query.noExpire == true) append("&no_expire=true")
+            if (query.noGroup == true) append("&no_group=true")
+            query.admin?.takeIf { it.isNotBlank() }?.let { append("&admin="); append(URLEncoder.encode(it, "UTF-8")) }
         }
         val request = requestBuilder(session, url).get().build()
         val page = client.newCall(request).execute().use { response ->

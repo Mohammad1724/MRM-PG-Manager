@@ -872,6 +872,13 @@
     <string name="on_hold">در انتظار</string>
     <string name="us_group_filter">گروه</string>
     <string name="us_group_all">همهٔ گروه‌ها</string>
+    <string name="us_filter_expiring_soon">در آستانهٔ انقضا (تا %1$d روز)</string>
+    <string name="us_filter_no_limit">بدون سقف حجم</string>
+    <string name="us_filter_no_expire">بدون تاریخ انقضا</string>
+    <string name="us_filter_no_group">بدون گروه</string>
+    <string name="us_owner_filter">مالک (ادمین)</string>
+    <string name="us_owner_all">همهٔ ادمین‌ها</string>
+    <string name="us_sort_last_online">آخرین فعالیت</string>
     <string name="us_bulk_group_add">افزودن به گروه</string>
     <string name="us_bulk_group_remove">برداشتن از گروه</string>
     <string name="us_bulk_group_title">%1$d کاربر</string>

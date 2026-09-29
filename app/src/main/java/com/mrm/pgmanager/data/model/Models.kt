@@ -414,7 +414,7 @@ object TemplateValidation {
  * دلخواهِ کاربر حساب می‌شود و «بدهکار» اصلاً در پنل وجود ندارد؛ برای آن دو،
  * فهرستِ کامل گرفته و در گوشی فیلتر می‌شود.
  */
-enum class UserFilter(val panelStatus: String?) {
+enum class UserFilter(val panelStatus: String?, private val local: Boolean = false) {
     ALL(null),
     ACTIVE("active"),
     /** کاربرانِ آنلاین — پنل خودش با `online=true` (پنجرهٔ ۲ دقیقه‌ای) فیلتر می‌کند. */
@@ -423,14 +423,27 @@ enum class UserFilter(val panelStatus: String?) {
     LIMITED("limited"),
     ON_HOLD("on_hold"),
     DISABLED("disabled"),
-    NEAR_LIMIT(null),
-    DEBTOR(null);
+    /** در آستانهٔ انقضا — پنل با `expire_after=now&expire_before=now+N` فیلتر می‌کند (N = [UserQuery.expiringWindowDays]). */
+    EXPIRING_SOON(null),
+    /** بدون سقفِ حجم — `no_data_limit=true`. */
+    NO_LIMIT(null),
+    /** بدون تاریخِ انقضا — `no_expire=true` (پنل کاربرانِ on_hold را خودش کنار می‌گذارد). */
+    NO_EXPIRE(null),
+    /** بدون هیچ گروهی — `no_group=true`؛ این‌ها عملاً هیچ اینباندی ندارند. */
+    NO_GROUP(null),
+    /** محلی: درصدِ مصرف از آستانهٔ تنظیمات گذشته. */
+    NEAR_LIMIT(null, local = true),
+    /** محلی: در دفترِ بدهکارانِ خودِ برنامه است. */
+    DEBTOR(null, local = true);
 
     /** پارامترِ `online` پنل؛ فقط برای فیلترِ آنلاین `true` است. */
     val panelOnline: Boolean? get() = if (this == ONLINE) true else null
+    val panelNoDataLimit: Boolean? get() = if (this == NO_LIMIT) true else null
+    val panelNoExpire: Boolean? get() = if (this == NO_EXPIRE) true else null
+    val panelNoGroup: Boolean? get() = if (this == NO_GROUP) true else null
 
-    /** آیا پنل می‌تواند این فیلتر را خودش اعمال کند؟ */
-    val serverSide: Boolean get() = this == ALL || panelStatus != null || panelOnline != null
+    /** آیا پنل می‌تواند این فیلتر را خودش اعمال کند؟ (فقط بدهکار و لبِ مرز محلی‌اند) */
+    val serverSide: Boolean get() = !local
 }
 
 /**
@@ -445,9 +458,35 @@ data class UserQuery(
     val groupId: Int? = null,
     /** مقدارهای مجاز پنل: `username`, `used_traffic`, `expire`, `created_at`… با `-` برای نزولی. */
     val sort: String? = null,
+    /** بازهٔ انقضا (ISO-8601 با ناحیهٔ زمانی؛ پنل `OptionalAwareDatetime` می‌خواهد). */
+    val expireAfter: String? = null,
+    val expireBefore: String? = null,
+    /** `no_data_limit` / `no_expire` / `no_group` پنل — فقط وقتی true فرستاده می‌شوند. */
+    val noDataLimit: Boolean? = null,
+    val noExpire: Boolean? = null,
+    val noGroup: Boolean? = null,
+    /** نامِ ادمینِ مالک (`admin=`) — برای پنل‌های چندادمینی. */
+    val admin: String? = null,
     val offset: Int = 0,
     val limit: Int = 60
-)
+) {
+    companion object {
+        /** کفِ بازهٔ «در آستانهٔ انقضا»؛ اگر آستانهٔ اعلانِ تنظیمات بزرگ‌تر باشد همان ملاک است. */
+        const val MIN_EXPIRING_WINDOW_DAYS = 7
+
+        fun expiringWindowDays(nearExpiryDays: Int): Int = maxOf(MIN_EXPIRING_WINDOW_DAYS, nearExpiryDays)
+
+        /**
+         * بازهٔ [now, now + days] به‌صورتِ ISO-8601 (UTC) برای `expire_after`/`expire_before`.
+         * `expire_after=now` کاربرانِ از قبل منقضی را کنار می‌گذارد.
+         */
+        fun expiringWindow(days: Int, now: java.time.Instant = java.time.Instant.now()): Pair<String, String> {
+            val start = now.truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+            val end = start.plus(days.toLong(), java.time.temporal.ChronoUnit.DAYS)
+            return start.toString() to end.toString()
+        }
+    }
+}
 
 /** یک صفحه از فهرستِ کاربران به‌همراه تعدادِ کلِ نتیجه. */
 data class UsersPage(val users: List<PanelUser>, val total: Int)
@@ -456,7 +495,9 @@ enum class UserSort(val panelSort: String) {
     NAME("username"),
     USAGE("-used_traffic"),
     EXPIRY("expire"),
-    CREATED("-created_at")
+    CREATED("-created_at"),
+    /** آخرین فعالیت — تازه‌ترین `online_at` اول. */
+    LAST_ONLINE("-online_at")
 }
 enum class ViewMode { GRID, COMPACT_LIST, MICRO_LIST }
 

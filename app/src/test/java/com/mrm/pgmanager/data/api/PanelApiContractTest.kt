@@ -101,6 +101,23 @@ class PanelApiContractTest {
         assertTrue(statusPath.contains("status=active"))
     }
 
+    @Test fun `usersPage maps advanced filters to UserListQuery params`() = runBlocking {
+        repeat(3) { server.enqueue(MockResponse().setBody("""{"users":[],"total":0}""")) }
+        PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(expireAfter = "2026-09-29T10:00:00Z", expireBefore = "2026-10-06T10:00:00Z", admin = "reseller one"))
+        PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(noDataLimit = true, noExpire = true, noGroup = true))
+        PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(noDataLimit = false, noExpire = false, noGroup = false, sort = "-online_at"))
+
+        val expiring = server.takeRequest().path!!
+        val flags = server.takeRequest().path!!
+        val plain = server.takeRequest().path!!
+        assertTrue(expiring, expiring.contains("expire_after=2026-09-29T10%3A00%3A00Z"))
+        assertTrue(expiring, expiring.contains("expire_before=2026-10-06T10%3A00%3A00Z"))
+        assertTrue(expiring, expiring.contains("admin=reseller+one"))
+        assertTrue(flags, flags.contains("no_data_limit=true") && flags.contains("no_expire=true") && flags.contains("no_group=true"))
+        assertFalse(plain, plain.contains("no_data_limit") || plain.contains("no_expire") || plain.contains("no_group") || plain.contains("expire_after"))
+        assertTrue(plain, plain.contains("sort=-online_at"))
+    }
+
     @Test fun `user is online only within the panel's two-minute window`() = runBlocking {
         val fresh = java.time.Instant.now().minusSeconds(60).toString()
         val stale = java.time.Instant.now().minusSeconds(200).toString()

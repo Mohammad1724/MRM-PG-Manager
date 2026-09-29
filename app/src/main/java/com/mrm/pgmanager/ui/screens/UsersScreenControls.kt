@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
@@ -253,7 +254,11 @@ internal fun FilterAndControlBar(
     debtorCount: Int = 0,
     groups: List<com.mrm.pgmanager.data.model.Group> = emptyList(),
     groupFilterId: Int? = null,
-    onGroupFilterChange: (Int?) -> Unit = {}
+    onGroupFilterChange: (Int?) -> Unit = {},
+    admins: List<com.mrm.pgmanager.data.model.PanelAdmin> = emptyList(),
+    ownerFilter: String? = null,
+    onOwnerFilterChange: (String?) -> Unit = {},
+    expiringWindowDays: Int = com.mrm.pgmanager.data.model.UserQuery.MIN_EXPIRING_WINDOW_DAYS
 ) {
     val theme = LocalThemeState.current
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -268,7 +273,7 @@ internal fun FilterAndControlBar(
                     // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(stringResource(R.string.filter), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(filterLabel(currentFilter), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(filterLabel(currentFilter, expiringWindowDays), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
@@ -282,7 +287,7 @@ internal fun FilterAndControlBar(
                     // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(stringResource(R.string.sort), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created); UserSort.LAST_ONLINE->stringResource(R.string.us_sort_last_online)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 Text("▾", fontSize = 10.sp, color = theme.mutedColor)
@@ -335,7 +340,8 @@ internal fun FilterAndControlBar(
     }
     if (showFilterSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // فهرست بلندتر شده (فیلترهای سمتِ سرور + مالک)؛ روی صفحه‌های کوتاه اسکرول می‌شود.
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(
                     stringResource(R.string.all) to UserFilter.ALL,
@@ -345,12 +351,26 @@ internal fun FilterAndControlBar(
                     stringResource(R.string.limited) to UserFilter.LIMITED,
                     stringResource(R.string.on_hold) to UserFilter.ON_HOLD,
                     stringResource(R.string.disabled) to UserFilter.DISABLED,
+                    stringResource(R.string.us_filter_expiring_soon, expiringWindowDays) to UserFilter.EXPIRING_SOON,
+                    stringResource(R.string.us_filter_no_limit) to UserFilter.NO_LIMIT,
+                    stringResource(R.string.us_filter_no_expire) to UserFilter.NO_EXPIRE,
+                    stringResource(R.string.us_filter_no_group) to UserFilter.NO_GROUP,
                     stringResource(R.string.near_limit) to UserFilter.NEAR_LIMIT,
                     (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
                 ).forEach { (label, f) ->
                     val sel = currentFilter == f
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
+                    }
+                }
+                // مالک (`admin=`) — فقط وقتی پنل بیش از یک ادمین دارد.
+                if (admins.size > 1) {
+                    Text(stringResource(R.string.us_owner_filter), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.padding(top = 4.dp))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChipItem(stringResource(R.string.us_owner_all), ownerFilter == null) { onOwnerFilterChange(null) }
+                        admins.forEach { a ->
+                            FilterChipItem(a.username, ownerFilter == a.username) { onOwnerFilterChange(a.username) }
+                        }
                     }
                 }
             }
@@ -360,7 +380,7 @@ internal fun FilterAndControlBar(
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED).forEach { (label, s) ->
+                listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED, stringResource(R.string.us_sort_last_online) to UserSort.LAST_ONLINE).forEach { (label, s) ->
                     val sel = currentSort == s
                     Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.accentPrimary else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.accentPrimary else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) Color(0xFF422006) else theme.inkColor)
@@ -408,7 +428,7 @@ internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit)
 
 /** برچسبِ فارسی/انگلیسیِ هر فیلتر — یک‌جا تا با اضافه‌شدنِ فیلتر جا نماند. */
 @Composable
-private fun filterLabel(f: UserFilter): String = when (f) {
+private fun filterLabel(f: UserFilter, expiringWindowDays: Int = com.mrm.pgmanager.data.model.UserQuery.MIN_EXPIRING_WINDOW_DAYS): String = when (f) {
     UserFilter.ALL -> stringResource(R.string.all)
     UserFilter.ACTIVE -> stringResource(R.string.active)
     UserFilter.ONLINE -> stringResource(R.string.online)
@@ -416,6 +436,10 @@ private fun filterLabel(f: UserFilter): String = when (f) {
     UserFilter.LIMITED -> stringResource(R.string.limited)
     UserFilter.ON_HOLD -> stringResource(R.string.on_hold)
     UserFilter.DISABLED -> stringResource(R.string.disabled)
+    UserFilter.EXPIRING_SOON -> stringResource(R.string.us_filter_expiring_soon, expiringWindowDays)
+    UserFilter.NO_LIMIT -> stringResource(R.string.us_filter_no_limit)
+    UserFilter.NO_EXPIRE -> stringResource(R.string.us_filter_no_expire)
+    UserFilter.NO_GROUP -> stringResource(R.string.us_filter_no_group)
     UserFilter.NEAR_LIMIT -> stringResource(R.string.near_limit)
     UserFilter.DEBTOR -> stringResource(R.string.debtor)
 }

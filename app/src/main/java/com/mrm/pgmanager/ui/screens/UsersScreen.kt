@@ -232,6 +232,9 @@ fun UsersScreen(
     var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
     // فیلترِ گروه — پنل خودش با پارامترِ `group` اعمالش می‌کند.
     var groupFilterId by remember { mutableStateOf<Int?>(null) }
+    // فیلترِ مالک (`admin=`) — فقط در پنل‌های چندادمینی معنا دارد.
+    var ownerFilter by remember { mutableStateOf<String?>(null) }
+    var adminOptions by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.PanelAdmin>>(emptyList()) }
     var groupOptions by remember(session) { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
     // صفحه‌بندیِ سمتِ سرور
     var totalMatches by remember { mutableStateOf(0) }
@@ -303,15 +306,26 @@ fun UsersScreen(
     /** آیا فیلترِ فعلی را پنل می‌تواند اعمال کند؟ (بدهکار و نزدیک‌به‌سقف محلی‌اند) */
     val serverMode = currentFilter.serverSide
 
-    fun buildQuery(offset: Int) = com.mrm.pgmanager.data.model.UserQuery(
-        search = query.trim().takeIf { it.isNotBlank() },
-        status = currentFilter.panelStatus,
-        online = currentFilter.panelOnline,
-        groupId = groupFilterId,
-        sort = currentSort.panelSort,
-        offset = offset,
-        limit = 60
-    )
+    fun buildQuery(offset: Int): com.mrm.pgmanager.data.model.UserQuery {
+        val expiring = if (currentFilter == UserFilter.EXPIRING_SOON)
+            com.mrm.pgmanager.data.model.UserQuery.expiringWindow(com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays))
+        else null
+        return com.mrm.pgmanager.data.model.UserQuery(
+            search = query.trim().takeIf { it.isNotBlank() },
+            status = currentFilter.panelStatus,
+            online = currentFilter.panelOnline,
+            groupId = groupFilterId,
+            sort = currentSort.panelSort,
+            expireAfter = expiring?.first,
+            expireBefore = expiring?.second,
+            noDataLimit = currentFilter.panelNoDataLimit,
+            noExpire = currentFilter.panelNoExpire,
+            noGroup = currentFilter.panelNoGroup,
+            admin = ownerFilter,
+            offset = offset,
+            limit = 60
+        )
+    }
 
     /**
      * بارگذاریِ صفحه‌ایِ سمتِ سرور — حالتِ عادی.
@@ -455,7 +469,7 @@ fun UsersScreen(
         if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
     var firstLoad by remember(session) { mutableStateOf(true) }
-    LaunchedEffect(session, query, currentFilter, currentSort, groupFilterId) {
+    LaunchedEffect(session, query, currentFilter, currentSort, groupFilterId, ownerFilter) {
         if (firstLoad) {
             firstLoad = false
             // فقط وقتی داده کهنه است سراغِ پنل می‌رویم؛ وگرنه سوایپ بینِ تب‌ها هر
@@ -470,6 +484,10 @@ fun UsersScreen(
     // فهرستِ گروه‌ها برای فیلتر — یک‌بار و سبک.
     LaunchedEffect(session) {
         runCatching { PanelApi.groups(session) }.onSuccess { groupOptions = it }
+        // فهرستِ ادمین‌ها برای فیلترِ مالک — فقط اگر نقش اجازهٔ دیدنِ ادمین‌ها را بدهد (وگرنه ۴۰۳ می‌گیرد).
+        if (com.mrm.pgmanager.data.AdminAccess.can("admins", "read")) {
+            runCatching { PanelApi.admins(session) }.onSuccess { adminOptions = it }
+        }
     }
     LaunchedEffect(deepLinkUsername, users) {
         val name = deepLinkUsername ?: return@LaunchedEffect
@@ -527,6 +545,7 @@ fun UsersScreen(
             UserSort.USAGE -> list.sortedByDescending { it.usedTraffic }
             UserSort.EXPIRY -> list.sortedBy { it.expire ?: "9999" }
             UserSort.CREATED -> list.sortedByDescending { it.id }
+            UserSort.LAST_ONLINE -> list.sortedByDescending { com.mrm.pgmanager.utils.DateLogic.parseOnlineAtMillis(it.onlineAt) ?: 0L }
         }
     }
 
@@ -771,7 +790,11 @@ fun UsersScreen(
                     debtorCount = debtorCount,
                     groups = groupOptions,
                     groupFilterId = groupFilterId,
-                    onGroupFilterChange = { groupFilterId = it }
+                    onGroupFilterChange = { groupFilterId = it },
+                    admins = adminOptions,
+                    ownerFilter = ownerFilter,
+                    onOwnerFilterChange = { ownerFilter = it },
+                    expiringWindowDays = com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays)
                 )
                 // چند تا از چند تا — با صفحه‌بندی، دانستنش لازم است.
                 if (serverMode && totalMatches > processedUsers.size) {

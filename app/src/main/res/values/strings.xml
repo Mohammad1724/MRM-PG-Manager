@@ -872,6 +872,13 @@
     <string name="on_hold">On hold</string>
     <string name="us_group_filter">Group</string>
     <string name="us_group_all">All groups</string>
+    <string name="us_filter_expiring_soon">Expiring within %1$d days</string>
+    <string name="us_filter_no_limit">No data limit</string>
+    <string name="us_filter_no_expire">No expiry date</string>
+    <string name="us_filter_no_group">No group</string>
+    <string name="us_owner_filter">Owner (admin)</string>
+    <string name="us_owner_all">All admins</string>
+    <string name="us_sort_last_online">Last online</string>
     <string name="us_bulk_group_add">Add to group</string>
     <string name="us_bulk_group_remove">Remove from group</string>
     <string name="us_bulk_group_title">%1$d users</string>
