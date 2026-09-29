@@ -253,6 +253,19 @@ data class NodeRealtime(
 )
 
 /** یک دستگاهِ ثبت‌شدهٔ کاربر (HWID). */
+/** یک IPِ فعالِ کاربر روی یک نود — `GET /api/node/online_stats/{user_id}/ip` (پاسخِ `UserIPListAll`). */
+data class OnlineIp(val nodeId: Int, val ip: String, val connections: Int)
+
+/** یک بارِ گرفتنِ لینکِ اشتراک — `UserSubscriptionUpdateSchema` پنل. */
+data class SubUpdate(val createdAt: String, val userAgent: String, val ip: String? = null, val hwid: String? = null) {
+    /** نامِ کوتاهِ کلاینت از روی user-agent (قبل از اسلش/فاصله). */
+    val client: String
+        get() = userAgent.trim().substringBefore('/').substringBefore(' ').ifBlank { userAgent.trim() }
+}
+
+/** فهرستِ صفحه‌بندی‌شدهٔ به‌روزرسانی‌های اشتراک؛ `count` کلِ رکوردهاست نه فقط همین صفحه. */
+data class SubUpdateList(val updates: List<SubUpdate>, val count: Int)
+
 data class UserDevice(
     val id: Int,
     val hwid: String,

@@ -114,6 +114,33 @@ class PanelApiContractTest {
         assertTrue(usage.isEmpty())
     }
 
+    // ── online IPs / sub_update ──────────────────────────────
+
+    @Test fun `userOnlineIps flattens the per-node map and skips unreachable nodes`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"nodes":{"1":{"ips":{"10.0.0.2":1,"10.0.0.9":4}},"2":null,"3":{"ips":{}}}}"""))
+        val ips = PanelApi.userOnlineIps(session, 42L)
+        val req = server.takeRequest()
+
+        assertEquals("/api/node/online_stats/42/ip", req.path)
+        assertEquals(listOf("10.0.0.9" to 4, "10.0.0.2" to 1), ips.map { it.ip to it.connections })
+        assertTrue(ips.all { it.nodeId == 1 })
+    }
+
+    @Test fun `userSubUpdates uses the by-id route and keeps the total count`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"updates":[{"created_at":"2026-09-28T10:00:00Z","user_agent":"v2rayNG/1.9.5","ip":"5.6.7.8","hwid":null},{"created_at":"2026-09-27T10:00:00Z","user_agent":"Happ 3.1","ip":null}],"count":17}"""))
+        val list = PanelApi.userSubUpdates(session, 42L, limit = 5, offset = 0)
+        val req = server.takeRequest()
+
+        assertEquals("/api/user/by-id/42/sub_update?offset=0&limit=5", req.path)
+        assertEquals(17, list.count)
+        assertEquals(2, list.updates.size)
+        assertEquals("v2rayNG", list.updates[0].client)
+        assertEquals("5.6.7.8", list.updates[0].ip)
+        assertNull(list.updates[0].hwid)
+        assertEquals("Happ", list.updates[1].client)
+        assertNull(list.updates[1].ip)
+    }
+
     // ── فهرستِ کاربران: فیلترِ آنلاین سمتِ سرور ──────────────
 
     @Test fun `usersPage passes online=true only for the online filter`() = runBlocking {

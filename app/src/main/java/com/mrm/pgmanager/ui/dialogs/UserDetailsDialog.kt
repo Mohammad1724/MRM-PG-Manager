@@ -215,12 +215,35 @@ fun UserDetailsDialog(
     var nextPlanConfirm by remember { mutableStateOf(false) }
     var devices by remember(user.id) { mutableStateOf<List<UserDevice>>(emptyList()) }
     var showMore by remember { mutableStateOf(false) }
+    // IPهای فعال (nodes.stats) — null یعنی هنوز پرسیده نشده؛ فقط برای کاربرِ آنلاین خودکار پرسیده می‌شود
+    // چون پنل باید از همهٔ نودهای سالم بپرسد.
+    val canNodeStats = com.mrm.pgmanager.data.AdminAccess.can("nodes", "stats")
+    var onlineIps by remember(user.id) { mutableStateOf<List<OnlineIp>?>(null) }
+    var onlineIpsLoading by remember(user.id) { mutableStateOf(false) }
+    // تاریخچهٔ گرفتنِ لینکِ اشتراک (users.read) — ۵ موردِ آخر + شمارِ کل.
+    var subUpdates by remember(user.id) { mutableStateOf<SubUpdateList?>(null) }
+    val nodeNames = remember(session) {
+        session?.let { com.mrm.pgmanager.data.cache.PanelCache.get<List<PanelNode>>(com.mrm.pgmanager.data.cache.PanelCache.nodesKey(it.baseUrl)) }
+            ?.associate { it.id to it.name } ?: emptyMap()
+    }
 
     fun reloadDevices() {
         if (session == null) return
         scope.launch { runCatching { PanelApi.userDevices(session, currentUser.id) }.onSuccess { devices = it } }
     }
-    LaunchedEffect(user.id, session) { reloadDevices() }
+    fun loadOnlineIps() {
+        if (session == null || !canNodeStats || onlineIpsLoading) return
+        onlineIpsLoading = true
+        scope.launch {
+            runCatching { PanelApi.userOnlineIps(session, currentUser.id) }.onSuccess { onlineIps = it }
+            onlineIpsLoading = false
+        }
+    }
+    LaunchedEffect(user.id, session) {
+        reloadDevices()
+        if (session != null) runCatching { PanelApi.userSubUpdates(session, currentUser.id, limit = 5) }.onSuccess { subUpdates = it }
+        if (user.isOnline) loadOnlineIps()
+    }
 
     val copiedMsg = stringResource(R.string.ud_copied)
     val closeLabel = stringResource(R.string.ud_close)
@@ -388,6 +411,59 @@ fun UserDetailsDialog(
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                         Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = 6.dp, vertical = 3.dp)) { Text(stringResource(R.string.ud_device_forget), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── IPهای آنلاین (فقط با مجوزِ nodes.stats)
+                    if (session != null && canNodeStats) {
+                        val ips = onlineIps
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SectionLabel(stringResource(R.string.ud_online_ips))
+                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        when {
+                                            ips == null -> stringResource(R.string.ud_online_ips_unknown)
+                                            ips.isEmpty() -> stringResource(R.string.ud_online_ips_empty)
+                                            else -> stringResource(R.string.ud_online_ips_count, ips.size, ips.sumOf { it.connections })
+                                        },
+                                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
+                                    )
+                                    Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
+                                    }
+                                }
+                                ips?.take(6)?.forEach { entry ->
+                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        MrmText(entry.ip, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
+                                        MrmText(nodeNames[entry.nodeId] ?: stringResource(R.string.st_node_unknown, entry.nodeId), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
+                                        Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
+                                    }
+                                }
+                                if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 9.sp, color = theme.mutedColor)
+                            }
+                        }
+                    }
+
+                    // ── تاریخچهٔ گرفتنِ اشتراک
+                    subUpdates?.let { list ->
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            SectionLabel(stringResource(R.string.ud_sub_updates))
+                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    if (list.count == 0) stringResource(R.string.ud_sub_updates_empty) else stringResource(R.string.ud_sub_updates_count, list.count),
+                                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                                )
+                                list.updates.forEach { u ->
+                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                            MrmText(u.client.ifBlank { "—" }, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                                            u.ip?.let { MrmText(it, fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true) }
+                                        }
+                                        MrmText(lastSeenShort(u.createdAt, false).ifBlank { JalaliCalendar.isoToShamsi(u.createdAt) }, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                                     }
                                 }
                             }

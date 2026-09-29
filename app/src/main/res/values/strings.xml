@@ -907,6 +907,17 @@
     <string name="ud_devices">Devices</string>
     <string name="ud_devices_count">%1$d of %2$d</string>
     <string name="ud_devices_empty">No device has connected yet</string>
+    <string name="ud_online_ips">Online IPs</string>
+    <string name="ud_online_ips_unknown">Not checked yet</string>
+    <string name="ud_online_ips_empty">No active connection right now</string>
+    <string name="ud_online_ips_count">%1$d IPs · %2$d connections</string>
+    <string name="ud_connections">%1$d conn.</string>
+    <string name="ud_check">Check</string>
+    <string name="ud_checking">Checking…</string>
+    <string name="ud_more_items">+%1$d more</string>
+    <string name="ud_sub_updates">Subscription fetches</string>
+    <string name="ud_sub_updates_empty">The subscription link has never been fetched</string>
+    <string name="ud_sub_updates_count">%1$d fetches in total — latest below</string>
     <string name="ud_device_last_used">Last used %1$s</string>
     <string name="ud_device_forget">Forget</string>
     <string name="ud_devices_reset">Forget all</string>

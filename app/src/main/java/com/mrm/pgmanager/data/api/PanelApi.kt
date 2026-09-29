@@ -23,6 +23,9 @@ import com.mrm.pgmanager.data.model.TemplateOptions
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.NodeUsage
 import com.mrm.pgmanager.data.model.NodeTrafficPoint
+import com.mrm.pgmanager.data.model.OnlineIp
+import com.mrm.pgmanager.data.model.SubUpdate
+import com.mrm.pgmanager.data.model.SubUpdateList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -471,6 +474,47 @@ object PanelApi {
     }
 
     /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
+    /**
+     * IPهای فعالِ کاربر روی همهٔ نودهای سالم — `GET /api/node/online_stats/{user_id}/ip` (مجوزِ `nodes.stats`).
+     * پاسخ: `{"nodes": {"<node_id>": {"ips": {"1.2.3.4": 2}} | null}}`؛ نودهای بی‌پاسخ null می‌آیند و رد می‌شوند.
+     */
+    suspend fun userOnlineIps(session: Session, userId: Long): List<OnlineIp> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/online_stats/$userId/ip").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Online IPs failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val nodes = root.optJSONObject("nodes") ?: return@use emptyList()
+            nodes.keys().asSequence().flatMap { key ->
+                val nodeId = key.toIntOrNull() ?: return@flatMap emptySequence()
+                val ips = nodes.optJSONObject(key)?.optJSONObject("ips") ?: return@flatMap emptySequence()
+                ips.keys().asSequence().map { ip -> OnlineIp(nodeId, ip, ips.optInt(ip)) }
+            }.sortedWith(compareByDescending<OnlineIp> { it.connections }.thenBy { it.nodeId }.thenBy { it.ip }).toList()
+        }
+    }
+
+    /**
+     * تاریخچهٔ گرفتنِ لینکِ اشتراک — `GET /api/user/by-id/{user_id}/sub_update?offset=&limit=` (مجوزِ `users.read`).
+     * پاسخ: `{"updates": [{"created_at", "user_agent", "ip", "hwid"}], "count": N}`.
+     */
+    suspend fun userSubUpdates(session: Session, userId: Long, limit: Int = 5, offset: Int = 0): SubUpdateList = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/user/by-id/$userId/sub_update?offset=$offset&limit=$limit").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Sub updates failed: ${response.code}")
+            val root = JSONObject(response.body?.string() ?: "{}")
+            val arr = root.optJSONArray("updates")
+            val updates = if (arr == null) emptyList() else List(arr.length()) { i ->
+                val u = arr.getJSONObject(i)
+                SubUpdate(
+                    createdAt = u.optString("created_at"),
+                    userAgent = u.optString("user_agent"),
+                    ip = if (u.isNull("ip")) null else u.optString("ip").takeIf { it.isNotBlank() },
+                    hwid = if (u.isNull("hwid")) null else u.optString("hwid").takeIf { it.isNotBlank() }
+                )
+            }
+            SubUpdateList(updates, root.optInt("count", updates.size))
+        }
+    }
+
     suspend fun userDevices(session: Session, userId: Long): List<UserDevice> = withContext(Dispatchers.IO) {
         val request = requestBuilder(session, "${session.baseUrl}/api/user/$userId/hwids").get().build()
         client.newCall(request).execute().use { response ->
