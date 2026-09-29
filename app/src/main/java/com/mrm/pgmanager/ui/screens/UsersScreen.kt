@@ -562,7 +562,8 @@ fun UsersScreen(
     }
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
-        if (selectedUserIds.isEmpty()) {
+        // ادمینی که مجوزِ users.create ندارد، دکمهٔ ساخت را نمی‌بیند (پنل ۴۰۳ می‌داد).
+        if (selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
             val fabShape = DsRadius.Lg
             val fabInteraction = remember { MutableInteractionSource() }
             val isFabPressed by fabInteraction.collectIsPressedAsState()
@@ -638,7 +639,7 @@ fun UsersScreen(
                                 if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
                                     com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
                                 }
-                                com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true })
+                                if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true })
                             }
                         }
                     }
@@ -781,7 +782,8 @@ fun UsersScreen(
                 // پاک‌سازیِ منقضی‌ها: فقط وقتی فیلترِ «منقضی» فعال است پیدایش می‌شود،
                 // چون همان‌جاست که به آدم فکرِ حذفِ دسته‌جمعی می‌رسد. اول فهرست را
                 // از پنل می‌گیریم تا کاربر ببیند چه کسانی حذف می‌شوند.
-                if (currentFilter == UserFilter.EXPIRED) {
+                // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
+                if (currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
                     Row(
                         Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm)
                             .background(GlassRed.copy(0.10f))

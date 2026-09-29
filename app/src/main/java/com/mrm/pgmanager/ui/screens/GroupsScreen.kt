@@ -125,10 +125,12 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         }
     }
 
+    val canCreate = com.mrm.pgmanager.data.AdminAccess.can("groups", "create")
+    val canDelete = com.mrm.pgmanager.data.AdminAccess.can("groups", "delete")
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            Box(
+            if (canCreate) Box(
                 Modifier
                     .padding(bottom = 72.dp, end = 4.dp)
                     .size(52.dp)
@@ -281,7 +283,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     GroupRow(
                                         group = group,
                                         onEdit = { editing = group },
-                                        onDelete = { deleting = group }
+                                        onDelete = if (canDelete) ({ deleting = group }) else null
                                     )
                                 }
                             }
@@ -344,7 +346,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 
 /** یک ردیفِ گروه در فهرست. */
 @Composable
-private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Unit)?) {
     val theme = LocalThemeState.current
     val deleteGroupLabel = stringResource(R.string.delete_group_cd)
     Row(
@@ -394,7 +396,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: () -> Uni
             }
         }
 
-        Box(
+        if (onDelete != null) Box(
             Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
                 .semantics { contentDescription = deleteGroupLabel }
                 .clickable { onDelete() },

@@ -314,6 +314,14 @@
     <string name="cd_back">بازگشت</string>
     <string name="set_version">نسخهٔ %1$s</string>
     <string name="set_conn_panel">اتصال به پنل</string>
+    <string name="set_conn_auth">روش ورود</string>
+    <string name="set_conn_auth_api_key">کلید API (بدون انقضا)</string>
+    <string name="set_conn_auth_password">رمز عبور (توکن ۲۴ ساعته)</string>
+    <string name="set_conn_role">نقش · دامنهٔ کاربران</string>
+    <string name="set_conn_role_owner">مالک</string>
+    <string name="set_conn_scope_all">همهٔ کاربران</string>
+    <string name="set_conn_scope_own">فقط کاربران خودش</string>
+    <string name="set_conn_scope_none">بدون دسترسی به کاربران</string>
     <string name="set_conn_login_first">برای مشاهدهٔ اطلاعات اتصال و تست آن، ابتدا وارد حساب کاربری شوید.</string>
     <string name="set_conn_current">سرور فعلی</string>
     <string name="set_conn_url">آدرس پنل</string>

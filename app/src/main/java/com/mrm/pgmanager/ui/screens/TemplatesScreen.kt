@@ -146,10 +146,12 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         else templates.filter { it.name.contains(q, ignoreCase = true) }
     }
 
+    val canCreate = com.mrm.pgmanager.data.AdminAccess.can("templates", "create")
+    val canDelete = com.mrm.pgmanager.data.AdminAccess.can("templates", "delete")
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            Box(
+            if (canCreate) Box(
                 Modifier
                     .padding(bottom = 72.dp, end = 4.dp)
                     .size(52.dp)
@@ -318,7 +320,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                         template = tpl,
                                         groups = availableGroups,
                                         onEdit = { editing = tpl },
-                                        onDelete = { deleting = tpl }
+                                        onDelete = if (canDelete) ({ deleting = tpl }) else null
                                     )
                                 }
                             }
@@ -379,7 +381,7 @@ private fun TemplateRow(
     template: UserTemplateItem,
     groups: List<Group>,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: (() -> Unit)?
 ) {
     val deleteTemplateLabel = stringResource(R.string.delete_template_cd)
     val theme = LocalThemeState.current
@@ -435,7 +437,7 @@ private fun TemplateRow(
             )
         }
 
-        Box(
+        if (onDelete != null) Box(
             Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
                 .semantics { contentDescription = deleteTemplateLabel }
                 .clickable { onDelete() },

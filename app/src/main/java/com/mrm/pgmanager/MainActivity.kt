@@ -235,6 +235,13 @@ fun MRMApp() {
         }
     }
 
+    // مجوزهای RBAC ادمین (GET /api/admin) — یک‌بار به‌ازای هر نشست؛ صفحه‌ها با AdminAccess.can() دکمه‌ها را گیت می‌کنند.
+    LaunchedEffect(session) {
+        val current = session
+        if (current == null) com.mrm.pgmanager.data.AdminAccess.reset()
+        else com.mrm.pgmanager.data.AdminAccess.refresh(current)
+    }
+
     LaunchedEffect(session) {
         if (session != null) {
             // بدونِ این محدودیت، WorkManager بررسی را حتی وقتی گوشی اینترنت

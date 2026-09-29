@@ -314,6 +314,14 @@
     <string name="cd_back">Back</string>
     <string name="set_version">Version %1$s</string>
     <string name="set_conn_panel">Panel Connection</string>
+    <string name="set_conn_auth">Sign-in method</string>
+    <string name="set_conn_auth_api_key">API key (does not expire)</string>
+    <string name="set_conn_auth_password">Password (24-hour token)</string>
+    <string name="set_conn_role">Role · user scope</string>
+    <string name="set_conn_role_owner">Owner</string>
+    <string name="set_conn_scope_all">all users</string>
+    <string name="set_conn_scope_own">own users only</string>
+    <string name="set_conn_scope_none">no user access</string>
     <string name="set_conn_login_first">Sign in first to view and test connection details.</string>
     <string name="set_conn_current">Current Server</string>
     <string name="set_conn_url">Panel URL</string>

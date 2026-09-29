@@ -92,6 +92,20 @@ internal fun ConnectionSection(
     SettingsCard(stringResource(R.string.set_conn_current), AppIcon.Wifi) {
         SettingsInfoRow(stringResource(R.string.set_conn_url), session.baseUrl, copyable = true)
         SettingsInfoRow(stringResource(R.string.set_conn_admin), session.username)
+        SettingsInfoRow(stringResource(R.string.set_conn_auth), stringResource(if (session.isApiKey) R.string.set_conn_auth_api_key else R.string.set_conn_auth_password))
+        com.mrm.pgmanager.data.AdminAccess.current?.let { admin ->
+            val role = when {
+                admin.isOwner -> stringResource(R.string.set_conn_role_owner)
+                admin.roleName.isNotBlank() -> admin.roleName
+                else -> "—"
+            }
+            val userScope = when (admin.scope("users", "read")) {
+                com.mrm.pgmanager.data.model.PermissionScope.ALL -> stringResource(R.string.set_conn_scope_all)
+                com.mrm.pgmanager.data.model.PermissionScope.OWN -> stringResource(R.string.set_conn_scope_own)
+                else -> stringResource(R.string.set_conn_scope_none)
+            }
+            SettingsInfoRow(stringResource(R.string.set_conn_role), "$role · $userScope")
+        }
         SettingsActionRow(
             stringResource(R.string.set_conn_open_browser),
             stringResource(R.string.set_conn_open_desc),
