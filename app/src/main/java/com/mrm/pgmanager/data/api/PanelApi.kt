@@ -574,7 +574,7 @@ object PanelApi {
                 if (!response.isSuccessful) error("Request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
                 val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
                 val arr = obj.getJSONArray("users")
-                List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }
+                List(arr.length()) { i -> parseUser(arr.getJSONObject(i), session.baseUrl) }
             }
             all.addAll(chunk)
             if (chunk.size < limit) break
@@ -633,7 +633,7 @@ object PanelApi {
             if (!response.isSuccessful) error("Request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
             val obj = JSONObject(response.body?.string() ?: error("Empty users response"))
             val arr = obj.getJSONArray("users")
-            UsersPage(List(arr.length()) { i -> parseUser(arr.getJSONObject(i)) }, obj.optInt("total", arr.length()))
+            UsersPage(List(arr.length()) { i -> parseUser(arr.getJSONObject(i), session.baseUrl) }, obj.optInt("total", arr.length()))
         }
         attachGroupNames(session, page.users)
         page
@@ -706,7 +706,7 @@ object PanelApi {
         val request = requestBuilder(session, userUrl(session, user)).get().build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("User fetch failed: ${response.code}")
-            parseUser(JSONObject(response.body?.string() ?: error("Empty user response")))
+            parseUser(JSONObject(response.body?.string() ?: error("Empty user response")), session.baseUrl)
         }
     }
 
@@ -809,7 +809,26 @@ object PanelApi {
         }
     }
 
-    internal fun parseUser(user: JSONObject): PanelUser {
+    /**
+     * لینکِ اشتراک را مطلق می‌کند.
+     *
+     * پنل لینک را `f"{url_prefix}/{path}/{token}"` می‌سازد و اگر ادمین
+     * `XRAY_SUBSCRIPTION_URL_PREFIX` را (که پیش‌فرضش خالی است) تنظیم نکرده باشد،
+     * پاسخ `/sub/<token>` است — یک مسیرِ نسبی. داشبوردِ خودِ پنل همین‌جا
+     * `window.location.origin` را جلوی آن می‌گذارد؛ اپ هم باید آدرسِ پنل را
+     * بگذارد، وگرنه لینک/QR کپی‌شده برای مشتری بی‌فایده بود.
+     */
+    internal fun absoluteSubUrl(raw: String, baseUrl: String?): String {
+        val url = raw.trim()
+        if (url.isEmpty() || baseUrl.isNullOrBlank()) return url
+        return when {
+            url.startsWith("//") -> baseUrl.substringBefore("://", "https") + ":" + url
+            url.startsWith("/") -> baseUrl.trimEnd('/') + url
+            else -> url
+        }
+    }
+
+    internal fun parseUser(user: JSONObject, baseUrl: String? = null): PanelUser {
         val groupIds = mutableListOf<Int>()
         val groupNames = mutableListOf<String>()
         if (!user.isNull("group_ids")) {
@@ -846,7 +865,7 @@ object PanelApi {
             dataLimit = user.optLong("data_limit", 0L),
             expire = if (user.isNull("expire")) null else user.optString("expire").takeIf { it != "null" && it != "0" },
             createdAt = if (user.isNull("created_at")) null else user.optString("created_at"),
-            subUrl = user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") },
+            subUrl = absoluteSubUrl(user.optString("subscription_url", "").ifBlank { user.optString("sub_url", "") }, baseUrl),
             onlineAt = onlineAtStr,
             isOnline = isOnline,
             note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
@@ -924,7 +943,7 @@ object PanelApi {
             .build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Revoke failed: ${response.code}")
-            parseUser(JSONObject(response.body?.string() ?: error("Empty revoke response")))
+            parseUser(JSONObject(response.body?.string() ?: error("Empty revoke response")), session.baseUrl)
         }
     }
 
@@ -1251,7 +1270,7 @@ object PanelApi {
             val urls = o.optJSONArray("subscription_urls")
             BulkCreateResult(
                 created = o.optInt("created", urls?.length() ?: 0),
-                subscriptionUrls = if (urls == null) emptyList() else List(urls.length()) { urls.optString(it) }
+                subscriptionUrls = if (urls == null) emptyList() else List(urls.length()) { absoluteSubUrl(urls.optString(it), session.baseUrl) }
             )
         }
     }

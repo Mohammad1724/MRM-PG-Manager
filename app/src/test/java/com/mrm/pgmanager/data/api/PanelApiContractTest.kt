@@ -336,6 +336,28 @@ class PanelApiContractTest {
         assertNull(bare.autoDeleteDays)
     }
 
+    // ── لینکِ اشتراکِ نسبی (url_prefix خالی) ─────────────────────
+
+    @Test fun `relative subscription urls are resolved against the panel address`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"users":[{"id":1,"username":"a","status":"active","subscription_url":"/sub/tok1"},""" +
+            """{"id":2,"username":"b","status":"active","subscription_url":"https://sub.example.com/sub/tok2"}],"total":2}"""
+        ))
+        val page = PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery())
+        server.takeRequest()
+
+        assertEquals("${session.baseUrl}/sub/tok1", page.users[0].subUrl)
+        assertEquals("https://sub.example.com/sub/tok2", page.users[1].subUrl)
+    }
+
+    @Test fun `absoluteSubUrl handles the edge cases`() {
+        assertEquals("https://p.example.com/sub/x", PanelApi.absoluteSubUrl("/sub/x", "https://p.example.com"))
+        assertEquals("https://p.example.com/sub/x", PanelApi.absoluteSubUrl("/sub/x", "https://p.example.com/"))
+        assertEquals("https://cdn.example.com/sub/x", PanelApi.absoluteSubUrl("//cdn.example.com/sub/x", "https://p.example.com"))
+        assertEquals("", PanelApi.absoluteSubUrl("", "https://p.example.com"))
+        assertEquals("/sub/x", PanelApi.absoluteSubUrl("/sub/x", null))
+    }
+
     @Test fun `parseUser reads on_hold fields and derives days`() {
         val onHold = PanelApi.parseUser(JSONObject("""{"id":3,"username":"hold","status":"on_hold","used_traffic":0,"data_limit":0,"expire":null,"on_hold_expire_duration":2592000,"on_hold_timeout":"2026-10-15T00:00:00Z"}"""))
         assertEquals(2_592_000L, onHold.onHoldExpireDuration)
