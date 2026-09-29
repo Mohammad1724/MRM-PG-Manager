@@ -17,6 +17,14 @@
     <string name="login_err_not_found">آدرس یا مسیر پنل درست نیست (۴۰۴).</string>
     <string name="login_err_generic">اتصال ناموفق: %1$s</string>
     <string name="login_err_unknown">خطای ناشناخته</string>
+    <string name="login_mode_password">نام کاربری و رمز</string>
+    <string name="login_mode_api_key">کلید API</string>
+    <string name="login_api_key">کلید API</string>
+    <string name="login_api_key_hint">pg_key_…</string>
+    <string name="login_api_key_desc">در پنل بسازید: تنظیمات ← کلیدهای API. برخلاف ورود با رمز (توکن ۲۴ ساعته)، کلید API منقضی نمی‌شود و مانیتورینگ پس‌زمینه قطع نمی‌شود.</string>
+    <string name="login_err_api_key">کلید API نامعتبر، غیرفعال یا منقضی شده است.</string>
+    <string name="login_err_api_key_format">یک کلید API معتبر وارد کنید (با pg_key_ شروع می‌شود).</string>
+    <string name="login_session_expired_banner">نشست شما منقضی شده. برای ادامه دوباره وارد شوید — حساب شما حفظ شده است.</string>
     <string name="back_exit_hint">برای خروج دوباره بزنید</string>
     <string name="cd_change_language">تغییر زبان</string>
     <string name="users">کاربران</string>

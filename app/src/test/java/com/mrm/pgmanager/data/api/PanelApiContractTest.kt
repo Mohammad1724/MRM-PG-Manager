@@ -11,6 +11,7 @@ import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -242,5 +243,126 @@ class PanelApiContractTest {
     @Test fun `login rejects blank address`() {
         val failed = runCatching { runBlocking { PanelApi.login("   ", "a", "b") } }.isFailure
         assertTrue(failed)
+    }
+
+    @Test fun `login with wrong password is a plain 401 error, not a session expiry`() {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"detail":"Incorrect username or password"}"""))
+        val error = runCatching { runBlocking { PanelApi.login(server.url("/").toString(), "a", "b") } }.exceptionOrNull()
+
+        assertTrue(error != null)
+        assertFalse("login request carries no auth header, so it must not be treated as expiry", error is SessionExpiredException)
+        assertTrue(PanelApi.isUnauthorized(error))
+        assertTrue("panel detail should be surfaced: ${error!!.message}", error.message!!.contains("Incorrect username"))
+    }
+
+    // ── احراز هویت: کلید API و انقضای نشست ───────────────────
+
+    @Test fun `pg_key token is sent as X-Api-Key instead of Bearer`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"version":"5.4.1"}"""))
+        val keySession = Session(session.baseUrl, "pg_key_123e4567-e89b-42d3-a456-426614174000", "admin")
+        assertTrue(keySession.isApiKey)
+        PanelApi.systemStats(keySession)
+        val req = server.takeRequest()
+
+        assertEquals("pg_key_123e4567-e89b-42d3-a456-426614174000", req.getHeader("X-Api-Key"))
+        assertNull(req.getHeader("Authorization"))
+    }
+
+    @Test fun `jwt token is sent as Bearer`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"version":"5.4.1"}"""))
+        assertFalse(session.isApiKey)
+        PanelApi.systemStats(session)
+        val req = server.takeRequest()
+
+        assertEquals("Bearer tok", req.getHeader("Authorization"))
+        assertNull(req.getHeader("X-Api-Key"))
+    }
+
+    @Test fun `401 on an authenticated request raises SessionExpiredException`() {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"detail":"Not authenticated"}"""))
+        val error = runCatching { runBlocking { PanelApi.systemStats(session) } }.exceptionOrNull()
+
+        assertTrue("was: $error", error is SessionExpiredException)
+        assertTrue(PanelApi.isUnauthorized(error))
+        // سازگاری با کدهای قدیمی که فقط پیام را نگاه می‌کنند
+        assertTrue(error!!.message!!.contains("401"))
+    }
+
+    @Test fun `loginWithApiKey validates through GET api-admin and keeps the key as token`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"id":3,"username":"reseller","role":{"name":"Reseller","is_owner":false,"permissions":{"users":{"read":{"scope":1},"create":true}}}}"""))
+        val result = PanelApi.loginWithApiKey(server.url("/").toString(), " pg_key_123e4567-e89b-42d3-a456-426614174000 ")
+        val req = server.takeRequest()
+
+        assertEquals("/api/admin", req.path)
+        assertEquals("pg_key_123e4567-e89b-42d3-a456-426614174000", req.getHeader("X-Api-Key"))
+        assertEquals("reseller", result.username)
+        assertEquals("pg_key_123e4567-e89b-42d3-a456-426614174000", result.token)
+        assertTrue(result.isApiKey)
+    }
+
+    @Test fun `loginWithApiKey rejects malformed key without a network call`() {
+        val error = runCatching { runBlocking { PanelApi.loginWithApiKey(server.url("/").toString(), "not-a-key") } }.exceptionOrNull()
+        assertTrue(error!!.message!!.contains("Invalid API key"))
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `loginWithApiKey maps a rejected key to a 401 login failure`() {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"detail":"Not authenticated"}"""))
+        val error = runCatching { runBlocking { PanelApi.loginWithApiKey(server.url("/").toString(), "pg_key_bad") } }.exceptionOrNull()
+        assertTrue(error != null)
+        assertTrue(PanelApi.isUnauthorized(error))
+    }
+
+    @Test fun `currentAdmin parses owner flag, scoped and boolean permissions`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"id":1,"username":"boss","total_users":12,"role":{"name":"Manager","is_owner":false,""" +
+            """"permissions":{"users":{"read":{"scope":2},"update":{"scope":1},"delete":null,"create":true},"groups":{"read":true},"admins":{"read":false}},""" +
+            """"limits":{"max_users":50},"features":{"can_use_next_plan":false},"access":{"require_template":true,"allowed_template_ids":[1,2],"allowed_group_ids":null}}}"""
+        ))
+        val admin = PanelApi.currentAdmin(session)
+
+        assertEquals("/api/admin", server.takeRequest().path)
+        assertEquals("boss", admin.username)
+        assertFalse(admin.isOwner)
+        assertEquals("Manager", admin.roleName)
+        assertEquals(2, admin.scope("users", "read"))
+        assertEquals(1, admin.scope("users", "update"))
+        assertEquals(2, admin.scope("users", "create"))
+        assertFalse("null action = denied", admin.can("users", "delete"))
+        assertFalse("false action = denied", admin.can("admins", "read"))
+        assertTrue(admin.can("groups", "read"))
+        assertFalse("missing resource = denied", admin.can("nodes", "read"))
+        assertEquals(50, admin.maxUsers)
+        assertEquals(12, admin.totalUsers)
+        assertTrue(admin.requireTemplate)
+        assertEquals(listOf(1, 2), admin.allowedTemplateIds)
+        assertNull(admin.allowedGroupIds)
+        assertFalse(admin.canUseNextPlan)
+        assertTrue(admin.canUseResetStrategy)
+    }
+
+    @Test fun `owner bypasses every permission check`() {
+        val owner = PanelApi.parseAdminSelf(JSONObject("""{"id":1,"username":"root","role":{"is_owner":true,"permissions":{}}}"""))
+        assertTrue(owner.isOwner)
+        assertTrue(owner.can("users", "delete"))
+        assertEquals(2, owner.scope("nodes", "reconnect"))
+    }
+
+    @Test fun `errorDetail surfaces panel detail strings and 422 field errors`() {
+        assertEquals("User limit reached", PanelApi.errorDetail("""{"detail":"User limit reached"}"""))
+        assertEquals(
+            "username: String should have at most 128 characters",
+            PanelApi.errorDetail("""{"detail":[{"loc":["body","username"],"msg":"String should have at most 128 characters","type":"string_too_long"}]}""")
+        )
+        assertEquals("", PanelApi.errorDetail(null))
+        assertEquals("plain text", PanelApi.errorDetail("plain text"))
+    }
+
+    @Test fun `failed mutation includes readable detail in the message`() {
+        server.enqueue(MockResponse().setResponseCode(400).setBody("""{"detail":"Maximum users limit reached"}"""))
+        val error = runCatching { runBlocking { PanelApi.resetUsage(session, user(7, "ali")) } }.exceptionOrNull()
+        assertTrue(error!!.message!!.contains("400"))
+        assertTrue(error.message!!.contains("Maximum users limit reached"))
+        assertFalse(error.message!!.contains("{"))
     }
 }

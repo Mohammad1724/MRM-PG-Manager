@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,12 +48,19 @@ fun LoginScreen(
     themeState: ThemeState,
     appLanguage: String = "system",
     onLanguageChange: (String) -> Unit = {},
-    onBack: (() -> Unit)? = null
+    onBack: (() -> Unit)? = null,
+    /** حسابی که نشستش منقضی شده؛ آدرس و نامِ کاربری‌اش پیش‌پر می‌شود تا فقط رمز لازم باشد. */
+    prefill: Session? = null,
+    /** نمایشِ بنرِ «نشست منقضی شده» بالای فرم. */
+    sessionExpired: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf(prefill?.baseUrl.orEmpty()) }
+    var username by remember { mutableStateOf(prefill?.username.orEmpty()) }
     var password by remember { mutableStateOf("") }
+    // ورود با کلید API (`pg_key_…`): برای کسانی که نمی‌خواهند هر ۲۴ ساعت دوباره رمز بزنند.
+    var useApiKey by rememberSaveable { mutableStateOf(prefill?.isApiKey == true) }
+    var apiKey by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val theme = themeState
@@ -68,6 +76,8 @@ fun LoginScreen(
     val errNotFound = stringResource(R.string.login_err_not_found)
     val errUnknown = stringResource(R.string.login_err_unknown)
     val errGenericTemplate = stringResource(R.string.login_err_generic)
+    val errApiKey = stringResource(R.string.login_err_api_key)
+    val errApiKeyFormat = stringResource(R.string.login_err_api_key_format)
 
     // در حالتِ «افزودن حساب» (یا وقتی حسابِ ذخیره‌شده‌ای هست) دکمهٔ برگشتِ گوشی
     // باید همان کارِ دکمهٔ «بازگشت» را بکند، نه اینکه اپ را ببندد.
@@ -98,9 +108,37 @@ fun LoginScreen(
                 Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                if (sessionExpired) {
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEF3C7)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFDE68A)), DsRadius.Md).padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RoundedAppIcon(AppIcon.Timer, tint = Color(0xFF92400E), size = 16.dp)
+                        Text(stringResource(R.string.login_session_expired_banner), color = Color(0xFF92400E), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                    }
+                }
+
+                // سوییچِ روشِ ورود: رمز عبور (JWT ۲۴ساعته) / کلید API (بدون انقضا).
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    @Composable fun ModeTab(selected: Boolean, label: String, onClick: () -> Unit) {
+                        Box(
+                            Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
+                                .background(if (selected) theme.cardSurfaceColor else Color.Transparent)
+                                .border(BorderStroke(DsBorder.Hairline, if (selected) theme.borderColor else Color.Transparent), DsRadius.Sm)
+                                .clickable(enabled = !loading) { onClick(); error = null },
+                            contentAlignment = Alignment.Center
+                        ) { Text(label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, color = if (selected) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    }
+                    ModeTab(!useApiKey, stringResource(R.string.login_mode_password)) { useApiKey = false }
+                    ModeTab(useApiKey, stringResource(R.string.login_mode_api_key)) { useApiKey = true }
+                }
+
                 PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
-                PGField(label = stringResource(R.string.username), value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
-                PGField(label = stringResource(R.string.password), value = password, onValueChange = { password = it }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
+                if (useApiKey) {
+                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim() }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
+                    Text(stringResource(R.string.login_api_key_desc), fontSize = 10.sp, color = theme.mutedColor)
+                } else {
+                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { password = it }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
+                }
 
                 if (error != null) {
                     Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEE2E2)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFECACA)), DsRadius.Md).padding(10.dp),
@@ -117,15 +155,18 @@ fun LoginScreen(
                             if (loading) return@clickable
                             loading = true; error = null
                             scope.launch {
-                                runCatching { PanelApi.login(url, username, password) }.onSuccess(onLoggedIn).onFailure { e ->
+                                runCatching {
+                                    if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
+                                }.onSuccess(onLoggedIn).onFailure { e ->
                                     error = when {
                                         e.message?.contains("Credentials required", true) == true -> errCredentials
+                                        e.message?.contains("Invalid API key", true) == true -> errApiKeyFormat
                                         e.message?.contains("Invalid URL", true) == true -> errUrl
                                         e.message?.contains("Panel address is required", true) == true -> errUrl
                                         e.message?.contains("Cleartext http", true) == true -> errHttps
                                         e is java.net.UnknownHostException -> errHost
                                         e is java.net.SocketTimeoutException -> errTimeout
-                                        e.message?.contains("401", true) == true -> errAuth
+                                        PanelApi.isUnauthorized(e) -> if (useApiKey) errApiKey else errAuth
                                         e.message?.contains("404", true) == true -> errNotFound
                                         else -> String.format(errGenericTemplate, e.message ?: errUnknown)
                                     }

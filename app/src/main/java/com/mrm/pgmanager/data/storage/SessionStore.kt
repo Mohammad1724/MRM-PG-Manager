@@ -49,7 +49,33 @@ class SessionStore(context: Context) {
         val others = readAccounts().filterNot { it.baseUrl == value.baseUrl && it.username == value.username }
         saveAccounts(others + value)
         setActive(value)
+        // ورودِ موفق = نشانهٔ «نشست منقضی شده» دیگر معنایی ندارد.
+        clearExpiredMarker()
     }
+
+    /**
+     * انقضای نشست (۴۰۱ از پنل): برخلافِ [clear]، حساب از لیستِ چندحسابی حذف *نمی‌شود*؛
+     * فقط نشستِ فعال کنار می‌رود و نشانه‌ای می‌ماند تا صفحهٔ ورود آدرس و نامِ کاربری را
+     * پیش‌پر کند. توکنِ JWT پنل پیش‌فرض ۲۴ ساعته است، پس این اتفاق روزانه می‌افتد و
+     * نباید هر بار حساب را از دست بدهیم.
+     */
+    fun expireActive() {
+        val active = read() ?: return
+        prefs.edit()
+            .putString("expired_base", active.baseUrl)
+            .putString("expired_username", active.username)
+            .remove("base").remove("token").remove("username")
+            .apply()
+    }
+
+    /** حسابی که آخرین بار نشستش منقضی شد (برای پیش‌پرکردنِ صفحهٔ ورود). */
+    fun readExpiredAccount(): Session? {
+        val base = prefs.getString("expired_base", null) ?: return null
+        val username = prefs.getString("expired_username", "") ?: ""
+        return readAccounts().firstOrNull { it.baseUrl == base && it.username == username } ?: Session(base, "", username)
+    }
+
+    fun clearExpiredMarker() = prefs.edit().remove("expired_base").remove("expired_username").apply()
 
     /** کلیدهای نشستِ فعال را بدون تغییر لیست حساب‌ها به حسابِ انتخاب‌شده سوئیچ می‌کند. */
     fun setActive(value: Session) = prefs.edit()
@@ -63,6 +89,7 @@ class SessionStore(context: Context) {
         val active = read()
         if (active != null) saveAccounts(readAccounts().filterNot { it.baseUrl == active.baseUrl && it.username == active.username })
         prefs.edit().remove("base").remove("token").remove("username").apply()
+        clearExpiredMarker()
     }
 
     // === حساب‌های چندگانه (چند پنل هم‌زمان) ===

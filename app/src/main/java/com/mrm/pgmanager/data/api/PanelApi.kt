@@ -1,6 +1,8 @@
 package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.utils.DateLogic
+import com.mrm.pgmanager.data.model.AdminSelf
+import com.mrm.pgmanager.data.model.PermissionScope
 import com.mrm.pgmanager.data.model.BulkCreateResult
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
@@ -31,13 +33,36 @@ import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
+/**
+ * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
+ * یا کلید API غیرفعال/حذف شده است. پیام عمداً «401» را دارد تا کدهای قدیمی‌ای که
+ * `message.contains("401")` می‌کنند هم همچنان درست کار کنند.
+ */
+class SessionExpiredException(message: String = "401 Unauthorized: session expired") : RuntimeException(message)
+
 object PanelApi {
+    /** تشخیصِ یکپارچهٔ «نشست منقضی شده» — به‌جای `message.contains("401")` پراکنده. */
+    fun isUnauthorized(e: Throwable?): Boolean =
+        e is SessionExpiredException || e?.message?.contains("401") == true
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .connectionPool(okhttp3.ConnectionPool(5, 30, TimeUnit.SECONDS))
+        .addInterceptor { chain ->
+            // ۴۰۱ برای درخواست‌های احرازهویت‌شده در یک نقطه به استثنای تایپ‌دار تبدیل می‌شود.
+            // درخواستِ لاگین (بدون هدرِ auth) مستثناست تا «رمز اشتباه» با «نشست منقضی» قاطی نشود.
+            val request = chain.request()
+            val response = chain.proceed(request)
+            val authenticated = request.header("Authorization") != null || request.header("X-Api-Key") != null
+            if (response.code == 401 && authenticated) {
+                response.close()
+                throw SessionExpiredException()
+            }
+            response
+        }
         .addInterceptor { chain ->
             // برای متدهای امن (GET/PUT/DELETE) در صورتِ خطای شبکه‌ای، تا ۳ بار retry می‌کنیم.
             // POST retry نمی‌شود (برای جلوگیری از ساختِ کاربرِ تکراری).
@@ -95,8 +120,34 @@ object PanelApi {
         if (user.id > 0L) "${session.baseUrl}/api/user/by-id/${user.id}"
         else "${session.baseUrl}/api/user/${URLEncoder.encode(user.username, "UTF-8")}"
 
-    private fun requestBuilder(session: Session, url: String): Request.Builder =
-        Request.Builder().url(url).header("Authorization", "Bearer ${session.token}")
+    /** هدرِ احراز هویت: کلید API با `X-Api-Key` (روشِ توصیه‌شدهٔ پنل)، JWT با `Bearer`. */
+    private fun requestBuilder(session: Session, url: String): Request.Builder {
+        val builder = Request.Builder().url(url)
+        return if (session.isApiKey) builder.header("X-Api-Key", session.token)
+        else builder.header("Authorization", "Bearer ${session.token}")
+    }
+
+    /**
+     * پیامِ خطای خوانا از بدنهٔ پاسخ: پنل خطاها را به‌شکلِ `{"detail": "..."}` می‌دهد
+     * (یا برای ۴۲۲ آرایه‌ای از `{loc, msg}`). به‌جای نشان‌دادنِ JSON خام، همان متن را برمی‌داریم.
+     */
+    internal fun errorDetail(body: String?): String {
+        if (body.isNullOrBlank()) return ""
+        return runCatching {
+            val detail = JSONObject(body).opt("detail") ?: return@runCatching body.take(250)
+            when (detail) {
+                is String -> detail
+                is org.json.JSONArray -> (0 until detail.length()).mapNotNull { i ->
+                    val item = detail.optJSONObject(i) ?: return@mapNotNull detail.optString(i).takeIf { it.isNotBlank() }
+                    val loc = item.optJSONArray("loc")?.let { arr -> (0 until arr.length()).map { arr.optString(it) } }
+                        ?.filterNot { it == "body" || it == "query" || it == "path" }?.joinToString(".")
+                    listOfNotNull(loc?.takeIf { it.isNotBlank() }, item.optString("msg").takeIf { it.isNotBlank() }).joinToString(": ")
+                }.joinToString("; ")
+                is JSONObject -> detail.toString()
+                else -> detail.toString()
+            }
+        }.getOrDefault(body.take(250)).take(300)
+    }
 
     suspend fun login(address: String, username: String, password: String): Session = withContext(Dispatchers.IO) {
         require(username.isNotBlank() && password.isNotBlank()) { "Credentials required" }
@@ -104,10 +155,79 @@ object PanelApi {
         val body = FormBody.Builder().add("username", username).add("password", password).build()
         val request = Request.Builder().url("$base/api/admin/token").post(body).build()
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Login failed: ${response.code}")
+            if (!response.isSuccessful) error("Login failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
             val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
             Session(base, token, username)
         }
+    }
+
+    /**
+     * ورود با کلید API پنل (`pg_key_<uuid4>`؛ Settings → API Keys).
+     *
+     * پنل endpoint جداگانه‌ای برای اعتبارسنجیِ کلید ندارد؛ `GET /api/admin` را با
+     * `X-Api-Key` می‌زنیم: اگر کلید معتبر باشد ادمینِ صاحبِ کلید برمی‌گردد و
+     * نامِ او را برای نمایش در نشست نگه می‌داریم. کلیدِ نامعتبر/غیرفعال → ۴۰۱.
+     */
+    suspend fun loginWithApiKey(address: String, apiKey: String): Session = withContext(Dispatchers.IO) {
+        val key = apiKey.trim()
+        require(key.startsWith(Session.API_KEY_PREFIX) && key.length > Session.API_KEY_PREFIX.length) { "Invalid API key" }
+        val base = baseUrl(address)
+        val probe = Session(base, key, "")
+        val admin = try {
+            currentAdmin(probe)
+        } catch (e: SessionExpiredException) {
+            error("Login failed: 401 invalid API key")
+        }
+        Session(base, key, admin.username)
+    }
+
+    /** ادمینِ فعلی و مجوزهایش — `GET /api/admin` (برای همهٔ ادمین‌ها مجاز است). */
+    suspend fun currentAdmin(session: Session): AdminSelf = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/admin").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Admin fetch failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            parseAdminSelf(JSONObject(response.body?.string() ?: error("Empty admin response")))
+        }
+    }
+
+    internal fun parseAdminSelf(a: JSONObject): AdminSelf {
+        val role = a.optJSONObject("role")
+        val permissions = mutableMapOf<String, Map<String, Int>>()
+        role?.optJSONObject("permissions")?.let { perms ->
+            perms.keys().forEach { resource ->
+                val actions = perms.optJSONObject(resource) ?: return@forEach
+                val map = mutableMapOf<String, Int>()
+                actions.keys().forEach { action ->
+                    val v = actions.opt(action)
+                    val scope = when (v) {
+                        is Boolean -> if (v) PermissionScope.ALL else PermissionScope.NONE
+                        is JSONObject -> v.optInt("scope", PermissionScope.NONE)
+                        is Number -> v.toInt()
+                        else -> PermissionScope.NONE
+                    }
+                    if (scope > PermissionScope.NONE) map[action] = scope
+                }
+                if (map.isNotEmpty()) permissions[resource] = map
+            }
+        }
+        val access = role?.optJSONObject("access")
+        val features = role?.optJSONObject("features")
+        val limits = role?.optJSONObject("limits")
+        fun intList(arr: org.json.JSONArray?): List<Int>? = arr?.let { (0 until it.length()).map { i -> it.optInt(i) } }
+        return AdminSelf(
+            id = a.optInt("id"),
+            username = a.optString("username"),
+            isOwner = role?.optBoolean("is_owner", false) ?: false,
+            roleName = role?.optString("name").orEmpty(),
+            permissions = permissions,
+            requireTemplate = access?.optBoolean("require_template", false) ?: false,
+            allowedTemplateIds = intList(access?.optJSONArray("allowed_template_ids")),
+            allowedGroupIds = intList(access?.optJSONArray("allowed_group_ids")),
+            canUseResetStrategy = features?.optBoolean("can_use_reset_strategy", true) ?: true,
+            canUseNextPlan = features?.optBoolean("can_use_next_plan", true) ?: true,
+            maxUsers = limits?.takeIf { !it.isNull("max_users") }?.optInt("max_users"),
+            totalUsers = a.optInt("total_users", 0)
+        )
     }
 
     suspend fun systemStats(session: Session): SystemStats = withContext(Dispatchers.IO) {
@@ -510,8 +630,8 @@ object PanelApi {
     private fun executeJson(request: Request) {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                val details = response.body?.string()?.take(250).orEmpty()
-                error("Request failed: ${response.code} $details")
+                val details = errorDetail(response.body?.string())
+                error("Request failed: ${response.code} $details".trim())
             }
         }
     }

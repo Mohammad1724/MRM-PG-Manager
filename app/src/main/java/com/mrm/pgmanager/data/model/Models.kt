@@ -2,7 +2,54 @@ package com.mrm.pgmanager.data.model
 
 import com.mrm.pgmanager.R
 
-data class Session(val baseUrl: String, val token: String, val username: String)
+data class Session(val baseUrl: String, val token: String, val username: String) {
+    /**
+     * آیا «توکن» در واقع کلید API پنل است؟ (پیشوندِ `pg_key_`)
+     * کلید API با هدرِ `X-Api-Key` فرستاده می‌شود و برخلافِ JWT (پیش‌فرض ۲۴ ساعته)
+     * تا وقتی ادمین آن را باطل نکند معتبر می‌ماند — برای مانیتورینگِ پس‌زمینه ایده‌آل است.
+     */
+    val isApiKey: Boolean get() = token.startsWith(API_KEY_PREFIX)
+
+    companion object {
+        const val API_KEY_PREFIX = "pg_key_"
+    }
+}
+
+/** دامنهٔ یک مجوزِ کاربری در نقشِ ادمین — همان `PermissionScope` پنل. */
+object PermissionScope {
+    const val NONE = 0
+    const val OWN = 1
+    const val ALL = 2
+}
+
+/**
+ * ادمینِ واردشده و مجوزهایش — پاسخِ `GET /api/admin`.
+ *
+ * `permissions` نگاشتِ `resource → action → scope` است؛ در پنل مقدارِ هر action یا
+ * `true` (مجاز، بدون scope → اینجا [PermissionScope.ALL]) یا `{"scope": N}` است و
+ * نبودنش یعنی ممنوع. مالک (`role.is_owner`) از همهٔ بررسی‌ها معاف است.
+ */
+data class AdminSelf(
+    val id: Int,
+    val username: String,
+    val isOwner: Boolean = false,
+    val roleName: String = "",
+    val permissions: Map<String, Map<String, Int>> = emptyMap(),
+    /** `role.access.require_template`: ساختِ کاربر فقط از روی قالب مجاز است. */
+    val requireTemplate: Boolean = false,
+    val allowedTemplateIds: List<Int>? = null,
+    val allowedGroupIds: List<Int>? = null,
+    val canUseResetStrategy: Boolean = true,
+    val canUseNextPlan: Boolean = true,
+    val maxUsers: Int? = null,
+    val totalUsers: Int = 0
+) {
+    /** بیشترین scope مجاز برای `resource.action`؛ مالک همیشه [PermissionScope.ALL]. */
+    fun scope(resource: String, action: String): Int =
+        if (isOwner) PermissionScope.ALL else permissions[resource]?.get(action) ?: PermissionScope.NONE
+
+    fun can(resource: String, action: String): Boolean = scope(resource, action) > PermissionScope.NONE
+}
 
 data class PanelUser(
     val id: Long,

@@ -116,14 +116,16 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             }
             Result.success()
         }.getOrElse { e ->
-            val msg = e.message.orEmpty()
             when {
                 // توکن منقضی شده: اسپم نمی‌کنیم؛ فقط یک‌بار اطلاع و توقف retry.
-                msg.contains("401") -> {
+                // نشستِ فعال کنار می‌رود (حساب در لیست می‌ماند) تا دفعهٔ بعد که اپ باز شد
+                // مستقیم صفحهٔ ورودِ پیش‌پرشده را ببیند و بررسی‌های بعدی بیهوده ۴۰۱ نخورند.
+                PanelApi.isUnauthorized(e) -> {
                     if (settings.notificationsEnabled && !store.readAlertFlag("auth_expired")) {
                         NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_session), applicationContext.getString(R.string.mw_session_body))
                         store.saveAlertFlag("auth_expired", true)
                     }
+                    store.expireActive()
                     Result.success()
                 }
                 else -> {

@@ -86,7 +86,7 @@ fun BulkCreateUsersDialog(
     fun friendlyError(e: Throwable?): String = when {
         e?.message?.contains("409") == true -> context.getString(R.string.bc_err_duplicate)
         e?.message?.contains("422") == true -> context.getString(R.string.bc_err_invalid)
-        e?.message?.contains("401") == true -> context.getString(R.string.bc_err_session)
+        com.mrm.pgmanager.data.api.PanelApi.isUnauthorized(e) -> context.getString(R.string.bc_err_session)
         else -> e?.message?.take(60) ?: context.getString(R.string.bc_err_unknown)
     }
 

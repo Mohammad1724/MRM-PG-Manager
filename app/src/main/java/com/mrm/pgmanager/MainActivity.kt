@@ -280,15 +280,31 @@ fun MRMApp() {
             com.mrm.pgmanager.data.cache.PanelCache.clear()
             store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false
         }
+        // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
+        // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
+        val onSessionExpired: () -> Unit = {
+            com.mrm.pgmanager.data.cache.PanelCache.clear()
+            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false
+        }
         if (session == null || addingAccount) {
+            val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
             LoginScreen(
                 onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
                 themeState = effectiveTheme,
                 appLanguage = appLanguage,
                 onLanguageChange = handleLanguageChange,
+                prefill = expiredAccount,
+                sessionExpired = expiredAccount != null,
                 onBack = when {
                     addingAccount && session != null -> { { addingAccount = false } }
-                    session == null && store.readAccounts().isNotEmpty() -> { { val acc = store.readAccounts().first(); store.setActive(acc); session = acc } }
+                    session == null -> {
+                        // «بازگشت» به یکی از حساب‌های دیگر (نه همانی که همین الان منقضی شد).
+                        val other = store.readAccounts().firstOrNull { acc ->
+                            expiredAccount == null || acc.baseUrl != expiredAccount.baseUrl || acc.username != expiredAccount.username
+                        }
+                        val switchToOther: (() -> Unit)? = if (other != null) ({ store.setActive(other); session = other }) else null
+                        switchToOther
+                    }
                     else -> null
                 }
             )
@@ -449,13 +465,13 @@ fun MRMApp() {
                             }
                         ) {
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false }, onOpenSettings = { showDashboardSettings = true })
+                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true })
                             TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
                                 session = session!!,
-                                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
+                                onSessionExpired = onSessionExpired,
                                 themeState = effectiveTheme,
                                 monitoringSettings = monitoringSettings,
                                 deepLinkUsername = deepLinkUsername,

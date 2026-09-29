@@ -56,7 +56,7 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: () -> Unit, onOpenSettings: () -> Unit = {}) {
+fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExpired: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
     val theme = LocalThemeState.current
@@ -126,7 +126,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onLogout: ()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
         }.onFailure { e ->
-            if (e.message?.contains("401") == true) { android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show(); onLogout() }
+            if (PanelApi.isUnauthorized(e)) { android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show(); onSessionExpired() }
             else {
                 if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats)); panelOfflineAlerted = true }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null

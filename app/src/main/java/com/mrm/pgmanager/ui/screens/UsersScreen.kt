@@ -195,7 +195,8 @@ fun DebtorEditDialog(
 @Composable
 fun UsersScreen(
     session: Session,
-    onLogout: () -> Unit,
+    /** پنل ۴۰۱ داد: نشست منقضی شده — حساب حفظ می‌شود و به صفحهٔ ورود می‌رویم. */
+    onSessionExpired: () -> Unit,
     themeState: ThemeState,
     monitoringSettings: com.mrm.pgmanager.data.model.MonitoringSettings = com.mrm.pgmanager.data.model.MonitoringSettings(),
     deepLinkUsername: String? = null,
@@ -327,9 +328,9 @@ fun UsersScreen(
                 offlineAt = null
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
-                if (it.message?.contains("401") == true) {
+                if (PanelApi.isUnauthorized(it)) {
                     android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
-                    onLogout()
+                    onSessionExpired()
                 } else if (!silent) error = it.message
             }
             // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
@@ -392,9 +393,9 @@ fun UsersScreen(
                 lastUserStates = nextStates
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
-                if (it.message?.contains("401") == true) {
+                if (PanelApi.isUnauthorized(it)) {
                     android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
-                    onLogout()
+                    onSessionExpired()
                 } else {
                     val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
                     if (cache != null) {
@@ -421,9 +422,9 @@ fun UsersScreen(
         scope.launch {
             runCatching { action() }.onFailure {
                 error = it.message
-                if (it.message?.contains("401") == true) {
+                if (PanelApi.isUnauthorized(it)) {
                     android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
-                    onLogout()
+                    onSessionExpired()
                 } else {
                     android.widget.Toast.makeText(context, context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()), android.widget.Toast.LENGTH_LONG).show()
                 }
