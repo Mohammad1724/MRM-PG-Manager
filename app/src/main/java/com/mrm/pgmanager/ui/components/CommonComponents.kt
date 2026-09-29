@@ -53,7 +53,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.material3.ripple
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
@@ -250,7 +252,7 @@ fun ActionIconButton(
 
 @Composable
 fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
-    PrimaryButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading)
+    PrimaryButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = AppIcon.Check)
 }
 
 @Composable
@@ -266,10 +268,9 @@ fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean 
 /**
  * دکمهٔ شناورِ مشترکِ صفحه‌ها (کاربران، گروه‌ها، قالب‌ها).
  *
- * دایرهٔ ۵۲dp با پرکنندهٔ اصلیِ تم؛ در لحنِ مرکبی آیکون به رنگِ تم است تا رنگ در
- * صفحه حضور داشته باشد بدون اینکه یک مربعِ زردِ بزرگ گوشهٔ صفحه بنشیند. با
- * [visible] هنگامِ اسکرول محو می‌شود و در اولین نمایش با یک جهشِ کوچک می‌آید.
- * سه صفحه قبلاً هرکدام نسخهٔ خودشان را داشتند (۴۴ یا ۵۲dp، با/بی حاشیه).
+ * دایرهٔ ۵۶dp با همان زبانِ دکمهٔ اصلی: گرادیانِ سطحِ اصلی، لبهٔ سفیدِ نیمه‌شفاف،
+ * برقِ بالا و هالهٔ نور. با [visible] هنگامِ اسکرول محو می‌شود و در اولین
+ * نمایش با یک جهشِ کوچک می‌آید.
  */
 @Composable
 fun MrmFab(
@@ -300,29 +301,51 @@ fun MrmFab(
         },
         label = "fabShown"
     )
+    val glow = theme.primaryGlow
     Box(
         modifier
-            .size(52.dp)
+            .size(56.dp)
             .graphicsLayer {
                 scaleX = pressFactor * shown
                 scaleY = pressFactor * shown
                 alpha = shown
             }
             .shadow(
-                elevation = 6.dp, shape = CircleShape, clip = false,
-                ambientColor = theme.primaryFill.copy(alpha = 0.28f),
-                spotColor = theme.primaryFill.copy(alpha = 0.45f)
+                elevation = if (pressed) 6.dp else 12.dp, shape = CircleShape, clip = false,
+                ambientColor = glow.copy(alpha = 0.40f),
+                spotColor = glow.copy(alpha = 0.70f)
             )
             .clip(CircleShape)
-            .background(theme.primaryFill)
+            .background(Brush.linearGradient(listOf(theme.primaryStart, theme.primaryEnd)))
+            .glassGloss(CircleShape, pressed)
+            .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape)
             .semantics { this.contentDescription = contentDescription }
             // وقتی دکمه محو است نباید لمس را بگیرد.
             .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, tint = theme.onPrimaryAccent, size = 22.dp)
+        RoundedAppIcon(icon, tint = theme.onPrimary, size = 24.dp)
     }
 }
+
+/**
+ * برقِ شیشه‌ای روی سطحِ اصلی: نیمهٔ بالا کمی روشن‌تر (نورِ محیط)، و هنگامِ فشار
+ * یک لایهٔ سفیدِ کم‌رنگ روی کل سطح. بعد از background و پیشِ محتوا کشیده می‌شود
+ * (drawBehind) تا متن و آیکون شسته نشوند؛ فقط فازِ draw — بدونِ recomposition.
+ */
+private fun Modifier.glassGloss(shape: androidx.compose.ui.graphics.Shape, pressed: Boolean): Modifier =
+    drawBehind {
+        val outline = shape.createOutline(size, layoutDirection, this)
+        drawOutline(
+            outline = outline,
+            brush = Brush.verticalGradient(
+                0f to Color.White.copy(alpha = DsGlass.GlossTopAlpha),
+                0.55f to Color.White.copy(alpha = DsGlass.GlossBottomAlpha),
+                1f to Color.Transparent
+            )
+        )
+        if (pressed) drawOutline(outline = outline, color = Color.White.copy(alpha = DsGlass.PressedOverlayAlpha))
+    }
 
 sealed class MrmButtonStyle {
     object Primary : MrmButtonStyle()
@@ -331,6 +354,15 @@ sealed class MrmButtonStyle {
     object Glass : MrmButtonStyle()
 }
 
+/**
+ * دکمهٔ استانداردِ اپ — کپسولِ کامل.
+ *
+ * سبکِ Primary همان «دکمهٔ شیشه‌ای»ِ مرجعِ کاربر است: گرادیانِ سطحِ اصلی
+ * ([ThemeState.primaryBrush])، لبهٔ سفیدِ نیمه‌شفاف، برقِ بالای سطح، هالهٔ نورِ
+ * هم‌رنگ، و اگر [icon] داده شود یک «سکه»ی گرد در ابتدا و فلشِ کوچک در انتها.
+ * در حالتِ [loading] اسپینر داخلِ همان سکه می‌چرخد. سبک‌های دیگر (Secondary/
+ * Danger/Glass) تخت‌اند ولی هم‌شکل، تا کنارِ هم بنشینند.
+ */
 @Composable
 fun MrmButton(
     text: String,
@@ -345,97 +377,129 @@ fun MrmButton(
     val theme = LocalThemeState.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val active = enabled && !loading
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled && !loading) 0.96f else 1.0f,
+        targetValue = if (isPressed && active) 0.96f else 1.0f,
         animationSpec = spring(dampingRatio = DsMotion.PressBounceDamping, stiffness = DsMotion.PressBounceStiffness),
         label = "btnScale"
     )
+    val contentAlpha by animateFloatAsState(targetValue = if (enabled) 1f else DsGlass.DisabledAlpha, label = "btnAlpha")
 
-    val contentAlpha by animateFloatAsState(targetValue = if (enabled && !loading) 1f else DsGlass.DisabledAlpha, label = "btnAlpha")
-
-    val shape = DsRadius.Lg
-    val (backgroundColor, contentColor, borderStroke) = when (style) {
-        MrmButtonStyle.Primary -> {
-            // پرکنندهٔ اصلی از تم می‌آید (مرکبی یا رنگِ تم — تنظیمات ← ظاهر ← سبکِ دکمه‌ها).
-            Triple(
-                theme.primaryFillBrush,
-                theme.onPrimary,
-                null
-            )
-        }
-        MrmButtonStyle.Secondary -> {
-            Triple(
-                Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
-                theme.inkColor,
-                BorderStroke(DsBorder.Hairline, theme.borderColor)
-            )
-        }
-        MrmButtonStyle.Danger -> {
-            Triple(
-                Brush.verticalGradient(listOf(GlassRed.copy(0.16f), GlassRed.copy(0.07f))),
-                GlassRed,
-                BorderStroke(DsBorder.Default, GlassRed.copy(0.38f))
-            )
-        }
-        MrmButtonStyle.Glass -> {
-            Triple(
-                Brush.verticalGradient(listOf(Color.White.copy(0.14f), Color.White.copy(0.04f))),
-                theme.inkColor,
-                BorderStroke(DsBorder.Default, Color.White.copy(0.22f))
-            )
-        }
+    val shape = DsRadius.Full
+    val isPrimary = style == MrmButtonStyle.Primary
+    val (backgroundBrush, contentColor, borderStroke) = when (style) {
+        MrmButtonStyle.Primary -> Triple(
+            theme.primaryBrush,
+            theme.onPrimary,
+            BorderStroke(1.dp, theme.primaryEdge)
+        )
+        MrmButtonStyle.Secondary -> Triple(
+            Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
+            theme.inkColor,
+            BorderStroke(DsBorder.Hairline, theme.borderColor)
+        )
+        MrmButtonStyle.Danger -> Triple(
+            Brush.verticalGradient(listOf(GlassRed.copy(0.16f), GlassRed.copy(0.07f))),
+            GlassRed,
+            BorderStroke(DsBorder.Default, GlassRed.copy(0.38f))
+        )
+        MrmButtonStyle.Glass -> Triple(
+            Brush.verticalGradient(listOf(Color.White.copy(0.14f), Color.White.copy(0.04f))),
+            theme.inkColor,
+            BorderStroke(DsBorder.Default, Color.White.copy(0.22f))
+        )
     }
 
-    val active = enabled && !loading
+    val height = if (compact) DsComponent.ButtonCompact else DsComponent.Button
+    val coinSize = if (compact) 22.dp else 28.dp
+    val chevronSize = if (compact) 14.dp else 18.dp
+    val showCoin = isPrimary && (icon != null || loading)
     Box(
         modifier = modifier
-            .graphicsLayer(scaleX = scale, scaleY = scale)
-            .height(if (compact) DsComponent.ButtonCompact else DsComponent.Button)
+            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = contentAlpha)
+            .height(height)
             .let {
-                if (style == MrmButtonStyle.Primary && active) {
-                    // سایهٔ نرمِ هم‌رنگِ پرکننده؛ قبلاً بعد از clip می‌آمد و عملاً بریده می‌شد،
-                    // و درخششِ اکسنت + لایهٔ براقِ Canvas حسِ پلاستیکی می‌داد.
+                if (isPrimary && enabled) {
+                    // هالهٔ نورِ هم‌رنگ؛ هنگامِ فشار پررنگ‌تر (حالتِ «فعال» در مرجع).
                     it.shadow(
-                        elevation = if (isPressed) 1.dp else 4.dp,
+                        elevation = if (isPressed) 12.dp else 8.dp,
                         shape = shape,
                         clip = false,
-                        ambientColor = theme.primaryFill.copy(alpha = 0.30f),
-                        spotColor = theme.primaryFill.copy(alpha = 0.45f)
+                        ambientColor = theme.primaryGlow.copy(alpha = 0.35f),
+                        spotColor = theme.primaryGlow.copy(alpha = 0.60f)
                     )
                 } else it
             }
             .clip(shape)
-            .background(backgroundColor)
-            .let { if (borderStroke != null) it.border(borderStroke, shape) else it }
-            .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick),
+            .background(backgroundBrush)
+            .let { if (isPrimary) it.glassGloss(shape, isPressed && active) else it }
+            .border(borderStroke, shape)
+            .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick)
+            .padding(horizontal = if (showCoin) (if (compact) 5.dp else 6.dp) else (if (compact) 14.dp else 20.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = if (compact) 14.dp else 22.dp).graphicsLayer(alpha = contentAlpha),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (loading) {
-                androidx.compose.material3.CircularProgressIndicator(
-                    modifier = Modifier.size(DsComponent.IconMd),
-                    color = contentColor,
-                    strokeWidth = 2.5.dp
-                )
-            } else {
-                if (icon != null) {
-                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)
-                    Spacer(Modifier.width(10.dp))
+        if (showCoin) {
+            // چیدمانِ مرجع: سکه چسبیده به ابتدا، فلش چسبیده به انتها، متن وسط.
+            // عمداً Row+weight نیست: در دکمه‌ای که عرضِ ثابت ندارد (wrap) weight به
+            // صفر می‌رسد و متن ناپدید می‌شود؛ Box با padding هم wrap را درست
+            // درمی‌آورد و هم لبه‌ها را می‌چسباند.
+            Box(
+                Modifier.align(Alignment.CenterStart).size(coinSize).clip(CircleShape)
+                    .background(Color.White.copy(alpha = DsGlass.CoinFillAlpha))
+                    .border(BorderStroke(1.dp, Color.White.copy(alpha = DsGlass.CoinEdgeAlpha)), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                if (loading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(coinSize - 9.dp),
+                        color = contentColor,
+                        strokeWidth = 2.dp
+                    )
+                } else if (icon != null) {
+                    RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconXs else DsComponent.IconSm)
                 }
-                Text(
-                    text = text,
-                    color = contentColor,
-                    fontWeight = DsFont.Bold,
-                    fontSize = if (compact) 12.sp else 15.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    letterSpacing = if (theme.isDark) 0.5.sp else 0.sp
-                )
+            }
+            Text(
+                text = text,
+                color = contentColor,
+                fontWeight = DsFont.Bold,
+                fontSize = if (compact) 12.sp else 14.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                // متن بینِ سکه و فلش وسط‌چین می‌شود (نه وسطِ کلِ کپسول) — مثلِ مرجع.
+                modifier = Modifier.align(Alignment.Center).padding(start = coinSize + 6.dp, end = chevronSize + 8.dp)
+            )
+            // فلشِ انتهای کپسول (آیکونِ AutoMirrored — در RTL خودکار برعکس می‌شود).
+            RoundedAppIcon(
+                AppIcon.Next,
+                tint = contentColor.copy(alpha = DsGlass.ChevronAlpha),
+                size = chevronSize,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = if (compact) 3.dp else 5.dp)
+            )
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                if (loading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(DsComponent.IconMd),
+                        color = contentColor,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    if (icon != null) {
+                        RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = text,
+                        color = contentColor,
+                        fontWeight = DsFont.Bold,
+                        fontSize = if (compact) 12.sp else 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

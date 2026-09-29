@@ -2,6 +2,12 @@ package com.mrm.pgmanager.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.background
+import com.mrm.pgmanager.ui.designsystem.DsBorder
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.darkColorScheme
@@ -52,19 +58,20 @@ private fun Color.darkened(factor: Float = 0.18f): Color =
     Color(red * (1f - factor), green * (1f - factor), blue * (1f - factor), alpha)
 
 /**
- * لحنِ سطوحِ «اصلی» — دکمهٔ اصلی، FAB، آیتمِ فعالِ نوارِ پایین و چیپ‌های انتخاب‌شده.
+ * رنگ‌بندیِ سطوحِ «اصلی» — دکمهٔ اصلی، FAB، آیتمِ فعالِ نوارِ پایین و چیپ‌های انتخاب‌شده.
  *
- *  - [INK]: پرکنندهٔ تیره (در حالتِ شب روشن) به سبکِ shadcn/iOS؛ رنگِ تم فقط برای
- *    آیکون، بَج، نمودار و درصدها می‌ماند. با یک تم زردِ پُر، دکمه‌های تمام‌زرد
- *    چشم را می‌زد و با نوارِ کنترلِ تیرهٔ «گروه‌ها/قالب‌ها» هم ناهماهنگ بود.
- *  - [ACCENT]: همان رفتارِ قدیمی؛ سطوحِ اصلی با رنگِ تم پُر می‌شوند.
+ *  - [OCEAN] (پیش‌فرض): گرادیانِ آبی → فیروزه‌ایِ شیشه‌ای با لبهٔ سفیدِ نیمه‌شفاف و
+ *    هالهٔ نور — مستقل از رنگِ تم (نمونهٔ مرجعِ کاربر).
+ *  - [ACCENT]: همان ظاهرِ شیشه‌ای ولی با رنگِ تم (زرد/سبز/آبی/…).
+ *
+ * مقدارهای قدیمیِ ذخیره‌شده (مثل «ink») به OCEAN برمی‌گردند.
  */
 enum class ButtonTone(val prefKey: String) {
-    INK("ink"),
+    OCEAN("ocean"),
     ACCENT("accent");
 
     companion object {
-        fun fromPref(value: String?): ButtonTone = entries.firstOrNull { it.prefKey == value } ?: INK
+        fun fromPref(value: String?): ButtonTone = entries.firstOrNull { it.prefKey == value } ?: OCEAN
     }
 }
 
@@ -74,7 +81,7 @@ data class ThemeState(
     val isDark: Boolean = false,
     val followSystem: Boolean = false,
     val amoledDark: Boolean = false,
-    val buttonTone: ButtonTone = ButtonTone.INK
+    val buttonTone: ButtonTone = ButtonTone.OCEAN
 ) {
     val accentPrimary: Color get() = customColor ?: lamp.primary
     val accentLight: Color get() = customColor?.lightened() ?: lamp.light
@@ -84,37 +91,39 @@ data class ThemeState(
     /** رنگِ متن/آیکونی که مستقیم روی [accentPrimary] می‌نشیند (زرد → تیره، آبی/سبز → سفید). */
     val onAccent: Color get() = if (accentPrimary.luminance() > 0.45f) DsAccent.OnAccentWarm else Color.White
 
-    /** پرکنندهٔ سطوحِ اصلی؛ بسته به [buttonTone] یا مرکب یا رنگِ تم. */
+    /** ابتدا و انتهای گرادیانِ سطوحِ اصلی. */
+    val primaryStart: Color get() = when (buttonTone) {
+        ButtonTone.OCEAN -> DsAccent.OceanStart
+        ButtonTone.ACCENT -> accentPrimary.darkened(0.12f)
+    }
+    val primaryEnd: Color get() = when (buttonTone) {
+        ButtonTone.OCEAN -> DsAccent.OceanEnd
+        ButtonTone.ACCENT -> accentPrimary.lightened(0.18f)
+    }
+
+    /** رنگِ تختِ معادلِ گرادیان — برای سایه/هاله و جاهایی که Brush نمی‌پذیرند. */
     val primaryFill: Color get() = when (buttonTone) {
-        ButtonTone.INK -> if (isDark) DsNeutral.InkDark else DsNeutral.Ink
+        ButtonTone.OCEAN -> DsAccent.OceanMid
         ButtonTone.ACCENT -> accentPrimary
     }
 
-    /** رنگِ محتوا روی [primaryFill]. */
+    /** گرادیانِ افقیِ سطوحِ اصلی (چیپ‌ها، تبِ فعال، دکمه‌های کوچک). */
+    val primaryBrush: Brush get() = Brush.horizontalGradient(listOf(primaryStart, primaryEnd))
+
+    /** رنگِ محتوا روی سطوحِ اصلی. */
     val onPrimary: Color get() = when (buttonTone) {
-        ButtonTone.INK -> if (isDark) DsNeutral.Ink else Color.White
+        ButtonTone.OCEAN -> Color.White
         ButtonTone.ACCENT -> onAccent
     }
 
-    /**
-     * آیکونِ داخلِ FAB: در لحنِ مرکب، آیکون به رنگِ تم است تا رنگِ تم در صفحه
-     * «حضور» داشته باشد بدون اینکه کلِ دکمه رنگی شود.
-     */
-    val onPrimaryAccent: Color get() = when (buttonTone) {
-        ButtonTone.INK -> if (isDark) accentPrimary.darkened() else accentPrimary
-        ButtonTone.ACCENT -> onAccent
-    }
+    /** لبهٔ شیشه‌ایِ سفیدِ نیمه‌شفافِ دورِ سطوحِ اصلی. */
+    val primaryEdge: Color get() = Color.White.copy(alpha = if (onPrimary == Color.White) 0.55f else 0.70f)
 
-    /** گرادیانِ عمودیِ بسیار ملایم برای دکمهٔ اصلی — بالا کمی روشن‌تر تا برجسته حس شود. */
-    val primaryFillBrush: Brush get() {
-        val top = when (buttonTone) {
-            ButtonTone.INK -> if (isDark) Color.White else DsNeutral.InkSoft
-            ButtonTone.ACCENT -> accentLightened()
-        }
-        return Brush.verticalGradient(listOf(top, primaryFill))
+    /** رنگِ هالهٔ نورِ دکمهٔ اصلی و FAB. */
+    val primaryGlow: Color get() = when (buttonTone) {
+        ButtonTone.OCEAN -> DsAccent.OceanGlow
+        ButtonTone.ACCENT -> accentPrimary
     }
-
-    private fun accentLightened(): Color = accentPrimary.lightened(0.12f)
 
     val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
     val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted
@@ -157,6 +166,27 @@ data class ThemeState(
 }
 
 val LocalThemeState = compositionLocalOf { ThemeState() }
+
+/**
+ * پس‌زمینهٔ یک سطحِ «انتخاب‌شدنی» (چیپِ فیلتر، سگمنت، تبِ فعال، روزِ تقویم…).
+ *
+ * انتخاب‌شده: گرادیانِ سطحِ اصلی + لبهٔ شیشه‌ایِ سفید — همان زبانِ دکمهٔ اصلی.
+ * عادی: رنگِ تختِ [idle] و در صورتِ وجود حاشیهٔ [idleBorder].
+ * تابعِ معمولی است (نه Composable) تا وسطِ زنجیرهٔ Modifier بنشیند.
+ */
+fun Modifier.primarySurface(
+    theme: ThemeState,
+    selected: Boolean,
+    shape: Shape,
+    idle: Color,
+    idleBorder: Color? = null,
+    idleBorderWidth: Dp = DsBorder.Hairline
+): Modifier =
+    if (selected) {
+        this.background(theme.primaryBrush, shape).border(BorderStroke(1.dp, theme.primaryEdge), shape)
+    } else {
+        this.background(idle, shape).let { if (idleBorder != null) it.border(BorderStroke(idleBorderWidth, idleBorder), shape) else it }
+    }
 
 val GlassGreen = DsSemantic.Success
 val GlassAmber = DsSemantic.Warning

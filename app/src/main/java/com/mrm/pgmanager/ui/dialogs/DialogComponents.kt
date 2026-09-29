@@ -33,6 +33,7 @@ import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.ActionIconButton
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
@@ -113,9 +114,9 @@ fun SegmentedControl(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Xl)
+        Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Full)
             .background(theme.searchBgColor.copy(alpha = 0.6f))
-            .border(BorderStroke(1.2.dp, theme.borderColor), DsRadius.Xl)
+            .border(BorderStroke(1.2.dp, theme.borderColor), DsRadius.Full)
             .padding(4.dp)
             .graphicsLayer(alpha = if (enabled) 1f else 0.55f),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -123,8 +124,8 @@ fun SegmentedControl(
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
-                Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Md)
-                    .background(if (selected) theme.primaryFill else Color.Transparent)
+                Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Full)
+                    .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
                     .clickable(enabled = enabled) { onSelect(index) },
                 contentAlignment = Alignment.Center
             ) {

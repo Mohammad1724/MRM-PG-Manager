@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -148,37 +147,37 @@ fun LoginScreen(
                     }
                 }
 
-                // دکمهٔ ورود — پرکنندهٔ اصلیِ تم (مرکبی یا رنگِ تم)
-                Box(
-                    Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(themeState.primaryFill)
-                        .clickable(enabled = !loading) {
-                            if (loading) return@clickable
-                            loading = true; error = null
-                            scope.launch {
-                                runCatching {
-                                    if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
-                                }.onSuccess(onLoggedIn).onFailure { e ->
-                                    error = when {
-                                        e.message?.contains("Credentials required", true) == true -> errCredentials
-                                        e.message?.contains("Invalid API key", true) == true -> errApiKeyFormat
-                                        e.message?.contains("Invalid URL", true) == true -> errUrl
-                                        e.message?.contains("Panel address is required", true) == true -> errUrl
-                                        e.message?.contains("Cleartext http", true) == true -> errHttps
-                                        e is java.net.UnknownHostException -> errHost
-                                        e is java.net.SocketTimeoutException -> errTimeout
-                                        PanelApi.isUnauthorized(e) -> if (useApiKey) errApiKey else errAuth
-                                        e.message?.contains("404", true) == true -> errNotFound
-                                        else -> String.format(errGenericTemplate, e.message ?: errUnknown)
-                                    }
+                // دکمهٔ ورود — کپسولِ شیشه‌ایِ اصلی؛ اسپینر داخلِ سکهٔ آیکون می‌چرخد.
+                MrmButton(
+                    text = stringResource(R.string.sign_in),
+                    onClick = {
+                        if (loading) return@MrmButton
+                        loading = true; error = null
+                        scope.launch {
+                            runCatching {
+                                if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
+                            }.onSuccess(onLoggedIn).onFailure { e ->
+                                error = when {
+                                    e.message?.contains("Credentials required", true) == true -> errCredentials
+                                    e.message?.contains("Invalid API key", true) == true -> errApiKeyFormat
+                                    e.message?.contains("Invalid URL", true) == true -> errUrl
+                                    e.message?.contains("Panel address is required", true) == true -> errUrl
+                                    e.message?.contains("Cleartext http", true) == true -> errHttps
+                                    e is java.net.UnknownHostException -> errHost
+                                    e is java.net.SocketTimeoutException -> errTimeout
+                                    PanelApi.isUnauthorized(e) -> if (useApiKey) errApiKey else errAuth
+                                    e.message?.contains("404", true) == true -> errNotFound
+                                    else -> String.format(errGenericTemplate, e.message ?: errUnknown)
                                 }
-                                loading = false
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (loading) CircularProgressIndicator(Modifier.size(18.dp), color = themeState.onPrimary, strokeWidth = 2.dp)
-                    else Text(stringResource(R.string.sign_in), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = themeState.onPrimary)
-                }
+                            loading = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    loading = loading,
+                    icon = AppIcon.Lock,
+                    style = MrmButtonStyle.Primary
+                )
 
                 // info row
                 Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(10.dp),

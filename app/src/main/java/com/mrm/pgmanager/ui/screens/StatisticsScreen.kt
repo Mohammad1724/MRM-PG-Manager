@@ -49,6 +49,7 @@ import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
 import kotlinx.coroutines.launch
@@ -350,7 +351,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.primaryFill else theme.borderColor), RoundedCornerShape(8.dp)).clickable { trafficRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { trafficRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }
@@ -388,7 +389,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).background(if (sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(1.dp, if (sel) theme.primaryFill else theme.borderColor), RoundedCornerShape(8.dp)).clickable { countRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { countRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }

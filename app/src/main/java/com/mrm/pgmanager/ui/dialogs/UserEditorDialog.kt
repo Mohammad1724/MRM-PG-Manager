@@ -429,6 +429,7 @@ fun UserEditorDialog(
                     SecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
                     PrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
+                        icon = if (isCreating) AppIcon.UserAdd else AppIcon.Check,
                         enabled = !(isCreating && usernameErrorKey != null) && !(isOnHold && (normalizePersianDigits(days).toIntOrNull() ?: 0) <= 0),
                         onClick = {
                             val normalizedDays = normalizePersianDigits(days)

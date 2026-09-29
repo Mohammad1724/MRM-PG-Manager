@@ -53,6 +53,7 @@ import com.mrm.pgmanager.ui.theme.ButtonTone
 import com.mrm.pgmanager.ui.theme.LampColor
 import kotlinx.coroutines.launch
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.theme.ThemeState
 
 /**
@@ -172,8 +173,8 @@ fun SettingsScreen(
                 val (id, label) = tabs[index]
                 val selected = section == id
                 Box(
-                    Modifier.height(34.dp).clip(DsRadius.Md)
-                        .background(if (selected) theme.primaryFill else Color.Transparent)
+                    Modifier.height(34.dp).clip(DsRadius.Full)
+                        .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
                         .pressScale(0.95f)
                         .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
                         .padding(horizontal = 12.dp),
@@ -509,17 +510,17 @@ private fun AppearanceSection(
 
     CustomColorCard(themeState = themeState, onThemeChange = onThemeChange)
 
-    // لحنِ دکمه‌های اصلی — پیش‌فرض «مرکبی» است تا با تمِ زردِ پُر، دکمه‌ها و FAB
-    // تمام‌زرد نشوند؛ کاربری که ظاهرِ قدیمی را می‌خواهد با یک لمس برمی‌گردد.
+    // رنگِ دکمه‌های اصلی — پیش‌فرض گرادیانِ آبیِ شیشه‌ای (مستقل از رنگِ تم)؛
+    // گزینهٔ دوم همان ظاهرِ شیشه‌ای را با رنگِ تم می‌سازد.
     SettingsCard(stringResource(R.string.set_button_tone), AppIcon.Tune) {
         SegmentedControl(
             options = listOf(
-                stringResource(R.string.set_button_tone_ink),
+                stringResource(R.string.set_button_tone_ocean),
                 stringResource(R.string.set_button_tone_accent)
             ),
             selectedIndex = if (themeState.buttonTone == ButtonTone.ACCENT) 1 else 0,
             onSelect = { index ->
-                onThemeChange(themeState.copy(buttonTone = if (index == 1) ButtonTone.ACCENT else ButtonTone.INK))
+                onThemeChange(themeState.copy(buttonTone = if (index == 1) ButtonTone.ACCENT else ButtonTone.OCEAN))
             }
         )
         Text(stringResource(R.string.set_button_tone_desc), fontSize = 11.sp, color = theme.mutedColor)
@@ -771,7 +772,7 @@ private fun ThemePreviewCard(themeState: ThemeState) {
             )
             MrmButton(
                 text = stringResource(R.string.save_changes), onClick = {}, modifier = Modifier.weight(1f),
-                style = MrmButtonStyle.Primary, compact = true
+                icon = AppIcon.Check, style = MrmButtonStyle.Primary, compact = true
             )
         }
         Text(stringResource(R.string.set_preview_hint), fontSize = 9.sp, color = theme.mutedColor)

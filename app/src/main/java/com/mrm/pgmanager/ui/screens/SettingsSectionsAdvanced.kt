@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +31,8 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UsernamePattern
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.MrmButton
+import com.mrm.pgmanager.ui.components.MrmButtonStyle
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
@@ -506,26 +507,16 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                Modifier.weight(1f).height(42.dp).clip(DsRadius.Lg)
-                    .background(theme.primaryFill)
-                    .clickable { invoiceLogoLauncher.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    RoundedAppIcon(AppIcon.Upload, tint = theme.onPrimary, size = 16.dp)
-                    Text(
-                        stringResource(
-                            if (invoiceLogoPath != null) R.string.set_inv_change_logo
-                            else R.string.set_inv_pick_logo
-                        ),
-                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary
-                    )
-                }
-            }
+            MrmButton(
+                text = stringResource(
+                    if (invoiceLogoPath != null) R.string.set_inv_change_logo
+                    else R.string.set_inv_pick_logo
+                ),
+                onClick = { invoiceLogoLauncher.launch("image/*") },
+                modifier = Modifier.weight(1f),
+                icon = AppIcon.Upload,
+                style = MrmButtonStyle.Primary
+            )
             if (invoiceLogoPath != null) {
                 Box(
                     Modifier.height(42.dp).width(42.dp).clip(DsRadius.Lg)
@@ -794,47 +785,22 @@ internal fun BackupSection(
             Text(backupLastMsg, fontSize = 10.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Box(
-                Modifier.weight(1f).height(46.dp).clip(DsRadius.Lg)
-                    .background(
-                        if (backupBusy) theme.primaryFill.copy(alpha = 0.6f) else theme.primaryFill
-                    )
-                    .clickable(enabled = !backupBusy) { performBackup(manual = true) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (backupBusy) {
-                    CircularProgressIndicator(Modifier.size(18.dp), color = theme.onPrimary, strokeWidth = 2.dp)
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        RoundedAppIcon(AppIcon.Backup, tint = theme.onPrimary, size = 16.dp)
-                        Text(
-                            stringResource(R.string.set_bk_manual), fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold, color = theme.onPrimary
-                        )
-                    }
-                }
-            }
-            Box(
-                Modifier.weight(1f).height(46.dp).clip(DsRadius.Lg)
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                    .clickable { pickRestoreFile.launch(arrayOf("*/*")) },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    RoundedAppIcon(AppIcon.Restore, tint = theme.inkColor, size = 16.dp)
-                    Text(
-                        stringResource(R.string.set_bk_restore_file), fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold, color = theme.inkColor
-                    )
-                }
-            }
+            MrmButton(
+                text = stringResource(R.string.set_bk_manual),
+                onClick = { performBackup(manual = true) },
+                modifier = Modifier.weight(1f),
+                enabled = !backupBusy,
+                loading = backupBusy,
+                icon = AppIcon.Backup,
+                style = MrmButtonStyle.Primary
+            )
+            MrmButton(
+                text = stringResource(R.string.set_bk_restore_file),
+                onClick = { pickRestoreFile.launch(arrayOf("*/*")) },
+                modifier = Modifier.weight(1f),
+                icon = AppIcon.Restore,
+                style = MrmButtonStyle.Secondary
+            )
         }
         val lastAt = store.readLastBackupAt()
         if (lastAt > 0L) {

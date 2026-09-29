@@ -26,6 +26,7 @@ import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PrimaryButton
 import com.mrm.pgmanager.ui.components.SecondaryButton
 import com.mrm.pgmanager.ui.components.MrmText
@@ -55,6 +56,7 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                 SecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                 PrimaryButton(
                     text = stringResource(R.string.re_apply),
+                    icon = AppIcon.Check,
                     onClick = {
                         val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(days)
                         val n = normalized.toIntOrNull()?.takeIf { it > 0 }

@@ -58,6 +58,12 @@ object DsAccent {
     val OnAccent = Color(0xFF1A1A1A)
     /** متنِ گرمِ تیره روی اکسنت‌های روشن (زرد/طلایی) — همان قهوه‌ایِ سوخته‌ای که قبلاً هاردکد بود. */
     val OnAccentWarm = Color(0xFF422006)
+
+    // «اقیانوس» — گرادیانِ آبی → فیروزه‌ایِ دکمه‌های اصلی (مستقل از رنگِ تم).
+    val OceanStart = Color(0xFF2452E8)
+    val OceanMid = Color(0xFF1E7BEA)
+    val OceanEnd = Color(0xFF12B5E9)
+    val OceanGlow = Color(0xFF2F8CF5)
     val IconBg = Color(0xFFFFFBEB)        // faint yellow icon container bg
 }
 
@@ -74,6 +80,14 @@ object DsGlass {
     const val BorderDarkFaint = 0.10f
     const val RippleContentAlpha = 0.22f
     const val DisabledAlpha = 0.50f
+
+    // دکمهٔ شیشه‌ای: برقِ بالای سطح، پرکننده و لبهٔ «سکه»ی آیکون، شفافیتِ فلش.
+    const val GlossTopAlpha = 0.30f
+    const val GlossBottomAlpha = 0.03f
+    const val CoinFillAlpha = 0.22f
+    const val CoinEdgeAlpha = 0.60f
+    const val ChevronAlpha = 0.75f
+    const val PressedOverlayAlpha = 0.12f
 }
 
 /** Elevation — extremely subtle, barely there. */

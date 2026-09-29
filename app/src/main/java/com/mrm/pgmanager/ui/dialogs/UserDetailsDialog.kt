@@ -347,15 +347,14 @@ fun UserDetailsDialog(
                     // ── اکشن‌ها با چینش جدید + delete داخل گرید
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(stringResource(R.string.ud_manage))
-                        // ویرایش تمام عرض
-                        Row(
-                            Modifier.fillMaxWidth().height(42.dp).clip(DsRadius.Md).background(theme.primaryFill).pressScale(0.98f).clickable { editOpen = true }.padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RoundedAppIcon(AppIcon.Edit, tint = theme.onPrimary, size = 16.dp)
-                            Text(stringResource(R.string.ud_edit), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.onPrimary, modifier = Modifier.weight(1f))
-                            Text("›", fontSize = 16.sp, color = theme.onPrimary.copy(0.6f))
-                        }
+                        // ویرایش تمام عرض — همان کپسولِ شیشه‌ایِ اصلی (سکهٔ آیکون + فلش).
+                        MrmButton(
+                            text = stringResource(R.string.ud_edit),
+                            onClick = { editOpen = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = AppIcon.Edit,
+                            style = MrmButtonStyle.Primary
+                        )
                         // ردیف اول: 3 تایی
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             CompactAction(icon = AppIcon.Template, label = stringResource(R.string.ud_template), onClick = { templatePickerOpen = true }, modifier = Modifier.weight(1f))
@@ -468,7 +467,7 @@ fun UserDetailsDialog(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 11.dp)
                                 Text(stringResource(R.string.ud_next_plan), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryFill).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
+                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryBrush).border(BorderStroke(1.dp, theme.primaryEdge), DsRadius.Full).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
                             }
                             Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 9.sp, color = theme.mutedColor)
                         }
@@ -538,12 +537,24 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                 androidx.compose.foundation.text.selection.SelectionContainer { Text(note.trim(), fontSize = 13.5.sp, color = theme.inkColor, lineHeight = 20.sp) }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).pressScale(0.97f).clickable { val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note)); android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RoundedAppIcon(AppIcon.Copy, tint = theme.mutedColor, size = 16.dp); Text(stringResource(R.string.ud_note_copy), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                }
-                Row(Modifier.weight(1f).heightIn(min = 44.dp).clip(DsRadius.Lg).background(theme.primaryFill).pressScale(0.97f).clickable { onDismiss(); onEdit() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RoundedAppIcon(AppIcon.Edit, tint = theme.onPrimary, size = 16.dp); Text(stringResource(R.string.ud_note_edit), fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary)
-                }
+                MrmButton(
+                    text = stringResource(R.string.ud_note_copy),
+                    onClick = {
+                        val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note))
+                        android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f),
+                    icon = AppIcon.Copy,
+                    style = MrmButtonStyle.Secondary
+                )
+                MrmButton(
+                    text = stringResource(R.string.ud_note_edit),
+                    onClick = { onDismiss(); onEdit() },
+                    modifier = Modifier.weight(1f),
+                    icon = AppIcon.Edit,
+                    style = MrmButtonStyle.Primary
+                )
             }
         }
     }

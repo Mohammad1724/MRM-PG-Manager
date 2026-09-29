@@ -81,6 +81,7 @@ import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.GlassShape
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.theme.ThemeState
 import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.JalaliCalendar
@@ -365,7 +366,7 @@ internal fun FilterAndControlBar(
                     (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
                 ).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.primaryFill else theme.borderColor), DsRadius.Sm).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
@@ -388,7 +389,7 @@ internal fun FilterAndControlBar(
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED, stringResource(R.string.us_sort_last_online) to UserSort.LAST_ONLINE).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).background(if(sel) theme.primaryFill else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if(sel) theme.primaryFill else theme.borderColor), DsRadius.Sm).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
@@ -404,8 +405,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
     Box(modifier = Modifier
         .height(32.dp)
         .clip(shape)
-        .background(if (selected) theme.primaryFill else theme.searchBgColor)
-        .border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else theme.borderColor), shape)
+        .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)
         .clickable(onClick = onClick)
         .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
@@ -418,7 +418,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
 internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clip(shape).background(if (selected) theme.primaryFill else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else Color.Transparent), shape).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
+    Box(modifier = Modifier.clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
         Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
@@ -427,7 +427,7 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.size(32.dp).clip(shape).background(if (selected) theme.primaryFill else Color.Transparent).border(BorderStroke(DsBorder.Hairline, if (selected) theme.primaryFill else Color.Transparent), shape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.size(32.dp).clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         RoundedAppIcon(icon, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
     }
 }

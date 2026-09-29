@@ -190,6 +190,7 @@ internal fun RestoreBackupDialog(
                             text = stringResource(R.string.set_rs_restore),
                             enabled = !restoring,
                             loading = restoring,
+                            icon = AppIcon.Restore,
                             onClick = {
                                 if (!restoreAccounts && !restoreDebtors && !restoreSettings && !restoreInvoice) {
                                     android.widget.Toast.makeText(

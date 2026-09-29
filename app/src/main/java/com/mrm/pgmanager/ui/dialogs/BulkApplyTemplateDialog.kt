@@ -84,8 +84,7 @@ fun BulkApplyTemplateDialog(
                             // ردیف انتخاب تمپلت: انتخاب‌شده = پرکنندهٔ اصلیِ تم + متنِ روی آن، بقیه = کاشی خاکستری.
                             Box(
                                 Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
-                                    .background(if (sel) theme.primaryFill else theme.searchBgColor)
-                                    .border(BorderStroke(1.dp, if (sel) theme.primaryFill else theme.borderColor), DsRadius.Md)
+                                    .primarySurface(theme, sel, DsRadius.Md, idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp)
                                     .clickable { selectedTemplateId = t.id }.padding(horizontal = 12.dp),
                                 contentAlignment = Alignment.CenterStart
                             ) {

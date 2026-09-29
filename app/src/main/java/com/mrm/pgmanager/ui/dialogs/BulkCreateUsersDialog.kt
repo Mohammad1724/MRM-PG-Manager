@@ -34,6 +34,7 @@ import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import kotlinx.coroutines.Job
@@ -198,7 +199,7 @@ fun BulkCreateUsersDialog(
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
-                                    Box(Modifier.height(30.dp).clip(DsRadius.Sm).background(if (picked) theme.primaryFill else theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (picked) theme.primaryFill else theme.borderColor), DsRadius.Sm).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.height(30.dp).clip(DsRadius.Sm).primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
                                         Text(t.name, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (picked) theme.onPrimary else theme.inkColor, maxLines = 1)
                                     }
                                 }
@@ -224,7 +225,7 @@ fun BulkCreateUsersDialog(
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SecondaryButton(stringResource(R.string.bc_cancel), onClick = onDismiss, modifier = Modifier.weight(.38f))
-                        PrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() })
+                        PrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() }, icon = AppIcon.UserAdd)
                     }
                 } else {
                     // نمای پیشرفت / نتیجه

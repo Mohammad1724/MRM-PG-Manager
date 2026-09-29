@@ -216,38 +216,17 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 }
 
 // ─────────────────────────────────────────────────────────────
-//  PGPrimaryButton — دکمهٔ اصلیِ کوچک (پرکننده از تم: مرکبی یا رنگِ تم)
+//  PGPrimaryButton / PGSecondaryButton — همان MrmButton در اندازهٔ فشرده
+//  (کپسولِ شیشه‌ای؛ قبلاً نسخهٔ جداگانه‌ای با پرکنندهٔ تختِ زرد بودند)
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null, enabled: Boolean = true) {
-    val t = LocalThemeState.current
-    val shape = DsRadius.Md
-    Box(
-        modifier
-            .height(DsComponent.ButtonCompact)
-            .clip(shape)
-            .background(if (enabled) t.primaryFill else DsNeutral.HairlineLight)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (icon != null) RoundedAppIcon(icon, tint = t.onPrimary, size = 14.dp)
-            Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.onPrimary)
-        }
-    }
+fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = AppIcon.Check, enabled: Boolean = true) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, icon = icon, style = MrmButtonStyle.Primary, compact = true)
 }
 
 @Composable
 fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val t = LocalThemeState.current
-    val shape = DsRadius.Md
-    Box(
-        modifier.clip(shape).background(t.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = t.inkColor)
-    }
+    MrmButton(text = text, onClick = onClick, modifier = modifier, style = MrmButtonStyle.Secondary, compact = true)
 }
 
 // ─────────────────────────────────────────────────────────────
