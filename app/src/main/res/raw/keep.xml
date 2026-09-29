@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  منابعی که با نام (getIdentifier) پیدا می‌شوند نه با R.drawable؛ کوچک‌سازِ منابع
+  باید صریحاً بداند که استفاده می‌شوند (AppLogo در CommonComponents.kt).
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_launcher,@drawable/logo_mrm" />

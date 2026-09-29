@@ -11,8 +11,8 @@ android {
         applicationId = "com.mrm.pgmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "0.9.0"
+        versionCode = 18
+        versionName = "0.9.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -58,7 +58,16 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            // R8: کدِ استفاده‌نشده (از جمله هزاران آیکونِ material-icons-extended که
+            // به کار نمی‌روند) و منابعِ بی‌استفاده حذف می‌شوند و کد بهینه می‌شود؛ dex
+            // کوچک‌تر یعنی نصب و شروعِ سریع‌تر. نام‌ها عمداً مبهم نمی‌شوند
+            // (`-dontobfuscate` در proguard-rules.pro) تا stack trace‌ها خوانا بمانند و
+            // هیچ‌چیز به‌خاطرِ reflection با نام نشکند. قواعدِ لازمِ کتابخانه‌ها
+            // (Tink، OkHttp، WorkManager، Compose) همراهِ خودشان می‌آید؛ چند مورد
+            // برای اطمینان در proguard-rules.pro تکرار شده است.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
     }
