@@ -350,6 +350,22 @@ class PanelApiContractTest {
         assertEquals("https://sub.example.com/sub/tok2", page.users[1].subUrl)
     }
 
+    @Test fun `usersPage attaches group names from the simple groups route without mutating parsed users`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"users":[{"id":1,"username":"a","status":"active","group_ids":[1,2]},""" +
+            """{"id":2,"username":"b","status":"active","group_ids":[]}],"total":2}"""
+        ))
+        // فهرستِ گروه‌ها یک صفحه است (کمتر از ۲۰۰ تا) → فقط یک درخواست.
+        server.enqueue(MockResponse().setBody("""{"groups":[{"id":1,"name":"Gold"},{"id":2,"name":"Silver"}],"total":2}"""))
+        val page = PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery())
+        assertTrue(server.takeRequest().path!!.startsWith("/api/users?"))
+        assertTrue(server.takeRequest().path!!.startsWith("/api/groups/simple"))
+
+        assertEquals(listOf("Gold", "Silver"), page.users[0].groupNames)
+        assertEquals(emptyList<String>(), page.users[1].groupNames)
+        assertEquals(2, page.total)
+    }
+
     @Test fun `absoluteSubUrl handles the edge cases`() {
         assertEquals("https://p.example.com/sub/x", PanelApi.absoluteSubUrl("/sub/x", "https://p.example.com"))
         assertEquals("https://p.example.com/sub/x", PanelApi.absoluteSubUrl("/sub/x", "https://p.example.com/"))

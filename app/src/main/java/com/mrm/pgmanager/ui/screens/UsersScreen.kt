@@ -363,8 +363,11 @@ fun UsersScreen(
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                             // فهرستِ کاملی که MonitoringWorker هر ۱۵ دقیقه می‌نویسد را با یک صفحه
                             // خراب نمی‌کنیم؛ فقط اگر این صفحه خودش کلِ فهرست است یا کشِ دیسک کهنه/غایب است.
+                            // و حتی وقتی فهرست کامل است، هر رفرشِ خودکار (شاید هر ۵ ثانیه) دیسک را
+                            // بازنویسی نمی‌کند؛ رمزنگاری و نوشتنِ کلِ prefs برای کشِ آفلاین حداکثر دقیقه‌ای یک‌بار کافی است.
                             val age = store.usersCacheAgeMs()
-                            if (page.users.size >= page.total || age == null || age > 30L * 60L * 1000L) store.saveUsersCache(page.users)
+                            val complete = page.users.size >= page.total
+                            if (age == null || (complete && age > 60_000L) || age > 30L * 60L * 1000L) store.saveUsersCache(page.users)
                         }
                     }
                 }
@@ -416,7 +419,10 @@ fun UsersScreen(
                 val list = PanelApi.users(session)
                 users = list; onlineCount = list.count { it.isOnline }
                 PanelCache.put(usersKey, list)
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveUsersCache(list) }
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val age = store.usersCacheAgeMs()
+                    if (age == null || age > 60_000L) store.saveUsersCache(list)
+                }
                 offlineAt = null
                 val settings = store.readMonitoringSettings()
                 val nextStates = list.associate { u ->
@@ -557,13 +563,27 @@ fun UsersScreen(
         lifecycleOwner?.lifecycle?.addObserver(observer)
         onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
     }
+    // فقط وقتی این تب واقعاً جلوی چشم است رفرشِ دوره‌ای می‌فرستیم. Pager صفحه‌های
+    // همسایه را هم ساخته نگه می‌دارد، و قبلاً داشبورد و کاربران هم‌زمان هر چند
+    // ثانیه درخواست می‌زدند و JSON پارس می‌کردند — در حالی که فقط یکی دیده می‌شد.
+    val pageActive = rememberUpdatedState(com.mrm.pgmanager.ui.components.LocalPageActive.current)
     LaunchedEffect(session, monitoringSettings.autoRefreshEnabled, monitoringSettings.refreshWhileAppOpen, monitoringSettings.refreshIntervalSeconds) {
         if (monitoringSettings.autoRefreshEnabled && monitoringSettings.refreshWhileAppOpen) {
             while (kotlinx.coroutines.currentCoroutineContext().isActive) {
-                if (inForeground) load(resetHeader = false, silent = true)
+                if (inForeground && pageActive.value) load(resetHeader = false, silent = true)
                 kotlinx.coroutines.delay(monitoringSettings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L)
             }
         }
+    }
+    // برگشتن به این تب بعد از مدتی: اگر داده کهنه شده، بی‌صدا تازه‌اش کن
+    // (نه اسکلت، نه پرش) تا رفرشِ دوره‌ای که در غیابِ تب خاموش بود جبران شود.
+    // فقط در گذارِ «غایب → حاضر»؛ نه در اولین ساخت (آن را firstLoad پوشش می‌دهد).
+    var wasInactive by remember { mutableStateOf(false) }
+    LaunchedEffect(pageActive.value) {
+        if (!pageActive.value) { wasInactive = true; return@LaunchedEffect }
+        if (!wasInactive) return@LaunchedEffect
+        wasInactive = false
+        if (users.isNotEmpty() && !PanelCache.isFresh(usersKey)) load(resetHeader = false, silent = true)
     }
 
     // در حالتِ سمتِ سرور، پنل قبلاً فیلتر و مرتب کرده؛ دوباره‌کاری در گوشی فقط
@@ -663,8 +683,23 @@ fun UsersScreen(
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
         ) {
-            val scrollOffsetDp = with(density) { scrollOffset.value.toDp() }
-            val listTopPad = (totalHeaderDp - scrollOffsetDp).coerceAtLeast(0.dp) + topInsets + 4.dp
+            // فاصلهٔ بالای فهرست = ارتفاعِ کاملِ سربرگ (ثابت). جمع‌شدنِ سربرگ با
+            // اسکرول، دیگر این مقدار را عوض نمی‌کند؛ به‌جایش کلِ ناحیهٔ فهرست در
+            // مرحلهٔ layout به اندازهٔ scrollOffset بالا کشیده می‌شود (پایین‌تر).
+            // قبلاً scrollOffset همین‌جا در composition خوانده می‌شد و هر پیکسلِ
+            // جمع‌شدنِ سربرگ، فهرست را با contentPadding جدید دوباره می‌ساخت —
+            // یعنی recomposition + اندازه‌گیریِ دوباره در هر فریمِ اسکرول.
+            val listTopPad = totalHeaderDp + topInsets + 4.dp
+            val collapseShift = Modifier.layout { measurable, constraints ->
+                // خواندنِ state فقط در همین لامبدا → تغییرش فقط layout را تکرار می‌کند.
+                val shift = scrollOffset.value.roundToInt().coerceAtLeast(0)
+                val extended = if (constraints.hasBoundedHeight)
+                    constraints.copy(maxHeight = constraints.maxHeight + shift)
+                else constraints
+                val placeable = measurable.measure(extended)
+                val height = if (constraints.hasBoundedHeight) constraints.maxHeight else placeable.height
+                layout(placeable.width, height) { placeable.placeRelative(0, -shift) }
+            }
             val ptrState = rememberPullToRefreshState()
             PullToRefreshBox(
                 isRefreshing = loading,
@@ -677,10 +712,11 @@ fun UsersScreen(
                         state = ptrState,
                         containerColor = themeState.cardSurfaceColor,
                         color = themeState.accentPrimary,
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = listTopPad)
+                        modifier = Modifier.align(Alignment.TopCenter).offset { IntOffset(0, -scrollOffset.value.roundToInt()) }.padding(top = listTopPad)
                     )
                 }
             ) {
+                Box(Modifier.fillMaxSize().then(collapseShift)) {
                 when {
                     loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
@@ -754,6 +790,7 @@ fun UsersScreen(
                         }
                         }
                     }
+                }
                 }
             }
 

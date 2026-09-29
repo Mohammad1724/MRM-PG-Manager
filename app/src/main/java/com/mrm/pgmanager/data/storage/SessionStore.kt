@@ -19,13 +19,38 @@ class SessionStore(context: Context) {
     // توکنِ پنل داده‌ای حساس است و نباید در SharedPreferencesِ ساده بنشیند، پس
     // فعلاً همین می‌ماند و فقط هشدارها خاموش می‌شوند تا لاگِ بیلد تمیز بماند.
     // TODO: اگر جایگزینِ پایدار آمد (یا DataStore + رمزنگاریِ دستی) مهاجرت شود.
-    internal val prefs = EncryptedSharedPreferences.create(
-        context,
-        "mrm_pg_manager",
-        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    internal val prefs: android.content.SharedPreferences = sharedPrefs(context)
+
+    companion object {
+        @Volatile private var cachedPrefs: android.content.SharedPreferences? = null
+
+        /**
+         * یک نمونهٔ مشترک برای کلِ پروسه.
+         *
+         * ساختنِ `EncryptedSharedPreferences` ارزان نیست: هر بار به Keystore سر
+         * می‌زند و کلیدهای Tink را باز می‌کند (ده‌ها تا صدها میلی‌ثانیه روی
+         * گوشی‌های معمولی). این کلاس در هر صفحه و دیالوگ با `remember { SessionStore(context) }`
+         * ساخته می‌شود، و در شروعِ سرد سه‌چهار بار پشتِ‌سرِهم روی نخِ اصلی (attachBaseContext،
+         * MRMApp، تم، صفحهٔ اول). حالا هزینه فقط یک‌بار پرداخت می‌شود؛
+         * `SharedPreferences` خودش thread-safe است و اشتراکش مشکلی ندارد.
+         */
+        private fun sharedPrefs(context: Context): android.content.SharedPreferences {
+            cachedPrefs?.let { return it }
+            synchronized(this) {
+                cachedPrefs?.let { return it }
+                val appContext = context.applicationContext ?: context
+                val created = EncryptedSharedPreferences.create(
+                    appContext,
+                    "mrm_pg_manager",
+                    MasterKey.Builder(appContext).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+                cachedPrefs = created
+                return created
+            }
+        }
+    }
 
     // مهاجرت خودکار: اگر نشستِ قدیمیِ تک‌حسابه وجود دارد ولی لیست حساب‌ها خالی است، آن را به لیست منتقل می‌کنیم.
     init {

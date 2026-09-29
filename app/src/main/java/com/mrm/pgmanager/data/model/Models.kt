@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.data.model
 
+import androidx.compose.runtime.Immutable
 import com.mrm.pgmanager.R
 
 data class Session(val baseUrl: String, val token: String, val username: String) {
@@ -51,6 +52,14 @@ data class AdminSelf(
     fun can(resource: String, action: String): Boolean = scope(resource, action) > PermissionScope.NONE
 }
 
+/**
+ * `@Immutable`: به کامپایلرِ Compose قول می‌دهد این کلاس بعد از ساخت عوض
+ * نمی‌شود (همهٔ فیلدها `val`اند و فهرست‌ها هم جای دیگری دست‌کاری نمی‌شوند).
+ * بدونِ این، `List` فیلدها کلاس را «ناپایدار» می‌کرد و هر رفرشِ خودکار،
+ * تمامِ کارت‌های فهرستِ کاربران را — حتی بدونِ تغییرِ داده — دوباره می‌ساخت.
+ * حالا کارتِ هر کاربر فقط وقتی دوباره ساخته می‌شود که خودِ داده‌اش فرق کند.
+ */
+@Immutable
 data class PanelUser(
     val id: Long,
     val username: String,
@@ -65,7 +74,7 @@ data class PanelUser(
     val note: String? = null,
     val hwidLimit: Int? = null,
     val groupIds: List<Int> = emptyList(),
-    var groupNames: List<String> = emptyList(),
+    val groupNames: List<String> = emptyList(),
     /** مصرفِ کل از ابتدا — با ریستِ مصرف صفر نمی‌شود. */
     val lifetimeUsedTraffic: Long = 0L,
     /** ادمینِ مالکِ کاربر (در پنل‌های چندادمینی). */

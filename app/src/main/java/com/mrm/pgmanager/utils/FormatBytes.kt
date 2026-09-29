@@ -19,12 +19,17 @@ fun normalizePersianDigits(input: String): String {
     return sb.toString()
 }
 
+// `DecimalFormat` نه ارزان ساخته می‌شود نه thread-safe است؛ در فهرستِ کاربران
+// برای هر کارت دو بار صدا زده می‌شود، پس یک نمونه به‌ازای هر نخ نگه می‌داریم.
+private val bytesFormat = object : ThreadLocal<java.text.DecimalFormat>() {
+    override fun initialValue() = java.text.DecimalFormat("#.##", java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US))
+}
+
 fun formatBytes(value: Long): String {
     if (value <= 0L) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val index = (kotlin.math.ln(value.toDouble()) / kotlin.math.ln(1024.0)).toInt().coerceAtMost(units.lastIndex)
-    val df = java.text.DecimalFormat("#.##", java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US))
-    return "${df.format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
+    return "${bytesFormat.get()!!.format(value / Math.pow(1024.0, index.toDouble()))} ${units[index]}"
 }
 
 /** درصد با یک رقم اعشار و اعدادِ لاتین (مستقل از locale دستگاه). */

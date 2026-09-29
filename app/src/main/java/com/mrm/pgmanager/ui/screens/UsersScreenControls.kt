@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -147,8 +148,12 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
 internal fun SkeletonCard(modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmer")
-    val alpha by infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
-    Box(modifier = modifier.clip(DsRadius.Lg).background(theme.cardBgColor.copy(alpha = alpha)).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).height(120.dp))
+    val alpha = infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
+    // خواندنِ مقدارِ انیمیشن داخلِ drawBehind: هر فریمِ سوسو فقط دوباره *رسم*
+    // می‌شود، نه اینکه شش‌هفت کارتِ اسکلت هر ۱۶ میلی‌ثانیه recompose شوند.
+    val shape = DsRadius.Lg
+    val cardColor = theme.cardBgColor
+    Box(modifier = modifier.clip(shape).drawBehind { drawRect(cardColor.copy(alpha = alpha.value)) }.border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape).height(120.dp))
 }
 
 @Composable

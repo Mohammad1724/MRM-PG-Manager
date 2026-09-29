@@ -21,6 +21,16 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Strong Skipping (پیش‌فرضِ کامپایلرهای جدیدترِ Compose؛ در 1.5.x باید دستی
+        // روشن شود): کامپوزبل‌هایی که پارامترِ «ناپایدار» می‌گیرند (List، مدل‌های
+        // داده، …) هم می‌توانند از بازسازیِ بی‌دلیل معاف شوند و لامبداهایی که
+        // چنین مقادیری را می‌گیرند به‌خاطر سپرده می‌شوند. بدونِ آن، هر تغییرِ کوچکِ
+        // state در صفحهٔ کاربران (حتی جمع‌شدنِ سربرگ با اسکرول) همهٔ ردیف‌های
+        // دیده‌شده را دوباره می‌ساخت.
+        freeCompilerArgs += listOf(
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:experimentalStrongSkipping=true"
+        )
     }
 
     signingConfigs {

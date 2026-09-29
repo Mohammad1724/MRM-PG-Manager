@@ -460,16 +460,26 @@ fun MRMApp() {
                     ) { page ->
                         // حرکتِ عمق: صفحهٔ در حالِ رفتن کمی عقب می‌نشیند و محو
                         // می‌شود. بدونِ این، سوایپ حسِ «کاغذِ تخت» داشت.
-                        val offset = ((pagerState.currentPage - page) +
-                            pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
+                        // نکتهٔ کارایی: currentPageOffsetFraction *داخلِ* لامبدای
+                        // graphicsLayer خوانده می‌شود، نه در composition؛ وگرنه هر
+                        // فریمِ سوایپ، محتوای هر سه صفحهٔ ساخته‌شده را دوباره
+                        // می‌ساخت (و همان‌جا انیمیشن می‌پرید). این‌طور فقط لایهٔ
+                        // ترسیم به‌روز می‌شود.
                         Box(
                             Modifier.graphicsLayer {
+                                val offset = ((pagerState.currentPage - page) +
+                                    pagerState.currentPageOffsetFraction).coerceIn(-1f, 1f)
                                 val distance = kotlin.math.abs(offset)
                                 alpha = 1f - distance * 0.35f
                                 val scale = 1f - distance * 0.06f
                                 scaleX = scale
                                 scaleY = scale
                             }
+                        ) {
+                        // صفحه‌های همسایه ساخته می‌شوند ولی «فعال» نیستند؛ حلقه‌های
+                        // رفرشِ دوره‌ای با این مقدار خاموش/روشن می‌شوند.
+                        CompositionLocalProvider(
+                            com.mrm.pgmanager.ui.components.LocalPageActive provides (pagerState.settledPage == page)
                         ) {
                         when (page) {
                             TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true })
@@ -487,6 +497,7 @@ fun MRMApp() {
                                 onBulkCreateHandled = { pendingBulkCreate = false },
                                 onOpenSettings = { showDashboardSettings = true }
                             )
+                        }
                         }
                         }
                     }

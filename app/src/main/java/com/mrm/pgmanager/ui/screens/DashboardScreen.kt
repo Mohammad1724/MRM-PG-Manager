@@ -78,6 +78,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         lifecycle?.addObserver(observer)
         onDispose { lifecycle?.removeObserver(observer) }
     }
+    val pageActive = rememberUpdatedState(com.mrm.pgmanager.ui.components.LocalPageActive.current)
     // مقدارِ اولیه از حافظهٔ برنامه می‌آید: با برگشتن به این تب، صفحه فوراً با
     // آخرین دادهٔ دیده‌شده ساخته می‌شود به‌جای اینکه خالی بیاید و بعد پر شود.
     val statsKey = PanelCache.statsKey(session.baseUrl)
@@ -152,8 +153,18 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         if (!PanelCache.isFresh(statsKey)) load(silent = stats != null)
         if (settings.autoRefreshEnabled) while (kotlinx.coroutines.currentCoroutineContext().isActive) {
             kotlinx.coroutines.delay(settings.refreshIntervalSeconds.coerceIn(5,3600)*1_000L)
-            if (inForeground) load(silent = true)
+            // فقط وقتی این تب جلوی چشم است؛ به‌عنوانِ همسایهٔ ساخته‌شده در Pager
+            // نباید هر چند ثانیه چهار درخواست بفرستد (آمار، نمودار، ادمین‌ها، نودها).
+            if (inForeground && pageActive.value) load(silent = true)
         }
+    }
+    // برگشتن به داشبورد بعد از مدتی: اگر داده کهنه است بی‌صدا تازه‌اش کن.
+    var wasInactive by remember { mutableStateOf(false) }
+    LaunchedEffect(pageActive.value) {
+        if (!pageActive.value) { wasInactive = true; return@LaunchedEffect }
+        if (!wasInactive) return@LaunchedEffect
+        wasInactive = false
+        if (stats != null && !PanelCache.isFresh(statsKey)) load(silent = true)
     }
     // عوض‌شدنِ بازه فقط نمودار را تازه می‌کند، نه کلِ صفحه را.
     LaunchedEffect(chartRange) {

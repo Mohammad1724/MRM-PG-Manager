@@ -584,15 +584,7 @@ object PanelApi {
         }
         // نام گروه‌ها در پاسخ لیست کاربران نیست (پنل group_names را exclude می‌کند)؛
         // پس با یک واکشی سبک از /api/groups/simple نگاشت id→name انجام می‌دهیم.
-        val groupMap = groupNameMap(session)
-        if (groupMap.isNotEmpty()) {
-            all.forEach { u ->
-                if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
-                    u.groupNames = u.groupIds.mapNotNull { groupMap[it] }
-                }
-            }
-        }
-        all
+        attachGroupNames(session, all)
     }
 
     /**
@@ -635,22 +627,22 @@ object PanelApi {
             val arr = obj.getJSONArray("users")
             UsersPage(List(arr.length()) { i -> parseUser(arr.getJSONObject(i), session.baseUrl) }, obj.optInt("total", arr.length()))
         }
-        attachGroupNames(session, page.users)
-        page
+        page.copy(users = attachGroupNames(session, page.users))
     }
 
     /**
      * پاسخِ فهرستِ کاربران `group_names` ندارد (پنل عمداً حذفش می‌کند)، پس نگاشتِ
      * id→name را از یک واکشیِ سبک می‌گیریم و روی کاربرها می‌نشانیم.
      */
-    private suspend fun attachGroupNames(session: Session, users: List<PanelUser>) {
-        if (users.none { it.groupNames.isEmpty() && it.groupIds.isNotEmpty() }) return
+    private suspend fun attachGroupNames(session: Session, users: List<PanelUser>): List<PanelUser> {
+        if (users.none { it.groupNames.isEmpty() && it.groupIds.isNotEmpty() }) return users
         val groupMap = groupNameMap(session)
-        if (groupMap.isEmpty()) return
-        users.forEach { u ->
-            if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) {
-                u.groupNames = u.groupIds.mapNotNull { groupMap[it] }
-            }
+        if (groupMap.isEmpty()) return users
+        // `PanelUser` تغییرناپذیر است (برای اینکه Compose بتواند کارت‌ها را رد کند)،
+        // پس به‌جای دست‌کاریِ درجا، نسخهٔ کپی با نامِ گروه‌ها می‌سازیم.
+        return users.map { u ->
+            if (u.groupNames.isEmpty() && u.groupIds.isNotEmpty()) u.copy(groupNames = u.groupIds.mapNotNull { groupMap[it] })
+            else u
         }
     }
 
