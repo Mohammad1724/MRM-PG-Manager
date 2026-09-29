@@ -271,7 +271,7 @@ fun UsersScreen(
     fun reloadDebtors() { debtors = store.readDebtors() }
     fun fetchSub(user: PanelUser, onResult: (PanelUser) -> Unit) {
         scope.launch {
-            runCatching { PanelApi.user(session, user.username) }.onSuccess(onResult)
+            runCatching { PanelApi.user(session, user) }.onSuccess(onResult)
                 .onFailure { android.widget.Toast.makeText(context, context.getString(R.string.ud_sub_failed), android.widget.Toast.LENGTH_SHORT).show() }
         }
     }
@@ -1049,11 +1049,11 @@ fun UsersScreen(
             user = u,
             onDismiss = { quickActionUser = null },
             onUseTemplate = { quickTemplateUser = u },
-            onToggle = { runAction(notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username)) { PanelApi.setDisabled(session, u.username, u.status != "disabled") } },
+            onToggle = { runAction(notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username)) { PanelApi.setDisabled(session, u, u.status != "disabled") } },
             onCopySub = { copySubWithFetch(u) },
             onQr = { qrUser = u },
             onEdit = { selectedUser = u },
-            onResetUsage = { runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username)) { PanelApi.resetUsage(session, u.username) } },
+            onResetUsage = { runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username)) { PanelApi.resetUsage(session, u) } },
             onResetExpiry = { resetExpiryTarget = u },
             onDelete = { deleteUser = u },
             onDebtor = { debtorDialogUser = u },
@@ -1068,17 +1068,17 @@ fun UsersScreen(
             user = user,
             onDismiss = { selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays) }
+                selectedUser = null; runAction { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays) }
             },
-            onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user.username, user.status != "disabled") } },
+            onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user, user.status != "disabled") } },
             onDelete = { deleteUser = user; selectedUser = null },
             onResetUsage = {
-                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user.username) }
+                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user) }
             },
             onResetExpiry = { days ->
                 selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
                     val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, user.username, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
                 }
             },
             onApplyTemplate = { templateId, note ->
@@ -1095,7 +1095,7 @@ fun UsersScreen(
                 android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
                 if (wasAutoDisabled) {
                     scope.launch {
-                        runCatching { PanelApi.setDisabled(session, user.username, false) }.onSuccess { load() }
+                        runCatching { PanelApi.setDisabled(session, user, false) }.onSuccess { load() }
                     }
                 }
             },
@@ -1144,7 +1144,7 @@ fun UsersScreen(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         SecondaryButton(stringResource(R.string.us_cancel), onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(10.dp))
-                        DangerButton(stringResource(R.string.us_delete), onClick = { deleteUser = null; runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user.username) } }, modifier = Modifier.weight(1f))
+                        DangerButton(stringResource(R.string.us_delete), onClick = { deleteUser = null; runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -1187,7 +1187,7 @@ fun UsersScreen(
                     val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
                     if (over && u.status != "disabled") {
                         scope.launch {
-                            runCatching { PanelApi.setDisabled(session, u.username, true) }.onSuccess {
+                            runCatching { PanelApi.setDisabled(session, u, true) }.onSuccess {
                                 val updated = info.copy(autoDisabled = true)
                                 store.setDebtor(updated)
                                 reloadDebtors()
@@ -1205,7 +1205,7 @@ fun UsersScreen(
                 android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
                 if (wasAutoDisabled) {
                     scope.launch {
-                        runCatching { PanelApi.setDisabled(session, u.username, false) }.onSuccess {
+                        runCatching { PanelApi.setDisabled(session, u, false) }.onSuccess {
                             load()
                             android.widget.Toast.makeText(context, context.getString(R.string.us_user_enabled), android.widget.Toast.LENGTH_SHORT).show()
                         }
@@ -1221,7 +1221,7 @@ fun UsersScreen(
                 val targetUser = u; resetExpiryTarget = null
                 runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
                     val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, targetUser.username, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
+                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
                 }
             }
         )
@@ -1240,7 +1240,7 @@ fun UsersScreen(
                 reloadDebtors()
                 return@forEach
             }
-            runCatching { PanelApi.setDisabled(session, d.username, true) }.onSuccess {
+            runCatching { PanelApi.setDisabled(session, pu, true) }.onSuccess {
                 val updated = d.copy(autoDisabled = true)
                 store.setDebtor(updated)
                 reloadDebtors()

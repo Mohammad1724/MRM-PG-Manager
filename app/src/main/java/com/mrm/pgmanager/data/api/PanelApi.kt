@@ -83,8 +83,17 @@ object PanelApi {
         }
     }
 
-    private fun userUrl(session: Session, username: String): String =
-        "${session.baseUrl}/api/user/${URLEncoder.encode(username, "UTF-8")}"
+    /**
+     * مسیرِ پایهٔ یک کاربر.
+     *
+     * پنل از v3.2 مسیرهای `/api/user/by-id/{id}` را دارد و مسیرهای `/api/user/{username}`
+     * را deprecated کرده (طبق docstring پنل در v6 حذف می‌شوند). چون اپ همین حالا هم به
+     * مسیرهای v5 (`/disabled`، `users/counts`) وابسته است، by-id همیشه در دسترس است.
+     * مسیرِ username فقط برای رکوردهای بدونِ id (مثلاً کشِ قدیمی) به‌عنوانِ پشتیبان می‌ماند.
+     */
+    private fun userUrl(session: Session, user: PanelUser): String =
+        if (user.id > 0L) "${session.baseUrl}/api/user/by-id/${user.id}"
+        else "${session.baseUrl}/api/user/${URLEncoder.encode(user.username, "UTF-8")}"
 
     private fun requestBuilder(session: Session, url: String): Request.Builder =
         Request.Builder().url(url).header("Authorization", "Bearer ${session.token}")
@@ -137,11 +146,11 @@ object PanelApi {
      */
     suspend fun userTrafficUsage(
         session: Session,
-        username: String,
+        user: PanelUser,
         range: StatsRange = StatsRange.LAST_7D
     ): List<TrafficPoint> = withContext(Dispatchers.IO) {
         val url = buildString {
-            append(userUrl(session, username)); append("/usage")
+            append(userUrl(session, user)); append("/usage")
             append("?period="); append(range.period)
             append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
         }
@@ -336,9 +345,9 @@ object PanelApi {
     }
 
     /** فعال‌کردنِ فوریِ پلنِ بعدی — `POST /api/user/{username}/active_next`. */
-    suspend fun activateNextPlan(session: Session, username: String) = withContext(Dispatchers.IO) {
+    suspend fun activateNextPlan(session: Session, user: PanelUser) = withContext(Dispatchers.IO) {
         executeJson(
-            requestBuilder(session, "${userUrl(session, username)}/active_next")
+            requestBuilder(session, "${userUrl(session, user)}/active_next")
                 .post("".toRequestBody(jsonType)).build()
         )
     }
@@ -452,8 +461,8 @@ object PanelApi {
     }
 
     /** واکشی تکی یک کاربر (با subscription_url) — برای دریافت لینک اشتراک فقط در صورت نیاز. */
-    suspend fun user(session: Session, username: String): PanelUser = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, userUrl(session, username)).get().build()
+    suspend fun user(session: Session, user: PanelUser): PanelUser = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, userUrl(session, user)).get().build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("User fetch failed: ${response.code}")
             parseUser(JSONObject(response.body?.string() ?: error("Empty user response")))
@@ -471,7 +480,7 @@ object PanelApi {
         executeJson(requestBuilder(session, "${session.baseUrl}/api/user").post(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun modifyUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("data_limit", gbToBytes(limitGb)).put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
         if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
@@ -481,20 +490,20 @@ object PanelApi {
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
         // null یعنی «دست نزن»، عددِ صفر یعنی «حذفِ خودکار را بردار».
         autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
-        executeJson(requestBuilder(session, userUrl(session, username)).put(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, userUrl(session, user)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun resetUsage(session: Session, username: String) = withContext(Dispatchers.IO) {
-        executeJson(requestBuilder(session, "${userUrl(session, username)}/reset").post("".toRequestBody(jsonType)).build())
+    suspend fun resetUsage(session: Session, user: PanelUser) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, "${userUrl(session, user)}/reset").post("".toRequestBody(jsonType)).build())
     }
 
-    suspend fun setDisabled(session: Session, username: String, disabled: Boolean) = withContext(Dispatchers.IO) {
+    suspend fun setDisabled(session: Session, user: PanelUser, disabled: Boolean) = withContext(Dispatchers.IO) {
         val body = JSONObject().put("disabled", disabled)
-        executeJson(requestBuilder(session, "${userUrl(session, username)}/disabled").put(body.toString().toRequestBody(jsonType)).build())
+        executeJson(requestBuilder(session, "${userUrl(session, user)}/disabled").put(body.toString().toRequestBody(jsonType)).build())
     }
 
-    suspend fun deleteUser(session: Session, username: String) = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, userUrl(session, username)).delete().build()
+    suspend fun deleteUser(session: Session, user: PanelUser) = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, userUrl(session, user)).delete().build()
         client.newCall(request).execute().use { response -> if (!response.isSuccessful) error("Delete failed: ${response.code}") }
     }
 
@@ -650,8 +659,8 @@ object PanelApi {
      * می‌افتد و کاربر باید لینکِ تازه را بگیرد. تنها راهِ درستِ واکنش به لو رفتنِ
      * لینک است.
      */
-    suspend fun revokeSubscription(session: Session, username: String): PanelUser = withContext(Dispatchers.IO) {
-        val request = requestBuilder(session, "${userUrl(session, username)}/revoke_sub")
+    suspend fun revokeSubscription(session: Session, user: PanelUser): PanelUser = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${userUrl(session, user)}/revoke_sub")
             .post("".toRequestBody(jsonType))
             .build()
         client.newCall(request).execute().use { response ->
@@ -985,12 +994,15 @@ object PanelApi {
         }
     }
 
-    suspend fun modifyUserFromTemplate(session: Session, username: String, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
+    suspend fun modifyUserFromTemplate(session: Session, user: PanelUser, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
         val body = JSONObject().apply {
             put("user_template_id", templateId)
             if (note.isNotBlank()) put("note", note)
         }
-        executeJson(requestBuilder(session, "${session.baseUrl}/api/user/from_template/${URLEncoder.encode(username, "UTF-8")}").put(body.toString().toRequestBody(jsonType)).build())
+        // مسیرِ by-id از v3.2 هست؛ نسخهٔ username آن هم deprecated است.
+        val url = if (user.id > 0L) "${session.baseUrl}/api/user/from_template/by-id/${user.id}"
+            else "${session.baseUrl}/api/user/from_template/${URLEncoder.encode(user.username, "UTF-8")}"
+        executeJson(requestBuilder(session, url).put(body.toString().toRequestBody(jsonType)).build())
     }
 
     suspend fun bulkDeleteUsers(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {

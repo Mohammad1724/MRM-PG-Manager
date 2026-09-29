@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.CountMetric
+import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.StatsRange
 import kotlinx.coroutines.runBlocking
@@ -32,6 +33,10 @@ class PanelApiContractTest {
 
     @After fun tearDown() = server.shutdown()
 
+    private fun user(id: Long, username: String) = PanelUser(
+        id = id, username = username, status = "active", usedTraffic = 0L, dataLimit = 0L, expire = null, createdAt = null
+    )
+
     // ── usage ────────────────────────────────────────────────
 
     @Test fun `trafficUsage sends valid period and encoded start`() = runBlocking {
@@ -50,13 +55,13 @@ class PanelApiContractTest {
 
     // ── usage یک کاربرِ مشخص ─────────────────────────────────
 
-    @Test fun `userTrafficUsage hits singular user route with encoded start`() = runBlocking {
+    @Test fun `userTrafficUsage hits by-id user route with encoded start`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"stats":{"42":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":500}]}}"""))
-        val points = PanelApi.userTrafficUsage(session, "ali", StatsRange.LAST_7D)
+        val points = PanelApi.userTrafficUsage(session, user(42, "ali"), StatsRange.LAST_7D)
         val path = server.takeRequest().path!!
 
-        // پیشوندِ روترِ پنل مفرد است: /api/user/{username}/usage
-        assertTrue("must use singular /api/user prefix", path.startsWith("/api/user/ali/usage"))
+        // مسیرهای username در پنل deprecated هستند؛ باید by-id برویم: /api/user/by-id/{id}/usage
+        assertTrue("must use /api/user/by-id/{id}", path.startsWith("/api/user/by-id/42/usage"))
         assertTrue(path.contains("period=day"))
         // «:» موجود در ISO باید encode شده باشد
         assertFalse(path.substringAfter("start=").contains(":"))
@@ -64,13 +69,47 @@ class PanelApiContractTest {
         assertEquals(500L, points[0].totalTraffic)
     }
 
-    @Test fun `userTrafficUsage encodes special characters in username`() = runBlocking {
+    @Test fun `userTrafficUsage falls back to encoded username when id is missing`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"stats":{}}"""))
-        PanelApi.userTrafficUsage(session, "a b+c", StatsRange.LAST_24H)
+        PanelApi.userTrafficUsage(session, user(0, "a b+c"), StatsRange.LAST_24H)
         val path = server.takeRequest().path!!
 
         assertFalse("raw space must not reach the panel", path.contains("a b+c"))
         assertTrue(path.startsWith("/api/user/"))
+        assertFalse(path.contains("/by-id/"))
+    }
+
+    // ── مسیرهای by-id برای عملیاتِ تک‌کاربره ─────────────────
+
+    @Test fun `setDisabled uses by-id route with disabled body`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.setDisabled(session, user(7, "ali"), true)
+        val req = server.takeRequest()
+
+        assertEquals("PUT", req.method)
+        assertEquals("/api/user/by-id/7/disabled", req.path)
+        assertTrue(JSONObject(req.body.readUtf8()).getBoolean("disabled"))
+    }
+
+    @Test fun `deleteUser and resetUsage use by-id routes`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.deleteUser(session, user(7, "ali"))
+        PanelApi.resetUsage(session, user(7, "ali"))
+
+        val del = server.takeRequest(); val reset = server.takeRequest()
+        assertEquals("DELETE", del.method); assertEquals("/api/user/by-id/7", del.path)
+        assertEquals("POST", reset.method); assertEquals("/api/user/by-id/7/reset", reset.path)
+    }
+
+    @Test fun `modifyUserFromTemplate uses by-id route`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUserFromTemplate(session, user(7, "ali"), templateId = 3)
+        val req = server.takeRequest()
+
+        assertEquals("PUT", req.method)
+        assertEquals("/api/user/from_template/by-id/7", req.path)
+        assertEquals(3, JSONObject(req.body.readUtf8()).getInt("user_template_id"))
     }
 
     @Test fun `userTrafficUsage merges multiple series into one`() = runBlocking {
@@ -79,7 +118,7 @@ class PanelApiContractTest {
             """{"stats":{"1":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":100}],""" +
             """"2":[{"period_start":"2026-08-10T00:00:00Z","total_traffic":50}]}}"""
         ))
-        val points = PanelApi.userTrafficUsage(session, "ali")
+        val points = PanelApi.userTrafficUsage(session, user(42, "ali"))
 
         assertEquals(1, points.size)
         assertEquals(150L, points[0].totalTraffic)
@@ -91,14 +130,14 @@ class PanelApiContractTest {
             """{"period_start":"2026-08-10T00:00:00Z","total_traffic":1},""" +
             """{"period_start":"2026-08-11T00:00:00Z","total_traffic":2}]}}"""
         ))
-        val points = PanelApi.userTrafficUsage(session, "ali")
+        val points = PanelApi.userTrafficUsage(session, user(42, "ali"))
 
         assertEquals(listOf(1L, 2L, 3L), points.map { it.totalTraffic })
     }
 
     @Test fun `userTrafficUsage returns empty list when no stats`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"period":"day","start":"x","end":"y"}"""))
-        val points = PanelApi.userTrafficUsage(session, "ali")
+        val points = PanelApi.userTrafficUsage(session, user(42, "ali"))
         assertTrue(points.isEmpty())
     }
 

@@ -232,7 +232,7 @@ fun UserDetailsDialog(
         if (currentUser.subUrl.isNotBlank()) onResult(currentUser.subUrl)
         else if (session != null) {
             scope.launch {
-                runCatching { PanelApi.user(session, currentUser.username) }.onSuccess { currentUser = it; onResult(it.subUrl) }
+                runCatching { PanelApi.user(session, currentUser) }.onSuccess { currentUser = it; onResult(it.subUrl) }
                     .onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() }
             }
         } else onResult(currentUser.subUrl)
@@ -440,8 +440,8 @@ fun UserDetailsDialog(
     if (qrOpen) SubscriptionQrDialog(user = currentUser, onDismiss = { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog(title = stringResource(R.string.ud_reset_data_title), message = stringResource(R.string.ud_reset_data_msg), onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
     if (devicesResetConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_devices_reset_title), message = stringResource(R.string.ud_devices_reset_msg), onDismiss = { devicesResetConfirm = false }, onConfirm = { devicesResetConfirm = false; scope.launch { runCatching { PanelApi.resetUserDevices(session, currentUser.id) }; reloadDevices() } })
-    if (nextPlanConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_next_plan_activate_title), message = stringResource(R.string.ud_next_plan_activate_msg), onDismiss = { nextPlanConfirm = false }, onConfirm = { nextPlanConfirm = false; scope.launch { runCatching { PanelApi.activateNextPlan(session, currentUser.username) }.onSuccess { runCatching { PanelApi.user(session, currentUser.username) }.onSuccess { currentUser = it } } } })
-    if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser.username) }.onSuccess { currentUser = it; android.widget.Toast.makeText(context, revokedMsg, android.widget.Toast.LENGTH_SHORT).show() }.onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() } } })
+    if (nextPlanConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_next_plan_activate_title), message = stringResource(R.string.ud_next_plan_activate_msg), onDismiss = { nextPlanConfirm = false }, onConfirm = { nextPlanConfirm = false; scope.launch { runCatching { PanelApi.activateNextPlan(session, currentUser) }.onSuccess { runCatching { PanelApi.user(session, currentUser) }.onSuccess { currentUser = it } } } })
+    if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser) }.onSuccess { currentUser = it; android.widget.Toast.makeText(context, revokedMsg, android.widget.Toast.LENGTH_SHORT).show() }.onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() } } })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
 }
 

@@ -88,7 +88,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         store.setDebtor(d.copy(autoDisabled = true))
                         return@forEach
                     }
-                    runCatching { PanelApi.setDisabled(session, d.username, true) }.onSuccess {
+                    runCatching { PanelApi.setDisabled(session, pu, true) }.onSuccess {
                         store.setDebtor(d.copy(autoDisabled = true))
                         if (settings.notificationsEnabled && settings.notifyDebtorOverdue) {
                             NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency))
