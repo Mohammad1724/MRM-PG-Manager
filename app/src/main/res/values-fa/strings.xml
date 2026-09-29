@@ -473,8 +473,6 @@
     <string name="ud_invoice">صدور فاکتور</string>
     <string name="ud_close">بستن</string>
     <string name="ud_unlimited">نامحدود</string>
-    <string name="ud_expired">منقضی</string>
-    <string name="ud_days">%1$s روز</string>
     <string name="ud_reset_data_title">ریست حجم مصرف‌شده؟</string>
     <string name="ud_reset_data_msg">مصرف این کاربر صفر می‌شود.</string>
     <!-- دیالوگ ساخت/ویرایش کاربر (هماهنگ با جزئیات کاربر) -->

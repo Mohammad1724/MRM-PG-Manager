@@ -42,6 +42,7 @@ import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.JalaliCalendar
 import com.mrm.pgmanager.utils.PdfInvoiceGenerator
 import com.mrm.pgmanager.utils.formatBytes
@@ -93,17 +94,9 @@ fun InvoiceDialog(
     val unlimitedLabel = stringResource(R.string.inv_unlimited)
     val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { unlimitedLabel }
 
-    val endDate: LocalDate? = runCatching {
-        try { java.time.Instant.parse(user.expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
-        catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-    }.getOrNull()
-
-    val startDate: LocalDate? = runCatching {
-        val created = user.createdAt
-        if (created.isNullOrBlank() || created == "0" || created == "null") null
-        else try { java.time.Instant.parse(created).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
-        catch (_: Exception) { LocalDate.parse(created.take(10)) }
-    }.getOrNull()
+    // یک پارسرِ مشترک (Z / offset / naive=UTC) به‌جای نسخهٔ تکراریِ محلی.
+    val endDate: LocalDate? = DateLogic.expiryDate(user.expire)
+    val startDate: LocalDate? = DateLogic.expiryDate(user.createdAt)
 
     val effectiveStartDate = startDate ?: LocalDate.now()
 
@@ -133,7 +126,7 @@ fun InvoiceDialog(
     }
 
     val dataLimitText = if (user.dataLimit == 0L) stringResource(R.string.inv_unlimited) else formatBytes(user.dataLimit)
-    val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
+    val invoiceDateJalali = JalaliCalendar.localizeDigits(JalaliCalendar.todayJalali().toString())
 
     // ==== محاسبه مبالغ ====
     val currentPrice = com.mrm.pgmanager.utils.normalizePersianDigits(currentPriceText).filter { it.isDigit() }.toLongOrNull() ?: 0L

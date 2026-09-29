@@ -14,3 +14,7 @@ local.properties
 
 # IDE
 .idea/
+
+# Python tooling
+__pycache__/
+*.pyc

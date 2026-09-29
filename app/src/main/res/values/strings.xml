@@ -473,8 +473,6 @@
     <string name="ud_invoice">Issue invoice</string>
     <string name="ud_close">Close</string>
     <string name="ud_unlimited">Unlimited</string>
-    <string name="ud_expired">Expired</string>
-    <string name="ud_days">%1$s days</string>
     <string name="ud_reset_data_title">Reset used data?</string>
     <string name="ud_reset_data_msg">This user\'s usage will be set to zero.</string>
     <!-- دیالوگ ساخت/ویرایش کاربر (هماهنگ با جزئیات کاربر) -->

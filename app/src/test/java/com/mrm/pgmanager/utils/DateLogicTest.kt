@@ -147,4 +147,25 @@ class DateLogicTest {
         assertFalse(DateLogic.isOnline("2026-09-29T07:00:00Z", now))
         assertFalse(DateLogic.isOnline(null, now))
     }
+
+    // ── expiryDate: همهٔ قالب‌های پنل → روزِ محلی ────────────────
+
+    @Test fun `expiryDate converts full timestamps to the local date of the device`() {
+        val z = "2026-10-01T20:29:59Z"
+        assertEquals(Instant.parse(z).atZone(zone).toLocalDate(), DateLogic.expiryDate(z))
+        // offset غیر از Z — قبلاً به «۱۰ کاراکترِ اول» می‌افتاد که روزِ همان offset بود.
+        val off = "2026-10-01T23:30:00+03:30"
+        assertEquals(java.time.OffsetDateTime.parse(off).toInstant().atZone(zone).toLocalDate(), DateLogic.expiryDate(off))
+        // naive = UTC (قراردادِ پنل)
+        assertEquals(Instant.parse("2026-10-01T20:29:59Z").atZone(zone).toLocalDate(), DateLogic.expiryDate("2026-10-01 20:29:59"))
+        // timestamp عددی (ثانیه)
+        assertEquals(Instant.ofEpochSecond(1_767_225_599L).atZone(zone).toLocalDate(), DateLogic.expiryDate("1767225599"))
+    }
+
+    @Test fun `expiryDate keeps plain dates and rejects garbage`() {
+        assertEquals(LocalDate.of(2026, 11, 1), DateLogic.expiryDate("2026-11-01"))
+        assertNull(DateLogic.expiryDate("0"))
+        assertNull(DateLogic.expiryDate("null"))
+        assertNull(DateLogic.expiryDate("not-a-date"))
+    }
 }

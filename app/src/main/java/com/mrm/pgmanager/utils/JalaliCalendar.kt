@@ -1,10 +1,24 @@
 package com.mrm.pgmanager.utils
 
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Locale
 
+/**
+ * تقویمِ شمسی.
+ *
+ * نکتهٔ مهم دربارهٔ ارقام: اپ locale پیش‌فرض را روی `fa` می‌گذارد و در اندروید
+ * `String.format` بدونِ Locale صریح با `%d` ارقامِ **فارسی** (۰۱۲…) تولید می‌کند.
+ * رشته‌های این فایل خوراکِ `LocalDate.parse` و بدنهٔ API هستند، پس همیشه با
+ * [Locale.US] ساخته می‌شوند تا ASCII بمانند؛ قبلاً همین باعث می‌شد انتخابِ تاریخ
+ * از تقویمِ ویرایشگر در حالتِ فارسی بی‌صدا خالی شود (`parse` روی «۲۰۲۶-۱۱-۰۱»
+ * می‌شکست). نمایشِ فارسیِ ارقام کارِ لایهٔ UI است ([localizeDigits]).
+ */
 object JalaliCalendar {
     data class Date(val year: Int, val month: Int, val day: Int) {
-        override fun toString(): String = "%04d/%02d/%02d".format(year, month, day)
+        /** همیشه با ارقامِ لاتین (`1405/08/10`) — قابلِ پارس در هر locale. */
+        override fun toString(): String = "%04d/%02d/%02d".format(Locale.US, year, month, day)
         /**
          * نامِ ماه در لایهٔ UI از منابع خوانده می‌شود (`jalali_months`)، چون
          * در انگلیسی باید «Farvardin» نوشته شود نه «فروردین».
@@ -46,18 +60,36 @@ object JalaliCalendar {
         if (gDayNo >= 366) { leap = false; gDayNo--; gy += gDayNo / 365; gDayNo %= 365 }
         val gDaysInMonth = intArrayOf(31, if (leap && ((gy % 4 == 0 && gy % 100 != 0) || gy % 400 == 0)) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
         var i = 0; while (i < 12 && gDayNo >= gDaysInMonth[i]) { gDayNo -= gDaysInMonth[i]; i++ }
-        return "%04d-%02d-%02d".format(gy, i + 1, gDayNo + 1)
+        return "%04d-%02d-%02d".format(Locale.US, gy, i + 1, gDayNo + 1)
     }
+
+    /** ارقامِ لاتین → فارسی، فقط وقتی زبانِ برنامه فارسی است؛ وگرنه دست‌نخورده. */
+    fun localizeDigits(s: String, locale: Locale = Locale.getDefault()): String =
+        if (locale.language == "fa") CardText.toPersianDigits(s) else s
+
+    /**
+     * تاریخِ نمایشیِ شمسی از یک تاریخ/زمانِ میلادی — **فقط برای نمایش**.
+     *
+     * - ورودیِ کاملِ پنل (`2026-11-01T20:29:59Z` یا با offset) اول به روزِ محلیِ
+     *   دستگاه تبدیل می‌شود، نه اینکه ۱۰ کاراکترِ اولش بریده شود؛ برای ایران
+     *   (UTC+3:30) تاریخ‌های نزدیکِ نیمه‌شب یک روز عقب می‌افتادند.
+     * - در حالتِ فارسی ارقام فارسی‌اند (همان چیزی که کاربر تا حالا می‌دید)؛
+     *   برای منطق/ذخیره‌سازی از [Date.toString] یا [shamsiToIso] استفاده کنید.
+     */
     fun isoToShamsi(iso: String?): String {
         if (iso.isNullOrBlank() || iso == "0" || iso == "null") return ""
         val normalized = normalizePersianDigits(iso).trim()
         if (normalized.isBlank() || normalized == "0" || normalized == "null") return ""
+        val local: LocalDate? = if (normalized.length > 10) {
+            DateLogic.parseOnlineAtMillis(normalized)?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+        } else null
+        if (local != null) return localizeDigits(gregorianToJalali(local.year, local.monthValue, local.dayOfMonth).toString())
         val parts = normalized.take(10).split("-")
-        if (parts.size != 3) return normalized.take(10)
-        val gy = parts[0].toIntOrNull() ?: return normalized.take(10)
-        val gm = parts[1].toIntOrNull() ?: return normalized.take(10)
-        val gd = parts[2].toIntOrNull() ?: return normalized.take(10)
-        return gregorianToJalali(gy, gm, gd).toString()
+        if (parts.size != 3) return localizeDigits(normalized.take(10))
+        val gy = parts[0].toIntOrNull() ?: return localizeDigits(normalized.take(10))
+        val gm = parts[1].toIntOrNull() ?: return localizeDigits(normalized.take(10))
+        val gd = parts[2].toIntOrNull() ?: return localizeDigits(normalized.take(10))
+        return localizeDigits(gregorianToJalali(gy, gm, gd).toString())
     }
     fun shamsiToIso(shamsi: String): String {
         if (shamsi.isBlank()) return ""
@@ -81,7 +113,7 @@ object JalaliCalendar {
         return if (jy in 1300..1500 && jm in 1..12 && jd in 1..31) {
             jalaliToGregorian(jy, jm, jd)
         } else if (jy in 1900..2100) {
-            "%04d-%02d-%02d".format(jy, jm.coerceIn(1, 12), jd.coerceIn(1, 31))
+            "%04d-%02d-%02d".format(Locale.US, jy, jm.coerceIn(1, 12), jd.coerceIn(1, 31))
         } else {
             normalized
         }

@@ -67,13 +67,14 @@ object DateLogic {
      */
     fun expiryDate(expire: String?): LocalDate? {
         if (expire.isNullOrBlank() || expire == "0" || expire == "null") return null
-        return runCatching {
-            try {
-                Instant.parse(expire).atZone(ZoneId.systemDefault()).toLocalDate()
-            } catch (_: Exception) {
-                LocalDate.parse(expire.take(10))
-            }
-        }.getOrNull()
+        val raw = expire.trim()
+        // زمانِ کامل (Z / offset / naive=UTC / timestamp) → روزِ محلیِ دستگاه.
+        // قبلاً فقط `Instant.parse` (یعنی فقط پسوندِ Z) امتحان می‌شد و برای
+        // `+03:30` به «۱۰ کاراکترِ اول» می‌افتاد که تاریخِ همان offset بود نه روزِ محلی.
+        if (raw.length > 10 || raw.all { it.isDigit() }) {
+            parseOnlineAtMillis(raw)?.let { return Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+        }
+        return runCatching { LocalDate.parse(raw.take(10)) }.getOrNull()
     }
 
     /**

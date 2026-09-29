@@ -18,8 +18,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.Instant
-import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.*
 
@@ -160,20 +158,12 @@ object PdfInvoiceGenerator {
         // ==== محاسبات اطلاعات ====
         // تاریخ پایان
         val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { context.getString(R.string.inv_unlimited) }
-        val endDate: LocalDate? = runCatching {
-            try { Instant.parse(user.expire).atZone(ZoneId.systemDefault()).toLocalDate() }
-            catch (_: Exception) { LocalDate.parse(user.expire?.take(10) ?: "") }
-        }.getOrNull()
+        val endDate: LocalDate? = DateLogic.expiryDate(user.expire)
 
         // تاریخ شروع: از created_at واقعی کاربر، نه امروز!
         // اگر created_at موجود نباشد، از امروز منهای مدت باقی‌مانده حساب نمی‌کنیم، بلکه امروز را به عنوان fallback می‌گذاریم
         // اما مدت کل باید از شروع تا پایان باشد، نه فقط باقی‌مانده
-        val startDate: LocalDate? = runCatching {
-            val created = user.createdAt
-            if (created.isNullOrBlank() || created == "0" || created == "null") null
-            else try { Instant.parse(created).atZone(ZoneId.systemDefault()).toLocalDate() }
-            catch (_: Exception) { LocalDate.parse(created.take(10)) }
-        }.getOrNull()
+        val startDate: LocalDate? = DateLogic.expiryDate(user.createdAt)
 
         val effectiveStartDate = startDate ?: run {
             // اگر createdAt نداریم، شروع را از روی مدت باقی‌مانده تخمین نزن، فقط امروز را بگذار
@@ -209,7 +199,7 @@ object PdfInvoiceGenerator {
             else -> context.getString(R.string.inv_months, (durationDays / 30L).toInt())
         }
         val dataLimitText = if (user.dataLimit == 0L) context.getString(R.string.inv_unlimited) else formatBytes(user.dataLimit)
-        val invoiceDateJalali = JalaliCalendar.todayJalali().toString()
+        val invoiceDateJalali = JalaliCalendar.localizeDigits(JalaliCalendar.todayJalali().toString())
 
         // ==== کارت مشخصات ====
         val infoBoxH = 170f

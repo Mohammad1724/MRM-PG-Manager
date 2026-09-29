@@ -36,24 +36,14 @@ import com.mrm.pgmanager.ui.designsystem.*
 import com.mrm.pgmanager.ui.theme.*
 import com.mrm.pgmanager.utils.*
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
+/**
+ * همان منطقِ فهرست (`DateLogic.daysLeft` + `daysLeftText`) تا «امروز/منقضی/N روز»
+ * در کارت و در جزئیات یکی باشد؛ قبلاً اینجا یک پارسرِ جداگانه داشت که صفر روز را
+ * «۰ روز» نشان می‌داد و offsetهای غیر از Z را به‌درستی نمی‌خواند.
+ */
 @Composable
-private fun daysLeftLabel(expire: String?): String {
-    val unlimited = stringResource(R.string.ud_unlimited)
-    val expired = stringResource(R.string.ud_expired)
-    val daysTemplate = stringResource(R.string.ud_days)
-    if (expire.isNullOrBlank() || expire == "0" || expire == "null") return unlimited
-    return runCatching {
-        val end = try {
-            java.time.Instant.parse(expire).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-        } catch (_: Exception) {
-            LocalDate.parse(expire.take(10))
-        }
-        val d = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), end)
-        if (d < 0L) expired else String.format(daysTemplate, d.toString())
-    }.getOrDefault(unlimited)
-}
+private fun daysLeftLabel(expire: String?): String = daysLeftText(expire)
 
 @Composable
 private fun SectionLabel(text: String) {
