@@ -146,8 +146,7 @@ class SessionStore(context: Context) {
         val amoled = prefs.getBoolean("theme_amoled", false)
         val custom = prefs.getLong("theme_custom", -1L).takeIf { it >= 0L }
         val lamp = runCatching { LampColor.valueOf(lampName) }.getOrDefault(LampColor.GOLD)
-        val buttonTone = com.mrm.pgmanager.ui.theme.ButtonTone.fromPref(prefs.getString("theme_button_tone", null))
-        return ThemeState(lamp = lamp, customColor = custom?.let { androidx.compose.ui.graphics.Color(it) }, isDark = isDark, followSystem = followSystem, amoledDark = amoled, buttonTone = buttonTone)
+        return ThemeState(lamp = lamp, customColor = custom?.let { androidx.compose.ui.graphics.Color(it) }, isDark = isDark, followSystem = followSystem, amoledDark = amoled)
     }
 
     fun saveTheme(themeState: ThemeState) = prefs.edit()
@@ -156,7 +155,6 @@ class SessionStore(context: Context) {
         .putBoolean("theme_follow_system", themeState.followSystem)
         .putBoolean("theme_amoled", themeState.amoledDark)
         .putLong("theme_custom", themeState.customColor?.value?.toLong() ?: -1L)
-        .putString("theme_button_tone", themeState.buttonTone.prefKey)
         .apply()
 
     // === قفل برنامه ===

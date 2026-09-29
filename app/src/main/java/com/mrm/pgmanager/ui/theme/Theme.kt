@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.core.view.WindowCompat
+import kotlin.math.abs
 import com.mrm.pgmanager.ui.designsystem.DsAccent
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -57,22 +58,61 @@ private fun Color.lightened(factor: Float = 0.80f): Color =
 private fun Color.darkened(factor: Float = 0.18f): Color =
     Color(red * (1f - factor), green * (1f - factor), blue * (1f - factor), alpha)
 
-/**
- * رنگ‌بندیِ سطوحِ «اصلی» — دکمهٔ اصلی، FAB، آیتمِ فعالِ نوارِ پایین و چیپ‌های انتخاب‌شده.
- *
- *  - [OCEAN] (پیش‌فرض): گرادیانِ آبی → فیروزه‌ایِ شیشه‌ای با لبهٔ سفیدِ نیمه‌شفاف و
- *    هالهٔ نور — مستقل از رنگِ تم (نمونهٔ مرجعِ کاربر).
- *  - [ACCENT]: همان ظاهرِ شیشه‌ای ولی با رنگِ تم (زرد/سبز/آبی/…).
- *
- * مقدارهای قدیمیِ ذخیره‌شده (مثل «ink») به OCEAN برمی‌گردند.
- */
-enum class ButtonTone(val prefKey: String) {
-    OCEAN("ocean"),
-    ACCENT("accent");
-
-    companion object {
-        fun fromPref(value: String?): ButtonTone = entries.firstOrNull { it.prefKey == value } ?: OCEAN
+/** RGB → HSL؛ h بر حسبِ درجه (۰..۳۶۰)، s و l در بازهٔ ۰..۱. */
+private fun Color.toHsl(): FloatArray {
+    val max = maxOf(red, green, blue)
+    val min = minOf(red, green, blue)
+    val l = (max + min) / 2f
+    val d = max - min
+    if (d < 1e-4f) return floatArrayOf(0f, 0f, l)
+    val s = if (l > 0.5f) d / (2f - max - min) else d / (max + min)
+    val h = 60f * when (max) {
+        red -> (green - blue) / d + (if (green < blue) 6f else 0f)
+        green -> (blue - red) / d + 2f
+        else -> (red - green) / d + 4f
     }
+    return floatArrayOf(h, s, l)
+}
+
+private fun hslColor(h: Float, s: Float, l: Float, alpha: Float = 1f): Color {
+    val hh = ((h % 360f) + 360f) % 360f
+    val c = (1f - abs(2f * l - 1f)) * s
+    val x = c * (1f - abs((hh / 60f) % 2f - 1f))
+    val m = l - c / 2f
+    val (r1, g1, b1) = when {
+        hh < 60f -> Triple(c, x, 0f)
+        hh < 120f -> Triple(x, c, 0f)
+        hh < 180f -> Triple(0f, c, x)
+        hh < 240f -> Triple(0f, x, c)
+        hh < 300f -> Triple(x, 0f, c)
+        else -> Triple(c, 0f, x)
+    }
+    return Color((r1 + m).coerceIn(0f, 1f), (g1 + m).coerceIn(0f, 1f), (b1 + m).coerceIn(0f, 1f), alpha)
+}
+
+/** ابتدای گرادیانِ سطحِ اصلی: همان فام، کمی تیره‌تر و پُررنگ‌تر. */
+private fun Color.gradientStart(): Color {
+    val (h, s, l) = toHsl()
+    if (s < 0.08f) return darkened(0.10f)
+    return hslColor(h, (s + 0.03f).coerceAtMost(1f), (l - 0.06f).coerceAtLeast(0.16f), alpha)
+}
+
+/**
+ * انتهای گرادیانِ سطحِ اصلی: کمی روشن‌تر و تا ۱۲ درجه چرخیده به‌سمتِ نزدیک‌ترین
+ * رنگِ درخشانِ چرخهٔ رنگ (زرد ۶۰°، فیروزه‌ای ۱۸۰°، سرخابی ۳۰۰°). برای خاکستری‌ها
+ * فقط روشن‌تر می‌شود.
+ */
+private fun Color.gradientEnd(): Color {
+    val (h, s, l) = toHsl()
+    if (s < 0.08f) return lightened(0.18f)
+    var shift = 0f
+    var best = 361f
+    for (target in floatArrayOf(60f, 180f, 300f)) {
+        val delta = ((target - h + 540f) % 360f) - 180f
+        if (abs(delta) < best) { best = abs(delta); shift = delta }
+    }
+    shift = shift.coerceIn(-12f, 12f)
+    return hslColor(h + shift, s, (l + 0.08f).coerceAtMost(0.78f), alpha)
 }
 
 data class ThemeState(
@@ -80,8 +120,7 @@ data class ThemeState(
     val customColor: Color? = null,
     val isDark: Boolean = false,
     val followSystem: Boolean = false,
-    val amoledDark: Boolean = false,
-    val buttonTone: ButtonTone = ButtonTone.OCEAN
+    val amoledDark: Boolean = false
 ) {
     val accentPrimary: Color get() = customColor ?: lamp.primary
     val accentLight: Color get() = customColor?.lightened() ?: lamp.light
@@ -91,39 +130,29 @@ data class ThemeState(
     /** رنگِ متن/آیکونی که مستقیم روی [accentPrimary] می‌نشیند (زرد → تیره، آبی/سبز → سفید). */
     val onAccent: Color get() = if (accentPrimary.luminance() > 0.45f) DsAccent.OnAccentWarm else Color.White
 
-    /** ابتدا و انتهای گرادیانِ سطوحِ اصلی. */
-    val primaryStart: Color get() = when (buttonTone) {
-        ButtonTone.OCEAN -> DsAccent.OceanStart
-        ButtonTone.ACCENT -> accentPrimary.darkened(0.12f)
-    }
-    val primaryEnd: Color get() = when (buttonTone) {
-        ButtonTone.OCEAN -> DsAccent.OceanEnd
-        ButtonTone.ACCENT -> accentPrimary.lightened(0.18f)
-    }
+    /**
+     * ابتدا/انتهای گرادیانِ سطوحِ اصلی (دکمهٔ اصلی، FAB، تبِ فعال، چیپ‌های انتخاب‌شده).
+     * از خودِ رنگِ تم ساخته می‌شوند تا با عوض‌کردنِ تم، دکمه‌ها هم عوض شوند:
+     * ابتدا کمی تیره‌تر، انتها کمی روشن‌تر و چرخیده به‌سمتِ نزدیک‌ترین رنگِ «درخشان»
+     * (آبی → فیروزه‌ای، طلایی → زرد، بنفش → سرخابی) — همان حسِ شیشه‌ایِ مرجع.
+     */
+    val primaryStart: Color get() = accentPrimary.gradientStart()
+    val primaryEnd: Color get() = accentPrimary.gradientEnd()
 
     /** رنگِ تختِ معادلِ گرادیان — برای سایه/هاله و جاهایی که Brush نمی‌پذیرند. */
-    val primaryFill: Color get() = when (buttonTone) {
-        ButtonTone.OCEAN -> DsAccent.OceanMid
-        ButtonTone.ACCENT -> accentPrimary
-    }
+    val primaryFill: Color get() = accentPrimary
 
     /** گرادیانِ افقیِ سطوحِ اصلی (چیپ‌ها، تبِ فعال، دکمه‌های کوچک). */
     val primaryBrush: Brush get() = Brush.horizontalGradient(listOf(primaryStart, primaryEnd))
 
-    /** رنگِ محتوا روی سطوحِ اصلی. */
-    val onPrimary: Color get() = when (buttonTone) {
-        ButtonTone.OCEAN -> Color.White
-        ButtonTone.ACCENT -> onAccent
-    }
+    /** رنگِ محتوا روی سطوحِ اصلی (زرد → تیره، آبی/سبز → سفید). */
+    val onPrimary: Color get() = onAccent
 
     /** لبهٔ شیشه‌ایِ سفیدِ نیمه‌شفافِ دورِ سطوحِ اصلی. */
     val primaryEdge: Color get() = Color.White.copy(alpha = if (onPrimary == Color.White) 0.55f else 0.70f)
 
     /** رنگِ هالهٔ نورِ دکمهٔ اصلی و FAB. */
-    val primaryGlow: Color get() = when (buttonTone) {
-        ButtonTone.OCEAN -> DsAccent.OceanGlow
-        ButtonTone.ACCENT -> accentPrimary
-    }
+    val primaryGlow: Color get() = accentPrimary
 
     val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
     val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted

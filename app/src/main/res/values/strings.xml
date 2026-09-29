@@ -243,10 +243,6 @@
     <string name="set_sample_card">Sample card</string>
     <string name="set_preview_desc">Live preview of colour and dark/light mode</string>
     <string name="set_preview_hint">Changing the colour above applies here instantly</string>
-    <string name="set_button_tone">Primary button colour</string>
-    <string name="set_button_tone_accent">Theme colour</string>
-    <string name="set_button_tone_desc">Applies to Save buttons, the add button, the active tab and selected filters. Glass blue is independent of the theme colour; the second option uses the same glass look with your theme colour.</string>
-    <string name="set_button_tone_ocean">Glass blue</string>
     <string name="set_amoled">Pure Black (AMOLED)</string>
     <string name="set_amoled_switch">Pure black background</string>
     <string name="set_amoled_desc">In dark mode the background turns fully black — saves battery on AMOLED screens</string>

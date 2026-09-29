@@ -77,7 +77,6 @@ object BackupManager {
             put("follow_system", t.followSystem)
             put("amoled", t.amoledDark)
             put("custom", t.customColor?.value?.toLong() ?: -1L)
-            put("button_tone", t.buttonTone.prefKey)
         })
 
         // === قفل برنامه ===
@@ -322,8 +321,7 @@ object BackupManager {
                     customColor = custom,
                     isDark = t.optBoolean("dark", false),
                     followSystem = t.optBoolean("follow_system", false),
-                    amoledDark = t.optBoolean("amoled", false),
-                    buttonTone = com.mrm.pgmanager.ui.theme.ButtonTone.fromPref(t.optString("button_tone", null))
+                    amoledDark = t.optBoolean("amoled", false)
                 ))
                 restored++
             }

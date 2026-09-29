@@ -243,10 +243,6 @@
     <string name="set_sample_card">نمونه کارت</string>
     <string name="set_preview_desc">پیش‌نمایش زندهٔ رنگ و حالت تیره/روشن</string>
     <string name="set_preview_hint">تغییر رنگ بالا بلافاصله روی این کارت‌ها اعمال می‌شود</string>
-    <string name="set_button_tone">رنگِ دکمه‌های اصلی</string>
-    <string name="set_button_tone_accent">رنگِ تم</string>
-    <string name="set_button_tone_desc">روی دکمه‌های ذخیره، دکمهٔ افزودن، تبِ فعال و فیلترهای انتخاب‌شده اثر می‌گذارد. «آبیِ شیشه‌ای» مستقل از رنگِ تم است؛ گزینهٔ دوم همان ظاهرِ شیشه‌ای را با رنگِ تمِ شما می‌سازد.</string>
-    <string name="set_button_tone_ocean">آبیِ شیشه‌ای</string>
     <string name="set_amoled">تیرهٔ خالص (AMOLED)</string>
     <string name="set_amoled_switch">پس‌زمینهٔ مشکی مطلق</string>
     <string name="set_amoled_desc">در حالت تیره، پس‌زمینه کاملاً سیاه می‌شود؛ صرفه‌جویی باتری در نمایشگرهای AMOLED</string>

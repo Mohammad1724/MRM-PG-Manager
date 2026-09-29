@@ -49,7 +49,6 @@ import com.mrm.pgmanager.ui.dialogs.SettingsSwitchRow
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.GlassGreen
 import com.mrm.pgmanager.ui.theme.GlassRed
-import com.mrm.pgmanager.ui.theme.ButtonTone
 import com.mrm.pgmanager.ui.theme.LampColor
 import kotlinx.coroutines.launch
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -509,22 +508,6 @@ private fun AppearanceSection(
     }
 
     CustomColorCard(themeState = themeState, onThemeChange = onThemeChange)
-
-    // رنگِ دکمه‌های اصلی — پیش‌فرض گرادیانِ آبیِ شیشه‌ای (مستقل از رنگِ تم)؛
-    // گزینهٔ دوم همان ظاهرِ شیشه‌ای را با رنگِ تم می‌سازد.
-    SettingsCard(stringResource(R.string.set_button_tone), AppIcon.Tune) {
-        SegmentedControl(
-            options = listOf(
-                stringResource(R.string.set_button_tone_ocean),
-                stringResource(R.string.set_button_tone_accent)
-            ),
-            selectedIndex = if (themeState.buttonTone == ButtonTone.ACCENT) 1 else 0,
-            onSelect = { index ->
-                onThemeChange(themeState.copy(buttonTone = if (index == 1) ButtonTone.ACCENT else ButtonTone.OCEAN))
-            }
-        )
-        Text(stringResource(R.string.set_button_tone_desc), fontSize = 11.sp, color = theme.mutedColor)
-    }
 
     ThemePreviewCard(themeState = themeState)
 
