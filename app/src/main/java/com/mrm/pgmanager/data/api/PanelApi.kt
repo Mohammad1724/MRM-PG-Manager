@@ -82,6 +82,14 @@ object PanelApi {
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
+    /**
+     * فقط برای تست‌های واحد: MockWebServer روی `http://localhost` بالا می‌آید و مسیرِ
+     * ورود (`login`/`loginWithApiKey`) از [baseUrl] می‌گذرد که http را رد می‌کند.
+     * در اپ همیشه false است؛ حتی برای loopback، چون manifest cleartext را بسته است.
+     */
+    @androidx.annotation.VisibleForTesting
+    internal var allowCleartextLoopbackForTests = false
+
     private fun baseUrl(input: String): String {
         val trimmed = input.trim()
         require(trimmed.isNotBlank()) { "Panel address is required" }
@@ -90,7 +98,8 @@ object PanelApi {
             ?: error("Invalid URL")
         require(!uri.scheme.isNullOrBlank() && !uri.host.isNullOrBlank()) { "Invalid URL" }
         // اپ با usesCleartextTraffic=false ساخته شده؛ http بدونِ پیامِ واضح در لایهٔ شبکه fail می‌شد.
-        require(!uri.scheme.equals("http", ignoreCase = true)) {
+        val loopback = uri.host == "localhost" || uri.host == "127.0.0.1"
+        require(!uri.scheme.equals("http", ignoreCase = true) || (allowCleartextLoopbackForTests && loopback)) {
             "Cleartext http is not supported, use https"
         }
         // مسیر رو به‌طور پیش‌فرض حذف می‌کنیم (کاربر معمولاً آدرسِ داشبورد/کامل وارد می‌کند و این از 405 جلوگیری می‌کند).

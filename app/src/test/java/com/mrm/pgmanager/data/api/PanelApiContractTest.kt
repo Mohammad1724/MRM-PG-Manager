@@ -30,9 +30,14 @@ class PanelApiContractTest {
         server = MockWebServer()
         server.start()
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
+        // مسیرهای ورود از baseUrl() می‌گذرند که http را رد می‌کند؛ فقط برای localhostِ تست باز می‌شود.
+        PanelApi.allowCleartextLoopbackForTests = true
     }
 
-    @After fun tearDown() = server.shutdown()
+    @After fun tearDown() {
+        PanelApi.allowCleartextLoopbackForTests = false
+        server.shutdown()
+    }
 
     private fun user(id: Long, username: String) = PanelUser(
         id = id, username = username, status = "active", usedTraffic = 0L, dataLimit = 0L, expire = null, createdAt = null
