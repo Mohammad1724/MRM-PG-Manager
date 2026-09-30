@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusDirection
@@ -115,10 +116,10 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 if (sessionExpired) {
-                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEF3C7)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFDE68A)), DsRadius.Md).padding(10.dp),
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.WarningBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.WarningBorder), DsRadius.Md).padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(AppIcon.Timer, tint = Color(0xFF92400E), size = 16.dp)
-                        Text(stringResource(R.string.login_session_expired_banner), color = Color(0xFF92400E), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        RoundedAppIcon(AppIcon.Timer, tint = DsSemantic.OnWarning, size = 16.dp)
+                        Text(stringResource(R.string.login_session_expired_banner), color = DsSemantic.OnWarning, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                     }
                 }
 
@@ -151,7 +152,7 @@ fun LoginScreen(
                     Text(stepConnecting, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
                 if (error != null) {
-                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEE2E2)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFECACA)), DsRadius.Md).padding(10.dp),
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.DangerBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.DangerBorder), DsRadius.Md).padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 16.dp)
                         Text(error!!, color = GlassRed, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))

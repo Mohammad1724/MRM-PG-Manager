@@ -45,6 +45,11 @@ object DsSemantic {
     val Info = Color(0xFF2563EB)
     val DangerSoft = Color(0xFF7A7886)
     val Violet = Color(0xFF7C3AED)
+    val Disabled = Color(0xFF8A8A8A)        // وضعیتِ غیرفعال (خاکستریِ روشن/تیره)
+    val WarningBorder = Color(0xFFFDE68A)    // حاشیهٔ روی WarningBg
+    val OnWarning = Color(0xFF92400E)        // متن/آیکون روی WarningBg
+    val DangerBorder = Color(0xFFFECACA)     // حاشیهٔ روی DangerBg
+    val OnSuccess = Color(0xFF166534)        // متن روی SuccessBg
 }
 
 /** Brand accent — PasarGuard golden yellow. */

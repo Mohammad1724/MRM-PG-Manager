@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -45,7 +46,7 @@ fun UsageChart(
     valueFormatter: (Long) -> String = { it.toString() }
 ) {
     val theme = LocalThemeState.current
-    val grid = if (themeIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+    val grid = if (themeIsDark) Color(0xFF374151) else DsNeutral.HairlineLight
 
     if (points.isEmpty()) {
         Box(

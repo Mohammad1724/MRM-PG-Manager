@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -78,7 +79,7 @@ private fun CircularUsage(
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 6.dp.toPx()
             drawArc(
-                color = if (theme.isDark) Color.White.copy(0.07f) else Color(0xFFE9EBEF),
+                color = if (theme.isDark) Color.White.copy(0.07f) else DsNeutral.HairlineSubtle,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -262,7 +263,7 @@ fun UserDetailsDialog(
     val isDisabled = currentUser.status == "disabled"
     val statusColor = when (currentUser.status) {
         "active" -> GlassGreen; "expired" -> GlassRed; "limited" -> GlassAmber
-        "disabled" -> Color(0xFF8A8A8A); "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor
+        "disabled" -> DsSemantic.Disabled; "on_hold" -> DsSemantic.Violet; else -> theme.mutedColor
     }
     val statusLabel = when (currentUser.status) {
         "active" -> stringResource(R.string.active)

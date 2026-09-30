@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -327,12 +329,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         // کنارِ خودِ ردیف تعریف شده و به زبان کاری ندارد.
                         listOf(
                             UserBreakdownRow(stringResource(R.string.users_section), s.totalUsers, Color.Transparent, false),
-                            UserBreakdownRow(stringResource(R.string.active_users), s.activeUsers, Color(0xFF16A34A), true),
-                            UserBreakdownRow(stringResource(R.string.online_users), s.onlineUsers, Color(0xFF22C55E), true),
-                            UserBreakdownRow(stringResource(R.string.expired_users), s.expiredUsers, Color(0xFFF97316), true),
-                            UserBreakdownRow(stringResource(R.string.limited_users), s.limitedUsers, Color(0xFFEF4444), true),
-                            UserBreakdownRow(stringResource(R.string.on_hold_users), s.onHoldUsers, Color(0xFFA855F7), true),
-                            UserBreakdownRow(stringResource(R.string.disabled_users), s.disabledUsers, Color(0xFF6B7280), true),
+                            UserBreakdownRow(stringResource(R.string.active_users), s.activeUsers, DsSemantic.Success, true),
+                            UserBreakdownRow(stringResource(R.string.online_users), s.onlineUsers, DsSemantic.Success, true),
+                            UserBreakdownRow(stringResource(R.string.expired_users), s.expiredUsers, DsSemantic.Warning, true),
+                            UserBreakdownRow(stringResource(R.string.limited_users), s.limitedUsers, DsSemantic.Danger, true),
+                            UserBreakdownRow(stringResource(R.string.on_hold_users), s.onHoldUsers, DsSemantic.Violet, true),
+                            UserBreakdownRow(stringResource(R.string.disabled_users), s.disabledUsers, DsNeutral.Muted, true),
                         ).forEach { row ->
                             val pct = if (row.showPercent && s.totalUsers > 0)
                                 String.format(java.util.Locale.US, "%.0f%%", row.count * 100.0 / s.totalUsers) else null
@@ -392,7 +394,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                 val diff = ((last - first) / first * 100).toInt()
                                 if (diff >= 0) stringResource(R.string.trending_up, diff) else stringResource(R.string.trending_down, -diff)
                             } else stringResource(R.string.no_trend)
-                            val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) Color(0xFF16A34A) else Color(0xFFDC2626)
+                            val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) DsSemantic.Success else DsSemantic.Danger
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(trendingText, fontSize = 11.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
@@ -466,7 +468,7 @@ private fun UsageMiniChart(points: List<TrafficPoint>, themeIsDark: Boolean, acc
     Canvas(Modifier.fillMaxWidth().height(90.dp)) {
         val w = size.width; val h = size.height
         // grid
-        for (i in 1..3) drawLine(if (themeIsDark) Color.White.copy(0.08f) else Color(0xFFE5E7EB), androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
+        for (i in 1..3) drawLine(if (themeIsDark) Color.White.copy(0.08f) else DsNeutral.HairlineLight, androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
         val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
         if (points.size > 1) {
             val path = androidx.compose.ui.graphics.Path()

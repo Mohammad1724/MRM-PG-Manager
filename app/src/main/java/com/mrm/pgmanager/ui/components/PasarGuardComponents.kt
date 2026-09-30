@@ -207,7 +207,7 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (icon != null) {
-                RoundedAppIcon(icon, tint = Color(0xFFCA8A04), size = 14.dp)
+                RoundedAppIcon(icon, tint = DsAccent.GoldDeep, size = 14.dp)
             }
             Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.inkColor)
         }
@@ -279,7 +279,7 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
 @Composable
 fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4.dp, track: Color? = null, fill: Color = DsSemantic.Success) {
     val t = LocalThemeState.current
-    val resolvedTrack = track ?: if (t.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6)
+    val resolvedTrack = track ?: if (t.isDark) Color.White.copy(0.10f) else DsNeutral.BackgroundAlt
     val target = progress.coerceIn(0f, 1f)
     val animated = animateFloatAsState(targetValue = target, animationSpec = DsAnim.counter(), label = "usageBar")
     Box(
@@ -300,11 +300,11 @@ fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4
 @Composable
 fun PGStatusChip(text: String, dot: Color = DsSemantic.Success) {
     Row(
-        Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFDCFCE7)).border(BorderStroke(0.5.dp, Color(0xFFBBF7D0)), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
+        Modifier.clip(RoundedCornerShape(50)).background(DsSemantic.SuccessBg).border(BorderStroke(0.5.dp, DsSemantic.SuccessBorder), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(dot))
-        Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF166534))
+        Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.OnSuccess)
     }
 }
 

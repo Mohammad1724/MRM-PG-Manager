@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -418,7 +419,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             MrmText("$peakCount", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    UsageChart(points = countPoints, accent = Color(0xFFF59E0B), themeIsDark = theme.isDark, valueFormatter = { it.toString() })
+                    UsageChart(points = countPoints, accent = DsSemantic.Warning, themeIsDark = theme.isDark, valueFormatter = { it.toString() })
                     Spacer(Modifier.height(56.dp))
                 }
             }
@@ -469,7 +470,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
                             isTechnical = true, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1
                         )
                     }
-                    Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6))) {
+                    Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) Color.White.copy(0.10f) else DsNeutral.BackgroundAlt)) {
                         if (share > 0.005f) Box(Modifier.fillMaxWidth(share).fillMaxHeight().background(DsSemantic.Success, RoundedCornerShape(50)))
                     }
                 }

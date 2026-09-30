@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.ui.dialogs
 
 import android.content.Context
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -87,7 +88,7 @@ fun QuickActionSheet(
                                 "active" -> GlassGreen to stringResource(R.string.active)
                                 "expired" -> GlassRed to stringResource(R.string.expired)
                                 "limited" -> GlassAmber to stringResource(R.string.limited)
-                                "disabled" -> Color(0xFF8A8A8A) to stringResource(R.string.disabled)
+                                "disabled" -> DsSemantic.Disabled to stringResource(R.string.disabled)
                                 "on_hold" -> DsSemantic.Violet to stringResource(R.string.on_hold)
                                 else -> theme.mutedColor to user.status
                             }

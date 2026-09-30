@@ -26,6 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsSemantic
+import com.mrm.pgmanager.ui.designsystem.DsAccent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -579,7 +581,7 @@ fun AppLockScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp),
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, themeState.borderColor), RoundedCornerShape(16.dp)).padding(24.dp)
         ) {
-            Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFFFFBEB)).border(BorderStroke(1.dp, Color(0xFFFDE68A)), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(DsAccent.IconBg).border(BorderStroke(1.dp, DsSemantic.WarningBorder), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {

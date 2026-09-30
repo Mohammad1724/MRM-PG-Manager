@@ -260,7 +260,7 @@ fun CompactGlassField(
                 )
             }
             if (value.isNotEmpty()) Box(
-                Modifier.size(20.dp).clip(DsRadius.Md).background(Color.Black.copy(0.06f)).clickable { onValueChange("") },
+                Modifier.size(20.dp).clip(DsRadius.Md).background(if (theme.isDark) Color.White.copy(0.10f) else Color.Black.copy(0.06f)).clickable { onValueChange("") },
                 contentAlignment = Alignment.Center
             ) { Text("×", fontSize = 12.sp, color = theme.mutedColor) }
         }

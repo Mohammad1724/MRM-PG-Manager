@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
@@ -484,7 +485,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
         Text(stringResource(R.string.set_inv_logo_desc), fontSize = 11.sp, color = theme.mutedColor)
         Box(
             Modifier.fillMaxWidth().clip(DsRadius.Xl)
-                .background(if (theme.isDark) Color.White.copy(0.06f) else Color(0xFFF8F8FA))
+                .background(if (theme.isDark) Color.White.copy(0.06f) else DsNeutral.BackgroundLight)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
                 .padding(16.dp),
             contentAlignment = Alignment.Center

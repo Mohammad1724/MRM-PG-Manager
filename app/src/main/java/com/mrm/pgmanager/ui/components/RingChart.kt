@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.PlatformTextStyle
@@ -105,7 +106,7 @@ fun RingChart(
 ) {
     val t = LocalThemeState.current
     val track = if (trackColor != Color.Unspecified) trackColor
-    else if (t.isDark) Color.White.copy(0.10f) else Color(0xFFEDEFF3)
+    else if (t.isDark) Color.White.copy(0.10f) else DsNeutral.HairlineSubtle
 
     // در اولین نمایش، حلقه از صفر تا مقدارش «جارو» می‌شود (فریمِ اول صفر است و
     // بلافاصله به هدف انیمیت می‌شود)؛ رفرش‌های بعدی فقط از مقدارِ قبلی می‌لغزند.

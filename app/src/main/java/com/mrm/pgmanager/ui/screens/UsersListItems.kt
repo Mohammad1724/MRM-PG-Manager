@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -151,7 +152,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
     val progressPercent = if (user.dataLimit > 0L) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt().coerceIn(0,100) else 0
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val displayProgress = if (user.dataLimit == 0L) 0f else actualProgress
-    val progressColor = when { user.dataLimit <= 0L -> Color(0xFF9CA3AF); progressPercent < 70 -> Color(0xFF16A34A); progressPercent < 90 -> Color(0xFFD97706); else -> Color(0xFFDC2626) }
+    val progressColor = when { user.dataLimit <= 0L -> DsNeutral.MutedLight; progressPercent < 70 -> DsSemantic.Success; progressPercent < 90 -> DsSemantic.Warning; else -> DsSemantic.Danger }
     val shape = DsRadius.Lg
 
     // نمای گرید: کارت شیشه‌ای با سایهٔ نرم و مرز ظریف design system جدید.
@@ -202,7 +203,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                 )
             }
             // نوارِ نازکِ مصرف — ۴dp، انیمیت‌شونده (PGProgressBar در فازِ draw می‌کشد).
-            PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
+            PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
             // کپی/QR بیرون از اسکرول می‌مانند (همیشه دیده شوند)؛ فقط نشان‌های جانبی اسکرول می‌خورند.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
@@ -212,8 +213,8 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                         OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
                     }
                     if (user.groupNames.isNotEmpty()) {
-                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                            Text(user.groupNames.first(), fontSize = 11.sp, color = Color(0xFF8B5CF6), maxLines = 1)
+                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(DsSemantic.Violet.copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                            Text(user.groupNames.first(), fontSize = 11.sp, color = DsSemantic.Violet, maxLines = 1)
                         }
                     }
                 }
@@ -262,7 +263,7 @@ internal fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, com
     val theme = LocalThemeState.current
     val (icon, color) = when (user.status) {
         "active" -> AppIcon.StatusActive to GlassGreen
-        "disabled" -> AppIcon.StatusDisabled to Color(0xFF8A8A8A)
+        "disabled" -> AppIcon.StatusDisabled to DsSemantic.Disabled
         "expired" -> AppIcon.StatusExpired to GlassRed
         "limited" -> AppIcon.StatusLimited to GlassAmber
         "on_hold" -> AppIcon.StatusOnHold to DsSemantic.Violet
@@ -389,7 +390,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PGProgressBar(progress = shownProgress, modifier = Modifier.weight(1f), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
+                PGProgressBar(progress = shownProgress, modifier = Modifier.weight(1f), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
         }
@@ -426,7 +427,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
                     MrmText(traffic, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
                     MrmText(remainingText(user), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
-                PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
+                PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
             }
             IconRowAction(AppIcon.Copy, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
             IconRowAction(AppIcon.Qr, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
