@@ -126,10 +126,10 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
             .clip(shape)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
-            .padding(horizontal = 10.dp, vertical = 9.dp)
+            .padding(horizontal = DsSpacing.Mid, vertical = 9.dp)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 val isGold = accent == theme.accentPrimary
                 val iconBg = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.15f) else theme.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
                 val iconBorder = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.22f) else theme.accentPrimary.copy(alpha = 0.24f) } else accent.copy(0.18f)
@@ -169,10 +169,10 @@ internal fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modi
         .clip(shape)
         .background(theme.searchBgColor)
         .border(BorderStroke(DsBorder.Hairline, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
-        .padding(horizontal = 12.dp)
+        .padding(horizontal = DsSpacing.Lg)
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
-        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             RoundedAppIcon(AppIcon.Search, contentDescription = stringResource(R.string.search), tint = theme.mutedColor, size = 16.dp)
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (query.isEmpty()) Text(stringResource(R.string.search), color = theme.mutedColor.copy(0.6f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -223,13 +223,13 @@ internal fun StatsCardsRow(
     debtorCount: Int = 0
 ) {
     val theme = LocalThemeState.current
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
         // همان hierarchy پنل: شاخص‌های زنده در بالا و شمار کل در یک سطح جداگانه.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             StatGlassCard(icon = AppIcon.User, label = stringResource(R.string.online_users), value = "${animatedCount(onlineUsers)}", accent = GlassGreen, modifier = Modifier.weight(1f))
             StatGlassCard(icon = AppIcon.Check, label = stringResource(R.string.active_users), value = "${animatedCount(activeUsers)}", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             StatGlassCard(icon = AppIcon.Users, label = stringResource(R.string.users_section), value = "${animatedCount(totalUsers)}", accent = theme.accentPrimary, modifier = Modifier.weight(1f))
             if (debtorCount > 0) {
                 StatGlassCard(icon = AppIcon.Warning, label = stringResource(R.string.debtor), value = "${animatedCount(debtorCount)}", accent = GlassRed, modifier = Modifier.weight(1f))
@@ -270,7 +270,7 @@ internal fun FilterAndControlBar(
     val theme = LocalThemeState.current
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
         Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -339,7 +339,7 @@ internal fun FilterAndControlBar(
             }
         }
         // View mode compact
-        Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(DsSpacing.Xxs), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
             ViewModeIcon(AppIcon.GridView, stringResource(R.string.us_view_grid), viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
             ViewModeIcon(AppIcon.ListRows, stringResource(R.string.us_view_compact), viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
             ViewModeIcon(AppIcon.DenseList, stringResource(R.string.us_view_micro), viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
@@ -348,7 +348,7 @@ internal fun FilterAndControlBar(
     if (showFilterSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showFilterSheet = false }) {
             // فهرست بلندتر شده (فیلترهای سمتِ سرور + مالک)؛ روی صفحه‌های کوتاه اسکرول می‌شود.
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 Text(stringResource(R.string.filter), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(
                     stringResource(R.string.all) to UserFilter.ALL,
@@ -366,14 +366,14 @@ internal fun FilterAndControlBar(
                     (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
                 ).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
                 // مالک (`admin=`) — فقط وقتی پنل بیش از یک ادمین دارد.
                 if (admins.size > 1) {
-                    Text(stringResource(R.string.us_owner_filter), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.padding(top = 4.dp))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.us_owner_filter), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.padding(top = DsSpacing.Xs))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FilterChipItem(stringResource(R.string.us_owner_all), ownerFilter == null) { onOwnerFilterChange(null) }
                         admins.forEach { a ->
                             FilterChipItem(a.username, ownerFilter == a.username) { onOwnerFilterChange(a.username) }
@@ -385,11 +385,11 @@ internal fun FilterAndControlBar(
     }
     if (showSortSheet) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSortSheet = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED, stringResource(R.string.us_sort_last_online) to UserSort.LAST_ONLINE).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
@@ -407,7 +407,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
         .clip(shape)
         .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)
         .clickable(onClick = onClick)
-        .padding(horizontal = 12.dp),
+        .padding(horizontal = DsSpacing.Lg),
         contentAlignment = Alignment.Center
     ) {
         Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
@@ -418,7 +418,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
 internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp)) {
+    Box(modifier = Modifier.clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm)) {
         Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }

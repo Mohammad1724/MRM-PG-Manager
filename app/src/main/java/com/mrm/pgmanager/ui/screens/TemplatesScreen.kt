@@ -156,7 +156,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             if (canCreate) MrmFab(
                 icon = AppIcon.Add,
                 contentDescription = addTemplateLabel,
-                modifier = Modifier.padding(bottom = 72.dp, end = 4.dp)
+                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs)
             ) { editing = UserTemplateItem(id = 0, name = "") }
         }
     ) { padding ->
@@ -178,8 +178,8 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
                     // دکمهٔ همبرگری حذف شده (ناوبری به کپسولِ پایین رفت)، پس دیگر
                     // لازم نیست ۵۶dp بالای صفحه خالی بماند.
-                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
             ) {
                 // ── سربرگ
                 PGScreenHeader(
@@ -204,9 +204,9 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Success.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Success.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.CheckCircle, tint = DsSemantic.Success, size = 14.dp)
                         Text(msg, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
@@ -219,9 +219,9 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Danger.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Danger.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = DsSemantic.Danger, size = 14.dp)
                         Text(
@@ -280,7 +280,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     else -> {
                         val listIntro = rememberListIntro()
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                             contentPadding = PaddingValues(bottom = 140.dp)
                         ) {
                             itemsIndexed(filtered, key = { _, t -> t.id }) { index, tpl ->
@@ -375,9 +375,9 @@ private fun TemplateRow(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         Box(
             Modifier.size(36.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.14f)),
@@ -389,7 +389,7 @@ private fun TemplateRow(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
             ) {
                 Text(
                     template.name, fontSize = 13.sp, fontWeight = FontWeight.Bold,
@@ -529,8 +529,8 @@ private fun TemplateEditorDialog(
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(DsSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
         ) {
             Text(
                 stringResource(if (isCreate) R.string.create_template else R.string.edit_template),
@@ -541,7 +541,7 @@ private fun TemplateEditorDialog(
             // همیشه پایین دیده شوند.
             Column(
                 Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
             ) {
                 // ── نام
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -556,7 +556,7 @@ private fun TemplateEditorDialog(
                 }
 
                 // ── حجم و مدت، کنار هم
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         FieldLabel(stringResource(R.string.tpl_data_limit) + " (" + stringResource(R.string.tpl_gb) + ")")
                         CompactGlassField(
@@ -605,7 +605,7 @@ private fun TemplateEditorDialog(
                             Modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(rememberScrollState())
                                 .clip(DsRadius.Md).background(theme.searchBgColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                                .padding(vertical = 4.dp)
+                                .padding(vertical = DsSpacing.Xs)
                         ) {
                             availableGroups.forEach { g ->
                                 val checked = g.id in selectedGroups
@@ -616,7 +616,7 @@ private fun TemplateEditorDialog(
                                                 if (checked) selectedGroups - g.id else selectedGroups + g.id
                                             touched = true
                                         }
-                                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                                        .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(9.dp)
                                 ) {
@@ -644,9 +644,9 @@ private fun TemplateEditorDialog(
                 Row(
                     Modifier.fillMaxWidth().clip(DsRadius.Md)
                         .clickable { showAdvanced = !showAdvanced }
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = DsSpacing.Xs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                 ) {
                     RoundedAppIcon(
                         if (showAdvanced) AppIcon.ChevronUp else AppIcon.ChevronDown,
@@ -716,7 +716,7 @@ private fun TemplateEditorDialog(
                     }
 
                     // پیشوند و پسوندِ نام کاربری
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             FieldLabel(stringResource(R.string.tpl_username_prefix))
                             CompactGlassField(
@@ -752,7 +752,7 @@ private fun TemplateEditorDialog(
                     Row(
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .clickable { resetUsages = !resetUsages }
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = DsSpacing.Xxs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
@@ -762,7 +762,7 @@ private fun TemplateEditorDialog(
                     Row(
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .clickable { isDisabled = !isDisabled }
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = DsSpacing.Xxs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(9.dp)
                     ) {
@@ -776,7 +776,7 @@ private fun TemplateEditorDialog(
                 Text(it, fontSize = 11.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 PGSecondaryButton(
                     stringResource(R.string.cancel),
                     onClick = { if (!saving) onDismiss() },

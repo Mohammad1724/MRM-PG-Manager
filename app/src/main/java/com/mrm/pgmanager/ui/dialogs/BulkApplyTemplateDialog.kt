@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
@@ -64,9 +65,9 @@ fun BulkApplyTemplateDialog(
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
+                Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
             ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                 Text(stringResource(R.string.bt_title, selectedCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text(stringResource(R.string.bt_subtitle, selectedCount), color = theme.mutedColor, fontSize = 11.5.sp)
 
@@ -78,14 +79,14 @@ fun BulkApplyTemplateDialog(
                 } else if (loadFailed) {
                     Text(stringResource(R.string.bt_load_failed), fontSize = 11.sp, color = GlassRed)
                 } else if (templates.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm), modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                         templates.forEach { t ->
                             val sel = selectedTemplateId == t.id
                             // ردیف انتخاب تمپلت: انتخاب‌شده = پرکنندهٔ اصلیِ تم + متنِ روی آن، بقیه = کاشی خاکستری.
                             Box(
                                 Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
                                     .primarySurface(theme, sel, DsRadius.Md, idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp)
-                                    .clickable { selectedTemplateId = t.id }.padding(horizontal = 12.dp),
+                                    .clickable { selectedTemplateId = t.id }.padding(horizontal = DsSpacing.Lg),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -103,7 +104,7 @@ fun BulkApplyTemplateDialog(
 
                 formError?.let { Text(it, color = GlassRed, fontSize = 11.sp) }
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     PGSecondaryButton(stringResource(R.string.bt_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     val pickFirstMsg = stringResource(R.string.bt_pick_first)
                     PGPrimaryButton(stringResource(R.string.bt_apply), onClick = {

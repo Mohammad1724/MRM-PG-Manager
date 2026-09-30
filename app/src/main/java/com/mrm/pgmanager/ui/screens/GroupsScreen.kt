@@ -135,7 +135,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             if (canCreate) MrmFab(
                 icon = AppIcon.Add,
                 contentDescription = addGroupLabel,
-                modifier = Modifier.padding(bottom = 72.dp, end = 4.dp)
+                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs)
             ) { editing = GroupDetail(id = 0, name = "") }
         }
     ) { padding ->
@@ -157,8 +157,8 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
                     // دکمهٔ همبرگری حذف شده (ناوبری به کپسولِ پایین رفت)، پس دیگر
                     // لازم نیست ۵۶dp بالای صفحه خالی بماند.
-                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
             ) {
                 PGScreenHeader(
                     title = stringResource(R.string.groups_title),
@@ -182,9 +182,9 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Success.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Success.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.CheckCircle, tint = DsSemantic.Success, size = 14.dp)
                         Text(msg, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
@@ -197,9 +197,9 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Danger.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Danger.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = DsSemantic.Danger, size = 14.dp)
                         Text(
@@ -259,7 +259,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     else -> {
                         val listIntro = rememberListIntro()
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                             contentPadding = PaddingValues(bottom = 140.dp)
                         ) {
                             itemsIndexed(filtered, key = { _, g -> g.id }) { index, group ->
@@ -337,9 +337,9 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // آیکون گروه با رنگِ وضعیت
         Box(
@@ -355,7 +355,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         }
 
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text(
                     group.name, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                     color = if (group.isDisabled) theme.mutedColor else theme.inkColor,
@@ -364,7 +364,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
                 )
                 if (group.isDisabled) PGBadge(stringResource(R.string.group_disabled), DsSemantic.DangerSoft)
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text(
                     stringResource(R.string.group_users_count, group.totalUsers),
                     fontSize = 11.sp, color = theme.mutedColor
@@ -439,8 +439,8 @@ private fun GroupEditorDialog(
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(DsSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
         ) {
             Text(
                 stringResource(if (isCreate) R.string.create_group else R.string.edit_group),
@@ -472,7 +472,7 @@ private fun GroupEditorDialog(
                         Modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(rememberScrollState())
                             .clip(DsRadius.Md).background(theme.searchBgColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                            .padding(vertical = 4.dp)
+                            .padding(vertical = DsSpacing.Xs)
                     ) {
                         allTags.forEach { tag ->
                             val checked = tag in selectedTags
@@ -482,7 +482,7 @@ private fun GroupEditorDialog(
                                         selectedTags = if (checked) selectedTags - tag else selectedTags + tag
                                         touched = true
                                     }
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                    .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(9.dp)
                             ) {
@@ -509,7 +509,7 @@ private fun GroupEditorDialog(
             Row(
                 Modifier.fillMaxWidth().clip(DsRadius.Md)
                     .clickable { disabled = !disabled }
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = DsSpacing.Xxs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
@@ -521,7 +521,7 @@ private fun GroupEditorDialog(
                 Text(it, fontSize = 11.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 PGSecondaryButton(stringResource(R.string.cancel), onClick = { if (!saving) onDismiss() }, modifier = Modifier.weight(1f))
                 PGPrimaryButton(
                     stringResource(R.string.save_changes),

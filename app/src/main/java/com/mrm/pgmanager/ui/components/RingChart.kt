@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -190,9 +191,9 @@ fun PGRingStatCard(
             .clip(DsRadius.Lg)
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         RingChart(segments = segs, diameter = ringSize, stroke = 5.dp) {
             when {

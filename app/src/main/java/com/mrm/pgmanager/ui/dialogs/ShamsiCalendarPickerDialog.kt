@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
@@ -71,18 +72,18 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.cal_title), fontWeight = FontWeight.Bold, color = theme.inkColor)
                         TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text(stringResource(R.string.cal_today), color = theme.accentPrimary) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
                         Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
-                        Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), contentAlignment = Alignment.Center) { Text("${com.mrm.pgmanager.utils.jalaliMonthName(JalaliCalendar.Date(y, m, 1))} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+                        Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), contentAlignment = Alignment.Center) { Text("${com.mrm.pgmanager.utils.jalaliMonthName(JalaliCalendar.Date(y, m, 1))} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                         Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                     }
-                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(200.dp)) {
+                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.height(200.dp)) {
                         items((1..daysInMonth).toList()) { day ->
                             val sel = day == d
                             // روز انتخاب‌شده = پرکنندهٔ اصلیِ تم و متنِ روی آن؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
@@ -91,7 +92,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                             }
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                         PGSecondaryButton(stringResource(R.string.cal_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                         PGPrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f), icon = AppIcon.Check)
                     }

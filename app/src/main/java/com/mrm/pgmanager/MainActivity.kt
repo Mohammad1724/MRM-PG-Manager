@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -579,12 +580,12 @@ fun AppLockScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(22.dp),
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, themeState.borderColor), RoundedCornerShape(16.dp)).padding(24.dp)
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, themeState.borderColor), RoundedCornerShape(16.dp)).padding(DsSpacing.Xxxl)
         ) {
             Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(DsAccent.IconBg).border(BorderStroke(1.dp, DsSemantic.WarningBorder), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(AppIcon.Lock, tint = themeState.inkColor, size = 38.dp)
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text(stringResource(R.string.lock_title), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text(stringResource(R.string.lock_subtitle), fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
             }

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
@@ -144,9 +145,9 @@ internal fun ConnectionSection(
                         BorderStroke(1.dp, if (isActive) theme.accentPrimary.copy(.35f) else theme.borderColor),
                         DsRadius.Lg
                     )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     MrmText(
@@ -161,7 +162,7 @@ internal fun ConnectionSection(
                 if (isActive) {
                     Box(
                         Modifier.clip(DsRadius.Sm).background(theme.accentPrimary.copy(.20f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                     ) {
                         Text(
                             stringResource(R.string.set_conn_active), fontSize = 11.sp,
@@ -172,7 +173,7 @@ internal fun ConnectionSection(
                     Box(
                         Modifier.clip(DsRadius.Sm).background(GlassGreen.copy(.16f)).clickable {
                             store.setActive(acc); accounts = store.readAccounts(); onSwitchAccount(acc)
-                        }.padding(horizontal = 8.dp, vertical = 4.dp)
+                        }.padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                     ) {
                         Text(
                             stringResource(R.string.set_conn_connect), fontSize = 11.sp,
@@ -233,9 +234,9 @@ internal fun ConnectionSection(
                 Modifier.fillMaxWidth().clip(DsRadius.Lg)
                     .background(color.copy(.10f))
                     .border(BorderStroke(1.dp, color.copy(.30f)), DsRadius.Lg)
-                    .padding(horizontal = 10.dp, vertical = 9.dp),
+                    .padding(horizontal = DsSpacing.Mid, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
             ) {
                 RoundedAppIcon(if (ok) AppIcon.CheckCircle else AppIcon.Warning, tint = color, size = 17.dp)
                 Text(message, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
@@ -319,7 +320,7 @@ internal fun UsersSettingsSection(
 
     SettingsCard(stringResource(R.string.set_usr_pattern), AppIcon.User) {
         Text(stringResource(R.string.set_usr_pattern_desc), fontSize = 11.sp, color = theme.mutedColor)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(
                 stringResource(R.string.set_usr_mode), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold, color = theme.inkColor
@@ -487,7 +488,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
             Modifier.fillMaxWidth().clip(DsRadius.Xl)
                 .background(if (theme.isDark) Color.White.copy(0.06f) else DsNeutral.BackgroundLight)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(16.dp),
+                .padding(DsSpacing.Xl),
             contentAlignment = Alignment.Center
         ) {
             val bmp = invoiceLogoBitmap
@@ -501,14 +502,14 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
             } else {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                 ) {
                     RoundedAppIcon(AppIcon.Image, tint = theme.mutedColor, size = 32.dp)
                     Text(stringResource(R.string.set_inv_no_logo), fontSize = 11.sp, color = theme.mutedColor)
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             MrmButton(
                 text = stringResource(
                     if (invoiceLogoPath != null) R.string.set_inv_change_logo
@@ -671,12 +672,12 @@ internal fun BackupSection(
                 .background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
                 .clickable { pickBackupDir.launch(null) }
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = DsSpacing.Lg),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
             ) {
                 RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 17.dp)
                 Text(
@@ -698,7 +699,7 @@ internal fun BackupSection(
                     .clickable {
                         store.saveBackupUri(null)
                         backupFolderUri = null
-                    }.padding(horizontal = 10.dp),
+                    }.padding(horizontal = DsSpacing.Mid),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -716,7 +717,7 @@ internal fun BackupSection(
             store.saveBackupEnabled(v)
             com.mrm.pgmanager.work.BackupWorker.schedule(context, if (v) backupInterval else 0)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(
                 stringResource(R.string.set_bk_interval), fontSize = 11.sp, fontWeight = FontWeight.Bold,
                 color = if (backupEnabled) theme.inkColor else theme.mutedColor
@@ -738,7 +739,7 @@ internal fun BackupSection(
                 com.mrm.pgmanager.work.BackupWorker.schedule(context, backupInterval)
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(
                 stringResource(R.string.set_bk_keep), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold, color = theme.inkColor
@@ -783,7 +784,7 @@ internal fun BackupSection(
         if (backupLastMsg.isNotBlank()) {
             Text(backupLastMsg, fontSize = 11.sp, color = theme.mutedColor)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             MrmButton(
                 text = stringResource(R.string.set_bk_manual),
                 onClick = { performBackup(manual = true) },

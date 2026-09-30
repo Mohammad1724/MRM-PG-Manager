@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -106,14 +107,14 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
     val dismissDesc = stringResource(R.string.cd_dismiss)
     Row(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = DsSpacing.Xl)
             .fillMaxWidth()
             .clip(DsRadius.Lg)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // نقطهٔ رنگیِ لحن — صرفاً تزئینی (متنِ پیام خودش کافی است).
         Box(
@@ -164,9 +165,9 @@ fun MrmErrorState(
             .clip(DsRadius.Lg)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(20.dp),
+            .padding(DsSpacing.Xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         RoundedAppIcon(AppIcon.Warning, tint = DsSemantic.Danger, size = 26.dp)
         Text(
@@ -210,7 +211,7 @@ fun MrmEmptyState(
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .padding(28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
     ) {
         Box(
             Modifier
@@ -229,6 +230,6 @@ fun MrmEmptyState(
             color = theme.mutedColor,
             textAlign = TextAlign.Center
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { actions() }
     }
 }

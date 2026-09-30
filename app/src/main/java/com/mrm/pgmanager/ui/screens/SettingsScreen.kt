@@ -125,16 +125,16 @@ fun SettingsScreen(
 
     Column(
         Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
-            .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 14.dp, bottom = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Screen, bottom = DsSpacing.Mid),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // ── سربرگ: دکمهٔ بازگشت + عنوان (هم‌سبکِ سربرگِ گروه‌ها و تمپلت‌ها)
         Row(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
             // با Alignment/padding نسبی، در فارسی خودکار سمت راست می‌نشیند.
             Box(
@@ -166,7 +166,7 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
         ) {
             items(tabs.size) { index ->
                 val (id, label) = tabs[index]
@@ -176,7 +176,7 @@ fun SettingsScreen(
                         .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
                         .pressScale(0.95f)
                         .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = DsSpacing.Lg),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -257,7 +257,7 @@ fun SettingsScreen(
                 }
             }
             AboutFooter(appVersion = appVersion)
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(DsSpacing.Sm))
         }
         }
     }
@@ -354,8 +354,8 @@ private fun ExpandableSettingsGroup(
         Modifier.fillMaxWidth().clip(DsRadius.Xxl)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-            .padding(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(DsSpacing.Sm),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Row(
             Modifier.fillMaxWidth().clip(DsRadius.Xl)
@@ -363,9 +363,9 @@ private fun ExpandableSettingsGroup(
                 .semantics { contentDescription = toggleLabel }
                 .pressScale(0.985f)
                 .clickable { onToggle() }
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
             Box(
                 Modifier.size(32.dp).clip(DsRadius.Md).background(accent.copy(.12f)),
@@ -393,7 +393,7 @@ private fun ExpandableSettingsGroup(
             exit = DsTransition.expandExit
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xxs, vertical = DsSpacing.Xxs),
                 verticalArrangement = Arrangement.spacedBy(11.dp)
             ) { content() }
         }
@@ -406,9 +406,9 @@ private fun AboutFooter(appVersion: String) {
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
     Row(
-        Modifier.fillMaxWidth().padding(top = 2.dp),
+        Modifier.fillMaxWidth().padding(top = DsSpacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
         Text(
             stringResource(R.string.set_version, appVersion.ifBlank { "—" }),
@@ -427,9 +427,9 @@ private fun AboutFooter(appVersion: String) {
                         )
                     }
                 }
-                .padding(horizontal = 7.dp, vertical = 4.dp),
+                .padding(horizontal = 7.dp, vertical = DsSpacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
         ) {
             RoundedAppIcon(AppIcon.OpenNew, tint = theme.mutedColor, size = 11.dp)
             Text(
@@ -490,7 +490,7 @@ private fun AppearanceSection(
 
     SettingsCard(stringResource(R.string.set_primary_color), AppIcon.Palette) {
         LampColor.values().toList().chunked(2).forEach { rowItems ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 rowItems.forEach { lamp ->
                     val selected = themeState.customColor == null && themeState.lamp == lamp
                     LampSwatch(lamp = lamp, selected = selected, modifier = Modifier.weight(1f)) {
@@ -519,11 +519,11 @@ private fun AppearanceSection(
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(DsSpacing.Mid),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 RoundedAppIcon(AppIcon.DarkMode, tint = theme.mutedColor, size = 14.dp)
@@ -557,9 +557,9 @@ private fun LampSwatch(
                 DsRadius.Md
             )
             .clickable { onClick() }
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
         Box(
             Modifier.size(20.dp).clip(DsRadius.Xs)
@@ -613,7 +613,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
             Box(
                 Modifier.size(38.dp).clip(DsRadius.Lg)
@@ -687,7 +687,7 @@ private fun ColorSlider(
     val theme = LocalThemeState.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Text(label, fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.width(56.dp))
         Slider(
@@ -710,15 +710,15 @@ private fun ThemePreviewCard(themeState: ThemeState) {
         AppIcon.Palette,
         accent = themeState.accentPrimary
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             Column(
                 Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                    .padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(DsSpacing.Mid),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -743,7 +743,7 @@ private fun ThemePreviewCard(themeState: ThemeState) {
             }
         }
         // نمونهٔ دکمه‌ها — تا اثرِ «سبکِ دکمه» بدون رفتن به صفحه‌های دیگر دیده شود.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             MrmButton(
                 text = stringResource(R.string.cancel), onClick = {}, modifier = Modifier.weight(1f),
                 style = MrmButtonStyle.Secondary, compact = true
@@ -783,7 +783,7 @@ private fun MonitoringSection(
             enabled = monitoringSettings.autoRefreshEnabled
         ) { onMonitoringChange(monitoringSettings.copy(refreshIntervalSeconds = it)) }
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(
                 stringResource(R.string.set_scope), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold, color = theme.inkColor
@@ -966,7 +966,7 @@ private fun SecuritySection(
             fontSize = 11.sp, color = theme.mutedColor
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(
                 stringResource(R.string.set_lock_timeout), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,

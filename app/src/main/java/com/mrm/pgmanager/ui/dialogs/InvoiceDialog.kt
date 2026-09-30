@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
@@ -208,18 +209,18 @@ fun InvoiceDialog(
                 Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Text(stringResource(R.string.inv_text_invoice), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     val scroll = rememberScrollState()
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 280.dp).clip(DsRadius.Xl)
                             .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                            .verticalScroll(scroll).padding(14.dp)
+                            .verticalScroll(scroll).padding(DsSpacing.Screen)
                     ) {
                         Text(invoiceText, fontSize = 12.sp, color = theme.inkColor, lineHeight = 22.sp)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                         PGPrimaryButton(
                             text = stringResource(R.string.inv_copy_text),
                             onClick = {
@@ -278,7 +279,7 @@ fun InvoiceDialog(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         Box(
             Modifier
@@ -291,9 +292,9 @@ fun InvoiceDialog(
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     Box(
                         Modifier.size(38.dp).clip(DsRadius.Lg)
                             .background(theme.accentPrimary.copy(0.18f))
@@ -316,8 +317,8 @@ fun InvoiceDialog(
                         .clip(DsRadius.Xl)
                         .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(DsSpacing.Lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                 ) {
                     InfoRow(stringResource(R.string.inv_username), user.username, theme)
                     InfoRow(stringResource(R.string.inv_data), dataLimitText, theme, bold = true)
@@ -332,12 +333,12 @@ fun InvoiceDialog(
                         .clip(DsRadius.Xl)
                         .background(if (theme.isDark) Color.White.copy(0.04f) else Color(0xFFF8F8FA))
                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(DsSpacing.Lg),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                 ) {
                     Text("💰 " + stringResource(R.string.inv_amounts), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                         Text(stringResource(R.string.inv_price), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = currentPriceText,
@@ -351,7 +352,7 @@ fun InvoiceDialog(
                         )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                         Text(stringResource(R.string.inv_previous_debt), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = previousDebtText,
@@ -365,7 +366,7 @@ fun InvoiceDialog(
                         )
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                         Text(stringResource(R.string.inv_paid_amount), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = paidAmountText,
@@ -381,7 +382,7 @@ fun InvoiceDialog(
 
                     HorizontalDivider(color = theme.borderColor.copy(alpha = 0.5f))
 
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -417,7 +418,7 @@ fun InvoiceDialog(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     Text("📝 " + stringResource(R.string.inv_note_optional), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     CompactGlassField(
                         value = notesText,
@@ -428,7 +429,7 @@ fun InvoiceDialog(
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     PGSecondaryButton(
                         text = "📸 " + stringResource(R.string.inv_preview),
                         onClick = { previewMode = true },
@@ -436,7 +437,7 @@ fun InvoiceDialog(
                         icon = AppIcon.Qr
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), modifier = Modifier.fillMaxWidth()) {
                         PGSecondaryButton(
                             text = "📄 " + stringResource(R.string.inv_text_invoice),
                             onClick = { textShareMode = true },
@@ -531,8 +532,8 @@ private fun InvoicePreviewCard(
     // هیچ‌جا خوانده نمی‌شدند.
     Dialog(onDismissRequest = onClose) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
@@ -541,7 +542,7 @@ private fun InvoicePreviewCard(
                     .clip(DsRadius.Xxl)
                     .background(Color.White)
                     .border(BorderStroke(1.5.dp, Color(0xFFE8E8EC)), DsRadius.Xxl)
-                    .padding(24.dp),
+                    .padding(DsSpacing.Xxxl),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -576,15 +577,15 @@ private fun InvoicePreviewCard(
                     Modifier.fillMaxWidth(0.8f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFF4C928))
                 )
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(DsSpacing.Xs))
 
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clip(DsRadius.Xxl)
                         .background(Color(0xFFF8F8FA))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(DsSpacing.Xl),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                 ) {
                     PreviewRow(stringResource(R.string.inv_username), username, bold = true)
                     PreviewRow(stringResource(R.string.inv_data), volume, bold = true, color = Color(0xFF202124))
@@ -598,8 +599,8 @@ private fun InvoicePreviewCard(
                         .fillMaxWidth()
                         .clip(DsRadius.Xxl)
                         .background(Color(0xFFF8F8FA))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(DsSpacing.Xl),
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                 ) {
                     if (currentPrice > 0L) PreviewRow(stringResource(R.string.inv_price), "%,d %s".format(Locale.US, currentPrice, currency))
                     if (previousDebt > 0L) PreviewRow(stringResource(R.string.inv_previous_debt), "%,d %s".format(Locale.US, previousDebt, currency), color = Color(0xFFC93B3B))
@@ -629,13 +630,13 @@ private fun InvoicePreviewCard(
                 }
 
                 if (notes.isNotBlank()) {
-                    Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(Color(0xFFF8F8FA)).padding(12.dp)) {
+                    Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(Color(0xFFF8F8FA)).padding(DsSpacing.Lg)) {
                         Text("📝 " + stringResource(R.string.inv_note), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
                         Text(notes, fontSize = 11.sp, color = Color(0xFF202124))
                     }
                 }
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(DsSpacing.Xs))
 
                 Text(stringResource(R.string.inv_thanks) + " 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
                 Text(

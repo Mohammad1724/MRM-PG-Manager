@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.GlassGreen
@@ -92,7 +93,7 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
                 .clip(RoundedCornerShape(height / 3.2f))
                 .background(Brush.linearGradient(listOf(theme.accentPrimary, theme.accentLight)))
                 .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.85f)), RoundedCornerShape(height / 3.2f))
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = DsSpacing.Mid),
             contentAlignment = Alignment.Center
         ) {
             Text("MRM", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = (height.value * 0.45f).sp)
@@ -449,7 +450,7 @@ fun MrmButton(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
                 // متن بینِ سکه و فلش وسط‌چین می‌شود (نه وسطِ کلِ کپسول) — مثلِ مرجع.
-                modifier = Modifier.align(Alignment.Center).padding(start = coinSize + 6.dp, end = chevronSize + 8.dp)
+                modifier = Modifier.align(Alignment.Center).padding(start = coinSize + DsSpacing.Sm, end = chevronSize + DsSpacing.Md)
             )
             // فلشِ انتهای کپسول (آیکونِ AutoMirrored — در RTL خودکار برعکس می‌شود).
             RoundedAppIcon(
@@ -560,12 +561,12 @@ fun BulkActionsBar(
             .clip(RoundedCornerShape(50.dp))
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(50.dp))
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Sm),
         contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
             // Target count text
             Text(
@@ -594,51 +595,51 @@ fun BulkActionsBar(
                     modifier = Modifier.background(theme.cardSurfaceColor)
                 ) {
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_enable) else "Enable", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_enable) else "Enable", color = theme.inkColor) } },
                         onClick = { onEnable(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_disable) else "Disable", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_disable) else "Disable", color = theme.inkColor) } },
                         onClick = { onDisable(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_reset_data) else "Reset Usage", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_reset_data) else "Reset Usage", color = theme.inkColor) } },
                         onClick = { onResetUsage(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
                         onClick = { onApplyTemplate(); expanded = false }
                     )
                     // تمدید و افزودنِ حجم به‌صورت گروهی — پنل این‌ها را دارد
                     // (`bulk/expire` و `bulk/data_limit`) و اپ نداشت.
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_days), color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_days), color = theme.inkColor) } },
                         onClick = { onAddDays(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_data), color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_data), color = theme.inkColor) } },
                         onClick = { onAddData(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
                         onClick = { onRevokeSubs(); expanded = false }
                     )
                     // افزودن/برداشتنِ گروه برای چند کاربر یک‌جا — قبلاً باید
                     // تک‌تکِ کاربرها را ویرایش می‌کردی.
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_group_add), color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_group_add), color = theme.inkColor) } },
                         onClick = { onGroupAdd(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Folder, tint = theme.mutedColor, size = 14.dp); Text(stringResource(R.string.us_bulk_group_remove), color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Folder, tint = theme.mutedColor, size = 14.dp); Text(stringResource(R.string.us_bulk_group_remove), color = theme.inkColor) } },
                         onClick = { onGroupRemove(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_export) else "Export", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Download, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_export) else "Export", color = theme.inkColor) } },
                         onClick = { onExport(); expanded = false }
                     )
                     DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_select_all) else "Select All", color = theme.inkColor) } },
+                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_select_all) else "Select All", color = theme.inkColor) } },
                         onClick = { onSelectAll(); expanded = false }
                     )
                 }
@@ -664,7 +665,7 @@ private fun BulkActionChip(label: String, icon: AppIcon, color: Color, onClick: 
             .background(color.copy(alpha = 0.10f))
             .border(BorderStroke(DsBorder.Hairline, color.copy(alpha = 0.26f)), DsRadius.Sm)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = DsSpacing.Lg),
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = color, size = 14.dp); Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color) }

@@ -298,7 +298,7 @@ fun UsersScreen(
             PGFAB(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
-                modifier = Modifier.padding(bottom = 72.dp, end = 4.dp),
+                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs),
                 visible = fabVisible.value
             ) { ui.createMenuOpen = true }
         }
@@ -345,7 +345,7 @@ fun UsersScreen(
             ) {
                 Box(Modifier.fillMaxSize().then(collapseShift)) {
                 when {
-                    ui.loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
+                    ui.loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     ui.error != null -> MrmErrorState(
                         modifier = Modifier.padding(top = listTopPad),
                         onRetry = { ui.load() },
@@ -370,7 +370,7 @@ fun UsersScreen(
                     val listIntro = rememberListIntro()
                     androidx.compose.animation.AnimatedContent(targetState = ui.viewMode, label = "viewModeSwitch") { mode ->
                         when (mode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
@@ -379,13 +379,13 @@ fun UsersScreen(
                             }
                             if (ui.loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.fillMaxWidth().padding(DsSpacing.Lg), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
                             }
                         }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
@@ -394,13 +394,13 @@ fun UsersScreen(
                             }
                             if (ui.loadingMore) {
                                 item {
-                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.fillMaxWidth().padding(DsSpacing.Lg), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
                             }
                         }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.Md), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
@@ -409,7 +409,7 @@ fun UsersScreen(
                             }
                             if (ui.loadingMore) {
                                 item {
-                                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.fillMaxWidth().padding(DsSpacing.Lg), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
@@ -437,9 +437,9 @@ fun UsersScreen(
                     .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
                     .padding(top = topInsets)
                     // دکمهٔ همبرگری حذف شده؛ فقط یک فاصلهٔ نفس‌کشیدن زیرِ نوارِ وضعیت.
-                    .padding(top = 6.dp)
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp)
+                    .padding(top = DsSpacing.Sm)
+                    .padding(horizontal = DsSpacing.Xl)
+                    .padding(bottom = DsSpacing.Lg)
             ) {
                 TopBarHeader(onRefresh = { ui.load() }, loading = ui.loading, onOpenSettings = onOpenSettings)
 
@@ -471,7 +471,7 @@ fun UsersScreen(
                         // layout و graphicsLayer)، تا با اسکرول همراهِ خودِ کارت‌ها جمع
                         // شود؛ اگر بیرون بود، بعد از جمع‌شدنِ کارت‌ها یک نوارِ خالی
                         // زیرِ سربرگ باقی می‌ماند.
-                        .padding(top = 10.dp)
+                        .padding(top = DsSpacing.Mid)
                 ) {
                             StatsCardsRow(
                             // از خودِ پنل، نه از روی صفحهٔ دانلودشده — وگرنه با
@@ -483,9 +483,9 @@ fun UsersScreen(
                         )
                 }
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(DsSpacing.Sm))
                 GlassSearchBar(query = ui.query, onQueryChange = { ui.query = it })
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(DsSpacing.Md))
                 FilterAndControlBar(
                     currentFilter = ui.currentFilter,
                     onFilterChange = { ui.currentFilter = it },
@@ -507,7 +507,7 @@ fun UsersScreen(
                     Text(
                         stringResource(R.string.us_showing_count, processedUsers.size, ui.totalMatches),
                         fontSize = 11.sp, color = themeState.mutedColor,
-                        modifier = Modifier.padding(top = 6.dp, start = 2.dp)
+                        modifier = Modifier.padding(top = DsSpacing.Sm, start = DsSpacing.Xxs)
                     )
                 }
                 // پاک‌سازیِ منقضی‌ها: فقط وقتی فیلترِ «منقضی» فعال است پیدایش می‌شود،
@@ -516,7 +516,7 @@ fun UsersScreen(
                 // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
                 if (ui.currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
                     Row(
-                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm)
+                        Modifier.fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm)
                             .background(GlassRed.copy(0.10f))
                             .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.26f)), DsRadius.Sm)
                             .pressScale(0.98f)
@@ -528,9 +528,9 @@ fun UsersScreen(
                                     } else ui.cleanupNames = names
                                 }
                             }
-                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
                         Text(stringResource(R.string.us_cleanup), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
@@ -538,9 +538,9 @@ fun UsersScreen(
                 }
                 ui.offlineAt?.let { cachedAt ->
                     Row(
-                        Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp),
+                        Modifier.fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
                         Text(stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)

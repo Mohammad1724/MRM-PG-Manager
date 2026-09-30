@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
@@ -71,11 +72,11 @@ fun QuickActionSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(20.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(DsSpacing.Xxl)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
                         Spacer(Modifier.width(12.dp))
@@ -92,24 +93,24 @@ fun QuickActionSheet(
                                 "on_hold" -> DsSemantic.Violet to stringResource(R.string.on_hold)
                                 else -> theme.mutedColor to user.status
                             }
-                            Box(Modifier.clip(DsRadius.Md).background(c.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c) }
+                            Box(Modifier.clip(DsRadius.Md).background(c.copy(.14f)).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm)) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c) }
                         }
                     }
                     
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Template, stringResource(R.string.qa_template), theme.accentPrimary, Modifier.weight(1f)) { onUseTemplate(); onDismiss() }
                             QuickActionRow(AppIcon.Edit, stringResource(R.string.qa_edit), theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Reset, stringResource(R.string.qa_reset_data), theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
                             QuickActionRow(AppIcon.Calendar, stringResource(R.string.qa_reset_time), theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Copy, stringResource(R.string.qa_copy_link), theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
                             QuickActionRow(AppIcon.Qr, stringResource(R.string.qa_show_qr), theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Note, stringResource(R.string.qa_invoice) + " 🧾", theme.accentPrimary, Modifier.weight(1f)) {
                                 if (onInvoice != null) { onInvoice(); onDismiss() } else { onDismiss() }
                             }
@@ -117,7 +118,7 @@ fun QuickActionSheet(
                                 if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
                             }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.User, stringResource(if (user.status == "disabled") R.string.qa_enable else R.string.qa_disable), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
                             QuickActionRow(AppIcon.Delete, stringResource(R.string.qa_delete), GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
                         }
@@ -135,7 +136,7 @@ fun QuickActionSheet(
 private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (مرز یک‌چهارم رنگ).
     Box(modifier.height(38.dp).clip(DsRadius.Md).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             RoundedAppIcon(icon, tint = color, size = 16.dp)
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
         }

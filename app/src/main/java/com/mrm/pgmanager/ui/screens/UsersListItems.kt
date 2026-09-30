@@ -164,11 +164,11 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                         MrmText(
                             text = user.username,
                             fontSize = 12.sp,
@@ -192,7 +192,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                 overflow = TextOverflow.Ellipsis,
                 isTechnical = true
             )
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text("${cardStatusText(user)}", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
                 MrmText(
                     text = if (user.dataLimit == 0L) "∞" else "$progressPercent%", 
@@ -209,7 +209,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
                 Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                         OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
                     }
                     if (user.groupNames.isNotEmpty()) {
@@ -357,12 +357,12 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
             .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                     MrmText(
                         user.username,
                         fontSize = 13.sp,
@@ -379,17 +379,17 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                 IconCardAction(AppIcon.Qr, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                     Text(stringResource(R.string.traffic_usage_label), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 }
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                     Text(stringResource(R.string.remaining_credit), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(remainingText(user), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
                 }
             }
 
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 PGProgressBar(progress = shownProgress, modifier = Modifier.weight(1f), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
                 Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
@@ -412,11 +412,11 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Lg)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-            Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
             }

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
@@ -152,11 +153,11 @@ fun BulkCreateUsersDialog(
             Modifier.fillMaxWidth().imePadding().heightIn(max = 640.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                .padding(16.dp)
+                .padding(DsSpacing.Xl)
         ) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
                 // هدر
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     Box(Modifier.size(38.dp).clip(DsRadius.Lg).background(GlassGreen.copy(.16f)).border(BorderStroke(DsBorder.Hairline, GlassGreen.copy(.32f)), DsRadius.Lg), contentAlignment = Alignment.Center) {
                         RoundedAppIcon(AppIcon.Users, tint = theme.inkColor, size = 19.dp)
                     }
@@ -196,10 +197,10 @@ fun BulkCreateUsersDialog(
                             Text(stringResource(R.string.bc_no_templates), fontSize = 11.sp, color = GlassRed)
                         }
                         if (useTemplate && templates.isNotEmpty()) {
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
-                                    Box(Modifier.height(30.dp).clip(DsRadius.Sm).primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.height(30.dp).clip(DsRadius.Sm).primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { selectedTemplate = t.id }.padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                         Text(t.name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (picked) theme.onPrimary else theme.inkColor, maxLines = 1)
                                     }
                                 }
@@ -223,14 +224,14 @@ fun BulkCreateUsersDialog(
                         SettingsStepper(stringResource(R.string.bc_count), count, stringResource(R.string.bc_number), 1..100) { count = it }
                         CompactGlassField(note, { note = it.take(200) }, stringResource(R.string.bc_note_hint), leadingAppIcon = AppIcon.Note, fieldHeight = 38.dp)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                         PGSecondaryButton(stringResource(R.string.bc_cancel), onClick = onDismiss, modifier = Modifier.weight(.38f))
                         PGPrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() }, icon = AppIcon.UserAdd)
                     }
                 } else {
                     // نمای پیشرفت / نتیجه
                     SettingsCard(if (done) stringResource(R.string.bc_result) else stringResource(R.string.bc_creating), AppIcon.Users, accent = if (done) GlassGreen else theme.accentPrimary) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                             if (!done) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
                             Text(stringResource(R.string.bc_progress, progress, count), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         }
@@ -244,7 +245,7 @@ fun BulkCreateUsersDialog(
                             }
                             if (errors.isNotEmpty()) {
                                 Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
-                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(DsSpacing.Md).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 11.sp, isTechnical = true) }
                                 }
                             }

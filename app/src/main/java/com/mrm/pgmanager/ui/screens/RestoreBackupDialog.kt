@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
@@ -83,13 +84,13 @@ internal fun RestoreBackupDialog(
         onDismissRequest = { if (!restoring) onDismiss() }, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         Box(
             Modifier.fillMaxWidth().navigationBarsPadding()
                 .padding(18.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 Text(
                     stringResource(R.string.set_rs_title), fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold, color = theme.inkColor
@@ -101,8 +102,8 @@ internal fun RestoreBackupDialog(
                     Column(
                         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.searchBgColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .padding(DsSpacing.Mid),
+                        verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
                     ) {
                         Text(
                             stringResource(R.string.set_rs_file_info), fontSize = 11.sp,
@@ -158,7 +159,7 @@ internal fun RestoreBackupDialog(
                     stringResource(R.string.set_rs_choose), fontSize = 11.sp,
                     fontWeight = FontWeight.Bold, color = theme.inkColor
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     RestoreCheckRow(stringResource(R.string.set_rs_accounts), restoreAccounts) { restoreAccounts = it }
                     RestoreCheckRow(stringResource(R.string.set_rs_debtors), restoreDebtors) { restoreDebtors = it }
                     RestoreCheckRow(stringResource(R.string.set_rs_settings), restoreSettings) { restoreSettings = it }
@@ -169,7 +170,7 @@ internal fun RestoreBackupDialog(
                     Text(it, fontSize = 11.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.weight(1f)) {
                         if (!restoring) {
                             PGSecondaryButton(
@@ -246,9 +247,9 @@ private fun RestoreCheckRow(label: String, checked: Boolean, onCheckedChange: (B
         Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
         CheckboxIcon(selected = checked, onToggle = { onCheckedChange(!checked) })
         Text(label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Bold)

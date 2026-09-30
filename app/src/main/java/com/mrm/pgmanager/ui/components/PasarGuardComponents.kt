@@ -86,10 +86,10 @@ fun PGStatCard(
             .clip(shape)
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), shape)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(DsSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             Box(
                 Modifier.size(28.dp).clip(DsRadius.Sm)
                     .background(iconBg)
@@ -101,7 +101,7 @@ fun PGStatCard(
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (trailing != null) trailing()
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
             TechnicalContainer {
                 Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -136,14 +136,14 @@ fun PGScreenHeader(
     Row(
         modifier.fillMaxWidth().clip(DsRadius.Lg).background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(Modifier.weight(1f)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
             ) {
                 Text(
                     title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor,
@@ -156,7 +156,7 @@ fun PGScreenHeader(
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
                     .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
@@ -192,7 +192,7 @@ fun PGBadge(text: String, color: Color = Color.Unspecified) {
     Box(
         Modifier.clip(RoundedCornerShape(6.dp)).background(resolvedColor.copy(0.12f))
             .border(BorderStroke(0.5.dp, resolvedColor.copy(0.18f)), RoundedCornerShape(6.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xxs)
     ) {
         Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = resolvedColor)
     }
@@ -205,7 +205,7 @@ fun PGBadge(text: String, color: Color = Color.Unspecified) {
 fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable (() -> Unit)? = null) {
     val t = LocalThemeState.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             if (icon != null) {
                 RoundedAppIcon(icon, tint = DsAccent.GoldDeep, size = 14.dp)
             }
@@ -247,10 +247,10 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
     val t = LocalThemeState.current
     val shape = DsRadius.Md
     Box(
-        modifier.fillMaxWidth().height(40.dp).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = 12.dp),
+        modifier.fillMaxWidth().height(40.dp).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = DsSpacing.Lg),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             RoundedAppIcon(AppIcon.Search, tint = t.mutedColor, size = 16.dp)
             BasicTextField(
                 value = query,
@@ -301,7 +301,7 @@ fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4
 fun PGStatusChip(text: String, dot: Color = DsSemantic.Success) {
     Row(
         Modifier.clip(RoundedCornerShape(50)).background(DsSemantic.SuccessBg).border(BorderStroke(0.5.dp, DsSemantic.SuccessBorder), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
     ) {
         Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(dot))
         Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.OnSuccess)
@@ -312,10 +312,10 @@ fun PGStatusChip(text: String, dot: Color = DsSemantic.Success) {
 fun PGTopBar(title: String, subtitle: String? = null, onMenu: (() -> Unit)? = null, actions: @Composable RowScope.() -> Unit = {}) {
     val t = LocalThemeState.current
     Column(
-        Modifier.fillMaxWidth().background(t.cardSurfaceColor).padding(horizontal = DsSpacing.Screen, vertical = 10.dp)
+        Modifier.fillMaxWidth().background(t.cardSurfaceColor).padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Mid)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 if (onMenu != null) {
                     Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onMenu), contentAlignment = Alignment.Center) {
                         Text("☰", fontSize = 16.sp, color = t.inkColor)
@@ -326,7 +326,7 @@ fun PGTopBar(title: String, subtitle: String? = null, onMenu: (() -> Unit)? = nu
                     if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = t.mutedColor)
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), content = actions)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), content = actions)
         }
     }
     Box(Modifier.fillMaxWidth().height(1.dp).background(t.borderSubtle))

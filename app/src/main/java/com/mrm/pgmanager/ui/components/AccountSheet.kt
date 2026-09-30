@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Session
@@ -70,7 +71,7 @@ fun AccountSheet(
         tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         dragHandle = {
-            Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) {
                 Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor))
             }
         }
@@ -79,15 +80,15 @@ fun AccountSheet(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = DsSpacing.Xl)
+                .padding(bottom = DsSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
         ) {
             // ── سربرگ: آواتار + نام ادمین + آدرس پنل فعال + دکمهٔ بستن
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                Modifier.fillMaxWidth().padding(vertical = DsSpacing.Xs),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
             ) {
                 Box(
                     Modifier
@@ -144,7 +145,7 @@ fun AccountSheet(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = theme.mutedColor,
-                    modifier = Modifier.padding(start = 6.dp, top = 6.dp)
+                    modifier = Modifier.padding(start = DsSpacing.Sm, top = DsSpacing.Sm)
                 )
                 val activeHint = stringResource(R.string.acct_active)
                 accounts.forEach { acc ->
@@ -190,9 +191,9 @@ private fun AccountRow(
             )
             .then(if (activeHint != null) Modifier.semantics { contentDescription = "$label، $activeHint" } else Modifier)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         RoundedAppIcon(icon, tint = rowTint, size = 16.dp)
         Text(

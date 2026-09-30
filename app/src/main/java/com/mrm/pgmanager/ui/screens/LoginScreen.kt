@@ -92,7 +92,7 @@ fun LoginScreen(
 
     val focusManager = LocalFocusManager.current
     Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = DsSpacing.Lg, bottom = DsSpacing.Xxxl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
             // نوار بالا: فقط سوییچِ زبان. دکمهٔ تنظیمات حذف شد چون تنظیماتِ کامل
             // پس از ورود در دسترس است و اینجا فقط باعث شلوغی و ورودِ اتفاقی به
             // دیالوگِ قدیمی می‌شد.
@@ -100,10 +100,10 @@ fun LoginScreen(
                 LanguageToggle(appLanguage = appLanguage, onLanguageChange = onLanguageChange, theme = theme)
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(DsSpacing.Lg))
 
             // Logo centered
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 AppLogo(height = 56.dp)
                 Text("PasarGuard", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 Text("MRM Manager", fontSize = 12.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
@@ -112,12 +112,12 @@ fun LoginScreen(
 
             // Card — white, subtle border, same as PG
             Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Xl),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)
             ) {
                 if (sessionExpired) {
-                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.WarningBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.WarningBorder), DsRadius.Md).padding(10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.WarningBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.WarningBorder), DsRadius.Md).padding(DsSpacing.Mid),
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Timer, tint = DsSemantic.OnWarning, size = 16.dp)
                         Text(stringResource(R.string.login_session_expired_banner), color = DsSemantic.OnWarning, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                     }
@@ -152,8 +152,8 @@ fun LoginScreen(
                     Text(stepConnecting, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
                 if (error != null) {
-                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.DangerBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.DangerBorder), DsRadius.Md).padding(10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(DsSemantic.DangerBg).border(BorderStroke(DsBorder.Hairline, DsSemantic.DangerBorder), DsRadius.Md).padding(DsSpacing.Mid),
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 16.dp)
                         Text(error!!, color = GlassRed, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                     }
@@ -217,8 +217,8 @@ fun LoginScreen(
                 )
 
                 // info row
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(DsSpacing.Mid),
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 14.dp)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.login_biometric_title), fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
@@ -270,9 +270,9 @@ private fun LanguageToggle(
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .semantics { contentDescription = switchLabel }
             .clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         RoundedAppIcon(AppIcon.Language, tint = theme.mutedColor, size = 15.dp)
         Text(nextLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
@@ -293,14 +293,14 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
     // کِرسر نسبت به متنِ راهنما بالاتر می‌نشست. با استایلِ واحد، هر دو دقیقاً
     // یک ارتفاعِ خط دارند.
     val fieldStyle = TextStyle(fontSize = 13.sp, lineHeight = 16.sp, color = theme.inkColor)
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (error != null) GlassRed else theme.inkColor)
         Box(
             Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.borderColor), DsRadius.Md)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = DsSpacing.Lg),
             contentAlignment = Alignment.CenterStart
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 RoundedAppIcon(icon, tint = theme.mutedColor, size = 16.dp)
                 androidx.compose.foundation.text.BasicTextField(
                     value = value, onValueChange = onValueChange, singleLine = true,

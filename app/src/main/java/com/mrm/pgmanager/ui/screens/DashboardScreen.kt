@@ -178,7 +178,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
     PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
 
-        Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
 
             // ── سربرگِ مشترکِ همهٔ صفحه‌ها
             PGScreenHeader(
@@ -196,8 +196,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 MrmErrorState(onRetry = { scope.launch { load() } }, message = error)
             } else error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp) }
             offlineAt?.let { cachedAt ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Md).padding(horizontal = 10.dp, vertical = 7.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
+                    modifier = Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Md).padding(horizontal = DsSpacing.Mid, vertical = 7.dp)) {
                     RoundedAppIcon(AppIcon.Warning, tint = if (theme.isDark) theme.accentPrimary else GlassAmber, size = 12.dp)
                     Text(stringResource(R.string.offline_state, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), color = if (theme.isDark) theme.accentPrimary else theme.accentPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                 }
@@ -263,8 +263,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     )
                 }
                 // Uptime — full width
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     Box(Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 15.dp)
                     }
@@ -283,15 +283,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 PGSectionHeader(title = stringResource(R.string.users_section))
                 // Users / Active Users 2-col
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                             RoundedAppIcon(AppIcon.Users, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${animatedCount(s.totalUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                     }
-                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.weight(1f)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
                             Text("${animatedCount(s.activeUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -302,10 +302,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     }
                 }
                 // Online Users full width
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp),
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                             RoundedAppIcon(AppIcon.Wifi, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                         Text("${animatedCount(s.onlineUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
@@ -321,7 +321,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 Text(stringResource(R.string.users_section), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     // Left: Users breakdown card
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         Text(stringResource(R.string.users_section), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                         Text(stringResource(R.string.monitor_users), fontSize = 11.sp, color = theme.mutedColor)
                         // رنگِ نقطه قبلاً با مقایسهٔ متنِ انگلیسیِ برچسب انتخاب می‌شد
@@ -338,14 +338,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         ).forEach { row ->
                             val pct = if (row.showPercent && s.totalUsers > 0)
                                 String.format(java.util.Locale.US, "%.0f%%", row.count * 100.0 / s.totalUsers) else null
-                            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(horizontal = 8.dp, vertical = 6.dp),
+                            Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                                     if (row.dot != Color.Transparent) Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(row.dot))
                                     else RoundedAppIcon(AppIcon.Users, tint = theme.mutedColor, size = 12.dp)
                                     Text(row.label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                                     if (pct != null) Text(pct, fontSize = 11.sp, color = theme.mutedColor)
                                     Text("${animatedCount(row.count)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 }
@@ -353,7 +353,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         }
                     }
                     // Right: Usage chart card
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column { Text(stringResource(R.string.usage), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.monitor_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp) }
                         }
@@ -366,9 +366,9 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                     .border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp))
                                     .pressScale(0.95f)
                                     .clickable { chartMenuOpen = true }
-                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                    .padding(horizontal = DsSpacing.Md, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
                             ) {
                                 Text(chartRange.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                                 Text("▾", fontSize = 11.sp, color = theme.mutedColor)
@@ -395,7 +395,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                 if (diff >= 0) stringResource(R.string.trending_up, diff) else stringResource(R.string.trending_down, -diff)
                             } else stringResource(R.string.no_trend)
                             val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) DsSemantic.Success else DsSemantic.Danger
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                                 Text(trendingText, fontSize = 11.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
                             }
@@ -409,24 +409,24 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     Column(
                         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(DsSpacing.Mid),
+                        verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         Text(stringResource(R.string.db_admins_desc), fontSize = 11.sp, color = theme.mutedColor)
                         list.forEach { a ->
                             Row(
                                 Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
                                     .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
-                                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                                    .padding(horizontal = DsSpacing.Md, vertical = 7.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                             ) {
                                 RoundedAppIcon(
                                     AppIcon.User,
                                     tint = if (a.status == "active") theme.accentPrimary else theme.mutedColor,
                                     size = 13.dp
                                 )
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                         MrmText(a.username, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = true)
                                         if (a.isOwner) PGBadge(stringResource(R.string.db_admin_owner))

@@ -7,6 +7,7 @@ object DsSpacing {
     val Xs = 4.dp
     val Sm = 6.dp
     val Md = 8.dp
+    val Mid = 10.dp        // بین Md و Lg — دومین مقدار پرتکرارِ فاصله در اپ
     val Lg = 12.dp
     val Xl = 16.dp
     val Xxl = 20.dp

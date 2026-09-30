@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.designsystem.DsAnim
@@ -126,7 +127,7 @@ fun MrmFloatingNav(
         Box(
             Modifier
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = DsSpacing.Xl, vertical = DsSpacing.Mid)
                 .shadow(10.dp, DsRadius.Full, clip = false)
                 .clip(DsRadius.Full)
                 .background(theme.cardSurfaceColor)
@@ -229,9 +230,9 @@ private fun NavChip(
             .semantics { contentDescription = label }
             .pressScale(0.94f)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = DsSpacing.Screen),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         RoundedAppIcon(icon, tint = tint, size = 18.dp)
         Text(

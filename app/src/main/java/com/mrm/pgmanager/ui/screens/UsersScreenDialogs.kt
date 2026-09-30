@@ -123,13 +123,13 @@ fun DebtorEditDialog(
     val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
     Dialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 if (existing != null) {
                     Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                         Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                         androidx.compose.foundation.text.BasicTextField(
                             value = amountText,
@@ -148,7 +148,7 @@ fun DebtorEditDialog(
                         )
                     }
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
                     androidx.compose.foundation.text.BasicTextField(
                         value = notes,
                         onValueChange = { notes = it.take(200) },
@@ -161,7 +161,7 @@ fun DebtorEditDialog(
                         }
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     if (existing != null) {
                         PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
@@ -228,7 +228,7 @@ internal fun UsersScreenDialogs(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
                     .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
             ) {
                 Text(
                     stringResource(if (kind == "days") R.string.us_bulk_days else R.string.us_bulk_data),
@@ -244,7 +244,7 @@ internal fun UsersScreenDialogs(
                     val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
                     ui.bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
                 })
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkAmountKind = null }, modifier = Modifier.weight(1f))
                     PGPrimaryButton(
                         text = stringResource(R.string.us_bulk_apply),
@@ -302,8 +302,8 @@ internal fun UsersScreenDialogs(
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(DsSpacing.Xl),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
             ) {
                 Text(
                     stringResource(if (ui.bulkGroupAdd) R.string.us_bulk_group_add else R.string.us_bulk_group_remove),
@@ -334,10 +334,10 @@ internal fun UsersScreenDialogs(
                                         ids.size
                                     ))
                             }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                             RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp)
                             Text(g.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
                         }
@@ -453,7 +453,7 @@ internal fun UsersScreenDialogs(
     }
     if (ui.createMenuOpen) {
         Dialog(onDismissRequest = { ui.createMenuOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { ui.createMenuOpen = false; ui.createUser = true }
                 SettingsActionRow(stringResource(R.string.us_create_bulk), stringResource(R.string.us_create_bulk_desc), AppIcon.Users, GlassGreen) { ui.createMenuOpen = false; ui.bulkCreateOpen = true }
@@ -466,7 +466,7 @@ internal fun UsersScreenDialogs(
     }
     if (ui.exportChooserOpen) {
         Dialog(onDismissRequest = { ui.exportChooserOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_export_title, ui.selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text(stringResource(R.string.us_export_desc), fontSize = 11.sp, color = themeState.mutedColor)
                 SettingsActionRow(stringResource(R.string.us_export_csv), stringResource(R.string.us_export_csv_desc), AppIcon.Download, GlassGreen) { ui.exportChooserOpen = false; onBeginExport("csv") }
@@ -483,8 +483,8 @@ internal fun UsersScreenDialogs(
     ui.deleteUser?.let { user ->
         val theme = LocalThemeState.current
         Dialog(onDismissRequest = { ui.deleteUser = null }) {
-            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                     Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Text(stringResource(R.string.us_delete_user_msg), color = theme.mutedColor, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

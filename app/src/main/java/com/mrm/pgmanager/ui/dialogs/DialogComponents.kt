@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
@@ -58,7 +59,7 @@ fun SettingsSwitchRow(
             .clickable(enabled = enabled) { onChange(!checked) }
             .padding(vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
@@ -80,7 +81,7 @@ fun SettingsStepper(
     onChange: (Int) -> Unit
 ) {
     val theme = LocalThemeState.current
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
         Text(label, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
         Box(
             Modifier.size(30.dp).clip(DsRadius.Sm)
@@ -117,9 +118,9 @@ fun SegmentedControl(
         Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Full)
             .background(theme.searchBgColor.copy(alpha = 0.6f))
             .border(BorderStroke(1.2.dp, theme.borderColor), DsRadius.Full)
-            .padding(4.dp)
+            .padding(DsSpacing.Xs)
             .graphicsLayer(alpha = if (enabled) 1f else 0.55f),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
@@ -129,7 +130,7 @@ fun SegmentedControl(
                     .clickable(enabled = enabled) { onSelect(index) },
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) theme.onPrimary else theme.mutedColor, size = 16.dp)
                     Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -152,10 +153,10 @@ fun SettingsCard(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), RoundedCornerShape(20.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(DsSpacing.Xl),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
             Box(Modifier.size(32.dp).clip(DsRadius.Md).background(ac.copy(.12f)), contentAlignment = Alignment.Center) {
                 RoundedAppIcon(icon, tint = ac, size = 16.dp)
             }
@@ -181,9 +182,9 @@ fun SettingsActionRow(
             .border(BorderStroke(1.dp, accent.copy(.22f)), DsRadius.Xl)
             .pressScale(0.97f)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Lg),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
     ) {
         Box(Modifier.size(36.dp).clip(DsRadius.Md).background(accent.copy(.12f)), contentAlignment = Alignment.Center) {
             RoundedAppIcon(icon, tint = accent, size = 18.dp)
@@ -204,11 +205,11 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
         Modifier.fillMaxWidth().clip(DsRadius.Xl)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
             Text(label, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
             MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
@@ -243,10 +244,10 @@ fun CompactGlassField(
         modifier = modifier.fillMaxWidth().height(fieldHeight).clip(DsRadius.Md)
             .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
             .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Md)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = DsSpacing.Mid),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 16.dp) else if (leading.isNotEmpty()) Text(leading, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
             Box(Modifier.weight(1f)) {
                 if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.55f), fontSize = 12.sp)
@@ -330,7 +331,7 @@ fun ChipSelector(
     // FlowRow نمی‌خواهیم (وابستگیِ آزمایشی)؛ ردیفِ قابل اسکرول کافی است.
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         values.forEachIndexed { i, v ->
             val active = v == selected
@@ -345,7 +346,7 @@ fun ChipSelector(
                         DsRadius.Sm
                     )
                     .clickable { onSelect(v) }
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
+                    .padding(horizontal = DsSpacing.Mid, vertical = 7.dp)
             ) {
                 Text(
                     labels.getOrElse(i) { v },
