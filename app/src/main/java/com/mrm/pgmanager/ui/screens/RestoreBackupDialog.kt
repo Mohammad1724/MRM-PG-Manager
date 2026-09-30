@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
@@ -40,6 +39,7 @@ import kotlinx.coroutines.withContext
  * شده و اینجا فقط بازرسی و بازیابی می‌شود.
  */
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 internal fun RestoreBackupDialog(
     uri: android.net.Uri,
     scope: CoroutineScope,
@@ -78,10 +78,16 @@ internal fun RestoreBackupDialog(
         }
     }
 
-    Dialog(onDismissRequest = { if (!restoring) onDismiss() }) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = { if (!restoring) onDismiss() }, sheetState = sheetState,
+        containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+    ) {
         Box(
-            Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
-                .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(18.dp)
+            Modifier.fillMaxWidth().navigationBarsPadding()
+                .padding(18.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
@@ -193,9 +199,7 @@ internal fun RestoreBackupDialog(
                             icon = AppIcon.Restore,
                             onClick = {
                                 if (!restoreAccounts && !restoreDebtors && !restoreSettings && !restoreInvoice) {
-                                    android.widget.Toast.makeText(
-                                        context, pickOneMsg, android.widget.Toast.LENGTH_SHORT
-                                    ).show()
+                                    com.mrm.pgmanager.ui.feedback.AppFeedback.info(pickOneMsg)
                                     return@PrimaryButton
                                 }
                                 restoring = true
@@ -215,9 +219,7 @@ internal fun RestoreBackupDialog(
                                             result = String.format(doneTemplate, msg)
                                             preview = null
                                             restoring = false
-                                            android.widget.Toast.makeText(
-                                                context, okToast, android.widget.Toast.LENGTH_SHORT
-                                            ).show()
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(okToast)
                                         }
                                     }.onFailure { e ->
                                         withContext(Dispatchers.Main) {

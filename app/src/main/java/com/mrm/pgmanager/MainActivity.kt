@@ -57,8 +57,9 @@ import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
-import com.mrm.pgmanager.ui.components.PasarGuardDrawer
-import com.mrm.pgmanager.ui.components.ImplementedDrawerIds
+import com.mrm.pgmanager.ui.components.AppFeedbackHost
+import com.mrm.pgmanager.ui.components.AccountSheet
+import com.mrm.pgmanager.ui.components.TAB_COUNT
 import com.mrm.pgmanager.ui.components.MrmFloatingNav
 import com.mrm.pgmanager.ui.components.TAB_DASHBOARD
 import com.mrm.pgmanager.ui.components.TAB_GROUPS
@@ -194,6 +195,8 @@ fun MRMApp() {
     var addingAccount by rememberSaveable { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
+    // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
+    var showAccountSheet by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
     var deepLinkUsername by remember { mutableStateOf<String?>(null) }
     // درخواستِ «ساخت گروهی» از صفحهٔ تنظیمات: تب کاربران باز می‌شود و دیالوگ را
@@ -280,6 +283,10 @@ fun MRMApp() {
     }
 
     LiquidGlassTheme(themeState = effectiveTheme) {
+        // جعبهٔ ریشه: همه شاخه‌ها (لاگین/قفل/اصلی) + میزبانِ بازخوردِ سراسری
+        // را در یک لایهٔ واحد می‌نشاند تا پیامِ بازخورد با عوض‌شدنِ شاخه
+        // (مثلاً انقضای نشست ← صفحهٔ ورود) از بین نرود.
+        Box(Modifier.fillMaxSize()) {
         // سوئیچ حساب: نشست فعال بدون دست‌خوردن لیست حساب‌ها عوض می‌شود.
         val switchAccount: (com.mrm.pgmanager.data.model.Session) -> Unit = { acc ->
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
@@ -352,29 +359,9 @@ fun MRMApp() {
                     isAppLockEnabled = false
                 }
             }
-            // وضعیت کشوی کناری به بیرون منتقل شد تا دکمهٔ منو بتواند بازش کند و
-            // دکمهٔ «×» داخل کشو واقعاً ببندَدش. پیش از این drawerState به‌صورت inline
-            // ساخته می‌شد و هیچ ارجاعی به آن وجود نداشت، پس کشو فقط با کشیدن انگشت باز می‌شد.
-            val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
-            val drawerScope = rememberCoroutineScope()
-            androidx.compose.material3.ModalNavigationDrawer(
-                drawerState = drawerState,
-                gesturesEnabled = true,
-                drawerContent = {
-                    PasarGuardDrawer(
-                        selectedId = ImplementedDrawerIds[selectedTab.coerceIn(0, ImplementedDrawerIds.lastIndex)],
-                        onSelect = { id ->
-                            // ایندکسِ هر بخش در ImplementedDrawerIds همان selectedTab است؛
-                            // بخش‌های پیاده‌نشده اصلاً قابل کلیک نیستند و به اینجا نمی‌رسند.
-                            ImplementedDrawerIds.indexOf(id).takeIf { it >= 0 }?.let { selectedTab = it }
-                        },
-                        onClose = { drawerScope.launch { drawerState.close() } },
-                        onOpenSettings = { showDashboardSettings = true },
-                        adminName = session?.username ?: "mrm",
-                        traffic = "12.43 TB"
-                    )
-                }
-            ) {
+            // کشوی کناری در فاز ۱ نقشه راه UX حذف شد: ناوبری با نوار پایین انجام
+            // می‌شود و هویت/حساب‌ها (نام ادمین، سوییچ حساب، افزودن، خروج) به
+            // ورقهٔ AccountSheet منتقل شده‌اند — نه یک ردیف اضافه در نوار پایین.
             // ── دکمهٔ برگشتِ گوشی.
             //
             // تا امروز هیچ‌جا رهگیری نمی‌شد و هر بار اپ بسته می‌شد؛ حتی وسطِ
@@ -390,8 +377,8 @@ fun MRMApp() {
                 when {
                     // ۱. تنظیمات باز است → ببند
                     showDashboardSettings -> showDashboardSettings = false
-                    // ۲. کشو باز است → ببند
-                    drawerState.isOpen -> drawerScope.launch { drawerState.close() }
+                    // ۲. ورقهٔ حساب باز است → ببند
+                    showAccountSheet -> showAccountSheet = false
                     // ۳. در بخشی غیر از داشبورد → برگرد به داشبورد
                     selectedTab != TAB_DASHBOARD -> selectedTab = TAB_DASHBOARD
                     // ۴. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
@@ -412,7 +399,7 @@ fun MRMApp() {
             // selectedTab (۰ داشبورد … ۴ تمپلت‌ها).
             val pagerState = androidx.compose.foundation.pager.rememberPagerState(
                 initialPage = selectedTab,
-                pageCount = { ImplementedDrawerIds.size }
+                pageCount = { TAB_COUNT }
             )
             // کلیک روی نوار پایین → پرش نرم به صفحهٔ متناظر.
             LaunchedEffect(selectedTab) {
@@ -507,10 +494,12 @@ fun MRMApp() {
                     selectedTab = selectedTab,
                     visible = navVisible,
                     onSelect = { selectedTab = it },
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    accountLabel = session?.username ?: "",
+                    onAccount = { showAccountSheet = true }
                 )
-                // دکمهٔ همبرگری حذف شد: ناوبری به نوار پایین منتقل شده و کشو
-                // فقط با کشیدنِ انگشت از لبه باز می‌شود (gesturesEnabled).
+                // دکمهٔ منو حذف شد: چیپِ آواتار کنارِ نوار ناوبری ورقهٔ AccountSheet را
+                // باز می‌کند (هویت، سوییچ حساب، افزودن حساب، تنظیمات، خروج).
                 // تنظیمات: صفحهٔ کامل روی محتوا (نه دیالوگ) تا با بقیهٔ اپ یکدست باشد.
                 // پس‌زمینهٔ مات جلوی دیده‌شدن صفحهٔ زیرین را می‌گیرد.
                 androidx.compose.animation.AnimatedVisibility(
@@ -548,7 +537,28 @@ fun MRMApp() {
                     }
                 }
             }
-            }
+        }
+        // ورقهٔ هویت/حساب — مستقیم زیرِ ریشه تا اسنکِ بازخوردِ سراسری رویش بنشیند.
+        if (showAccountSheet && session != null) {
+            AccountSheet(
+                adminName = session?.username ?: "",
+                activeBaseUrl = session?.baseUrl ?: "",
+                accounts = store.readAccounts(),
+                onSwitch = { acc -> showAccountSheet = false; switchAccount(acc) },
+                onAddAccount = { showAccountSheet = false; showDashboardSettings = false; addingAccount = true },
+                onOpenSettings = { showAccountSheet = false; showDashboardSettings = true },
+                onLogout = { showAccountSheet = false; store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
+                onDismiss = { showAccountSheet = false }
+            )
+        }
+        // میزبانِ بازخوردِ سراسری — بالایِ کپسولِ ناوبری، رویِ همه شاخه‌ها.
+        AppFeedbackHost(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 96.dp)
+        )
         }
     }
 }

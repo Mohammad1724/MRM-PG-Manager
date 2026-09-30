@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.designsystem
 
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -30,4 +31,24 @@ object DsTypeRole {
     val CaptionSize = DsFont.BodyLg
     val MicroSize = DsFont.Small
     val TagSize = DsFont.Micro
+}
+
+/**
+ * سبک‌های متنیِ **معنایی** — لایهٔ بالایِ [DsFont].
+ *
+ * کامپوننت‌های جدید به‌جایِ `fontSize = 13.sp` هاردکد، از این سبک‌ها
+ * استفاده می‌کنند تا مقیاس تایپوگرافی سراسری بماند. مهاجرتِ تدریجیِ
+ * کامپوننت‌های قدیمی در فاز ۲ نقشه راه UX انجام می‌شود.
+ */
+object DsTextStyle {
+    /** پیامِ بازخوردِ سراسری (Snackbar). */
+    val SnackMessage = TextStyle(fontSize = DsFont.BodyLg, fontWeight = DsFont.Medium)
+    /** عنوانِ کارت. */
+    val CardTitle = TextStyle(fontSize = DsFont.BodyLg, fontWeight = DsFont.Semibold)
+    /** متنِ فرعیِ کارت (متادیتا). */
+    val CardMeta = TextStyle(fontSize = DsFont.Caption, fontWeight = DsFont.Regular)
+    /** عنوانِ بخش. */
+    val SectionTitle = TextStyle(fontSize = DsFont.Headline, fontWeight = DsFont.Bold)
+    /** بدنهٔ استاندارد. */
+    val Body = TextStyle(fontSize = DsFont.BodyLg, fontWeight = DsFont.Regular)
 }

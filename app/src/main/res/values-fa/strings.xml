@@ -30,6 +30,10 @@
     <string name="users">کاربران</string>
     <string name="refresh">بروزرسانی</string>
     <string name="logout">خروج</string>
+    <string name="acct_title">حساب‌ها</string>
+    <string name="acct_add">افزودن حساب</string>
+    <string name="acct_active">فعال</string>
+    <string name="cd_close">بستن</string>
     <string name="limit">سقف حجم</string>
     <string name="expired">منقضی</string>
     <string name="limited">محدود</string>
@@ -831,6 +835,9 @@
     <string name="copied">کپی شد</string>
     <string name="cd_unselect">لغو انتخاب</string>
     <string name="cd_select">انتخاب</string>
+    <string name="cd_dismiss">بستن پیام</string>
+    <string name="err_generic">خطایی رخ داد</string>
+    <string name="cd_account">فهرست حساب</string>
     <string name="confirm">تایید</string>
     <string name="search_cd">جست‌وجو</string>
     <!-- زمان و مدت -->

@@ -273,7 +273,7 @@ fun UsersScreen(
     fun fetchSub(user: PanelUser, onResult: (PanelUser) -> Unit) {
         scope.launch {
             runCatching { PanelApi.user(session, user) }.onSuccess(onResult)
-                .onFailure { android.widget.Toast.makeText(context, context.getString(R.string.ud_sub_failed), android.widget.Toast.LENGTH_SHORT).show() }
+                .onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.ud_sub_failed)) }
         }
     }
     fun copySubWithFetch(user: PanelUser) {
@@ -367,7 +367,7 @@ fun UsersScreen(
                 }
             }.onFailure {
                 if (PanelApi.isUnauthorized(it)) {
-                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
                 } else {
                     // بدونِ شبکه: فهرستِ ذخیره‌شده با برچسبِ «آفلاین» بهتر از صفحهٔ خطای خالی است.
@@ -444,7 +444,7 @@ fun UsersScreen(
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
                 if (PanelApi.isUnauthorized(it)) {
-                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
                 } else {
                     val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
@@ -473,12 +473,22 @@ fun UsersScreen(
             runCatching { action() }.onFailure {
                 error = it.message
                 if (PanelApi.isUnauthorized(it)) {
-                    android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
                 } else {
-                    android.widget.Toast.makeText(context, context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()), android.widget.Toast.LENGTH_LONG).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()))
                 }
-            }.onSuccess { notification?.let { (title, message) -> val settings = store.readMonitoringSettings(); if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message) }; load() }
+            }.onSuccess {
+                // بازخوردِ در‌جا (اسنک + لمس) فوری است؛ اعلانِ سیستمی فقط وقتی
+                // خودِ کاربر در تنظیمات فعالش کرده باشد می‌رود (تنظیمات ← رویدادها).
+                com.mrm.pgmanager.utils.Haptics.confirm(context)
+                notification?.let { (title, message) ->
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.success(title)
+                    val settings = store.readMonitoringSettings()
+                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message)
+                }
+                load()
+            }
         }
     }
     fun exportFileName(format: String) = "mrm-users-selected-" + java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date()) + ".$format"
@@ -491,7 +501,9 @@ fun UsersScreen(
                 out.use { it.write(if (payload.first == "json") com.mrm.pgmanager.utils.usersToJson(payload.second).toByteArray(Charsets.UTF_8) else com.mrm.pgmanager.utils.usersToCsv(payload.second).toByteArray(Charsets.UTF_8)) }
             }.isSuccess
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, context.getString(if (ok) R.string.us_file_saved else R.string.us_file_save_failed), android.widget.Toast.LENGTH_LONG).show()
+                val feedback = com.mrm.pgmanager.ui.feedback.AppFeedback
+                if (ok) feedback.success(context.getString(R.string.us_file_saved))
+                else feedback.error(context.getString(R.string.us_file_save_failed))
             }
         }
     }
@@ -499,7 +511,7 @@ fun UsersScreen(
     val exportJsonLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { writeExport(it) }
     fun beginExport(format: String) {
         val chosen = users.filter { selectedUserIds.contains(it.id) }
-        if (chosen.isEmpty()) { android.widget.Toast.makeText(context, context.getString(R.string.us_select_first), android.widget.Toast.LENGTH_SHORT).show(); return }
+        if (chosen.isEmpty()) { com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_select_first)); return }
         exportPending = format to chosen
         if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
     }
@@ -699,20 +711,16 @@ fun UsersScreen(
                             SecondaryButton(stringResource(R.string.us_retry), onClick = { load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
-                    processedUsers.isEmpty() -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Lg).padding(28.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Box(Modifier.size(56.dp).clip(DsRadius.Md).background(themeState.searchBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Md), contentAlignment = Alignment.Center) {
-                                com.mrm.pgmanager.ui.components.RoundedAppIcon(com.mrm.pgmanager.ui.components.AppIcon.Search, tint = themeState.mutedColor, size = 28.dp)
-                            }
-                            Text(stringResource(R.string.no_user_found), fontWeight = FontWeight.Bold, color = themeState.inkColor, fontSize = 15.sp)
-                            Text(if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user), fontSize = 11.sp, color = themeState.mutedColor, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
-                                    com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
-                                }
-                                if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true }, icon = AppIcon.UserAdd)
-                            }
+                    processedUsers.isEmpty() -> MrmEmptyState(
+                        modifier = Modifier.padding(top = listTopPad),
+                        title = stringResource(R.string.no_user_found),
+                        subtitle = if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
+                        icon = AppIcon.Search
+                    ) {
+                        if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
+                            com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
                         }
+                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true }, icon = AppIcon.UserAdd)
                     }
                     else -> {
                     // ورودِ پلکانیِ ردیف‌های اول — فقط در اولین نمایش بعد از بارگذاری.
@@ -873,7 +881,7 @@ fun UsersScreen(
                                 scope.launch {
                                     val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
                                     if (names.isEmpty()) {
-                                        android.widget.Toast.makeText(context, context.getString(R.string.us_cleanup_none), android.widget.Toast.LENGTH_SHORT).show()
+                                        com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
                                     } else cleanupNames = names
                                 }
                             }
@@ -1023,7 +1031,7 @@ fun UsersScreen(
                 val count = names.size
                 cleanupNames = null
                 runAction(notification = null) { PanelApi.deleteCleanupCandidates(session) }
-                android.widget.Toast.makeText(context, context.getString(R.string.us_cleanup_done, count), android.widget.Toast.LENGTH_SHORT).show()
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_cleanup_done, count))
             }
         )
     }
@@ -1062,14 +1070,10 @@ fun UsersScreen(
                                 runAction(
                                     notification = null
                                 ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
-                                android.widget.Toast.makeText(
-                                    context,
-                                    context.getString(
+                                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(
                                         if (add) R.string.us_bulk_group_added else R.string.us_bulk_group_removed,
                                         ids.size
-                                    ),
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
+                                    ))
                             }
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         contentAlignment = Alignment.CenterStart
@@ -1175,7 +1179,7 @@ fun UsersScreen(
                 store.removeDebtor(session.baseUrl, user.username)
                 reloadDebtors()
                 selectedUser = null
-                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_debt_cleared))
                 if (wasAutoDisabled) {
                     scope.launch {
                         runCatching { PanelApi.setDisabled(session, user, false) }.onSuccess { load() }
@@ -1265,7 +1269,7 @@ fun UsersScreen(
                 store.setDebtor(info)
                 reloadDebtors()
                 debtorDialogUser = null
-                android.widget.Toast.makeText(context, context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated), android.widget.Toast.LENGTH_SHORT).show()
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated))
                 if (monitoringSettings.debtorAutoDisableEnabled) {
                     val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
                     if (over && u.status != "disabled") {
@@ -1274,7 +1278,7 @@ fun UsersScreen(
                                 val updated = info.copy(autoDisabled = true)
                                 store.setDebtor(updated)
                                 reloadDebtors()
-                                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_auto_disabled), android.widget.Toast.LENGTH_SHORT).show()
+                                com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_debt_auto_disabled))
                             }
                         }
                     }
@@ -1285,12 +1289,12 @@ fun UsersScreen(
                 store.removeDebtor(session.baseUrl, u.username)
                 reloadDebtors()
                 debtorDialogUser = null
-                android.widget.Toast.makeText(context, context.getString(R.string.us_debt_cleared), android.widget.Toast.LENGTH_SHORT).show()
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_debt_cleared))
                 if (wasAutoDisabled) {
                     scope.launch {
                         runCatching { PanelApi.setDisabled(session, u, false) }.onSuccess {
                             load()
-                            android.widget.Toast.makeText(context, context.getString(R.string.us_user_enabled), android.widget.Toast.LENGTH_SHORT).show()
+                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_user_enabled))
                         }
                     }
                 }

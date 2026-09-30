@@ -55,6 +55,7 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun InvoiceDialog(
     user: PanelUser,
     debtorInfo: DebtorInfo? = null,
@@ -272,14 +273,18 @@ fun InvoiceDialog(
         return
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+    ) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = 680.dp)
-                .clip(DsRadius.Xxl)
-                .background(theme.dialogBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                .navigationBarsPadding()
                 .padding(18.dp)
         ) {
             Column(
@@ -470,7 +475,7 @@ fun InvoiceDialog(
                                             }
                                             context.startActivity(Intent.createChooser(intent, context.getString(R.string.inv_share_pdf)))
                                         } else {
-                                            android.widget.Toast.makeText(context, context.getString(R.string.inv_pdf_failed), android.widget.Toast.LENGTH_SHORT).show()
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.inv_pdf_failed))
                                         }
                                     }
                                 }

@@ -27,7 +27,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
@@ -48,6 +47,7 @@ import java.util.Locale
 import java.time.LocalDate
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -76,7 +76,7 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
     // به اشتراک‌گذاری عکس QR + لینک متنی از طریق FileProvider.
     fun shareQr() {
         val bitmap = qrBitmap ?: run {
-            android.widget.Toast.makeText(context, context.getString(R.string.qr_failed), android.widget.Toast.LENGTH_SHORT).show()
+            com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_failed))
             // Fallback: فقط لینک
             val fallback = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, user.subUrl) }
             context.startActivity(Intent.createChooser(fallback, context.getString(R.string.qr_subscription)))
@@ -101,7 +101,7 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
             }
             shareFile(file, "image/png", context.getString(R.string.qr_share_qr))
         }.onFailure { e ->
-            android.widget.Toast.makeText(context, context.getString(R.string.qr_share_error, e.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
+            com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_share_error, e.message.orEmpty()))
         }
     }
 
@@ -126,19 +126,25 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
             }
             busy = false
             if (file == null) {
-                android.widget.Toast.makeText(context, context.getString(R.string.qr_card_failed), android.widget.Toast.LENGTH_SHORT).show()
+                com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_card_failed))
             } else {
                 runCatching { shareFile(file, "image/png", context.getString(R.string.qr_send_card)) }
                     .onFailure { e ->
-                        android.widget.Toast.makeText(context, context.getString(R.string.qr_share_error, e.message.orEmpty()), android.widget.Toast.LENGTH_SHORT).show()
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_share_error, e.message.orEmpty()))
                     }
             }
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+    ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(20.dp)) {
+            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(20.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
                     Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(10.dp), contentAlignment = Alignment.Center) {
@@ -149,7 +155,7 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                         SecondaryButton(stringResource(R.string.qr_copy), onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                            android.widget.Toast.makeText(context, context.getString(R.string.qr_copied), android.widget.Toast.LENGTH_SHORT).show()
+                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.qr_copied))
                         }, modifier = Modifier.weight(1f))
                         SecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
                     }

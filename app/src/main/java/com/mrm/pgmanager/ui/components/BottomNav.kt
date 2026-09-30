@@ -54,8 +54,10 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * (رسیدن به بالا → باز کردن کشو → انتخاب). حالا یک تپ در ناحیهٔ شست کافی است.
  *
  * سه بخشِ پرکاربرد مستقیم اینجا هستند و بقیه در شیتِ «بیشتر»:
- * ایندکس‌ها عمداً با `ImplementedDrawerIds` و شاخه‌های `when(selectedTab)` در
- * MainActivity یکی است (۰ داشبورد، ۱ کاربران، ۲ آمار، ۳ گروه‌ها، ۴ تمپلت‌ها).
+ * ایندکس‌ها عمداً با شاخه‌های `when(selectedTab)` در MainActivity یکی است
+ * (۰ داشبورد، ۱ کاربران، ۲ آمار، ۳ گروه‌ها، ۴ تمپلت‌ها) و با `TAB_COUNT`
+ * به پیجر می‌رود. چیپِ حساب (آواتار) سمتِ راستِ کپسول اولین آیتم است و
+ * در ایندکس‌ها حساب نشده — اسکرولِ خودکار با `selectedTab + 1` جلو می‌رود.
  */
 const val TAB_DASHBOARD = 0
 const val TAB_USERS = 1
@@ -71,6 +73,9 @@ private val NAV_ITEMS = listOf(
     TAB_GROUPS to AppIcon.Folder,
     TAB_TEMPLATES to AppIcon.Template
 )
+
+/** تعداد کل تب‌ها — `pageCount` پیجر در MainActivity از همین‌جا می‌خواند. */
+val TAB_COUNT = NAV_ITEMS.size
 
 @Composable
 private fun navLabel(tab: Int): String = when (tab) {
@@ -98,13 +103,15 @@ fun MrmFloatingNav(
     selectedTab: Int,
     visible: Boolean,
     onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accountLabel: String = "",
+    onAccount: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     LaunchedEffect(selectedTab) {
-        // بخشِ فعال را وسطِ دید بیاور (نه چسبیده به لبه).
-        listState.animateScrollToItem(selectedTab.coerceAtLeast(0), scrollOffset = -80)
+        // چون آواتار حساب آیتمِ ۰ است، بخشِ فعال = ایندکس + ۱؛ وسطِ دید بیاور.
+        listState.animateScrollToItem((selectedTab + 1).coerceIn(0, TAB_COUNT), scrollOffset = -80)
     }
     androidx.compose.animation.AnimatedVisibility(
         visible = visible,
@@ -131,6 +138,9 @@ fun MrmFloatingNav(
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                androidx.compose.foundation.lazy.item(key = "account") {
+                    AccountNavChip(label = accountLabel) { onAccount() }
+                }
                 items(NAV_ITEMS.size) { index ->
                     val (tab, icon) = NAV_ITEMS[index]
                     NavChip(
@@ -141,6 +151,38 @@ fun MrmFloatingNav(
                 }
             }
         }
+    }
+}
+
+/**
+ * چیپِ حساب (آواتار) — اولین آیتمِ کپسول، سمتِ راستِ (در RTL) نوار ناوبری.
+ * حلقهٔ اول نام ادمین است و ورقهٔ `AccountSheet` را باز می‌کند؛ جایگزینِ
+ * دکمهٔ منوی کشوی کناریِ حذف‌شده است.
+ */
+@Composable
+private fun AccountNavChip(
+    label: String,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val cd = stringResource(R.string.cd_account)
+    Box(
+        Modifier
+            .size(46.dp)
+            .clip(DsRadius.Full)
+            .background(theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
+            .semantics { contentDescription = cd }
+            .pressScale(0.94f)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            (label.trim().firstOrNull() ?: "?").uppercase(),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = theme.inkColor
+        )
     }
 }
 

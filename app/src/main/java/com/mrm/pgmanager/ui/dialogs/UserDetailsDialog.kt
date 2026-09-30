@@ -27,7 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
@@ -175,6 +174,7 @@ private fun InfoRow(icon: AppIcon, label: String, value: String, modifier: Modif
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun UserDetailsDialog(
     user: PanelUser,
     onDismiss: () -> Unit,
@@ -249,7 +249,7 @@ fun UserDetailsDialog(
         else if (session != null) {
             scope.launch {
                 runCatching { PanelApi.user(session, currentUser) }.onSuccess { currentUser = it; onResult(it.subUrl) }
-                    .onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() }
+                    .onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(subFailedMsg) }
             }
         } else onResult(currentUser.subUrl)
     }
@@ -273,9 +273,18 @@ fun UserDetailsDialog(
         else -> currentUser.status
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    // تا وقتی ویرایشگر باز است، ورقهٔ جزئیات پنهان می‌شود تا در مسیر
+    // «کارت ← جزئیات ← ویرایش» همیشه حداکثر یک لایه باز باشد (معیار UX).
+    if (!editOpen) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+    ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Column(Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 720.dp).navigationBarsPadding().imePadding().padding(bottom = 8.dp)) {
                 // ── هدر جدید: آواتار مینیمال 28dp بدون گرادینت
                 Row(
                     Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -326,7 +335,7 @@ fun UserDetailsDialog(
                             RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 13.dp)
                             MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show() } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
+                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
                                 Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { qrOpen = true } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
                             }
                         }
@@ -494,6 +503,7 @@ fun UserDetailsDialog(
             }
         }
     }
+    }
 
     if (templatePickerOpen) {
         LaunchedEffect(Unit) {
@@ -504,12 +514,12 @@ fun UserDetailsDialog(
         BulkApplyTemplateDialog(templates = availableTemplates, selectedCount = 1, onDismiss = { templatePickerOpen = false }, onApply = { id, note -> templatePickerOpen = false; onApplyTemplate?.invoke(id, note) }, isLoading = templatesLoading, loadFailed = templatesFailed)
     }
     if (editOpen) UserEditorDialog(initial = currentUser, onDismiss = { editOpen = false }, onSave = onSave, onToggle = onToggle, onApplyTemplateToUser = onApplyTemplate, session = session)
-    if (notesSheetOpen) NotesSheetDialog(note = currentUser.note.orEmpty(), onDismiss = { notesSheetOpen = false }, onEdit = { editOpen = true })
+    if (notesSheetOpen) NotesSheetDialog(note = currentUser.note.orEmpty(), onDismiss = { notesSheetOpen = false }, onEdit = { notesSheetOpen = false; editOpen = true })
     if (qrOpen) SubscriptionQrDialog(user = currentUser, onDismiss = { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog(title = stringResource(R.string.ud_reset_data_title), message = stringResource(R.string.ud_reset_data_msg), onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
     if (devicesResetConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_devices_reset_title), message = stringResource(R.string.ud_devices_reset_msg), onDismiss = { devicesResetConfirm = false }, onConfirm = { devicesResetConfirm = false; scope.launch { runCatching { PanelApi.resetUserDevices(session, currentUser.id) }; reloadDevices() } })
     if (nextPlanConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_next_plan_activate_title), message = stringResource(R.string.ud_next_plan_activate_msg), onDismiss = { nextPlanConfirm = false }, onConfirm = { nextPlanConfirm = false; scope.launch { runCatching { PanelApi.activateNextPlan(session, currentUser) }.onSuccess { runCatching { PanelApi.user(session, currentUser) }.onSuccess { currentUser = it } } } })
-    if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser) }.onSuccess { currentUser = it; android.widget.Toast.makeText(context, revokedMsg, android.widget.Toast.LENGTH_SHORT).show() }.onFailure { android.widget.Toast.makeText(context, subFailedMsg, android.widget.Toast.LENGTH_SHORT).show() } } })
+    if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser) }.onSuccess { currentUser = it; com.mrm.pgmanager.ui.feedback.AppFeedback.success(revokedMsg) }.onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(subFailedMsg) } } })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })
 }
 
@@ -542,7 +552,7 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                     onClick = {
                         val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         cb.setPrimaryClip(android.content.ClipData.newPlainText("note", note))
-                        android.widget.Toast.makeText(context, copiedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg)
                     },
                     modifier = Modifier.weight(1f),
                     icon = AppIcon.Copy,

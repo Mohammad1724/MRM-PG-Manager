@@ -218,7 +218,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
-                    android.widget.Toast.makeText(context, context.getString(R.string.copied), android.widget.Toast.LENGTH_SHORT).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.copied))
                 },
                 size = 36.dp
             )
@@ -270,6 +270,7 @@ fun CompactGlassField(
 @Composable
 fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val selectLabel = stringResource(R.string.cd_select)
     val unselectLabel = stringResource(R.string.cd_unselect)
     val isDark = theme.isDark
@@ -282,7 +283,7 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
             .background(bg)
             .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
             .semantics { contentDescription = if (selected) unselectLabel else selectLabel }
-            .clickable { onToggle() },
+            .clickable { com.mrm.pgmanager.utils.Haptics.tick(context); onToggle() },
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.animation.AnimatedVisibility(

@@ -264,8 +264,12 @@ internal fun UsersSettingsSection(
     val errorMsg = stringResource(R.string.set_usr_export_error)
     val failedMsg = stringResource(R.string.set_usr_export_failed)
 
-    fun toast(msg: String) {
-        android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+    fun toast(msg: String, success: Boolean = true) {
+        com.mrm.pgmanager.ui.feedback.AppFeedback.show(
+            msg,
+            if (success) com.mrm.pgmanager.ui.feedback.FeedbackTone.Success
+            else com.mrm.pgmanager.ui.feedback.FeedbackTone.Error
+        )
     }
 
     fun writeExport(uri: android.net.Uri?, payload: Pair<String, List<com.mrm.pgmanager.data.model.PanelUser>>?) {
@@ -282,7 +286,7 @@ internal fun UsersSettingsSection(
                     )
                 }
             }.isSuccess
-            withContext(Dispatchers.Main) { toast(if (ok) savedMsg else errorMsg) }
+            withContext(Dispatchers.Main) { toast(if (ok) savedMsg else errorMsg, success = ok) }
         }
     }
 
@@ -306,7 +310,7 @@ internal fun UsersSettingsSection(
             exportBusy = true
             val list = runCatching { PanelApi.users(session) }.getOrNull()
             exportBusy = false
-            if (list == null) { toast(failedMsg); return@launch }
+            if (list == null) { toast(failedMsg, success = false); return@launch }
             exportList = listOf(format to list)
             launcher("mrm-users-${exportTimestamp()}.$format")
         }
@@ -465,14 +469,11 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                     withContext(Dispatchers.Main) {
                         store.saveInvoiceLogoPath(logoFile.absolutePath)
                         invoiceLogoPath = logoFile.absolutePath
-                        android.widget.Toast.makeText(context, savedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.success(savedMsg)
                     }
                 }.onFailure { e ->
                     withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(
-                            context, String.format(errorTemplate, e.message ?: ""),
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(String.format(errorTemplate, e.message ?: ""))
                     }
                 }
             }
@@ -525,7 +526,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                         .clickable {
                             store.clearInvoiceLogo()
                             invoiceLogoPath = null
-                            android.widget.Toast.makeText(context, removedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(removedMsg)
                         },
                     contentAlignment = Alignment.Center
                 ) { RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 18.dp) }
@@ -615,7 +616,7 @@ internal fun BackupSection(
         if (backupBusy) return
         val targetUri = backupFolderUri
         if (targetUri.isNullOrBlank()) {
-            android.widget.Toast.makeText(context, pickFirstMsg, android.widget.Toast.LENGTH_SHORT).show()
+            com.mrm.pgmanager.ui.feedback.AppFeedback.info(pickFirstMsg)
             return
         }
         backupBusy = true
@@ -647,17 +648,14 @@ internal fun BackupSection(
                 backupLastMsg = if (manual) manualOkMsg else autoOkMsg
                 store.saveLastBackupMessage(backupLastMsg)
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, savedMsg, android.widget.Toast.LENGTH_SHORT).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.success(savedMsg)
                 }
             }.onFailure { e ->
                 backupLastMsg = String.format(errorTemplate, e.message ?: "")
                 store.saveLastBackupSuccess(false)
                 store.saveLastBackupMessage(backupLastMsg)
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(
-                        context, String.format(errorToastTemplate, e.message ?: ""),
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(String.format(errorToastTemplate, e.message ?: ""))
                 }
             }
             withContext(Dispatchers.Main) { backupBusy = false }

@@ -175,26 +175,6 @@ fun DangerButton(
 }
 
 @Composable
-fun GlassButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-    icon: AppIcon? = null
-) {
-    MrmButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        loading = loading,
-        icon = icon,
-        style = MrmButtonStyle.Glass
-    )
-}
-
-@Composable
 fun SmallButton(
     text: String,
     onClick: () -> Unit,
@@ -549,111 +529,6 @@ fun TechnicalContainer(
     ) {
         Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
             content()
-        }
-    }
-}
-
-@Composable
-fun UltraPremiumField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    leadingIcon: String = "",
-    leadingAppIcon: AppIcon? = null,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    isPassword: Boolean = false,
-    modifier: Modifier = Modifier,
-    isTechnical: Boolean = true // Most fields are URLs, usernames, etc.
-) {
-    val theme = LocalThemeState.current
-    var isFocused by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-    
-    val focusGlow by animateFloatAsState(targetValue = if (isFocused) 1f else 0f, label = "fieldGlow")
-
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor, modifier = Modifier.padding(start = 4.dp))
-        
-        val interactionSource = remember { MutableInteractionSource() }
-        
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp)
-                .clip(DsRadius.Md)
-                .let {
-                    if (isFocused) {
-                        it.shadow(elevation = (3 * focusGlow).dp, shape = DsRadius.Md, spotColor = theme.accentPrimary.copy(alpha = 0.25f))
-                    } else it
-                }
-                .background(theme.searchBgColor)
-                .border(
-                    BorderStroke(
-                        width = if (isFocused) DsBorder.Focus else DsBorder.Hairline,
-                        color = if (isFocused) theme.accentPrimary else theme.borderColor
-                    ),
-                    DsRadius.Md
-                )
-        ) {
-            Row(
-                Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Icon wrapper — توکن‌محور، هم‌اندازه با PGField
-                Box(
-                    Modifier.size(32.dp).clip(DsRadius.Sm)
-                        .background(if (isFocused) theme.accentPrimary.copy(0.12f) else theme.borderSubtle),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = if (isFocused) theme.accentPrimary else theme.mutedColor, size = 18.dp)
-                    else if (leadingIcon.isNotEmpty()) Text(leadingIcon, fontSize = 16.sp)
-                }
-
-                // Input area with direction handling
-                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) {
-                        Text(
-                            placeholder,
-                            color = theme.mutedLightColor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            style = TextStyle(textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content)
-                        )
-                    }
-                    
-                    BasicTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        singleLine = true,
-                        interactionSource = interactionSource,
-                        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-                        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-                        textStyle = TextStyle(
-                            color = theme.inkColor,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            textDirection = if (isTechnical) androidx.compose.ui.text.style.TextDirection.Ltr else androidx.compose.ui.text.style.TextDirection.Content
-                        ),
-                        modifier = Modifier.fillMaxWidth().onFocusChanged { isFocused = it.isFocused }
-                    )
-                }
-
-                if (isPassword) {
-                    ActionIconButton(
-                        icon = { PasswordEyeIcon(visible = passwordVisible) },
-                        onClick = { passwordVisible = !passwordVisible },
-                        size = 36.dp
-                    )
-                } else if (value.isNotEmpty()) {
-                    ActionIconButton(
-                        icon = { Text("×", color = theme.mutedColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
-                        onClick = { onValueChange("") },
-                        size = 36.dp
-                    )
-                }
-            }
         }
     }
 }

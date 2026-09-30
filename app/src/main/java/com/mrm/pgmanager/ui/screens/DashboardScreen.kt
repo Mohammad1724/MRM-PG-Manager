@@ -127,7 +127,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
         }.onFailure { e ->
-            if (PanelApi.isUnauthorized(e)) { android.widget.Toast.makeText(context, context.getString(R.string.us_session_expired), android.widget.Toast.LENGTH_LONG).show(); onSessionExpired() }
+            if (PanelApi.isUnauthorized(e)) { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired)); onSessionExpired() }
             else {
                 if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats)); panelOfflineAlerted = true }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null

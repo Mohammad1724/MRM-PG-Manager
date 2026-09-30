@@ -30,6 +30,10 @@
     <string name="users">Users</string>
     <string name="refresh">Refresh</string>
     <string name="logout">Log out</string>
+    <string name="acct_title">Accounts</string>
+    <string name="acct_add">Add account</string>
+    <string name="acct_active">Active</string>
+    <string name="cd_close">Close</string>
     <string name="limit">Limit</string>
     <string name="expired">Expired</string>
     <string name="limited">Limited</string>
@@ -831,6 +835,9 @@
     <string name="copied">Copied</string>
     <string name="cd_unselect">Unselect</string>
     <string name="cd_select">Select</string>
+    <string name="cd_dismiss">Dismiss</string>
+    <string name="err_generic">Something went wrong</string>
+    <string name="cd_account">Account menu</string>
     <string name="confirm">Confirm</string>
     <string name="search_cd">Search</string>
     <!-- زمان و مدت -->

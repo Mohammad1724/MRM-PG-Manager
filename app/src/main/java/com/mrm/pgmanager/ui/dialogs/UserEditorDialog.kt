@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
@@ -52,6 +51,7 @@ import java.util.Locale
  * ────────────────────────────────────────────────────────────────────────── */
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun UserEditorDialog(
     initial: PanelUser?,
     onDismiss: () -> Unit,
@@ -127,11 +127,17 @@ fun UserEditorDialog(
         if (groupSearchQuery.isBlank()) groups else groups.filter { it.name.contains(groupSearchQuery, ignoreCase = true) }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss, sheetState = sheetState,
+        containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        dragHandle = { Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
+    ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Column(
-                Modifier.fillMaxWidth().heightIn(max = 720.dp).clip(DsRadius.Xxl)
-                    .background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                Modifier.fillMaxWidth().heightIn(max = 720.dp)
+                    .navigationBarsPadding().imePadding().padding(bottom = 8.dp)
             ) {
                 // هدر جدید 28dp
                 Row(

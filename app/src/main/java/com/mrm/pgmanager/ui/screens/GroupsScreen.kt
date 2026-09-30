@@ -62,6 +62,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
     val addGroupLabel = stringResource(R.string.add_group)
@@ -97,7 +98,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         if (!silent) loading = true
         runCatching { PanelApi.groupsDetailed(session) }
             .onSuccess { groups = it; loadError = null; PanelCache.put(groupsKey, it) }
-            .onFailure { loadError = it.message ?: "error" }
+            .onFailure { loadError = it.message ?: context.getString(R.string.err_generic) }
         // تگ‌ها اختیاری‌اند؛ نبودشان صفحه را از کار نمی‌اندازد.
         runCatching { PanelApi.inboundTags(session) }
             .onSuccess { availableInbounds = it; PanelCache.put(inboundsKey, it) }
@@ -226,18 +227,10 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
 
                     loadError != null && groups.isEmpty() -> {
-                        Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            RoundedAppIcon(AppIcon.Warning, tint = DsSemantic.Danger, size = 26.dp)
-                            Text(stringResource(R.string.load_failed), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Text(loadError.orEmpty(), fontSize = 10.sp, color = theme.mutedColor, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            PGSecondaryButton(stringResource(R.string.retry), onClick = { scope.launch { load() } })
-                        }
+                        MrmErrorState(
+                            onRetry = { scope.launch { load() } },
+                            message = loadError
+                        )
                     }
 
                     groups.isEmpty() -> {
@@ -308,7 +301,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         load(silent = true)
                     }.onFailure { e ->
                         // دیالوگ باز می‌ماند و خطا داخل خودش نمایش داده می‌شود.
-                        onResult(e.message ?: "error")
+                        onResult(e.message ?: context.getString(R.string.err_generic))
                     }
                 }
             }

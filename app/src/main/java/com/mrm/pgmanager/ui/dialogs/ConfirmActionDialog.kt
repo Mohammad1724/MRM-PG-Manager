@@ -59,6 +59,7 @@ fun ConfirmActionDialog(
     danger: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    val context = LocalContext.current
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(24.dp)) {
@@ -68,9 +69,9 @@ fun ConfirmActionDialog(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         SecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                         if (danger) {
-                            DangerButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+                            DangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f))
                         } else {
-                            PrimaryButton(confirmLabel, onClick = onConfirm, modifier = Modifier.weight(1f))
+                            PrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f))
                         }
                     }
                 }

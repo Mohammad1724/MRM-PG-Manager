@@ -293,7 +293,7 @@ internal fun UserStatusBadge(user: PanelUser, modifier: Modifier = Modifier, com
 internal fun copySubscription(context: Context, user: PanelUser) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-    android.widget.Toast.makeText(context, context.getString(R.string.us_sub_copied), android.widget.Toast.LENGTH_SHORT).show()
+    com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_sub_copied))
 }
 
 @Composable
