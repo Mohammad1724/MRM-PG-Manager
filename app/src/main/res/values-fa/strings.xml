@@ -134,6 +134,8 @@
     <string name="monitoring_title">پایش</string>
     <string name="notifications_title">اعلان‌ها</string>
     <string name="connection_title">اتصال</string>
+    <string name="set_tab_connection">اتصال و حساب‌ها</string>
+    <string name="set_tab_monitoring">اعلان‌ها و مانیتورینگ</string>
     <string name="users_title">کاربران</string>
     <string name="invoice_title">فاکتور</string>
     <string name="backup_title">پشتیبان</string>

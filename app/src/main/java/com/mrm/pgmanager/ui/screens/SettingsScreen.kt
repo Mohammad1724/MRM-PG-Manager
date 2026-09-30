@@ -63,7 +63,7 @@ import com.mrm.pgmanager.ui.theme.ThemeState
  * مقایسه می‌کرد. با عوض‌کردنِ زبان، مقایسه شکست می‌خورد و تبِ فعال گم می‌شد.
  * شناسهٔ پایدار این کلاسِ باگ را ریشه‌کن می‌کند.
  */
-enum class SettingsSection { APPEARANCE, MONITORING, NOTIFICATIONS, SECURITY, ADVANCED }
+enum class SettingsSection { CONNECTION, APPEARANCE, MONITORING, ADVANCED }
 
 /**
  * صفحهٔ تنظیمات — بازطراحی‌شده به‌صورتِ صفحهٔ کامل، هم‌سبک با بقیهٔ صفحه‌ها.
@@ -105,7 +105,8 @@ fun SettingsScreen(
 ) {
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
-    var section by rememberSaveable { mutableStateOf(SettingsSection.APPEARANCE) }
+    // فاز ۱.۴: چهار بخشِ «اتصال و حساب‌ها ← ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته».
+    var section by rememberSaveable { mutableStateOf(SettingsSection.CONNECTION) }
     val sections = SettingsSection.entries
     val scope = rememberCoroutineScope()
     // بخش‌ها حالا با انگشت هم عوض می‌شوند، نه فقط با زدنِ تب. پیجر و نوارِ تب
@@ -155,10 +156,9 @@ fun SettingsScreen(
 
         // ── نوار بخش‌ها
         val tabs = listOf(
+            SettingsSection.CONNECTION to stringResource(R.string.set_tab_connection),
             SettingsSection.APPEARANCE to stringResource(R.string.appearance),
-            SettingsSection.MONITORING to stringResource(R.string.monitoring_title),
-            SettingsSection.NOTIFICATIONS to stringResource(R.string.notifications_title),
-            SettingsSection.SECURITY to stringResource(R.string.security_title),
+            SettingsSection.MONITORING to stringResource(R.string.set_tab_monitoring),
             SettingsSection.ADVANCED to stringResource(R.string.advanced_title)
         )
         androidx.compose.foundation.lazy.LazyRow(
@@ -202,6 +202,27 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(11.dp)
         ) {
             when (sections[page]) {
+                // ── اتصال و حساب‌ها: اطلاعات پنل/سوئیچ حساب (از پیشرفته منتقل شد)
+                //    + قفل برنامه و خروج — همه مستقیم، بدون آکاردئون (≤۱ کلیک).
+                SettingsSection.CONNECTION -> {
+                    if (store != null) {
+                        ConnectionSection(
+                            session = session,
+                            store = store,
+                            scope = scope,
+                            onSwitchAccount = onSwitchAccount,
+                            onAddAccount = onAddAccount
+                        )
+                    }
+                    SecuritySection(
+                        isAppLockEnabled = isAppLockEnabled,
+                        onAppLockChange = onAppLockChange,
+                        appLockTimeout = appLockTimeout,
+                        onLockTimeoutChange = onLockTimeoutChange,
+                        onLogout = onLogout
+                    )
+                }
+
                 SettingsSection.APPEARANCE -> AppearanceSection(
                     themeState = themeState,
                     onThemeChange = onThemeChange,
@@ -209,23 +230,17 @@ fun SettingsScreen(
                     onLanguageChange = onLanguageChange
                 )
 
-                SettingsSection.MONITORING -> MonitoringSection(
-                    monitoringSettings = monitoringSettings,
-                    onMonitoringChange = onMonitoringChange
-                )
-
-                SettingsSection.NOTIFICATIONS -> NotificationsSection(
-                    monitoringSettings = monitoringSettings,
-                    onMonitoringChange = onMonitoringChange
-                )
-
-                SettingsSection.SECURITY -> SecuritySection(
-                    isAppLockEnabled = isAppLockEnabled,
-                    onAppLockChange = onAppLockChange,
-                    appLockTimeout = appLockTimeout,
-                    onLockTimeoutChange = onLockTimeoutChange,
-                    onLogout = onLogout
-                )
+                // ── اعلان‌ها و مانیتورینگ: دو بخشِ سابق روی یک صفحه (فاز ۱.۴).
+                SettingsSection.MONITORING -> {
+                    MonitoringSection(
+                        monitoringSettings = monitoringSettings,
+                        onMonitoringChange = onMonitoringChange
+                    )
+                    NotificationsSection(
+                        monitoringSettings = monitoringSettings,
+                        onMonitoringChange = onMonitoringChange
+                    )
+                }
 
                 // بخشِ پیشرفته فقط وقتی معنا دارد که SessionStore پاس داده شده باشد
                 // (در MainActivity همیشه پاس داده می‌شود؛ مقدار پیش‌فرضِ null فقط
@@ -236,8 +251,6 @@ fun SettingsScreen(
                         store = store,
                         monitoringSettings = monitoringSettings,
                         onMonitoringChange = onMonitoringChange,
-                        onSwitchAccount = onSwitchAccount,
-                        onAddAccount = onAddAccount,
                         onBulkCreate = onBulkCreate,
                         appVersion = appVersion
                     )
@@ -251,8 +264,9 @@ fun SettingsScreen(
 }
 
 /**
- * بخشِ «پیشرفته»: چهار زیربخشِ سنگین که به `session`/`store` و لانچرهای فایل
- * وابسته‌اند، به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه شلوغ نشود.
+ * بخشِ «پیشرفته»: سه زیربخشِ سنگین (کاربران/فاکتور/پشتیبان) که به `session`/`store`
+ * و لانچرهای فایل وابسته‌اند و به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه
+ * شلوغ نشود. زیربخشِ «اتصال» در فاز ۱.۴ به تبِ «اتصال و حساب‌ها» منتقل شد.
  *
  * فقط یک زیربخش هم‌زمان باز است؛ ایندکسِ زیربخشِ باز با [rememberSaveable]
  * نگه داشته می‌شود تا با چرخشِ صفحه یا تغییرِ زبان گم نشود (`-1` = همه بسته).
@@ -266,8 +280,6 @@ private fun AdvancedSection(
     store: SessionStore,
     monitoringSettings: MonitoringSettings,
     onMonitoringChange: (MonitoringSettings) -> Unit,
-    onSwitchAccount: (Session) -> Unit,
-    onAddAccount: () -> Unit,
     onBulkCreate: () -> Unit,
     appVersion: String
 ) {
@@ -276,29 +288,12 @@ private fun AdvancedSection(
     var restoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     ExpandableSettingsGroup(
-        title = stringResource(R.string.connection_title),
-        subtitle = stringResource(R.string.advanced_conn_desc),
-        icon = AppIcon.Wifi,
-        accent = LocalThemeState.current.accentPrimary,
-        expanded = openGroup == 0,
-        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
-    ) {
-        ConnectionSection(
-            session = session,
-            store = store,
-            scope = scope,
-            onSwitchAccount = onSwitchAccount,
-            onAddAccount = onAddAccount
-        )
-    }
-
-    ExpandableSettingsGroup(
         title = stringResource(R.string.users_title),
         subtitle = stringResource(R.string.advanced_users_desc),
         icon = AppIcon.Users,
         accent = GlassGreen,
-        expanded = openGroup == 1,
-        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
+        expanded = openGroup == 0,
+        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
     ) {
         UsersSettingsSection(
             session = session,
@@ -315,8 +310,8 @@ private fun AdvancedSection(
         subtitle = stringResource(R.string.advanced_invoice_desc),
         icon = AppIcon.Receipt,
         accent = GlassAmber,
-        expanded = openGroup == 2,
-        onToggle = { openGroup = if (openGroup == 2) -1 else 2 }
+        expanded = openGroup == 1,
+        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
     ) {
         InvoiceSection(store = store, scope = scope)
     }
@@ -326,8 +321,8 @@ private fun AdvancedSection(
         subtitle = stringResource(R.string.advanced_backup_desc),
         icon = AppIcon.Backup,
         accent = LocalThemeState.current.accentPrimary,
-        expanded = openGroup == 3,
-        onToggle = { openGroup = if (openGroup == 3) -1 else 3 }
+        expanded = openGroup == 2,
+        onToggle = { openGroup = if (openGroup == 2) -1 else 2 }
     ) {
         BackupSection(
             store = store,

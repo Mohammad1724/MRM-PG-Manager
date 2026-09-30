@@ -134,6 +134,8 @@
     <string name="monitoring_title">Monitoring</string>
     <string name="notifications_title">Notifications</string>
     <string name="connection_title">Connection</string>
+    <string name="set_tab_connection">Connection &amp; accounts</string>
+    <string name="set_tab_monitoring">Notifications &amp; monitoring</string>
     <string name="users_title">Users</string>
     <string name="invoice_title">Invoice</string>
     <string name="backup_title">Backup</string>
