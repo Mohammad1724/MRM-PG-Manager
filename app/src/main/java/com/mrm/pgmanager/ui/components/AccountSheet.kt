@@ -98,7 +98,7 @@ fun AccountSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        (adminName.trim().firstOrNull() ?: "?").uppercase(),
+                        adminName.trim().firstOrNull()?.uppercase() ?: "?",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = theme.inkColor

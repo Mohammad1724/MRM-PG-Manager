@@ -138,7 +138,7 @@ fun MrmFloatingNav(
                 horizontalArrangement = Arrangement.spacedBy(3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                androidx.compose.foundation.lazy.item(key = "account") {
+                item(key = "account") {
                     AccountNavChip(label = accountLabel) { onAccount() }
                 }
                 items(NAV_ITEMS.size) { index ->
@@ -178,7 +178,7 @@ private fun AccountNavChip(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            (label.trim().firstOrNull() ?: "?").uppercase(),
+            label.trim().firstOrNull()?.uppercase() ?: "?",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             color = theme.inkColor
