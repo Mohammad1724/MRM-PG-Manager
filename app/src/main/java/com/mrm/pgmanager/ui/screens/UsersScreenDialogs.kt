@@ -126,7 +126,7 @@ fun DebtorEditDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 if (existing != null) {
-                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
                 }
                 Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -162,14 +162,14 @@ fun DebtorEditDialog(
                     )
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                    PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     if (existing != null) {
-                        PrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
+                        PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
                     } else {
                         Box(Modifier.weight(1f))
                     }
                 }
-                PrimaryButton(
+                PGPrimaryButton(
                     text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
                     enabled = amountLong > 0L,
                     modifier = Modifier.fillMaxWidth(),
@@ -245,15 +245,15 @@ internal fun UsersScreenDialogs(
                     ui.bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
                 })
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkAmountKind = null }, modifier = Modifier.weight(1f))
-                    PrimaryButton(
+                    PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkAmountKind = null }, modifier = Modifier.weight(1f))
+                    PGPrimaryButton(
                         text = stringResource(R.string.us_bulk_apply),
                         modifier = Modifier.weight(1f),
                         onClick = {
                             val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(ui.bulkAmountText)
                             val amount = normalized.toDoubleOrNull()
                             ui.bulkAmountKind = null
-                            if (amount == null || amount == 0.0) return@PrimaryButton
+                            if (amount == null || amount == 0.0) return@PGPrimaryButton
                             ui.selectedUserIds = emptySet()
                             ui.runAction {
                                 if (kind == "days") PanelApi.bulkAddDays(session, ids, amount.toInt())
@@ -343,7 +343,7 @@ internal fun UsersScreenDialogs(
                         }
                     }
                 }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkGroupPicker = false }, modifier = Modifier.fillMaxWidth())
+                PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkGroupPicker = false }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -457,7 +457,7 @@ internal fun UsersScreenDialogs(
                 Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { ui.createMenuOpen = false; ui.createUser = true }
                 SettingsActionRow(stringResource(R.string.us_create_bulk), stringResource(R.string.us_create_bulk_desc), AppIcon.Users, GlassGreen) { ui.createMenuOpen = false; ui.bulkCreateOpen = true }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.createMenuOpen = false }, modifier = Modifier.fillMaxWidth())
+                PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.createMenuOpen = false }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -468,10 +468,10 @@ internal fun UsersScreenDialogs(
         Dialog(onDismissRequest = { ui.exportChooserOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.us_export_title, ui.selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                Text(stringResource(R.string.us_export_desc), fontSize = 10.sp, color = themeState.mutedColor)
+                Text(stringResource(R.string.us_export_desc), fontSize = 11.sp, color = themeState.mutedColor)
                 SettingsActionRow(stringResource(R.string.us_export_csv), stringResource(R.string.us_export_csv_desc), AppIcon.Download, GlassGreen) { ui.exportChooserOpen = false; onBeginExport("csv") }
                 SettingsActionRow(stringResource(R.string.us_export_json), stringResource(R.string.us_export_json_desc), AppIcon.Download, themeState.accentPrimary) { ui.exportChooserOpen = false; onBeginExport("json") }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.exportChooserOpen = false }, modifier = Modifier.fillMaxWidth())
+                PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.exportChooserOpen = false }, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -488,9 +488,9 @@ internal fun UsersScreenDialogs(
                     Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Text(stringResource(R.string.us_delete_user_msg), color = theme.mutedColor, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        SecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.deleteUser = null }, modifier = Modifier.weight(1f))
+                        PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.deleteUser = null }, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(10.dp))
-                        DangerButton(stringResource(R.string.us_delete), onClick = { ui.deleteUser = null; ui.runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
+                        PGDangerButton(stringResource(R.string.us_delete), onClick = { ui.deleteUser = null; ui.runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
                     }
                 }
             }

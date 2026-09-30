@@ -286,7 +286,7 @@ fun UsersScreen(
         // ادمینی که مجوزِ users.create ندارد، دکمهٔ ساخت را نمی‌بیند (پنل ۴۰۳ می‌داد).
         if (ui.selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
             // هنگام اسکرول به پایین محو می‌شود تا جلوی ردیف‌ها را نگیرد (MrmFab).
-            MrmFab(
+            PGFAB(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
                 modifier = Modifier.padding(bottom = 72.dp, end = 4.dp),
@@ -341,7 +341,7 @@ fun UsersScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.us_error), fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
                             Text(ui.error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                            SecondaryButton(stringResource(R.string.us_retry), onClick = { ui.load() }, modifier = Modifier.fillMaxWidth())
+                            PGSecondaryButton(stringResource(R.string.us_retry), onClick = { ui.load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                     processedUsers.isEmpty() -> MrmEmptyState(
@@ -351,9 +351,9 @@ fun UsersScreen(
                         icon = AppIcon.Search
                     ) {
                         if (ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
-                            com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { ui.query = ""; ui.currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                            com.mrm.pgmanager.ui.components.PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { ui.query = ""; ui.currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
                         }
-                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { ui.createUser = true }, icon = AppIcon.UserAdd)
+                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PGPrimaryButton(stringResource(R.string.create_user), onClick = { ui.createUser = true }, icon = AppIcon.UserAdd)
                     }
                     else -> {
                     // ورودِ پلکانیِ ردیف‌های اول — فقط در اولین نمایش بعد از بارگذاری.
@@ -533,7 +533,7 @@ fun UsersScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                        Text(stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
+                        Text(stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
                     }
                 }
             }

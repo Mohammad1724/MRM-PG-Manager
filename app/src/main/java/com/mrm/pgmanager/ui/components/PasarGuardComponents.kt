@@ -229,6 +229,16 @@ fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     MrmButton(text = text, onClick = onClick, modifier = modifier, style = MrmButtonStyle.Secondary, compact = true)
 }
 
+@Composable
+fun PGDangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, style = MrmButtonStyle.Danger, compact = true)
+}
+
+/** دکمهٔ شناورِ ساخت — همان پیاده‌سازی `MrmFab` با نامِ خانوادهٔ PG. */
+@Composable
+fun PGFAB(icon: AppIcon, contentDescription: String, modifier: Modifier = Modifier, visible: Boolean = true, onClick: () -> Unit) =
+    MrmFab(icon = icon, contentDescription = contentDescription, modifier = modifier, visible = visible, onClick = onClick)
+
 // ─────────────────────────────────────────────────────────────
 //  PGSearchBar — light gray bg, subtle border, rounded
 // ─────────────────────────────────────────────────────────────

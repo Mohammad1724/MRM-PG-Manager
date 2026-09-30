@@ -279,11 +279,11 @@ internal fun FilterAndControlBar(
                     // برچسبِ ثابت «فیلتر» + مقدارِ فعلی زیرِ آن.
                     // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(stringResource(R.string.filter), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(stringResource(R.string.filter), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                         Text(filterLabel(currentFilter, expiringWindowDays), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
-                Text("▾", fontSize = 10.sp, color = theme.mutedColor)
+                Text("▾", fontSize = 11.sp, color = theme.mutedColor)
             }
         }
         // Sort dropdown - with icon
@@ -293,11 +293,11 @@ internal fun FilterAndControlBar(
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
                     // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(stringResource(R.string.sort), fontSize = 9.sp, lineHeight = 10.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(stringResource(R.string.sort), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
                         Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created); UserSort.LAST_ONLINE->stringResource(R.string.us_sort_last_online)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
-                Text("▾", fontSize = 10.sp, color = theme.mutedColor)
+                Text("▾", fontSize = 11.sp, color = theme.mutedColor)
             }
         }
         // فیلترِ گروه — پنل خودش اعمالش می‌کند (`?group=`)

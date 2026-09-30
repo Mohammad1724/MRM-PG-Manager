@@ -179,7 +179,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                         )
                         if (debtorInfo != null) DebtorBadge(compact = true)
                     }
-                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
+                    OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
                 }
                 if (user.note?.isNotBlank() == true) Box(Modifier.size(16.dp).clip(RoundedCornerShape(5.dp)).background(DsSemantic.Info.copy(0.16f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = DsSemantic.Info, size = 11.dp) }
             }
@@ -192,10 +192,10 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                 isTechnical = true
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("${cardStatusText(user)}", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
+                Text("${cardStatusText(user)}", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.weight(1f), maxLines = 1)
                 MrmText(
                     text = if (user.dataLimit == 0L) "∞" else "$progressPercent%", 
-                    fontSize = 9.sp, 
+                    fontSize = 11.sp, 
                     fontWeight = FontWeight.Bold, 
                     color = progressColor,
                     isTechnical = true
@@ -203,15 +203,18 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
             }
             // نوارِ نازکِ مصرف — ۴dp، انیمیت‌شونده (PGProgressBar در فازِ draw می‌کشد).
             PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+            // کپی/QR بیرون از اسکرول می‌مانند (همیشه دیده شوند)؛ فقط نشان‌های جانبی اسکرول می‌خورند.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
-                Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 12.dp)
-                }
-                if (user.groupNames.isNotEmpty()) {
-                    Box(Modifier.height(22.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-                        Text(user.groupNames.first(), fontSize = 10.sp, color = Color(0xFF8B5CF6), maxLines = 1)
+                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                        OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
+                    }
+                    if (user.groupNames.isNotEmpty()) {
+                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(Color(0xFF8B5CF6).copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                            Text(user.groupNames.first(), fontSize = 11.sp, color = Color(0xFF8B5CF6), maxLines = 1)
+                        }
                     }
                 }
             }
@@ -226,7 +229,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
 @Composable
 internal fun OnlineOrLastSeen(
     user: PanelUser,
-    fontSize: androidx.compose.ui.unit.TextUnit = 10.sp,
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
     iconSize: androidx.compose.ui.unit.Dp = 12.dp
 ) {
     val theme = LocalThemeState.current
@@ -320,15 +323,15 @@ internal fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, content
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 13.dp)
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
     }
 }
 
 @Composable
 internal fun IconGridAction(icon: AppIcon, contentDesc: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.size(28.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 14.dp)
+    Box(Modifier.size(40.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
     }
 }
 
@@ -367,27 +370,27 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                         overflow = TextOverflow.Ellipsis,
                         isTechnical = true
                     )
-                    OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 13.dp)
+                    OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 13.dp)
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
-                IconCardAction(AppIcon.Copy, Modifier.size(34.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
-                IconCardAction(AppIcon.Qr, Modifier.size(34.dp), contentDesc = "QR") { onQrClick(user) }
+                IconCardAction(AppIcon.Copy, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
+                IconCardAction(AppIcon.Qr, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.traffic_usage_label), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(stringResource(R.string.traffic_usage_label), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(traffic, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(stringResource(R.string.remaining_credit), fontSize = 10.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+                    Text(stringResource(R.string.remaining_credit), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
                     MrmText(remainingText(user), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = false)
                 }
             }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PGProgressBar(progress = shownProgress, modifier = Modifier.weight(1f), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
-                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                Text(if (user.dataLimit == 0L) "∞" else "$progressPercent%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = progressColor)
             }
         }
     }
@@ -414,19 +417,19 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
             Column(Modifier.width(96.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                OnlineOrLastSeen(user, fontSize = 10.sp, iconSize = 11.dp)
+                OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
             }
             UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    MrmText(traffic, fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
-                    MrmText(remainingText(user), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
+                    MrmText(traffic, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
+                    MrmText(remainingText(user), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)
                 }
                 PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else Color(0xFFF3F4F6))
             }
-            IconRowAction(AppIcon.Copy, Modifier.size(24.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
-            IconRowAction(AppIcon.Qr, Modifier.size(24.dp), contentDesc = "QR") { onQrClick(user) }
+            IconRowAction(AppIcon.Copy, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
+            IconRowAction(AppIcon.Qr, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
         }
     }
 }
