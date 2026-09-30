@@ -152,16 +152,17 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
                         else Text(stringResource(R.string.qr_error), fontSize = 12.sp)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        SecondaryButton(stringResource(R.string.qr_copy), onClick = {
+                        PGSecondaryButton(stringResource(R.string.qr_copy), onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                             clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
                             com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.qr_copied))
                         }, modifier = Modifier.weight(1f))
-                        SecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
+                        PGSecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
                     }
                     // گزینهٔ اصلی: کارتِ کامل با نام، حجم، اعتبار و برند
-                    PrimaryButton(
+                    PGPrimaryButton(
                         stringResource(R.string.qr_send_card),
+                        icon = null,
                         onClick = ::shareCard,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !busy,

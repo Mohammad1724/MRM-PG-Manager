@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
-import com.mrm.pgmanager.ui.components.PrimaryButton
-import com.mrm.pgmanager.ui.components.SecondaryButton
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
@@ -172,7 +172,7 @@ internal fun RestoreBackupDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.weight(1f)) {
                         if (!restoring) {
-                            SecondaryButton(
+                            PGSecondaryButton(
                                 stringResource(R.string.set_rs_cancel),
                                 onClick = onDismiss,
                                 modifier = Modifier.fillMaxWidth()
@@ -192,7 +192,7 @@ internal fun RestoreBackupDialog(
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        PrimaryButton(
+                        PGPrimaryButton(
                             text = stringResource(R.string.set_rs_restore),
                             enabled = !restoring,
                             loading = restoring,
@@ -200,7 +200,7 @@ internal fun RestoreBackupDialog(
                             onClick = {
                                 if (!restoreAccounts && !restoreDebtors && !restoreSettings && !restoreInvoice) {
                                     com.mrm.pgmanager.ui.feedback.AppFeedback.info(pickOneMsg)
-                                    return@PrimaryButton
+                                    return@PGPrimaryButton
                                 }
                                 restoring = true
                                 scope.launch(Dispatchers.IO) {

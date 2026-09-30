@@ -224,8 +224,8 @@ fun BulkCreateUsersDialog(
                         CompactGlassField(note, { note = it.take(200) }, stringResource(R.string.bc_note_hint), leadingAppIcon = AppIcon.Note, fieldHeight = 38.dp)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SecondaryButton(stringResource(R.string.bc_cancel), onClick = onDismiss, modifier = Modifier.weight(.38f))
-                        PrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() }, icon = AppIcon.UserAdd)
+                        PGSecondaryButton(stringResource(R.string.bc_cancel), onClick = onDismiss, modifier = Modifier.weight(.38f))
+                        PGPrimaryButton(if (canStart) stringResource(R.string.bc_create_n, count) else stringResource(R.string.bc_incomplete), enabled = canStart, modifier = Modifier.weight(.62f), onClick = { start() }, icon = AppIcon.UserAdd)
                     }
                 } else {
                     // نمای پیشرفت / نتیجه
@@ -251,9 +251,9 @@ fun BulkCreateUsersDialog(
                         }
                     }
                     if (!done) {
-                        DangerButton(stringResource(R.string.bc_stop), onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth())
+                        PGDangerButton(stringResource(R.string.bc_stop), onClick = { job?.cancel(); running = false; done = true }, modifier = Modifier.fillMaxWidth())
                     } else {
-                        PrimaryButton(stringResource(R.string.bc_close), onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth())
+                        PGPrimaryButton(stringResource(R.string.bc_close), onClick = { onFinished(successCount); onDismiss() }, modifier = Modifier.fillMaxWidth(), icon = null)
                     }
                 }
             }

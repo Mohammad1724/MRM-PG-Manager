@@ -220,13 +220,13 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 //  (کپسولِ شیشه‌ای؛ قبلاً نسخهٔ جداگانه‌ای با پرکنندهٔ تختِ زرد بودند)
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = AppIcon.Check, enabled: Boolean = true) {
-    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, icon = icon, style = MrmButtonStyle.Primary, compact = true)
+fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = AppIcon.Check, enabled: Boolean = true, loading: Boolean = false) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = icon, style = MrmButtonStyle.Primary, compact = true)
 }
 
 @Composable
-fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    MrmButton(text = text, onClick = onClick, modifier = modifier, style = MrmButtonStyle.Secondary, compact = true)
+fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, icon = icon, style = MrmButtonStyle.Secondary, compact = true)
 }
 
 @Composable

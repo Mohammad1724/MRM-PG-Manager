@@ -67,11 +67,11 @@ fun ConfirmActionDialog(
                     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                     Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                        PGSecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                         if (danger) {
-                            DangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f))
+                            PGDangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f))
                         } else {
-                            PrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f))
+                            PGPrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f))
                         }
                     }
                 }

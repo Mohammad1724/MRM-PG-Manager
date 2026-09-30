@@ -220,7 +220,7 @@ fun InvoiceDialog(
                         Text(invoiceText, fontSize = 12.sp, color = theme.inkColor, lineHeight = 22.sp)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        PrimaryButton(
+                        PGPrimaryButton(
                             text = stringResource(R.string.inv_copy_text),
                             onClick = {
                                 val clip = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -230,7 +230,7 @@ fun InvoiceDialog(
                             modifier = Modifier.weight(1f),
                             icon = AppIcon.Copy
                         )
-                        SecondaryButton(
+                        PGSecondaryButton(
                             text = stringResource(R.string.inv_share),
                             onClick = {
                                 val intent = Intent(Intent.ACTION_SEND).apply {
@@ -242,7 +242,7 @@ fun InvoiceDialog(
                             icon = AppIcon.OpenNew
                         )
                     }
-                    SecondaryButton(stringResource(R.string.inv_close), onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth())
+                    PGSecondaryButton(stringResource(R.string.inv_close), onClick = { textShareMode = false }, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -429,7 +429,7 @@ fun InvoiceDialog(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(
+                    PGSecondaryButton(
                         text = "📸 " + stringResource(R.string.inv_preview),
                         onClick = { previewMode = true },
                         modifier = Modifier.fillMaxWidth(),
@@ -437,15 +437,16 @@ fun InvoiceDialog(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        SecondaryButton(
+                        PGSecondaryButton(
                             text = "📄 " + stringResource(R.string.inv_text_invoice),
                             onClick = { textShareMode = true },
                             modifier = Modifier.weight(1f)
                         )
-                        PrimaryButton(
+                        PGPrimaryButton(
                             text = "📄 PDF",
+                            icon = null,
                             onClick = {
-                                if (generatingPdf) return@PrimaryButton
+                                if (generatingPdf) return@PGPrimaryButton
                                 generatingPdf = true
                                 scope.launch(Dispatchers.IO) {
                                     val file = runCatching {
@@ -485,7 +486,7 @@ fun InvoiceDialog(
                         )
                     }
 
-                    SecondaryButton(
+                    PGSecondaryButton(
                         stringResource(R.string.inv_close),
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth()
@@ -643,7 +644,7 @@ private fun InvoicePreviewCard(
                     color = Color(0xFFA09C94)
                 )
             }
-            SecondaryButton(
+            PGSecondaryButton(
                 stringResource(R.string.inv_close),
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth()

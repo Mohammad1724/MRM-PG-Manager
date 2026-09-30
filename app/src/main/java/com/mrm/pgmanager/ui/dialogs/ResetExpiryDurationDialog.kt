@@ -27,8 +27,8 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.PrimaryButton
-import com.mrm.pgmanager.ui.components.SecondaryButton
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.MrmText
 
 @Composable
@@ -53,8 +53,8 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                 listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.weight(1f).height(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { days = value.toString(); error = null }, contentAlignment = Alignment.Center) { Text(stringResource(R.string.re_days_value, value), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor) } }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                PrimaryButton(
+                PGSecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                PGPrimaryButton(
                     text = stringResource(R.string.re_apply),
                     icon = AppIcon.Check,
                     onClick = {

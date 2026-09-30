@@ -122,7 +122,7 @@ fun QuickActionSheet(
                         }
                     }
                     
-                    SecondaryButton(stringResource(R.string.qa_close), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+                    PGSecondaryButton(stringResource(R.string.qa_close), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
                 }
             }
         }

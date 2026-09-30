@@ -92,8 +92,8 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        SecondaryButton(stringResource(R.string.cal_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                        PrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f), icon = AppIcon.Check)
+                        PGSecondaryButton(stringResource(R.string.cal_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                        PGPrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f), icon = AppIcon.Check)
                     }
                 }
             }

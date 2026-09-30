@@ -357,12 +357,11 @@ fun UserDetailsDialog(
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         SectionLabel(stringResource(R.string.ud_manage))
                         // ویرایش تمام عرض — همان کپسولِ شیشه‌ایِ اصلی (سکهٔ آیکون + فلش).
-                        MrmButton(
+                        PGPrimaryButton(
                             text = stringResource(R.string.ud_edit),
                             onClick = { editOpen = true },
                             modifier = Modifier.fillMaxWidth(),
-                            icon = AppIcon.Edit,
-                            style = MrmButtonStyle.Primary
+                            icon = AppIcon.Edit
                         )
                         // ردیف اول: 3 تایی
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -547,7 +546,7 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                 androidx.compose.foundation.text.selection.SelectionContainer { Text(note.trim(), fontSize = 13.5.sp, color = theme.inkColor, lineHeight = 20.sp) }
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MrmButton(
+                PGSecondaryButton(
                     text = stringResource(R.string.ud_note_copy),
                     onClick = {
                         val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -555,15 +554,13 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                         com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg)
                     },
                     modifier = Modifier.weight(1f),
-                    icon = AppIcon.Copy,
-                    style = MrmButtonStyle.Secondary
+                    icon = AppIcon.Copy
                 )
-                MrmButton(
+                PGPrimaryButton(
                     text = stringResource(R.string.ud_note_edit),
                     onClick = { onDismiss(); onEdit() },
                     modifier = Modifier.weight(1f),
-                    icon = AppIcon.Edit,
-                    style = MrmButtonStyle.Primary
+                    icon = AppIcon.Edit
                 )
             }
         }

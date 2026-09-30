@@ -432,8 +432,8 @@ fun UserEditorDialog(
 
                 Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
                 Row(Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
-                    PrimaryButton(
+                    PGSecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
+                    PGPrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
                         icon = if (isCreating) AppIcon.UserAdd else AppIcon.Check,
                         enabled = !(isCreating && usernameErrorKey != null) && !(isOnHold && (normalizePersianDigits(days).toIntOrNull() ?: 0) <= 0),

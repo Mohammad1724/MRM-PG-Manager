@@ -104,9 +104,9 @@ fun BulkApplyTemplateDialog(
                 formError?.let { Text(it, color = GlassRed, fontSize = 11.sp) }
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(stringResource(R.string.bt_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                    PGSecondaryButton(stringResource(R.string.bt_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     val pickFirstMsg = stringResource(R.string.bt_pick_first)
-                    PrimaryButton(stringResource(R.string.bt_apply), onClick = {
+                    PGPrimaryButton(stringResource(R.string.bt_apply), onClick = {
                         if (selectedTemplateId == null) formError = pickFirstMsg
                         else onApply(selectedTemplateId!!, note)
                     }, modifier = Modifier.weight(1f))
