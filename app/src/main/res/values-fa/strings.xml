@@ -542,6 +542,8 @@
     <string name="us_file_saved">فایل با موفقیت ذخیره شد</string>
     <string name="us_file_save_failed">خطا در ذخیرهٔ فایل</string>
     <string name="us_select_first">ابتدا کاربرها را انتخاب کنید</string>
+    <string name="us_hint_long_press">انگشت را روی کارت کاربر نگه دارید تا اکشن‌های سریع باز شود</string>
+    <string name="us_hint_multi_select">برای انتخاب چندتایی، روی چک‌باکس کارت‌ها ضربه بزنید</string>
     <!-- بدهکار -->
     <string name="us_debt_edit_title">ویرایش بدهی · %1$s</string>
     <string name="us_debt_add_title">ثبت بدهکار برای %1$s</string>

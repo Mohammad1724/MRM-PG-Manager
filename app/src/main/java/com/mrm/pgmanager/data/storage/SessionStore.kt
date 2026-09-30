@@ -22,6 +22,9 @@ class SessionStore(context: Context) {
     internal val prefs: android.content.SharedPreferences = sharedPrefs(context)
 
     companion object {
+        // کلیدهای نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری)
+        const val HINT_LONG_PRESS = "hint_long_press"
+        const val HINT_MULTI_SELECT = "hint_multi_select"
         @Volatile private var cachedPrefs: android.content.SharedPreferences? = null
 
         /**
@@ -166,6 +169,13 @@ class SessionStore(context: Context) {
     fun readAppLockTimeoutSecs(): Int = prefs.getInt("app_lock_timeout", 0).coerceIn(0, 3600)
 
     fun saveAppLockTimeoutSecs(value: Int) = prefs.edit().putInt("app_lock_timeout", value.coerceIn(0, 3600)).apply()
+
+    // === نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری) ===
+    /** آیا نشانهٔ one-time با این کلید قبلاً نمایش داده شده است؟ */
+    fun hintShown(key: String): Boolean = prefs.getBoolean(key, false)
+
+    /** ثبتِ نمایشِ نشانه تا هرگز دوباره تکرار نشود. */
+    fun markHintShown(key: String) = prefs.edit().putBoolean(key, true).apply()
 
     // === حالت نمایش فهرست کاربران ===
     fun readViewMode(): ViewMode = runCatching { ViewMode.valueOf(prefs.getString("view_mode", ViewMode.MICRO_LIST.name) ?: ViewMode.MICRO_LIST.name) }.getOrDefault(ViewMode.MICRO_LIST)

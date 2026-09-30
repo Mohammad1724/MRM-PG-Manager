@@ -542,6 +542,8 @@
     <string name="us_file_saved">File saved</string>
     <string name="us_file_save_failed">Could not save the file</string>
     <string name="us_select_first">Select some users first</string>
+    <string name="us_hint_long_press">Long-press a user card to open quick actions</string>
+    <string name="us_hint_multi_select">Tap the card checkboxes to select multiple users</string>
     <!-- بدهکار -->
     <string name="us_debt_edit_title">Edit debt · %1$s</string>
     <string name="us_debt_add_title">Mark %1$s as debtor</string>

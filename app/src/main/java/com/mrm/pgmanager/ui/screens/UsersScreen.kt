@@ -157,6 +157,15 @@ fun UsersScreen(
         ui.exportPending = format to chosen
         if (format == "json") exportJsonLauncher.launch(ui.exportFileName("json")) else exportCsvLauncher.launch(ui.exportFileName("csv"))
     }
+    // فاز ۲.۵ — نشانهٔ یک‌بارهٔ long-press: نخستین باری که کارتی در فهرست هست، یک‌بار نمایش داده می‌شود.
+    val longPressHint = stringResource(R.string.us_hint_long_press)
+    LaunchedEffect(ui.users.isNotEmpty()) {
+        if (ui.users.isNotEmpty() && !store.hintShown(SessionStore.HINT_LONG_PRESS)) {
+            kotlinx.coroutines.delay(900)
+            com.mrm.pgmanager.ui.feedback.AppFeedback.info(longPressHint)
+            store.markHintShown(SessionStore.HINT_LONG_PRESS)
+        }
+    }
     LaunchedEffect(session, ui.query, ui.currentFilter, ui.currentSort, ui.groupFilterId, ui.ownerFilter) {
         if (ui.firstLoad) {
             ui.firstLoad = false
@@ -540,6 +549,15 @@ fun UsersScreen(
             }
 
             if (ui.selectedUserIds.isNotEmpty()) {
+                // فاز ۲.۵ — راهنمای یک‌بارهٔ انتخاب چندتایی: نخستین باری که نوار انتخاب باز می‌شود.
+                val multiHint = stringResource(R.string.us_hint_multi_select)
+                LaunchedEffect(Unit) {
+                    if (!store.hintShown(SessionStore.HINT_MULTI_SELECT)) {
+                        kotlinx.coroutines.delay(600)
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.info(multiHint)
+                        store.markHintShown(SessionStore.HINT_MULTI_SELECT)
+                    }
+                }
                 Box(
                     Modifier
                         .align(Alignment.TopCenter)
