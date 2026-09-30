@@ -101,92 +101,16 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.DsTileRadius
 
 /* ──────────────────────────────────────────────────────────────────────────
- *  صفحهٔ کاربران — منطقِ صفحه
+ *  صفحهٔ کاربران — فقطِ ترکیبِ UI (فاز ۱.۳: تفکیک بدونِ تغییرِ رفتار)
  *
- *  بارگذاری، صفحه‌بندی، جست‌وجو، انتخابِ گروهی و دیالوگ‌ها. اجزای ظاهری در دو
- *  فایلِ کنارِ همین فایل‌اند:
+ *  state و منطقِ load/فیلتر/اکشن‌ها بیرون کشیده شده‌اند؛ اجزای دیگر:
+ *    · UsersUiState.kt        → state-holder + بارگذاری + ساختِ کوئری + خروجی فایل
+ *    · UsersScreenDialogs.kt  → دیالوگ‌ها/ورقه‌ها (جزئیات، ساخت، حذف، فاکتور، …)
  *    · UsersListItems.kt      → کارت/ردیف‌های فهرست
  *    · UsersScreenControls.kt → سربرگ، آمار، جست‌وجو، فیلترها
  * ────────────────────────────────────────────────────────────────────────── */
 
 
-/** اندازهٔ هر صفحه از فهرستِ کاربران (سمتِ سرور). */
-private const val PAGE_SIZE = 60
-
-/** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
-private data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit, val danger: Boolean = false)
-
-@Composable
-fun DebtorEditDialog(
-    user: PanelUser,
-    existing: DebtorInfo?,
-    currency: String = stringResource(R.string.us_currency),
-    onDismiss: () -> Unit,
-    onSave: (amount: Long, notes: String) -> Unit,
-    onClear: () -> Unit
-) {
-    val theme = LocalThemeState.current
-    var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
-    var notes by remember { mutableStateOf(existing?.notes ?: "") }
-    val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
-    Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                if (existing != null) {
-                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 10.sp, color = theme.mutedColor)
-                }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = amountText,
-                            onValueChange = { raw ->
-                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
-                                amountText = n.filter { c -> c.isDigit() }
-                            },
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { inner ->
-                                if (amountText.isEmpty()) Text(stringResource(R.string.us_debt_amount_hint), color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
-                                inner()
-                            }
-                        )
-                    }
-                }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    androidx.compose.foundation.text.BasicTextField(
-                        value = notes,
-                        onValueChange = { notes = it.take(200) },
-                        singleLine = false,
-                        textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (notes.isEmpty()) Text(stringResource(R.string.us_debt_note_hint), color = theme.mutedColor.copy(0.6f), fontSize = 11.sp)
-                            inner()
-                        }
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                    if (existing != null) {
-                        PrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
-                    } else {
-                        Box(Modifier.weight(1f))
-                    }
-                }
-                PrimaryButton(
-                    text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
-                    enabled = amountLong > 0L,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onSave(amountLong, notes) }
-                )
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -207,86 +131,12 @@ fun UsersScreen(
     val context = LocalContext.current
     val defaultCurrency = stringResource(R.string.us_currency)
     val store = remember { SessionStore(context) }
-    // فهرست از حافظهٔ برنامه شروع می‌شود: برگشتن به تبِ کاربران دیگر یعنی
-    // «همان فهرست، فوراً»، نه یک صفحهٔ اسکلتی و بعد یک پرش.
-    val usersKey = PanelCache.usersKey(session.baseUrl)
-    var users by remember(session) {
-        mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey) ?: emptyList())
-    }
-    var query by remember { mutableStateOf("") }
-    var loading by remember(session) { mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey) == null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var offlineAt by remember { mutableStateOf<Long?>(null) }
-    var selectedUser by remember { mutableStateOf<PanelUser?>(null) }
-    var createUser by remember { mutableStateOf(false) }
-    var deleteUser by remember { mutableStateOf<PanelUser?>(null) }
-    var qrUser by remember { mutableStateOf<PanelUser?>(null) }
-    var onlineCount by remember(session) {
-        mutableStateOf(PanelCache.get<List<PanelUser>>(usersKey)?.count { it.isOnline } ?: 0)
-    }
-    var lastUserStates by remember { mutableStateOf<Map<Long, String>>(emptyMap()) }
-
-    var currentFilter by remember { mutableStateOf(UserFilter.ALL) }
-    // فیلترِ گروه — پنل خودش با پارامترِ `group` اعمالش می‌کند.
-    var groupFilterId by remember { mutableStateOf<Int?>(null) }
-    // فیلترِ مالک (`admin=`) — فقط در پنل‌های چندادمینی معنا دارد.
-    var ownerFilter by remember { mutableStateOf<String?>(null) }
-    var adminOptions by remember { mutableStateOf<List<com.mrm.pgmanager.data.model.PanelAdmin>>(emptyList()) }
-    var groupOptions by remember(session) { mutableStateOf<List<com.mrm.pgmanager.data.model.Group>>(emptyList()) }
-    // صفحه‌بندیِ سمتِ سرور
-    var totalMatches by remember { mutableStateOf(0) }
-    var loadingMore by remember { mutableStateOf(false) }
-    var endReached by remember { mutableStateOf(false) }
-    // شمارنده‌های سربرگ دیگر از روی فهرستِ دانلودشده حساب نمی‌شوند (چون حالا فقط
-    // یک صفحه دانلود می‌شود)، بلکه از خودِ پنل می‌آیند.
-    var counts by remember(session) { mutableStateOf<com.mrm.pgmanager.data.model.SystemStats?>(null) }
-    // انتخابگرِ گروه برای عملیاتِ گروهی
-    var bulkGroupPicker by remember { mutableStateOf(false) }
-    var bulkGroupAdd by remember { mutableStateOf(true) }
-    // دیالوگِ عددی برای تمدید/افزودنِ حجمِ گروهی
-    var bulkAmountKind by remember { mutableStateOf<String?>(null) }   // "days" یا "data"
-    var bulkAmountText by remember { mutableStateOf("") }
-    var bulkRevokeConfirm by remember { mutableStateOf(false) }
-    // پاک‌سازیِ منقضی‌ها
-    var cleanupNames by remember { mutableStateOf<List<String>?>(null) }
-    var currentSort by remember { mutableStateOf(UserSort.CREATED) }
-    var viewMode by remember { mutableStateOf(store.readViewMode()) }
-    var createMenuOpen by remember { mutableStateOf(false) }
-    var bulkCreateOpen by remember { mutableStateOf(false) }
-    var exportChooserOpen by remember { mutableStateOf(false) }
-    var exportPending by remember { mutableStateOf<Pair<String, List<PanelUser>>?>(null) }
-    var selectedUserIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    var showBulkTemplateDialog by remember { mutableStateOf(false) }
-    var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
-    var quickActionUser by remember { mutableStateOf<PanelUser?>(null) }
-    var quickTemplateUser by remember { mutableStateOf<PanelUser?>(null) }
-    var quickTemplates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
-    var quickTemplatesLoading by remember { mutableStateOf(true) }
-    var quickTemplatesFailed by remember { mutableStateOf(false) }
-
-    var debtors by remember { mutableStateOf<Map<String, DebtorInfo>>(store.readDebtors()) }
-    var debtorDialogUser by remember { mutableStateOf<PanelUser?>(null) }
-    var invoiceDialogUser by remember { mutableStateOf<PanelUser?>(null) }
-    var resetExpiryTarget by remember { mutableStateOf<PanelUser?>(null) }
-
-    fun reloadDebtors() { debtors = store.readDebtors() }
-    fun fetchSub(user: PanelUser, onResult: (PanelUser) -> Unit) {
-        scope.launch {
-            runCatching { PanelApi.user(session, user) }.onSuccess(onResult)
-                .onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.ud_sub_failed)) }
-        }
-    }
-    fun copySubWithFetch(user: PanelUser) {
-        if (user.subUrl.isNotBlank()) copySubscription(context, user)
-        else fetchSub(user) { copySubscription(context, it) }
-    }
-    fun qrWithFetch(user: PanelUser) {
-        if (user.subUrl.isNotBlank()) qrUser = user
-        else fetchSub(user) { qrUser = it }
-    }
-    val debtorsForCurrentPanel = remember(debtors, session.baseUrl) { debtors.values.filter { it.baseUrl == session.baseUrl } }
-    val debtorByUsername = remember(debtorsForCurrentPanel) { debtorsForCurrentPanel.associateBy { it.username } }
-    val debtorCount = debtorsForCurrentPanel.size
+    // ── فاز ۱.۳: state + منطقِ load/فیلتر در UsersUiState؛ اینجا فقطِ ترکیبِ UI ──
+    val ui = remember(session) { UsersUiState(scope, context, session, store, monitoringSettings, onSessionExpired) }
+    // مقدارِ تازهٔ تنظیماتِ مانیتورینگ (که در composition عوض می‌شود) به state-holder می‌رسد.
+    SideEffect { ui.monitoringSettings = monitoringSettings }
+    /** آیا فیلترِ فعلی را پنل می‌تواند اعمال کند؟ (بدهکار و نزدیک‌به‌سقف محلی‌اند) */
+    val serverMode = ui.serverMode
 
     val density = androidx.compose.ui.platform.LocalDensity.current
     val statsCardsHeightPx = remember { mutableStateOf(0f) }
@@ -296,259 +146,50 @@ fun UsersScreen(
     val headerHeight = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else fallbackStatsPx
     val fallbackTotalDp = 200.dp
     val totalHeaderDp = if (totalHeaderHeightPx.value > 0f) with(density) { totalHeaderHeightPx.value.toDp() } else fallbackTotalDp
-    val scrollOffset = remember { mutableStateOf(0f) }
     // با اسکرول به پایین دکمهٔ «کاربر جدید» پنهان و با اسکرول به بالا دوباره ظاهر می‌شود
     val fabVisible = remember { mutableStateOf(true) }
 
-    /** آیا فیلترِ فعلی را پنل می‌تواند اعمال کند؟ (بدهکار و نزدیک‌به‌سقف محلی‌اند) */
-    val serverMode = currentFilter.serverSide
-
-    /** نمای پیش‌فرض (بدونِ جست‌وجو/فیلتر/مرتب‌سازیِ خاص) — تنها نمایی که کش می‌شود. */
-    fun isDefaultView(): Boolean =
-        query.isBlank() && currentFilter == UserFilter.ALL && groupFilterId == null &&
-            ownerFilter == null && currentSort == UserSort.CREATED
-
-    fun buildQuery(offset: Int, limit: Int = PAGE_SIZE): com.mrm.pgmanager.data.model.UserQuery {
-        val expiring = if (currentFilter == UserFilter.EXPIRING_SOON)
-            com.mrm.pgmanager.data.model.UserQuery.expiringWindow(com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays))
-        else null
-        return com.mrm.pgmanager.data.model.UserQuery(
-            search = query.trim().takeIf { it.isNotBlank() },
-            status = currentFilter.panelStatus,
-            online = currentFilter.panelOnline,
-            groupId = groupFilterId,
-            sort = currentSort.panelSort,
-            expireAfter = expiring?.first,
-            expireBefore = expiring?.second,
-            noDataLimit = currentFilter.panelNoDataLimit,
-            noExpire = currentFilter.panelNoExpire,
-            noGroup = currentFilter.panelNoGroup,
-            admin = ownerFilter,
-            offset = offset,
-            limit = limit
-        )
-    }
-
-    /**
-     * بارگذاریِ صفحه‌ایِ سمتِ سرور — حالتِ عادی.
-     * فقط همان چند ده کاربری که دیده می‌شوند از شبکه می‌آیند.
-     */
-    fun loadPage(silent: Boolean = false, resetHeader: Boolean = true) {
-        scope.launch {
-            if (!silent) loading = true
-            error = null
-            endReached = false
-            // رفرشِ بی‌صدا (خودکار/پس از عملیات) همان تعداد سطری را می‌گیرد که الان روی
-            // صفحه است؛ وگرنه کاربری که سه صفحه پایین رفته بود با هر رفرش به ۶۰ سطرِ اول
-            // پرت می‌شد.
-            val limit = if (silent && users.size > PAGE_SIZE) users.size.coerceAtMost(PAGE_SIZE * 10) else PAGE_SIZE
-            val defaultView = isDefaultView()
-            runCatching { PanelApi.usersPage(session, buildQuery(0, limit)) }.onSuccess { page ->
-                users = page.users
-                totalMatches = page.total
-                endReached = page.users.isEmpty() || page.users.size >= page.total
-                offlineAt = null
-                if (resetHeader) scrollOffset.value = 0f
-                if (defaultView) {
-                    // همان نقشی که loadAll برای کشِ حافظه/دیسک داشت — حالا در مسیرِ عادی هم:
-                    // برگشتن به این تب دوباره اسکلت+درخواست نمی‌شود و حالتِ آفلاین داده دارد.
-                    PanelCache.put(usersKey, page.users)
-                    if (monitoringSettings.offlineCacheEnabled) {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            // فهرستِ کاملی که MonitoringWorker هر ۱۵ دقیقه می‌نویسد را با یک صفحه
-                            // خراب نمی‌کنیم؛ فقط اگر این صفحه خودش کلِ فهرست است یا کشِ دیسک کهنه/غایب است.
-                            // و حتی وقتی فهرست کامل است، هر رفرشِ خودکار (شاید هر ۵ ثانیه) دیسک را
-                            // بازنویسی نمی‌کند؛ رمزنگاری و نوشتنِ کلِ prefs برای کشِ آفلاین حداکثر دقیقه‌ای یک‌بار کافی است.
-                            val age = store.usersCacheAgeMs()
-                            val complete = page.users.size >= page.total
-                            if (age == null || (complete && age > 60_000L) || age > 30L * 60L * 1000L) store.saveUsersCache(page.users)
-                        }
-                    }
-                }
-            }.onFailure {
-                if (PanelApi.isUnauthorized(it)) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
-                    onSessionExpired()
-                } else {
-                    // بدونِ شبکه: فهرستِ ذخیره‌شده با برچسبِ «آفلاین» بهتر از صفحهٔ خطای خالی است.
-                    val cache = if (defaultView && users.isEmpty() && monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
-                    if (cache != null) {
-                        users = cache.first
-                        offlineAt = cache.second
-                        endReached = true
-                        error = null
-                    } else if (!silent) error = it.message
-                }
-            }
-            // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
-            runCatching { PanelApi.systemStats(session) }.onSuccess { counts = it; onlineCount = it.onlineUsers }
-            loading = false
-        }
-    }
-
-    /** صفحهٔ بعدی — با نزدیک‌شدن به تهِ فهرست صدا زده می‌شود. */
-    fun loadMore() {
-        if (!serverMode || loadingMore || endReached || loading) return
-        loadingMore = true
-        scope.launch {
-            runCatching { PanelApi.usersPage(session, buildQuery(users.size)) }.onSuccess { page ->
-                val seen = users.map { it.id }.toSet()
-                users = users + page.users.filterNot { seen.contains(it.id) }
-                totalMatches = page.total
-                endReached = page.users.isEmpty() || users.size >= page.total
-            }.onFailure { endReached = true }
-            loadingMore = false
-        }
-    }
-
-    /**
-     * بارگذاریِ کاملِ فهرست — فقط برای فیلترهایی که پنل نمی‌شناسد (بدهکار،
-     * نزدیک‌به‌سقف) و برای کشِ آفلاین و تشخیصِ تغییرِ وضعیتِ کاربران.
-     */
-    fun loadAll(resetHeader: Boolean = true, silent: Boolean = false) {
-        scope.launch {
-            if (!silent) loading = true
-            error = null
-            runCatching {
-                val list = PanelApi.users(session)
-                users = list; onlineCount = list.count { it.isOnline }
-                PanelCache.put(usersKey, list)
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val age = store.usersCacheAgeMs()
-                    if (age == null || age > 60_000L) store.saveUsersCache(list)
-                }
-                offlineAt = null
-                val settings = store.readMonitoringSettings()
-                val nextStates = list.associate { u ->
-                    val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
-                    val nearExpiry = DateLogic.isNearExpiry(u.expire, settings.nearExpiryDays)
-                    u.id to "${u.status}|$usage|$nearExpiry"
-                }
-                if (lastUserStates.isNotEmpty() && settings.notificationsEnabled) {
-                    list.forEach { u ->
-                        val previous = lastUserStates[u.id] ?: return@forEach
-                        val current = nextStates[u.id] ?: return@forEach
-                        if (previous == current) return@forEach
-                        fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text)
-                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
-                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
-                        val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
-                        val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
-                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
-                        val nearExpiry = current.substringAfterLast("|").toBoolean()
-                        val wasNearExpiry = previous.substringAfterLast("|").toBoolean()
-                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
-                    }
-                }
-                lastUserStates = nextStates
-                if (resetHeader) scrollOffset.value = 0f
-            }.onFailure {
-                if (PanelApi.isUnauthorized(it)) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
-                    onSessionExpired()
-                } else {
-                    val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
-                    if (cache != null) {
-                        users = cache.first
-                        onlineCount = 0
-                        offlineAt = cache.second
-                        error = null
-                    } else if (!silent) {
-                        error = it.message
-                    }
-                }
-            }
-            loading = false
-        }
-    }
-
-    /** مسیرِ درست را خودش انتخاب می‌کند. */
-    fun load(resetHeader: Boolean = true, silent: Boolean = false) {
-        if (serverMode) loadPage(silent = silent, resetHeader = resetHeader)
-        else loadAll(resetHeader = resetHeader, silent = silent)
-    }
-
-    fun runAction(notification: Pair<String, String>? = null, action: suspend () -> Unit) {
-        scope.launch {
-            runCatching { action() }.onFailure {
-                error = it.message
-                if (PanelApi.isUnauthorized(it)) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
-                    onSessionExpired()
-                } else {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()))
-                }
-            }.onSuccess {
-                // بازخوردِ در‌جا (اسنک + لمس) فوری است؛ اعلانِ سیستمی فقط وقتی
-                // خودِ کاربر در تنظیمات فعالش کرده باشد می‌رود (تنظیمات ← رویدادها).
-                com.mrm.pgmanager.utils.Haptics.confirm(context)
-                notification?.let { (title, message) ->
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.success(title)
-                    val settings = store.readMonitoringSettings()
-                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message)
-                }
-                load()
-            }
-        }
-    }
-    fun exportFileName(format: String) = "mrm-users-selected-" + java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date()) + ".$format"
-    fun writeExport(uri: android.net.Uri?) {
-        val payload = exportPending; exportPending = null
-        if (uri == null || payload == null) return
-        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val ok = runCatching {
-                val out = context.contentResolver.openOutputStream(uri) ?: error("no stream")
-                out.use { it.write(if (payload.first == "json") com.mrm.pgmanager.utils.usersToJson(payload.second).toByteArray(Charsets.UTF_8) else com.mrm.pgmanager.utils.usersToCsv(payload.second).toByteArray(Charsets.UTF_8)) }
-            }.isSuccess
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                val feedback = com.mrm.pgmanager.ui.feedback.AppFeedback
-                if (ok) feedback.success(context.getString(R.string.us_file_saved))
-                else feedback.error(context.getString(R.string.us_file_save_failed))
-            }
-        }
-    }
-    val exportCsvLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")) { writeExport(it) }
-    val exportJsonLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { writeExport(it) }
+    val exportCsvLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")) { ui.writeExport(it) }
+    val exportJsonLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { ui.writeExport(it) }
     fun beginExport(format: String) {
-        val chosen = users.filter { selectedUserIds.contains(it.id) }
+        val chosen = ui.users.filter { ui.selectedUserIds.contains(it.id) }
         if (chosen.isEmpty()) { com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_select_first)); return }
-        exportPending = format to chosen
-        if (format == "json") exportJsonLauncher.launch(exportFileName("json")) else exportCsvLauncher.launch(exportFileName("csv"))
+        ui.exportPending = format to chosen
+        if (format == "json") exportJsonLauncher.launch(ui.exportFileName("json")) else exportCsvLauncher.launch(ui.exportFileName("csv"))
     }
-    var firstLoad by remember(session) { mutableStateOf(true) }
-    LaunchedEffect(session, query, currentFilter, currentSort, groupFilterId, ownerFilter) {
-        if (firstLoad) {
-            firstLoad = false
+    LaunchedEffect(session, ui.query, ui.currentFilter, ui.currentSort, ui.groupFilterId, ui.ownerFilter) {
+        if (ui.firstLoad) {
+            ui.firstLoad = false
             // فقط وقتی داده کهنه است سراغِ پنل می‌رویم؛ وگرنه سوایپ بینِ تب‌ها هر
             // بار یک درخواست می‌شد و همان‌جا انیمیشن می‌پرید.
-            if (!PanelCache.isFresh(usersKey)) load(silent = users.isNotEmpty())
+            if (!PanelCache.isFresh(ui.usersKey)) ui.load(silent = ui.users.isNotEmpty())
             return@LaunchedEffect
         }
         // دیبانس: با هر حرفی که تایپ می‌شود درخواست نفرست.
         kotlinx.coroutines.delay(350)
-        load(resetHeader = false, silent = users.isNotEmpty())
+        ui.load(resetHeader = false, silent = ui.users.isNotEmpty())
     }
     // فهرستِ گروه‌ها برای فیلتر — یک‌بار و سبک.
     LaunchedEffect(session) {
-        runCatching { PanelApi.groups(session) }.onSuccess { groupOptions = it }
+        runCatching { PanelApi.groups(session) }.onSuccess { ui.groupOptions = it }
         // فهرستِ ادمین‌ها برای فیلترِ مالک — فقط اگر نقش اجازهٔ دیدنِ ادمین‌ها را بدهد (وگرنه ۴۰۳ می‌گیرد).
         if (com.mrm.pgmanager.data.AdminAccess.can("admins", "read")) {
-            runCatching { PanelApi.admins(session) }.onSuccess { adminOptions = it }
+            runCatching { PanelApi.admins(session) }.onSuccess { ui.adminOptions = it }
         }
     }
     LaunchedEffect(deepLinkUsername, session) {
         val name = deepLinkUsername ?: return@LaunchedEffect
         // با صفحه‌بندیِ سمتِ سرور فقط ۶۰ کاربرِ اول در حافظه‌اند؛ اگر کاربرِ اعلان
         // بینشان نبود، همان یک نفر را از پنل می‌پرسیم — قبلاً لمسِ اعلان بی‌صدا هیچ کاری نمی‌کرد.
-        val local = users.find { it.username == name }
+        val local = ui.users.find { it.username == name }
         val target = local ?: runCatching {
             PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(search = name, limit = 5))
                 .users.firstOrNull { it.username == name }
         }.getOrNull()
         if (target != null) {
-            query = ""
-            currentFilter = UserFilter.ALL
-            selectedUser = target
+            ui.query = ""
+            ui.currentFilter = UserFilter.ALL
+            ui.selectedUser = target
         }
         onDeepLinkHandled()
     }
@@ -556,7 +197,7 @@ fun UsersScreen(
     // پس از پایان، لیست کاربران رفرش شود.
     LaunchedEffect(openBulkCreate) {
         if (openBulkCreate) {
-            bulkCreateOpen = true
+            ui.bulkCreateOpen = true
             onBulkCreateHandled()
         }
     }
@@ -576,7 +217,7 @@ fun UsersScreen(
     LaunchedEffect(session, monitoringSettings.autoRefreshEnabled, monitoringSettings.refreshWhileAppOpen, monitoringSettings.refreshIntervalSeconds) {
         if (monitoringSettings.autoRefreshEnabled && monitoringSettings.refreshWhileAppOpen) {
             while (kotlinx.coroutines.currentCoroutineContext().isActive) {
-                if (inForeground && pageActive.value) load(resetHeader = false, silent = true)
+                if (inForeground && pageActive.value) ui.load(resetHeader = false, silent = true)
                 kotlinx.coroutines.delay(monitoringSettings.refreshIntervalSeconds.coerceIn(5, 3600) * 1_000L)
             }
         }
@@ -589,31 +230,23 @@ fun UsersScreen(
         if (!pageActive.value) { wasInactive = true; return@LaunchedEffect }
         if (!wasInactive) return@LaunchedEffect
         wasInactive = false
-        if (users.isNotEmpty() && !PanelCache.isFresh(usersKey)) load(resetHeader = false, silent = true)
+        if (ui.users.isNotEmpty() && !PanelCache.isFresh(ui.usersKey)) ui.load(resetHeader = false, silent = true)
     }
 
     // در حالتِ سمتِ سرور، پنل قبلاً فیلتر و مرتب کرده؛ دوباره‌کاری در گوشی فقط
     // نتیجه را خراب می‌کند (مثلاً صفحهٔ دوم را با معیارِ دیگری مرتب می‌کند).
-    val processedUsers = remember(users, query, currentFilter, currentSort, monitoringSettings.nearLimitPercent, debtorByUsername, serverMode) {
-        if (serverMode) return@remember users
-        val q = query.trim()
-        var list = if (q.isEmpty()) users else users.filter {
-            it.username.contains(q, ignoreCase = true) ||
-            (it.note ?: "").contains(q, ignoreCase = true)
-        }
-        list = when (currentFilter) {
-            UserFilter.ONLINE -> list.filter { it.isOnline }
-            UserFilter.NEAR_LIMIT -> list.filter { val p = if (it.dataLimit > 0L) it.usedTraffic.toDouble() / it.dataLimit else 0.0; p >= monitoringSettings.nearLimitPercent / 100.0 }
-            UserFilter.DEBTOR -> list.filter { debtorByUsername.containsKey(it.username) }
-            else -> currentFilter.panelStatus?.let { st -> list.filter { it.status == st } } ?: list
-        }
-        when (currentSort) {
-            UserSort.NAME -> list.sortedBy { it.username.lowercase() }
-            UserSort.USAGE -> list.sortedByDescending { it.usedTraffic }
-            UserSort.EXPIRY -> list.sortedBy { it.expire ?: "9999" }
-            UserSort.CREATED -> list.sortedByDescending { it.id }
-            UserSort.LAST_ONLINE -> list.sortedByDescending { com.mrm.pgmanager.utils.DateLogic.parseOnlineAtMillis(it.onlineAt) ?: 0L }
-        }
+    // منطقِ فیلتر/مرتب‌سازیِ سمتِ گوشی در `UsersUiState.processUsers` است؛
+    // اینجا فقط با همان کلیدها صدا زده می‌شود (بدونِ تغییرِ رفتار).
+    val processedUsers = remember(ui.users, ui.query, ui.currentFilter, ui.currentSort, monitoringSettings.nearLimitPercent, ui.debtorByUsername, serverMode) {
+        UsersUiState.processUsers(
+            users = ui.users,
+            query = ui.query,
+            filter = ui.currentFilter,
+            sort = ui.currentSort,
+            nearLimitPercent = monitoringSettings.nearLimitPercent,
+            debtorByUsername = ui.debtorByUsername,
+            serverMode = serverMode
+        )
     }
 
     val nestedScrollConnection = remember(headerHeight) {
@@ -627,17 +260,17 @@ fun UsersScreen(
                 if (headerHeight <= 0f) return Offset.Zero
 
                 val delta = -available.y
-                val current = scrollOffset.value
+                val current = ui.scrollOffset.value
                 if (delta > 0f && current < headerHeight) {
                     val newOffset = (current + delta).coerceIn(0f, headerHeight)
                     val consumedY = newOffset - current
-                    scrollOffset.value = newOffset
+                    ui.scrollOffset.value = newOffset
                     return Offset(0f, -consumedY)
                 }
                 else if (delta < 0f && current > 0f) {
                     val newOffset = (current + delta).coerceIn(0f, headerHeight)
                     val consumedY = newOffset - current
-                    scrollOffset.value = newOffset
+                    ui.scrollOffset.value = newOffset
                     return Offset(0f, -consumedY)
                 }
                 return Offset.Zero
@@ -651,14 +284,14 @@ fun UsersScreen(
 
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         // ادمینی که مجوزِ users.create ندارد، دکمهٔ ساخت را نمی‌بیند (پنل ۴۰۳ می‌داد).
-        if (selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
+        if (ui.selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
             // هنگام اسکرول به پایین محو می‌شود تا جلوی ردیف‌ها را نگیرد (MrmFab).
             MrmFab(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
                 modifier = Modifier.padding(bottom = 72.dp, end = 4.dp),
                 visible = fabVisible.value
-            ) { createMenuOpen = true }
+            ) { ui.createMenuOpen = true }
         }
     }) { padding ->
         val topInsets = padding.calculateTopPadding()
@@ -677,7 +310,7 @@ fun UsersScreen(
             val listTopPad = totalHeaderDp + topInsets + 4.dp
             val collapseShift = Modifier.layout { measurable, constraints ->
                 // خواندنِ state فقط در همین لامبدا → تغییرش فقط layout را تکرار می‌کند.
-                val shift = scrollOffset.value.roundToInt().coerceAtLeast(0)
+                val shift = ui.scrollOffset.value.roundToInt().coerceAtLeast(0)
                 val extended = if (constraints.hasBoundedHeight)
                     constraints.copy(maxHeight = constraints.maxHeight + shift)
                 else constraints
@@ -687,54 +320,54 @@ fun UsersScreen(
             }
             val ptrState = rememberPullToRefreshState()
             PullToRefreshBox(
-                isRefreshing = loading,
-                onRefresh = { load() },
+                isRefreshing = ui.loading,
+                onRefresh = { ui.load() },
                 modifier = Modifier.fillMaxSize(),
                 state = ptrState,
                 indicator = {
                     PullToRefreshDefaults.Indicator(
-                        isRefreshing = loading,
+                        isRefreshing = ui.loading,
                         state = ptrState,
                         containerColor = themeState.cardSurfaceColor,
                         color = themeState.accentPrimary,
-                        modifier = Modifier.align(Alignment.TopCenter).offset { IntOffset(0, -scrollOffset.value.roundToInt()) }.padding(top = listTopPad)
+                        modifier = Modifier.align(Alignment.TopCenter).offset { IntOffset(0, -ui.scrollOffset.value.roundToInt()) }.padding(top = listTopPad)
                     )
                 }
             ) {
                 Box(Modifier.fillMaxSize().then(collapseShift)) {
                 when {
-                    loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
-                    error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
+                    ui.loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
+                    ui.error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.us_error), fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
-                            Text(error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                            SecondaryButton(stringResource(R.string.us_retry), onClick = { load() }, modifier = Modifier.fillMaxWidth())
+                            Text(ui.error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
+                            SecondaryButton(stringResource(R.string.us_retry), onClick = { ui.load() }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                     processedUsers.isEmpty() -> MrmEmptyState(
                         modifier = Modifier.padding(top = listTopPad),
                         title = stringResource(R.string.no_user_found),
-                        subtitle = if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
+                        subtitle = if (ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
                         icon = AppIcon.Search
                     ) {
-                        if (query.isNotBlank() || currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
-                            com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { query = ""; currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                        if (ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
+                            com.mrm.pgmanager.ui.components.SecondaryButton(stringResource(R.string.clear_filter), onClick = { ui.query = ""; ui.currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
                         }
-                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { createUser = true }, icon = AppIcon.UserAdd)
+                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.create_user), onClick = { ui.createUser = true }, icon = AppIcon.UserAdd)
                     }
                     else -> {
                     // ورودِ پلکانیِ ردیف‌های اول — فقط در اولین نمایش بعد از بارگذاری.
                     val listIntro = rememberListIntro()
-                    androidx.compose.animation.AnimatedContent(targetState = viewMode, label = "viewModeSwitch") { mode ->
+                    androidx.compose.animation.AnimatedContent(targetState = ui.viewMode, label = "viewModeSwitch") { mode ->
                         when (mode) {
                         ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
-                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                    LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
-                            if (loadingMore) {
+                            if (ui.loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
@@ -745,11 +378,11 @@ fun UsersScreen(
                         ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
-                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                    LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
-                            if (loadingMore) {
+                            if (ui.loadingMore) {
                                 item {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
@@ -760,11 +393,11 @@ fun UsersScreen(
                         ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
-                                    LaunchedEffect(index, processedUsers.size) { loadMore() }
+                                    LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = selectedUserIds.contains(user.id), onSelectToggle = { selectedUserIds = if (selectedUserIds.contains(user.id)) selectedUserIds - user.id else selectedUserIds + user.id }, onClick = { selectedUser = user }, onQrClick = { qrWithFetch(it) }, onCopySub = { copySubWithFetch(it) }, onLongClick = { quickActionUser = user }, debtorInfo = debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
-                            if (loadingMore) {
+                            if (ui.loadingMore) {
                                 item {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
                                         Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
@@ -783,7 +416,7 @@ fun UsersScreen(
                 Modifier
                     .fillMaxWidth()
                     .onGloballyPositioned { coords ->
-                        if (scrollOffset.value == 0f && coords.size.height > 0) {
+                        if (ui.scrollOffset.value == 0f && coords.size.height > 0) {
                             val h = (coords.size.height.toFloat() - with(density) { topInsets.toPx() }).coerceAtLeast(0f)
                             if (totalHeaderHeightPx.value != h) {
                                 totalHeaderHeightPx.value = h
@@ -798,13 +431,13 @@ fun UsersScreen(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 12.dp)
             ) {
-                TopBarHeader(onRefresh = { load() }, loading = loading, onOpenSettings = onOpenSettings)
+                TopBarHeader(onRefresh = { ui.load() }, loading = ui.loading, onOpenSettings = onOpenSettings)
 
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .onGloballyPositioned { coords ->
-                            if (scrollOffset.value == 0f && coords.size.height > 0) {
+                            if (ui.scrollOffset.value == 0f && coords.size.height > 0) {
                                 if (statsCardsHeightPx.value != coords.size.height.toFloat()) {
                                     statsCardsHeightPx.value = coords.size.height.toFloat()
                                 }
@@ -813,7 +446,7 @@ fun UsersScreen(
                         .layout { measurable, constraints ->
                             val placeable = measurable.measure(constraints)
                             val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else placeable.height.toFloat()
-                            val progress = if (maxH > 0f) (scrollOffset.value / maxH).coerceIn(0f, 1f) else 0f
+                            val progress = if (maxH > 0f) (ui.scrollOffset.value / maxH).coerceIn(0f, 1f) else 0f
                             val currentH = (placeable.height * (1f - progress)).roundToInt().coerceAtLeast(0)
                             layout(placeable.width, currentH) {
                                 placeable.placeRelative(0, (-progress * placeable.height * 0.38f).roundToInt())
@@ -821,7 +454,7 @@ fun UsersScreen(
                         }
                         .graphicsLayer {
                             val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else 1f
-                            val progress = (scrollOffset.value / maxH).coerceIn(0f, 1f)
+                            val progress = (ui.scrollOffset.value / maxH).coerceIn(0f, 1f)
                             this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
                         }
                         // فاصله از سربرگ. عمداً *داخلِ* زنجیرهٔ جمع‌شونده است (بعد از
@@ -833,36 +466,36 @@ fun UsersScreen(
                             StatsCardsRow(
                             // از خودِ پنل، نه از روی صفحهٔ دانلودشده — وگرنه با
                             // صفحه‌بندی، «۷۳ کاربر» می‌شد «۶۰ کاربر».
-                            totalUsers = counts?.totalUsers ?: users.size,
-                            activeUsers = counts?.activeUsers ?: users.count { it.status == "active" },
-                            onlineUsers = counts?.onlineUsers ?: onlineCount,
-                            debtorCount = debtorCount
+                            totalUsers = ui.counts?.totalUsers ?: ui.users.size,
+                            activeUsers = ui.counts?.activeUsers ?: ui.users.count { it.status == "active" },
+                            onlineUsers = ui.counts?.onlineUsers ?: ui.onlineCount,
+                            debtorCount = ui.debtorCount
                         )
                 }
 
                 Spacer(Modifier.height(6.dp))
-                GlassSearchBar(query = query, onQueryChange = { query = it })
+                GlassSearchBar(query = ui.query, onQueryChange = { ui.query = it })
                 Spacer(Modifier.height(8.dp))
                 FilterAndControlBar(
-                    currentFilter = currentFilter,
-                    onFilterChange = { currentFilter = it },
-                    currentSort = currentSort,
-                    onSortChange = { currentSort = it },
-                    viewMode = viewMode,
-                    onViewModeChange = { viewMode = it; store.saveViewMode(it) },
-                    debtorCount = debtorCount,
-                    groups = groupOptions,
-                    groupFilterId = groupFilterId,
-                    onGroupFilterChange = { groupFilterId = it },
-                    admins = adminOptions,
-                    ownerFilter = ownerFilter,
-                    onOwnerFilterChange = { ownerFilter = it },
+                    currentFilter = ui.currentFilter,
+                    onFilterChange = { ui.currentFilter = it },
+                    currentSort = ui.currentSort,
+                    onSortChange = { ui.currentSort = it },
+                    viewMode = ui.viewMode,
+                    onViewModeChange = { ui.viewMode = it; store.saveViewMode(it) },
+                    debtorCount = ui.debtorCount,
+                    groups = ui.groupOptions,
+                    groupFilterId = ui.groupFilterId,
+                    onGroupFilterChange = { ui.groupFilterId = it },
+                    admins = ui.adminOptions,
+                    ownerFilter = ui.ownerFilter,
+                    onOwnerFilterChange = { ui.ownerFilter = it },
                     expiringWindowDays = com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays)
                 )
                 // چند تا از چند تا — با صفحه‌بندی، دانستنش لازم است.
-                if (serverMode && totalMatches > processedUsers.size) {
+                if (serverMode && ui.totalMatches > processedUsers.size) {
                     Text(
-                        stringResource(R.string.us_showing_count, processedUsers.size, totalMatches),
+                        stringResource(R.string.us_showing_count, processedUsers.size, ui.totalMatches),
                         fontSize = 9.5.sp, color = themeState.mutedColor,
                         modifier = Modifier.padding(top = 6.dp, start = 2.dp)
                     )
@@ -871,7 +504,7 @@ fun UsersScreen(
                 // چون همان‌جاست که به آدم فکرِ حذفِ دسته‌جمعی می‌رسد. اول فهرست را
                 // از پنل می‌گیریم تا کاربر ببیند چه کسانی حذف می‌شوند.
                 // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
-                if (currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
+                if (ui.currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
                     Row(
                         Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm)
                             .background(GlassRed.copy(0.10f))
@@ -882,7 +515,7 @@ fun UsersScreen(
                                     val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
                                     if (names.isEmpty()) {
                                         com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
-                                    } else cleanupNames = names
+                                    } else ui.cleanupNames = names
                                 }
                             }
                             .padding(horizontal = 10.dp, vertical = 7.dp),
@@ -893,7 +526,7 @@ fun UsersScreen(
                         Text(stringResource(R.string.us_cleanup), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                     }
                 }
-                offlineAt?.let { cachedAt ->
+                ui.offlineAt?.let { cachedAt ->
                     Row(
                         Modifier.fillMaxWidth().padding(top = 8.dp).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -905,7 +538,7 @@ fun UsersScreen(
                 }
             }
 
-            if (selectedUserIds.isNotEmpty()) {
+            if (ui.selectedUserIds.isNotEmpty()) {
                 Box(
                     Modifier
                         .align(Alignment.TopCenter)
@@ -913,424 +546,54 @@ fun UsersScreen(
                         .padding(top = 64.dp)
                 ) {
                     BulkActionsBar(
-                        selectedCount = selectedUserIds.size,
-                        onClear = { selectedUserIds = emptySet() },
-                        onSelectAll = { selectedUserIds = processedUsers.map { it.id }.toSet() },
-                        onExport = { exportChooserOpen = true },
-                        onDelete = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, action = { runAction(notification = context.getString(R.string.us_n_bulk_delete) to context.getString(R.string.us_n_bulk_delete_body, ids.size)) { PanelApi.bulkDeleteUsers(session, ids) } }) },
-                        onResetUsage = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_reset_title, ids.size), message = context.getString(R.string.us_bulk_reset_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_reset) to context.getString(R.string.us_n_bulk_reset_body, ids.size)) { PanelApi.bulkResetUsersUsage(session, ids) } }) },
-                        onDisable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_disable_title, ids.size), message = context.getString(R.string.us_bulk_disable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_disable) to context.getString(R.string.us_n_bulk_disable_body, ids.size)) { PanelApi.bulkDisableUsers(session, ids) } }) },
-                        onEnable = { val ids = selectedUserIds.toSet(); selectedUserIds = emptySet(); pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size)) { PanelApi.bulkEnableUsers(session, ids) } }) },
+                        selectedCount = ui.selectedUserIds.size,
+                        onClear = { ui.selectedUserIds = emptySet() },
+                        onSelectAll = { ui.selectedUserIds = processedUsers.map { it.id }.toSet() },
+                        onExport = { ui.exportChooserOpen = true },
+                        onDelete = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_delete) to context.getString(R.string.us_n_bulk_delete_body, ids.size)) { PanelApi.bulkDeleteUsers(session, ids) } }) },
+                        onResetUsage = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_reset_title, ids.size), message = context.getString(R.string.us_bulk_reset_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_reset) to context.getString(R.string.us_n_bulk_reset_body, ids.size)) { PanelApi.bulkResetUsersUsage(session, ids) } }) },
+                        onDisable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_disable_title, ids.size), message = context.getString(R.string.us_bulk_disable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_disable) to context.getString(R.string.us_n_bulk_disable_body, ids.size)) { PanelApi.bulkDisableUsers(session, ids) } }) },
+                        onEnable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size)) { PanelApi.bulkEnableUsers(session, ids) } }) },
                         onApplyTemplate = {
-                            showBulkTemplateDialog = true
+                            ui.showBulkTemplateDialog = true
                         },
-                        onGroupAdd = { bulkGroupAdd = true; bulkGroupPicker = true },
-                        onGroupRemove = { bulkGroupAdd = false; bulkGroupPicker = true },
-                        onAddDays = { bulkAmountText = ""; bulkAmountKind = "days" },
-                        onAddData = { bulkAmountText = ""; bulkAmountKind = "data" },
-                        onRevokeSubs = { bulkRevokeConfirm = true }
+                        onGroupAdd = { ui.bulkGroupAdd = true; ui.bulkGroupPicker = true },
+                        onGroupRemove = { ui.bulkGroupAdd = false; ui.bulkGroupPicker = true },
+                        onAddDays = { ui.bulkAmountText = ""; ui.bulkAmountKind = "days" },
+                        onAddData = { ui.bulkAmountText = ""; ui.bulkAmountKind = "data" },
+                        onRevokeSubs = { ui.bulkRevokeConfirm = true }
                     )
                 }
             }
         }
     }
 
-    quickTemplateUser?.let { u ->
-        LaunchedEffect(u) {
-            quickTemplatesLoading = true; quickTemplatesFailed = false
-            var list: List<UserTemplateItem>? = null
-            for (i in 1..3) {
-                val r = runCatching { PanelApi.userTemplates(session) }
-                if (r.isSuccess) { list = r.getOrNull(); break }
-                kotlinx.coroutines.delay(400L)
-            }
-            list?.let { quickTemplates = it } ?: run { quickTemplatesFailed = true }
-            quickTemplatesLoading = false
-        }
-        com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
-            templates = quickTemplates,
-            selectedCount = 1,
-            onDismiss = { quickTemplateUser = null },
-            onApply = { templateId, note ->
-                val id = u.id
-                quickTemplateUser = null
-                runAction { PanelApi.bulkApplyTemplate(session, setOf(id), templateId, note) }
-            },
-            isLoading = quickTemplatesLoading,
-            loadFailed = quickTemplatesFailed
-        )
-    }
+    UsersScreenDialogs(
+        ui = ui,
+        session = session,
+        monitoringSettings = monitoringSettings,
+        defaultCurrency = defaultCurrency,
+        themeState = themeState,
+        onBeginExport = { beginExport(it) }
+    )
 
-    bulkAmountKind?.let { kind ->
-        val ids = selectedUserIds.toSet()
-        val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { bulkAmountKind = null }) {
-            Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    stringResource(if (kind == "days") R.string.us_bulk_days else R.string.us_bulk_data),
-                    fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.us_bulk_group_title, ids.size) + " · " +
-                        stringResource(if (kind == "days") R.string.us_bulk_amount_days else R.string.us_bulk_amount_gb),
-                    fontSize = 11.sp, color = theme.mutedColor
-                )
-                GlassSearchBar(query = bulkAmountText, onQueryChange = { text ->
-                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن». + نرمال‌سازی فارسی
-                    val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
-                    bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
-                })
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SecondaryButton(stringResource(R.string.us_cancel), onClick = { bulkAmountKind = null }, modifier = Modifier.weight(1f))
-                    PrimaryButton(
-                        text = stringResource(R.string.us_bulk_apply),
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(bulkAmountText)
-                            val amount = normalized.toDoubleOrNull()
-                            bulkAmountKind = null
-                            if (amount == null || amount == 0.0) return@PrimaryButton
-                            selectedUserIds = emptySet()
-                            runAction {
-                                if (kind == "days") PanelApi.bulkAddDays(session, ids, amount.toInt())
-                                else PanelApi.bulkAddData(session, ids, amount)
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    if (bulkRevokeConfirm) {
-        val ids = selectedUserIds.toSet()
-        ConfirmActionDialog(
-            title = stringResource(R.string.us_bulk_revoke_title, ids.size),
-            message = stringResource(R.string.us_bulk_revoke_msg),
-            onDismiss = { bulkRevokeConfirm = false },
-            onConfirm = {
-                bulkRevokeConfirm = false
-                selectedUserIds = emptySet()
-                runAction { PanelApi.bulkRevokeSubs(session, ids) }
-            }
-        )
-    }
-
-    cleanupNames?.let { names ->
-        ConfirmActionDialog(
-            title = stringResource(R.string.us_cleanup_title, names.size),
-            message = stringResource(R.string.us_cleanup_msg) + "\n\n" + names.take(12).joinToString("، ") +
-                if (names.size > 12) " …" else "",
-            onDismiss = { cleanupNames = null },
-            onConfirm = {
-                val count = names.size
-                cleanupNames = null
-                runAction(notification = null) { PanelApi.deleteCleanupCandidates(session) }
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_cleanup_done, count))
-            }
-        )
-    }
-
-    if (bulkGroupPicker) {
-        val ids = selectedUserIds.toSet()
-        val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { bulkGroupPicker = false }) {
-            Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    stringResource(if (bulkGroupAdd) R.string.us_bulk_group_add else R.string.us_bulk_group_remove),
-                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.us_bulk_group_title, ids.size) + " · " + stringResource(R.string.us_bulk_group_pick),
-                    fontSize = 11.sp, color = theme.mutedColor
-                )
-                if (groupOptions.isEmpty()) {
-                    Text(stringResource(R.string.ue_no_groups), fontSize = 11.sp, color = theme.mutedColor)
-                }
-                groupOptions.forEach { g ->
-                    Box(
-                        Modifier.fillMaxWidth().heightIn(min = 40.dp).clip(DsRadius.Sm)
-                            .background(theme.searchBgColor)
-                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                            .pressScale(0.98f)
-                            .clickable {
-                                bulkGroupPicker = false
-                                selectedUserIds = emptySet()
-                                val add = bulkGroupAdd
-                                runAction(
-                                    notification = null
-                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
-                                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(
-                                        if (add) R.string.us_bulk_group_added else R.string.us_bulk_group_removed,
-                                        ids.size
-                                    ))
-                            }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            RoundedAppIcon(AppIcon.Folder, tint = theme.accentPrimary, size = 14.dp)
-                            Text(g.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = theme.inkColor)
-                        }
-                    }
-                }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { bulkGroupPicker = false }, modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
-
-    if (showBulkTemplateDialog) {
-        var templates by remember { mutableStateOf<List<UserTemplateItem>>(emptyList()) }
-        var templatesLoading by remember { mutableStateOf(true) }
-        var templatesFailed by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) {
-            templatesLoading = true; templatesFailed = false
-            var list: List<UserTemplateItem>? = null
-            for (i in 1..3) {
-                val r = runCatching { PanelApi.userTemplates(session) }
-                if (r.isSuccess) { list = r.getOrNull(); break }
-                kotlinx.coroutines.delay(400L)
-            }
-            list?.let { templates = it } ?: run { templatesFailed = true }
-            templatesLoading = false
-        }
-        com.mrm.pgmanager.ui.dialogs.BulkApplyTemplateDialog(
-            templates = templates,
-            selectedCount = selectedUserIds.size,
-            onDismiss = { showBulkTemplateDialog = false },
-            onApply = { templateId, note ->
-                val ids = selectedUserIds.toSet()
-                selectedUserIds = emptySet()
-                showBulkTemplateDialog = false
-                runAction { PanelApi.bulkApplyTemplate(session, ids, templateId, note) }
-            },
-            isLoading = templatesLoading,
-            loadFailed = templatesFailed
-        )
-    }
-
-    pendingBulk?.let { p ->
-        ConfirmActionDialog(
-            title = p.title,
-            message = p.message,
-            confirmLabel = p.confirmLabel,
-            danger = p.danger,
-            onDismiss = { pendingBulk = null },
-            onConfirm = { p.action(); pendingBulk = null }
-        )
-    }
-
-    quickActionUser?.let { u ->
-        val isDebtor = debtorByUsername.containsKey(u.username)
-        QuickActionSheet(
-            user = u,
-            onDismiss = { quickActionUser = null },
-            onUseTemplate = { quickTemplateUser = u },
-            onToggle = { runAction(notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username)) { PanelApi.setDisabled(session, u, u.status != "disabled") } },
-            onCopySub = { copySubWithFetch(u) },
-            onQr = { qrUser = u },
-            onEdit = { selectedUser = u },
-            onResetUsage = { runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username)) { PanelApi.resetUsage(session, u) } },
-            onResetExpiry = { resetExpiryTarget = u },
-            onDelete = { deleteUser = u },
-            onDebtor = { debtorDialogUser = u },
-            isDebtor = isDebtor,
-            onInvoice = { invoiceDialogUser = u }
-        )
-    }
-
-    selectedUser?.let { user ->
-        val dInfo = debtorByUsername[user.username]
-        UserDetailsDialog(
-            user = user,
-            onDismiss = { selectedUser = null },
-            onSave = { limitGb, expireShamsi ->
-                selectedUser = null; runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
-            },
-            onToggle = { selectedUser = null; runAction { PanelApi.setDisabled(session, user, user.status != "disabled") } },
-            onDelete = { deleteUser = user; selectedUser = null },
-            onResetUsage = {
-                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user) }
-            },
-            onResetExpiry = { days ->
-                selectedUser = null; runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
-                    val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
-                }
-            },
-            onApplyTemplate = { templateId, note ->
-                selectedUser = null; runAction { PanelApi.bulkApplyTemplate(session, setOf(user.id), templateId, note) }
-            },
-            session = session,
-            debtorInfo = dInfo,
-            onMarkDebtor = { selectedUser = null; debtorDialogUser = user },
-            onClearDebt = {
-                val wasAutoDisabled = dInfo?.autoDisabled ?: false
-                store.removeDebtor(session.baseUrl, user.username)
-                reloadDebtors()
-                selectedUser = null
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_debt_cleared))
-                if (wasAutoDisabled) {
-                    scope.launch {
-                        runCatching { PanelApi.setDisabled(session, user, false) }.onSuccess { load() }
-                    }
-                }
-            },
-            onInvoice = {
-                invoiceDialogUser = user
-                selectedUser = null
-            }
-        )
-    }
-    if (createMenuOpen) {
-        Dialog(onDismissRequest = { createMenuOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { createMenuOpen = false; createUser = true }
-                SettingsActionRow(stringResource(R.string.us_create_bulk), stringResource(R.string.us_create_bulk_desc), AppIcon.Users, GlassGreen) { createMenuOpen = false; bulkCreateOpen = true }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { createMenuOpen = false }, modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
-    if (bulkCreateOpen) {
-        BulkCreateUsersDialog(session = session, onDismiss = { bulkCreateOpen = false }, onFinished = { n -> bulkCreateOpen = false; if (n > 0) load(resetHeader = false, silent = true) })
-    }
-    if (exportChooserOpen) {
-        Dialog(onDismissRequest = { exportChooserOpen = false }) {
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.us_export_title, selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
-                Text(stringResource(R.string.us_export_desc), fontSize = 10.sp, color = themeState.mutedColor)
-                SettingsActionRow(stringResource(R.string.us_export_csv), stringResource(R.string.us_export_csv_desc), AppIcon.Download, GlassGreen) { exportChooserOpen = false; beginExport("csv") }
-                SettingsActionRow(stringResource(R.string.us_export_json), stringResource(R.string.us_export_json_desc), AppIcon.Download, themeState.accentPrimary) { exportChooserOpen = false; beginExport("json") }
-                SecondaryButton(stringResource(R.string.us_cancel), onClick = { exportChooserOpen = false }, modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
-    if (createUser) UserEditorDialog(initial = null, onDismiss = { createUser = false }, onSave = { limitGb, expireShamsi ->
-        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
-    }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
-        createUser = false; runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
-    }, session = session)
-    deleteUser?.let { user ->
-        val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { deleteUser = null }) {
-            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                    Text(stringResource(R.string.us_delete_user_msg), color = theme.mutedColor, fontSize = 13.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        SecondaryButton(stringResource(R.string.us_cancel), onClick = { deleteUser = null }, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(10.dp))
-                        DangerButton(stringResource(R.string.us_delete), onClick = { deleteUser = null; runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-    qrUser?.let { user ->
-        SubscriptionQrDialog(user = user, onDismiss = { qrUser = null })
-    }
-    invoiceDialogUser?.let { u ->
-        InvoiceDialog(
-            user = u,
-            debtorInfo = debtorByUsername[u.username],
-            currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
-            onDismiss = { invoiceDialogUser = null }
-        )
-    }
-    debtorDialogUser?.let { u ->
-        val existing = debtorByUsername[u.username]
-        DebtorEditDialog(
-            user = u,
-            existing = existing,
-            currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
-            onDismiss = { debtorDialogUser = null },
-            onSave = { amount, notes ->
-                val info = DebtorInfo(
-                    username = u.username,
-                    baseUrl = session.baseUrl,
-                    amount = amount,
-                    currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
-                    markedAt = existing?.markedAt ?: System.currentTimeMillis(),
-                    notes = notes,
-                    autoDisabled = existing?.autoDisabled ?: false,
-                    userId = u.id
-                )
-                store.setDebtor(info)
-                reloadDebtors()
-                debtorDialogUser = null
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated))
-                if (monitoringSettings.debtorAutoDisableEnabled) {
-                    val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
-                    if (over && u.status != "disabled") {
-                        scope.launch {
-                            runCatching { PanelApi.setDisabled(session, u, true) }.onSuccess {
-                                val updated = info.copy(autoDisabled = true)
-                                store.setDebtor(updated)
-                                reloadDebtors()
-                                com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_debt_auto_disabled))
-                            }
-                        }
-                    }
-                }
-            },
-            onClear = {
-                val wasAutoDisabled = debtorByUsername[u.username]?.autoDisabled ?: false
-                store.removeDebtor(session.baseUrl, u.username)
-                reloadDebtors()
-                debtorDialogUser = null
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_debt_cleared))
-                if (wasAutoDisabled) {
-                    scope.launch {
-                        runCatching { PanelApi.setDisabled(session, u, false) }.onSuccess {
-                            load()
-                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_user_enabled))
-                        }
-                    }
-                }
-            }
-        )
-    }
-    resetExpiryTarget?.let { u ->
-        ResetExpiryDurationDialog(
-            onDismiss = { resetExpiryTarget = null },
-            onConfirm = { days ->
-                val targetUser = u; resetExpiryTarget = null
-                runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
-                    val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
-                }
-            }
-        )
-    }
-
-    LaunchedEffect(users, monitoringSettings.debtorAutoDisableEnabled, monitoringSettings.debtorAutoDisableAfterHours) {
+    LaunchedEffect(ui.users, monitoringSettings.debtorAutoDisableEnabled, monitoringSettings.debtorAutoDisableAfterHours) {
         if (!monitoringSettings.debtorAutoDisableEnabled) return@LaunchedEffect
-        if (users.isEmpty()) return@LaunchedEffect
-        debtorsForCurrentPanel.forEach { d ->
+        if (ui.users.isEmpty()) return@LaunchedEffect
+        ui.debtorsForCurrentPanel.forEach { d ->
             if (!d.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)) return@forEach
             if (d.autoDisabled) return@forEach
-            val pu = users.find { it.username == d.username } ?: return@forEach
+            val pu = ui.users.find { it.username == d.username } ?: return@forEach
             if (pu.status == "disabled") {
                 val updated = d.copy(autoDisabled = true)
                 store.setDebtor(updated)
-                reloadDebtors()
+                ui.reloadDebtors()
                 return@forEach
             }
             runCatching { PanelApi.setDisabled(session, pu, true) }.onSuccess {
                 val updated = d.copy(autoDisabled = true)
                 store.setDebtor(updated)
-                reloadDebtors()
+                ui.reloadDebtors()
                 if (monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtorOverdue) {
                     NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, context.getString(R.string.us_n_auto_disable), context.getString(R.string.us_n_auto_disable_body, d.username, monitoringSettings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency))
                 }
