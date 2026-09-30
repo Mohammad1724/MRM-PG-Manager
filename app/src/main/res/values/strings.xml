@@ -17,6 +17,7 @@
     <string name="login_err_not_found">Panel address or path is wrong (404).</string>
     <string name="login_err_generic">Connection failed: %1$s</string>
     <string name="login_err_unknown">Unknown error</string>
+    <string name="login_field_required">This field is required</string>
     <string name="login_mode_password">Username &amp; password</string>
     <string name="login_mode_api_key">API key</string>
     <string name="login_api_key">API key</string>
@@ -25,6 +26,7 @@
     <string name="login_err_api_key">API key is invalid, disabled or expired.</string>
     <string name="login_err_api_key_format">Enter a valid API key (starts with pg_key_).</string>
     <string name="login_session_expired_banner">Your session expired. Sign in again to continue — your account is kept.</string>
+    <string name="login_step_connecting">Connecting to panel…</string>
     <string name="back_exit_hint">Press back again to exit</string>
     <string name="cd_change_language">Change language</string>
     <string name="users">Users</string>

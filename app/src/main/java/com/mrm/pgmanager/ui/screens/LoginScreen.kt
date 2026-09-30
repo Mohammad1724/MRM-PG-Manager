@@ -62,6 +62,11 @@ fun LoginScreen(
     var apiKey by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // خطاهای میدانی (فاز ۲.۴): زیر همان فیلد نمایش داده می‌شوند، نه در بنر سراسری.
+    var urlError by remember { mutableStateOf<String?>(null) }
+    var userError by remember { mutableStateOf<String?>(null) }
+    var passError by remember { mutableStateOf<String?>(null) }
+    var keyError by remember { mutableStateOf<String?>(null) }
     val theme = themeState
 
     // پیام‌های خطا باید *قبل از* لامبدای کلیک خوانده شوند؛ stringResource فقط در
@@ -77,6 +82,8 @@ fun LoginScreen(
     val errGenericTemplate = stringResource(R.string.login_err_generic)
     val errApiKey = stringResource(R.string.login_err_api_key)
     val errApiKeyFormat = stringResource(R.string.login_err_api_key_format)
+    val errRequired = stringResource(R.string.login_field_required)
+    val stepConnecting = stringResource(R.string.login_step_connecting)
 
     // در حالتِ «افزودن حساب» (یا وقتی حسابِ ذخیره‌شده‌ای هست) دکمهٔ برگشتِ گوشی
     // باید همان کارِ دکمهٔ «بازگشت» را بکند، نه اینکه اپ را ببندد.
@@ -122,7 +129,7 @@ fun LoginScreen(
                             Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
                                 .background(if (selected) theme.cardSurfaceColor else Color.Transparent)
                                 .border(BorderStroke(DsBorder.Hairline, if (selected) theme.borderColor else Color.Transparent), DsRadius.Sm)
-                                .clickable(enabled = !loading) { onClick(); error = null },
+                                .clickable(enabled = !loading) { onClick(); error = null; urlError = null; userError = null; passError = null; keyError = null },
                             contentAlignment = Alignment.Center
                         ) { Text(label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, color = if (selected) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
@@ -130,15 +137,19 @@ fun LoginScreen(
                     ModeTab(useApiKey, stringResource(R.string.login_mode_api_key)) { useApiKey = true }
                 }
 
-                PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
+                PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it; urlError = null }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next, error = urlError)
                 if (useApiKey) {
-                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim() }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
-                    Text(stringResource(R.string.login_api_key_desc), fontSize = 10.sp, color = theme.mutedColor)
+                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim(); keyError = null }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() }, error = keyError)
+                    Text(stringResource(R.string.login_api_key_desc), fontSize = 11.sp, color = theme.mutedColor)
                 } else {
-                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { username = it }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next)
-                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { password = it }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() })
+                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { username = ""; apiKey = input.trim(); useApiKey = true } else { username = input }; userError = null }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next, error = userError)
+                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { password = ""; apiKey = input.trim(); useApiKey = true } else { password = input }; passError = null }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() }, error = passError)
                 }
 
+                if (loading) {
+                    // بازخوردِ مرحلهٔ اتصال (فاز ۲.۴): تا رسیدن پاسخ، وضعیتِ جاری زیرِ فرم نشان داده می‌شود.
+                    Text(stepConnecting, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor, modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
                 if (error != null) {
                     Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(Color(0xFFFEE2E2)).border(BorderStroke(DsBorder.Hairline, Color(0xFFFECACA)), DsRadius.Md).padding(10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -152,22 +163,47 @@ fun LoginScreen(
                     text = stringResource(R.string.sign_in),
                     onClick = {
                         if (loading) return@MrmButton
-                        loading = true; error = null
+                        // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
+                        error = null; urlError = null; userError = null; passError = null; keyError = null
+                        var blocked = false
+                        val trimmedUrl = url.trim()
+                        val prepared = if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) trimmedUrl else "https://$trimmedUrl"
+                        val uri = runCatching { java.net.URI(prepared) }.getOrNull()
+                        val host = uri?.host
+                        val loopback = host == "localhost" || host == "127.0.0.1"
+                        val isHttp = uri?.scheme.equals("http", ignoreCase = true)
+                        when {
+                            trimmedUrl.isEmpty() -> { urlError = errUrl; blocked = true }
+                            uri == null || host.isNullOrBlank() -> { urlError = errUrl; blocked = true }
+                            isHttp && !loopback -> { urlError = errHttps; blocked = true }
+                        }
+                        if (useApiKey) {
+                            val key = apiKey.trim()
+                            when {
+                                key.isEmpty() -> { keyError = errRequired; blocked = true }
+                                !key.startsWith(Session.API_KEY_PREFIX) || key.length <= Session.API_KEY_PREFIX.length -> { keyError = errApiKeyFormat; blocked = true }
+                            }
+                        } else {
+                            if (username.isBlank()) { userError = errRequired; blocked = true }
+                            if (password.isBlank()) { passError = errRequired; blocked = true }
+                        }
+                        if (blocked) return@MrmButton
+                        // مرحلهٔ ۲ — اتصال: فقط خطاهای شبکه/سرور در بنر سراسری؛ بقیه زیر فیلدِ مربوط.
+                        loading = true
                         scope.launch {
                             runCatching {
                                 if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
                             }.onSuccess(onLoggedIn).onFailure { e ->
-                                error = when {
-                                    e.message?.contains("Credentials required", true) == true -> errCredentials
-                                    e.message?.contains("Invalid API key", true) == true -> errApiKeyFormat
-                                    e.message?.contains("Invalid URL", true) == true -> errUrl
-                                    e.message?.contains("Panel address is required", true) == true -> errUrl
-                                    e.message?.contains("Cleartext http", true) == true -> errHttps
-                                    e is java.net.UnknownHostException -> errHost
-                                    e is java.net.SocketTimeoutException -> errTimeout
-                                    PanelApi.isUnauthorized(e) -> if (useApiKey) errApiKey else errAuth
-                                    e.message?.contains("404", true) == true -> errNotFound
-                                    else -> String.format(errGenericTemplate, e.message ?: errUnknown)
+                                when {
+                                    e.message?.contains("Credentials required", true) == true -> passError = errCredentials
+                                    e.message?.contains("Invalid API key", true) == true -> keyError = errApiKeyFormat
+                                    e.message?.contains("Invalid URL", true) == true || e.message?.contains("Panel address is required", true) == true -> urlError = errUrl
+                                    e.message?.contains("Cleartext http", true) == true -> urlError = errHttps
+                                    PanelApi.isUnauthorized(e) -> if (useApiKey) keyError = errApiKey else passError = errAuth
+                                    e is java.net.UnknownHostException -> error = errHost
+                                    e is java.net.SocketTimeoutException -> error = errTimeout
+                                    e.message?.contains("404", true) == true -> error = errNotFound
+                                    else -> error = String.format(errGenericTemplate, e.message ?: errUnknown)
                                 }
                             }
                             loading = false
@@ -185,7 +221,7 @@ fun LoginScreen(
                     RoundedAppIcon(AppIcon.Lock, tint = theme.mutedColor, size = 14.dp)
                     Column(modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.login_biometric_title), fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.SemiBold)
-                        Text(stringResource(R.string.login_biometric_desc), fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.login_biometric_desc), fontSize = 11.sp, color = theme.mutedColor)
                     }
                 }
             }
@@ -197,7 +233,7 @@ fun LoginScreen(
             }
 
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("v${BuildConfig.VERSION_NAME}", fontSize = 10.sp, color = theme.mutedColor)
+                Text("v${BuildConfig.VERSION_NAME}", fontSize = 11.sp, color = theme.mutedColor)
             }
         }
     }
@@ -243,7 +279,7 @@ private fun LanguageToggle(
 }
 
 @Composable
-private fun PGField(label: String, value: String, onValueChange: (String)->Unit, placeholder: String, icon: AppIcon, isPassword: Boolean = false, imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next, onNext: (() -> Unit)? = null) {
+private fun PGField(label: String, value: String, onValueChange: (String)->Unit, placeholder: String, icon: AppIcon, isPassword: Boolean = false, imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next, onNext: (() -> Unit)? = null, error: String? = null) {
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -257,9 +293,9 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
     // یک ارتفاعِ خط دارند.
     val fieldStyle = TextStyle(fontSize = 13.sp, lineHeight = 16.sp, color = theme.inkColor)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (error != null) GlassRed else theme.inkColor)
         Box(
-            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.borderColor), DsRadius.Md)
                 .padding(horizontal = 12.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -293,6 +329,9 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                     }
                 }
             }
+        }
+        if (error != null) {
+            Text(error, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = GlassRed)
         }
     }
 }
