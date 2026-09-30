@@ -150,7 +150,7 @@ fun SettingsScreen(
                     stringResource(R.string.settings_title), fontSize = 15.sp,
                     fontWeight = FontWeight.Bold, color = theme.inkColor
                 )
-                Text(stringResource(R.string.appearance_desc), fontSize = 10.sp, color = theme.mutedColor)
+                Text(stringResource(R.string.appearance_desc), fontSize = 11.sp, color = theme.mutedColor)
             }
         }
 
@@ -180,7 +180,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        label, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        label, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                         color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1
                     )
                 }
@@ -373,7 +373,7 @@ private fun ExpandableSettingsGroup(
             ) { RoundedAppIcon(icon, tint = accent, size = 16.dp) }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Text(title, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                Text(subtitle, fontSize = 9.5.sp, color = theme.mutedColor)
+                Text(subtitle, fontSize = 11.sp, color = theme.mutedColor)
             }
             // به‌جای عوض‌کردنِ آیکون (که پرش داشت) خودِ شِوران می‌چرخد.
             val chevronRotation by animateFloatAsState(
@@ -412,7 +412,7 @@ private fun AboutFooter(appVersion: String) {
     ) {
         Text(
             stringResource(R.string.set_version, appVersion.ifBlank { "—" }),
-            fontSize = 10.sp, fontWeight = FontWeight.Bold,
+            fontSize = 11.sp, fontWeight = FontWeight.Bold,
             color = theme.mutedColor, modifier = Modifier.weight(1f)
         )
         Row(
@@ -433,7 +433,7 @@ private fun AboutFooter(appVersion: String) {
         ) {
             RoundedAppIcon(AppIcon.OpenNew, tint = theme.mutedColor, size = 11.dp)
             Text(
-                stringResource(R.string.set_github), fontSize = 10.sp,
+                stringResource(R.string.set_github), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold, color = theme.mutedColor
             )
         }
@@ -532,7 +532,7 @@ private fun AppearanceSection(
                     fontWeight = FontWeight.SemiBold, color = theme.mutedColor
                 )
             }
-            Text(stringResource(R.string.set_amoled_disabled), fontSize = 10.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.set_amoled_disabled), fontSize = 11.sp, color = theme.mutedColor)
         }
     }
 }
@@ -628,9 +628,9 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
                     stringResource(
                         if (activeCustom != null) R.string.set_custom_active else R.string.set_custom_hint
                     ),
-                    fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
                 )
-                Text(stringResource(R.string.set_custom_applied), fontSize = 10.sp, color = theme.mutedColor)
+                Text(stringResource(R.string.set_custom_applied), fontSize = 11.sp, color = theme.mutedColor)
             }
         }
 
@@ -653,7 +653,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    stringResource(R.string.set_apply_color), fontSize = 10.sp,
+                    stringResource(R.string.set_apply_color), fontSize = 11.sp,
                     fontWeight = FontWeight.Bold, color = theme.inkColor
                 )
             }
@@ -666,7 +666,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        stringResource(R.string.set_remove_color), fontSize = 10.sp,
+                        stringResource(R.string.set_remove_color), fontSize = 11.sp,
                         fontWeight = FontWeight.Bold, color = GlassRed
                     )
                 }
@@ -689,7 +689,7 @@ private fun ColorSlider(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(label, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.width(56.dp))
+        Text(label, fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.width(56.dp))
         Slider(
             value = value, onValueChange = onChange, valueRange = range,
             onValueChangeFinished = onDone,
@@ -732,7 +732,7 @@ private fun ThemePreviewCard(themeState: ThemeState) {
                         color = theme.inkColor, fontWeight = FontWeight.Medium
                     )
                 }
-                Text(stringResource(R.string.set_preview_desc), fontSize = 10.sp, color = theme.mutedColor)
+                Text(stringResource(R.string.set_preview_desc), fontSize = 11.sp, color = theme.mutedColor)
             }
             Box(
                 Modifier.weight(1f).height(66.dp).clip(DsRadius.Lg).background(theme.searchBgColor)
@@ -753,7 +753,7 @@ private fun ThemePreviewCard(themeState: ThemeState) {
                 icon = AppIcon.Check, style = MrmButtonStyle.Primary, compact = true
             )
         }
-        Text(stringResource(R.string.set_preview_hint), fontSize = 9.sp, color = theme.mutedColor)
+        Text(stringResource(R.string.set_preview_hint), fontSize = 11.sp, color = theme.mutedColor)
     }
 }
 
@@ -887,7 +887,7 @@ private fun NotificationsSection(
             checked = monitoringSettings.notifyDebtorOverdue, enabled = master
         ) { onMonitoringChange(monitoringSettings.copy(notifyDebtorOverdue = it)) }
 
-        Text(stringResource(R.string.set_debtor_desc), fontSize = 10.sp, color = theme.mutedColor)
+        Text(stringResource(R.string.set_debtor_desc), fontSize = 11.sp, color = theme.mutedColor)
     }
 
     SettingsCard(stringResource(R.string.set_health), AppIcon.Warning, accent = GlassRed) {
@@ -986,7 +986,7 @@ private fun SecuritySection(
             if (isAppLockEnabled) {
                 Text(
                     stringResource(R.string.set_lock_timeout_hint),
-                    fontSize = 8.5.sp, color = theme.mutedColor
+                    fontSize = 11.sp, color = theme.mutedColor
                 )
             }
         }

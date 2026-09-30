@@ -106,7 +106,7 @@ fun PGStatCard(
                 Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (valueSub != null) {
-                Text(valueSub, fontSize = 10.sp, color = t.mutedLightColor, maxLines = 1)
+                Text(valueSub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 1)
             }
         }
     }
@@ -152,7 +152,7 @@ fun PGScreenHeader(
                 if (badge != null) badge()
             }
             Text(
-                subtitle, fontSize = 10.sp, color = t.mutedColor,
+                subtitle, fontSize = 11.sp, color = t.mutedColor,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
@@ -194,7 +194,7 @@ fun PGBadge(text: String, color: Color = Color.Unspecified) {
             .border(BorderStroke(0.5.dp, resolvedColor.copy(0.18f)), RoundedCornerShape(6.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        Text(text, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = resolvedColor)
+        Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = resolvedColor)
     }
 }
 
@@ -304,7 +304,7 @@ fun PGStatusChip(text: String, dot: Color = DsSemantic.Success) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(dot))
-        Text(text, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF166534))
+        Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF166534))
     }
 }
 

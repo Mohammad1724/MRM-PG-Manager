@@ -367,13 +367,13 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(R.string.group_users_count, group.totalUsers),
-                    fontSize = 10.sp, color = theme.mutedColor
+                    fontSize = 11.sp, color = theme.mutedColor
                 )
                 if (group.inboundTags.isNotEmpty()) {
-                    Text("•", fontSize = 10.sp, color = theme.mutedColor)
+                    Text("•", fontSize = 11.sp, color = theme.mutedColor)
                     Text(
                         group.inboundTags.joinToString(", "),
-                        fontSize = 10.sp, color = theme.mutedColor,
+                        fontSize = 11.sp, color = theme.mutedColor,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -466,7 +466,7 @@ private fun GroupEditorDialog(
                     if (selectedTags.isNotEmpty()) PGBadge(stringResource(R.string.selected_count, selectedTags.size))
                 }
                 if (allTags.isEmpty()) {
-                    Text(stringResource(R.string.no_inbounds_available), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.no_inbounds_available), fontSize = 11.sp, color = theme.mutedColor)
                 } else {
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(rememberScrollState())
@@ -518,7 +518,7 @@ private fun GroupEditorDialog(
             }
 
             errorText?.let {
-                Text(it, fontSize = 10.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
+                Text(it, fontSize = 11.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

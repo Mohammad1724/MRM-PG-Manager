@@ -145,7 +145,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             // ── Nodes selector
             Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 10.sp, color = theme.mutedColor) }
+                    Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 11.sp, color = theme.mutedColor) }
                     Box {
                         PGDropdown(value = selectedNode?.name ?: stringResource(R.string.all_nodes), onClick = { nodeMenuOpen = true })
                         DropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
@@ -255,7 +255,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     }
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(theme.searchBgColor).border(BorderStroke(0.7.dp, theme.borderSubtle), RoundedCornerShape(10.dp)).padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(Modifier.size(22.dp).clip(DsRadius.Sm).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(alpha = 0.24f)), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Timer, tint = theme.accentPrimary, size = 12.dp) }
-                        Column { Text(stringResource(R.string.uptime), fontSize = 10.sp, color = theme.mutedColor); MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                        Column { Text(stringResource(R.string.uptime), fontSize = 11.sp, color = theme.mutedColor); MrmText(com.mrm.pgmanager.utils.uptimeText(s.uptimeSeconds), fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
 
@@ -275,7 +275,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Text(stringResource(R.string.st_nodes_health), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     if (nodes.isEmpty()) {
-                        Text(stringResource(R.string.st_node_none), fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.st_node_none), fontSize = 11.sp, color = theme.mutedColor)
                     }
                     nodes.forEach { n ->
                         val live = nodeStats[n.id]
@@ -303,7 +303,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(statusColor))
                                 MrmText(n.name, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
-                                Text(statusText, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
+                                Text(statusText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
                                 if (n.status == "error" || n.status == "connecting") {
                                     Box(
                                         Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor)
@@ -321,7 +321,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     ) {
                                         Text(
                                             stringResource(if (reconnecting == n.id) R.string.st_node_reconnecting else R.string.st_node_reconnect),
-                                            fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1
+                                            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1
                                         )
                                     }
                                 }
@@ -329,22 +329,22 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             if (live != null) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text(
-                                        "CPU ${formatPercent(live.cpuUsage)}%", fontSize = 9.5.sp,
+                                        "CPU ${formatPercent(live.cpuUsage)}%", fontSize = 11.sp,
                                         color = theme.mutedColor, maxLines = 1
                                     )
                                     Text(
                                         "RAM ${formatBytes(live.memUsed)}/${formatBytes(live.memTotal)}",
-                                        fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                                        fontSize = 11.sp, color = theme.mutedColor, maxLines = 1
                                     )
                                 }
                                 MrmText(
                                     stringResource(R.string.st_node_speed, formatBytes(live.incomingSpeed), formatBytes(live.outgoingSpeed)),
-                                    fontSize = 9.5.sp, color = theme.mutedLightColor, maxLines = 1, isTechnical = true
+                                    fontSize = 11.sp, color = theme.mutedLightColor, maxLines = 1, isTechnical = true
                                 )
                             } else {
                                 Text(
                                     n.message?.take(90) ?: stringResource(R.string.st_node_unreachable),
-                                    fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 2
+                                    fontSize = 11.sp, color = theme.mutedColor, maxLines = 2
                                 )
                             }
                         }
@@ -354,16 +354,16 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 // ── Traffic Usage
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                    Text(stringResource(R.string.traffic_usage_desc), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
                             Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { trafficRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
+                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }
                     }
-                    Text(stringResource(R.string.usage_in_range), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.usage_in_range), fontSize = 11.sp, color = theme.mutedColor)
                     val periodTotal = remember(trafficPoints) { trafficPoints.sumOf { it.totalTraffic } }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp))
@@ -372,7 +372,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
-                            Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
+                            Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -391,13 +391,13 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 // ── User Count
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                    Text(stringResource(R.string.user_count_desc), fontSize = 10.sp, color = theme.mutedColor)
-                    Text(stringResource(R.string.status_history_note), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
+                    Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
                             Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { countRange = r }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 10.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
+                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }
                         Box {
@@ -410,7 +410,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         }
                         Spacer(Modifier.width(12.dp))
                     }
-                    Text(stringResource(R.string.count_during_period), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.count_during_period), fontSize = 11.sp, color = theme.mutedColor)
                     val peakCount = remember(countPoints) { countPoints.maxOfOrNull { it.totalTraffic } ?: 0L }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -445,11 +445,11 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp)
             Text(stringResource(R.string.st_node_traffic), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor, modifier = Modifier.weight(1f))
-            Text("${range.label} · $scopeLabel", fontSize = 9.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text("${range.label} · $scopeLabel", fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium, maxLines = 1)
         }
-        Text(stringResource(R.string.st_node_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 13.sp)
+        Text(stringResource(R.string.st_node_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 13.sp)
         if (usage.isEmpty() || grandTotal == 0L) {
-            Text(stringResource(R.string.st_node_traffic_empty), fontSize = 10.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.st_node_traffic_empty), fontSize = 11.sp, color = theme.mutedColor)
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                 MrmText(stringResource(R.string.st_node_traffic_down, formatBytes(totalDown)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
@@ -463,10 +463,10 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
                 val share = (n.total.toDouble() / grandTotal).toFloat().coerceIn(0f, 1f)
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        MrmText(name, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
+                        MrmText(name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
                         MrmText(
                             "↓ ${formatBytes(n.downlink)}  ↑ ${formatBytes(n.uplink)}  ·  ${formatPercent(share * 100f)}%",
-                            isTechnical = true, fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                            isTechnical = true, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1
                         )
                     }
                     Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(50)).background(if (theme.isDark) Color.White.copy(0.10f) else Color(0xFFF3F4F6))) {
@@ -483,7 +483,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
     Row(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(value, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
-        Text("▾", fontSize = 10.sp, color = theme.mutedColor)
+        Text("▾", fontSize = 11.sp, color = theme.mutedColor)
     }
 }
 

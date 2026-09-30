@@ -52,7 +52,7 @@ fun UsageChart(
             Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor),
             contentAlignment = Alignment.Center
         ) {
-            Text(stringResource(R.string.no_chart_data), fontSize = 10.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.no_chart_data), fontSize = 11.sp, color = theme.mutedColor)
         }
         return
     }
@@ -60,8 +60,8 @@ fun UsageChart(
     val maxValue = remember(points) { points.maxOf { it.totalTraffic }.coerceAtLeast(1L) }
 
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(valueFormatter(maxValue), fontSize = 8.sp, color = theme.mutedColor)
-        Text(valueFormatter(0L), fontSize = 8.sp, color = theme.mutedColor)
+        Text(valueFormatter(maxValue), fontSize = 11.sp, color = theme.mutedColor)
+        Text(valueFormatter(0L), fontSize = 11.sp, color = theme.mutedColor)
     }
     Canvas(Modifier.fillMaxWidth().height(height)) {
         val w = size.width; val h = size.height
@@ -86,7 +86,7 @@ fun UsageChart(
     if (showAxisLabels) {
         val labels = remember(points) { chartAxisLabels(points) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            labels.forEach { Text(it, fontSize = 8.sp, color = theme.mutedColor) }
+            labels.forEach { Text(it, fontSize = 11.sp, color = theme.mutedColor) }
         }
     }
 }

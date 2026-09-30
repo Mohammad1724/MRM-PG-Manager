@@ -544,6 +544,9 @@
     <string name="us_select_first">ابتدا کاربرها را انتخاب کنید</string>
     <string name="us_hint_long_press">انگشت را روی کارت کاربر نگه دارید تا اکشن‌های سریع باز شود</string>
     <string name="us_hint_multi_select">برای انتخاب چندتایی، روی چک‌باکس کارت‌ها ضربه بزنید</string>
+    <string name="us_view_grid">نمای شبکه</string>
+    <string name="us_view_compact">نمای فشرده</string>
+    <string name="us_view_micro">نمای لیست</string>
     <!-- بدهکار -->
     <string name="us_debt_edit_title">ویرایش بدهی · %1$s</string>
     <string name="us_debt_add_title">ثبت بدهکار برای %1$s</string>

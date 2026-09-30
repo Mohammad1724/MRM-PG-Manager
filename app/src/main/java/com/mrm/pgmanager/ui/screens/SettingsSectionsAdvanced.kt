@@ -84,7 +84,7 @@ internal fun ConnectionSection(
         SettingsCard(stringResource(R.string.set_conn_panel), AppIcon.Wifi) {
             Text(
                 stringResource(R.string.set_conn_login_first),
-                fontSize = 10.5.sp, color = theme.mutedColor
+                fontSize = 11.sp, color = theme.mutedColor
             )
         }
         return
@@ -133,7 +133,7 @@ internal fun ConnectionSection(
     SettingsCard(stringResource(R.string.set_conn_accounts), AppIcon.Users) {
         var accounts by remember { mutableStateOf(store.readAccounts()) }
         if (accounts.isEmpty()) {
-            Text(stringResource(R.string.set_conn_no_accounts), fontSize = 10.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.set_conn_no_accounts), fontSize = 11.sp, color = theme.mutedColor)
         } else accounts.forEach { acc ->
             val isActive = acc.baseUrl == session.baseUrl && acc.username == session.username
             Row(
@@ -153,7 +153,7 @@ internal fun ConnectionSection(
                         maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true
                     )
                     MrmText(
-                        acc.baseUrl, fontSize = 8.5.sp, color = theme.mutedColor,
+                        acc.baseUrl, fontSize = 11.sp, color = theme.mutedColor,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true
                     )
                 }
@@ -163,7 +163,7 @@ internal fun ConnectionSection(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            stringResource(R.string.set_conn_active), fontSize = 10.sp,
+                            stringResource(R.string.set_conn_active), fontSize = 11.sp,
                             fontWeight = FontWeight.Bold, color = theme.inkColor
                         )
                     }
@@ -174,7 +174,7 @@ internal fun ConnectionSection(
                         }.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            stringResource(R.string.set_conn_connect), fontSize = 10.sp,
+                            stringResource(R.string.set_conn_connect), fontSize = 11.sp,
                             fontWeight = FontWeight.Bold, color = GlassGreen
                         )
                     }
@@ -193,7 +193,7 @@ internal fun ConnectionSection(
             AppIcon.UserAdd,
             theme.accentPrimary
         ) { onAddAccount() }
-        Text(stringResource(R.string.set_conn_note), fontSize = 8.5.sp, color = theme.mutedColor)
+        Text(stringResource(R.string.set_conn_note), fontSize = 11.sp, color = theme.mutedColor)
     }
 
     SettingsCard(stringResource(R.string.set_conn_test), AppIcon.CheckCircle, accent = GlassGreen) {
@@ -237,7 +237,7 @@ internal fun ConnectionSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 RoundedAppIcon(if (ok) AppIcon.CheckCircle else AppIcon.Warning, tint = color, size = 17.dp)
-                Text(message, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = color)
+                Text(message, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
             }
         }
     }
@@ -385,14 +385,14 @@ internal fun UsersSettingsSection(
             enabled = monitoringSettings.debtorAutoDisableEnabled
         ) { onMonitoringChange(monitoringSettings.copy(debtorAutoDisableAfterHours = it)) }
         if (monitoringSettings.debtorAutoDisableEnabled) {
-            Text(stringResource(R.string.set_usr_debtor_example), fontSize = 8.5.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.set_usr_debtor_example), fontSize = 11.sp, color = theme.mutedColor)
         }
         // نمایش تعداد بدهکاران فعلی این پنل
         val debtorCount = store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
         if (debtorCount > 0) {
             Text(
                 stringResource(R.string.set_usr_debtor_count, debtorCount.toString()),
-                fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed
+                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed
             )
         }
     }
@@ -503,7 +503,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     RoundedAppIcon(AppIcon.Image, tint = theme.mutedColor, size = 32.dp)
-                    Text(stringResource(R.string.set_inv_no_logo), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.set_inv_no_logo), fontSize = 11.sp, color = theme.mutedColor)
                 }
             }
         }
@@ -532,7 +532,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                 ) { RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 18.dp) }
             }
         }
-        Text(stringResource(R.string.set_inv_logo_hint), fontSize = 8.5.sp, color = theme.mutedColor)
+        Text(stringResource(R.string.set_inv_logo_hint), fontSize = 11.sp, color = theme.mutedColor)
     }
 
     SettingsCard(stringResource(R.string.set_inv_seller), AppIcon.Receipt) {
@@ -756,7 +756,7 @@ internal fun BackupSection(
                 backupKeep = keepValues[i]
                 store.saveBackupKeepCount(backupKeep)
             }
-            Text(stringResource(R.string.set_bk_keep_desc), fontSize = 8.5.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.set_bk_keep_desc), fontSize = 11.sp, color = theme.mutedColor)
         }
     }
 
@@ -772,7 +772,7 @@ internal fun BackupSection(
         // بکاپ بدون رمز شامل توکن‌های ورود به پنل‌هاست؛ هشدار صریح بده.
         if (backupPassword.isBlank()) {
             Text(
-                stringResource(R.string.set_bk_warn_plain), fontSize = 8.5.sp,
+                stringResource(R.string.set_bk_warn_plain), fontSize = 11.sp,
                 color = GlassRed, fontWeight = FontWeight.Bold
             )
         }
@@ -780,7 +780,7 @@ internal fun BackupSection(
 
     SettingsCard(stringResource(R.string.set_bk_ops), AppIcon.Settings) {
         if (backupLastMsg.isNotBlank()) {
-            Text(backupLastMsg, fontSize = 10.sp, color = theme.mutedColor)
+            Text(backupLastMsg, fontSize = 11.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             MrmButton(
@@ -805,7 +805,7 @@ internal fun BackupSection(
             val sdf = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US)
             Text(
                 stringResource(R.string.set_bk_last, sdf.format(java.util.Date(lastAt))),
-                fontSize = 8.5.sp, color = theme.mutedColor
+                fontSize = 11.sp, color = theme.mutedColor
             )
         }
     }

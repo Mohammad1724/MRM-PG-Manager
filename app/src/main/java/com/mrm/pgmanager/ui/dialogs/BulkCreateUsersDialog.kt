@@ -178,7 +178,7 @@ fun BulkCreateUsersDialog(
                         )
                         if (pattern.sequential) SettingsStepper(stringResource(R.string.bc_start_from), pattern.sequentialStart, stringResource(R.string.bc_number), 1..999000) { pattern = pattern.copy(sequentialStart = it) }
                         else SettingsStepper(stringResource(R.string.bc_digits), pattern.randomDigits, stringResource(R.string.bc_digit), 3..6) { pattern = pattern.copy(randomDigits = it) }
-                        Text(stringResource(R.string.bc_examples, if (pattern.sequential) "${pattern.sequentialName(0)} · ${pattern.sequentialName(1)}" else "${pattern.randomName()} · ${pattern.randomName()}"), fontSize = 10.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(R.string.bc_examples, if (pattern.sequential) "${pattern.sequentialName(0)} · ${pattern.sequentialName(1)}" else "${pattern.randomName()} · ${pattern.randomName()}"), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     // کارت مشخصات
                     SettingsCard(stringResource(R.string.bc_plan), AppIcon.Template) {
@@ -190,17 +190,17 @@ fun BulkCreateUsersDialog(
                         if (templatesLoading) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                                 CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
-                                Text(stringResource(R.string.bc_loading_templates), fontSize = 10.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.bc_loading_templates), fontSize = 11.sp, color = theme.mutedColor)
                             }
                         } else if (useTemplate && templates.isEmpty()) {
-                            Text(stringResource(R.string.bc_no_templates), fontSize = 10.sp, color = GlassRed)
+                            Text(stringResource(R.string.bc_no_templates), fontSize = 11.sp, color = GlassRed)
                         }
                         if (useTemplate && templates.isNotEmpty()) {
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
                                     Box(Modifier.height(30.dp).clip(DsRadius.Sm).primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { selectedTemplate = t.id }.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
-                                        Text(t.name, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (picked) theme.onPrimary else theme.inkColor, maxLines = 1)
+                                        Text(t.name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (picked) theme.onPrimary else theme.inkColor, maxLines = 1)
                                     }
                                 }
                             }
@@ -243,7 +243,7 @@ fun BulkCreateUsersDialog(
                                 Text(stringResource(R.string.bc_created_n, successCount), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
                             }
                             if (errors.isNotEmpty()) {
-                                Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                                Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                                 Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(8.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 11.sp, isTechnical = true) }
                                 }

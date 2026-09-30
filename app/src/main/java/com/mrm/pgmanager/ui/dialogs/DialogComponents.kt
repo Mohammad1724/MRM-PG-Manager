@@ -93,7 +93,7 @@ fun SettingsStepper(
                 .background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm),
             contentAlignment = Alignment.Center
-        ) { Text("$value $unit", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        ) { Text("$value $unit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Box(
             Modifier.size(30.dp).clip(DsRadius.Sm)
                 .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
@@ -190,7 +190,7 @@ fun SettingsActionRow(
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-            if (subtitle != null) Text(subtitle, fontSize = 10.sp, color = theme.mutedColor)
+            if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = theme.mutedColor)
         }
     }
 }

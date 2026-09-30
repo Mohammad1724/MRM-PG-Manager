@@ -90,7 +90,7 @@ fun BulkApplyTemplateDialog(
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     Text(t.name, fontSize = 12.sp, fontWeight = if (sel) FontWeight.ExtraBold else FontWeight.Bold, color = if (sel) theme.onPrimary else theme.inkColor)
-                                    if (sel) Text(stringResource(R.string.bt_selected), fontSize = 10.sp, color = theme.onPrimary.copy(alpha = 0.85f), fontWeight = FontWeight.Bold)
+                                    if (sel) Text(stringResource(R.string.bt_selected), fontSize = 11.sp, color = theme.onPrimary.copy(alpha = 0.85f), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

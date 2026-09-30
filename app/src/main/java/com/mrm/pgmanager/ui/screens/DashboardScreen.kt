@@ -321,7 +321,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     // Left: Users breakdown card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.users_section), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                        Text(stringResource(R.string.monitor_users), fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.monitor_users), fontSize = 11.sp, color = theme.mutedColor)
                         // رنگِ نقطه قبلاً با مقایسهٔ متنِ انگلیسیِ برچسب انتخاب می‌شد
                         // و در حالتِ فارسی همهٔ نقطه‌ها بی‌رنگ می‌شدند؛ حالا رنگ
                         // کنارِ خودِ ردیف تعریف شده و به زبان کاری ندارد.
@@ -341,10 +341,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     if (row.dot != Color.Transparent) Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(row.dot))
                                     else RoundedAppIcon(AppIcon.Users, tint = theme.mutedColor, size = 12.dp)
-                                    Text(row.label, fontSize = 10.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
+                                    Text(row.label, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
                                 }
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    if (pct != null) Text(pct, fontSize = 10.sp, color = theme.mutedColor)
+                                    if (pct != null) Text(pct, fontSize = 11.sp, color = theme.mutedColor)
                                     Text("${animatedCount(row.count)}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                                 }
                             }
@@ -353,7 +353,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     // Right: Usage chart card
                     Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column { Text(stringResource(R.string.usage), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.monitor_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp) }
+                            Column { Text(stringResource(R.string.usage), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.monitor_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp) }
                         }
                         // انتخابگرِ بازه. قبلاً دو کادرِ «7 days ▾» و «Auto ▾» بود
                         // که هیچ‌کدام کلیک نمی‌شدند — شکلِ منوی پنل کپی شده بود
@@ -368,8 +368,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(chartRange.label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-                                Text("▾", fontSize = 9.sp, color = theme.mutedColor)
+                                Text(chartRange.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                                Text("▾", fontSize = 11.sp, color = theme.mutedColor)
                             }
                             androidx.compose.material3.DropdownMenu(
                                 expanded = chartMenuOpen,
@@ -394,8 +394,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                             } else stringResource(R.string.no_trend)
                             val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) Color(0xFF16A34A) else Color(0xFFDC2626)
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(trendingText, fontSize = 10.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
-                                Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 10.sp, color = theme.mutedColor, lineHeight = 12.sp)
+                                Text(trendingText, fontSize = 11.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
                             }
                         }
                     }
@@ -410,7 +410,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                             .padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(stringResource(R.string.db_admins_desc), fontSize = 10.sp, color = theme.mutedColor)
+                        Text(stringResource(R.string.db_admins_desc), fontSize = 11.sp, color = theme.mutedColor)
                         list.forEach { a ->
                             Row(
                                 Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
@@ -431,13 +431,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                     }
                                     Text(
                                         stringResource(R.string.db_admin_users, a.totalUsers),
-                                        fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1
+                                        fontSize = 11.sp, color = theme.mutedColor, maxLines = 1
                                     )
                                 }
                                 MrmText(
                                     if (a.dataLimit != null) "${formatBytes(a.usedTraffic)}/${formatBytes(a.dataLimit)}"
                                     else formatBytes(a.usedTraffic),
-                                    fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = true
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, isTechnical = true
                                 )
                             }
                         }

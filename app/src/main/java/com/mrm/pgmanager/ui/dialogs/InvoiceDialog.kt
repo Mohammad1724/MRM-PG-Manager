@@ -304,7 +304,7 @@ fun InvoiceDialog(
                     }
                     Column {
                         Text(stringResource(R.string.inv_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                        com.mrm.pgmanager.ui.components.MrmText(user.username, fontSize = 10.sp, color = theme.mutedColor, isTechnical = true)
+                        com.mrm.pgmanager.ui.components.MrmText(user.username, fontSize = 11.sp, color = theme.mutedColor, isTechnical = true)
                     }
                 }
 
@@ -338,7 +338,7 @@ fun InvoiceDialog(
                     Text("💰 " + stringResource(R.string.inv_amounts), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.inv_price), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_price), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = currentPriceText,
                             onValueChange = { v ->
@@ -352,7 +352,7 @@ fun InvoiceDialog(
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.inv_previous_debt), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_previous_debt), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = previousDebtText,
                             onValueChange = { v ->
@@ -366,7 +366,7 @@ fun InvoiceDialog(
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.inv_paid_amount), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.inv_paid_amount), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                         CompactGlassField(
                             value = paidAmountText,
                             onValueChange = { v ->
@@ -418,7 +418,7 @@ fun InvoiceDialog(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("📝 " + stringResource(R.string.inv_note_optional), fontSize = 10.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
+                    Text("📝 " + stringResource(R.string.inv_note_optional), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Bold)
                     CompactGlassField(
                         value = notesText,
                         onValueChange = { v -> notesText = v.take(200) },
@@ -500,7 +500,7 @@ fun InvoiceDialog(
 @Composable
 private fun InfoRow(label: String, value: String, theme: com.mrm.pgmanager.ui.theme.ThemeState, bold: Boolean = false, color: Color = theme.inkColor) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 10.sp, color = theme.mutedColor)
+        Text(label, fontSize = 11.sp, color = theme.mutedColor)
         Text(value, fontSize = 12.sp, fontWeight = if (bold) FontWeight.ExtraBold else FontWeight.Medium, color = color)
     }
 }
@@ -630,7 +630,7 @@ private fun InvoicePreviewCard(
 
                 if (notes.isNotBlank()) {
                     Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(Color(0xFFF8F8FA)).padding(12.dp)) {
-                        Text("📝 " + stringResource(R.string.inv_note), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
+                        Text("📝 " + stringResource(R.string.inv_note), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF74757B))
                         Text(notes, fontSize = 11.sp, color = Color(0xFF202124))
                     }
                 }
@@ -640,7 +640,7 @@ private fun InvoicePreviewCard(
                 Text(stringResource(R.string.inv_thanks) + " 🙏", fontSize = 11.sp, color = Color(0xFF74757B))
                 Text(
                     stringResource(R.string.inv_issued_on, invoiceDate),
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     color = Color(0xFFA09C94)
                 )
             }

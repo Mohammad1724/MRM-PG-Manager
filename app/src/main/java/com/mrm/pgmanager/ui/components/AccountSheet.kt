@@ -141,7 +141,7 @@ fun AccountSheet(
             if (accounts.size > 1) {
                 Text(
                     stringResource(R.string.acct_title),
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = theme.mutedColor,
                     modifier = Modifier.padding(start = 6.dp, top = 6.dp)

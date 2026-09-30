@@ -80,7 +80,7 @@ fun QuickActionSheet(
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) { 
                             MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                            MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 10.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
+                            MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 11.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
                         }
                         run {
                             val (c, label) = when (user.status) {
@@ -91,7 +91,7 @@ fun QuickActionSheet(
                                 "on_hold" -> DsSemantic.Violet to stringResource(R.string.on_hold)
                                 else -> theme.mutedColor to user.status
                             }
-                            Box(Modifier.clip(DsRadius.Md).background(c.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = c) }
+                            Box(Modifier.clip(DsRadius.Md).background(c.copy(.14f)).padding(horizontal = 10.dp, vertical = 6.dp)) { Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c) }
                         }
                     }
                     
@@ -136,7 +136,7 @@ private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier:
     Box(modifier.height(38.dp).clip(DsRadius.Md).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             RoundedAppIcon(icon, tint = color, size = 16.dp)
-            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
         }
     }
 }

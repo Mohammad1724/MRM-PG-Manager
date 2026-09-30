@@ -318,7 +318,7 @@ internal fun FilterAndControlBar(
                     RoundedAppIcon(AppIcon.Folder, tint = if (groupFilterId != null) theme.accentPrimary else theme.mutedColor, size = 13.dp)
                     Text(
                         selectedName ?: stringResource(R.string.us_group_filter),
-                        fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                         color = if (groupFilterId != null) theme.accentPrimary else theme.mutedColor,
                         maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 84.dp)
@@ -340,9 +340,9 @@ internal fun FilterAndControlBar(
         }
         // View mode compact
         Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            ViewModeIcon(AppIcon.GridView, viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
-            ViewModeIcon(AppIcon.ListRows, viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
-            ViewModeIcon(AppIcon.DenseList, viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+            ViewModeIcon(AppIcon.GridView, stringResource(R.string.us_view_grid), viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
+            ViewModeIcon(AppIcon.ListRows, stringResource(R.string.us_view_compact), viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+            ViewModeIcon(AppIcon.DenseList, stringResource(R.string.us_view_micro), viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
         }
     }
     if (showFilterSheet) {
@@ -424,11 +424,11 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun ViewModeIcon(icon: AppIcon, selected: Boolean, onClick: () -> Unit) {
+internal fun ViewModeIcon(icon: AppIcon, contentDescription: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
     Box(modifier = Modifier.size(32.dp).clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
+        RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
     }
 }
 

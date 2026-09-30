@@ -544,6 +544,9 @@
     <string name="us_select_first">Select some users first</string>
     <string name="us_hint_long_press">Long-press a user card to open quick actions</string>
     <string name="us_hint_multi_select">Tap the card checkboxes to select multiple users</string>
+    <string name="us_view_grid">Grid view</string>
+    <string name="us_view_compact">Compact view</string>
+    <string name="us_view_micro">List view</string>
     <!-- بدهکار -->
     <string name="us_debt_edit_title">Edit debt · %1$s</string>
     <string name="us_debt_add_title">Mark %1$s as debtor</string>

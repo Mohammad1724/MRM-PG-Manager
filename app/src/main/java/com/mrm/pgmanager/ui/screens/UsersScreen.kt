@@ -380,7 +380,7 @@ fun UsersScreen(
                             if (ui.loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
                             }
@@ -395,7 +395,7 @@ fun UsersScreen(
                             if (ui.loadingMore) {
                                 item {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
                             }
@@ -410,7 +410,7 @@ fun UsersScreen(
                             if (ui.loadingMore) {
                                 item {
                                     Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                                        Text(stringResource(R.string.us_loading_more), fontSize = 10.5.sp, color = themeState.mutedColor)
+                                        Text(stringResource(R.string.us_loading_more), fontSize = 11.sp, color = themeState.mutedColor)
                                     }
                                 }
                             }
@@ -506,7 +506,7 @@ fun UsersScreen(
                 if (serverMode && ui.totalMatches > processedUsers.size) {
                     Text(
                         stringResource(R.string.us_showing_count, processedUsers.size, ui.totalMatches),
-                        fontSize = 9.5.sp, color = themeState.mutedColor,
+                        fontSize = 11.sp, color = themeState.mutedColor,
                         modifier = Modifier.padding(top = 6.dp, start = 2.dp)
                     )
                 }
@@ -533,7 +533,7 @@ fun UsersScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
-                        Text(stringResource(R.string.us_cleanup), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                        Text(stringResource(R.string.us_cleanup), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                     }
                 }
                 ui.offlineAt?.let { cachedAt ->

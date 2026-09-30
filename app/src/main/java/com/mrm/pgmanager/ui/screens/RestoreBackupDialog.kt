@@ -110,38 +110,38 @@ internal fun RestoreBackupDialog(
                         )
                         Text(
                             stringResource(R.string.set_rs_created, sdf.format(java.util.Date(info.createdAt))),
-                            fontSize = 10.sp, color = theme.inkColor
+                            fontSize = 11.sp, color = theme.inkColor
                         )
                         Text(
                             stringResource(R.string.set_rs_appver, info.appVersion.ifBlank { "-" }),
-                            fontSize = 10.sp, color = theme.inkColor
+                            fontSize = 11.sp, color = theme.inkColor
                         )
                         Text(
                             stringResource(R.string.set_rs_accounts_n, info.accountsCount.toString()),
-                            fontSize = 10.sp, color = theme.inkColor
+                            fontSize = 11.sp, color = theme.inkColor
                         )
                         Text(
                             stringResource(R.string.set_rs_debtors_n, info.debtorsCount.toString()),
-                            fontSize = 10.sp, color = theme.inkColor
+                            fontSize = 11.sp, color = theme.inkColor
                         )
                         if (info.sellerName.isNotBlank()) {
                             Text(
                                 stringResource(R.string.set_rs_seller, info.sellerName),
-                                fontSize = 10.sp, color = theme.inkColor
+                                fontSize = 11.sp, color = theme.inkColor
                             )
                         }
                         if (info.hasLogo) {
-                            Text(stringResource(R.string.set_rs_has_logo), fontSize = 10.sp, color = theme.inkColor)
+                            Text(stringResource(R.string.set_rs_has_logo), fontSize = 11.sp, color = theme.inkColor)
                         }
                         if (info.encrypted) {
                             Text(
-                                stringResource(R.string.set_rs_encrypted), fontSize = 10.sp,
+                                stringResource(R.string.set_rs_encrypted), fontSize = 11.sp,
                                 color = GlassGreen, fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 } else {
-                    Text(stringResource(R.string.set_rs_selected), fontSize = 10.sp, color = theme.mutedColor)
+                    Text(stringResource(R.string.set_rs_selected), fontSize = 11.sp, color = theme.mutedColor)
                 }
 
                 if (needsPassword) {
@@ -155,7 +155,7 @@ internal fun RestoreBackupDialog(
                 }
 
                 Text(
-                    stringResource(R.string.set_rs_choose), fontSize = 10.sp,
+                    stringResource(R.string.set_rs_choose), fontSize = 11.sp,
                     fontWeight = FontWeight.Bold, color = theme.inkColor
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -166,7 +166,7 @@ internal fun RestoreBackupDialog(
                 }
 
                 result?.let {
-                    Text(it, fontSize = 10.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
+                    Text(it, fontSize = 11.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

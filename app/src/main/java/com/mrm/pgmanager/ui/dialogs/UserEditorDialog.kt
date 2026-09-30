@@ -153,7 +153,7 @@ fun UserEditorDialog(
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(stringResource(if (isCreating) R.string.ue_create_title else R.string.ue_edit_title), fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Box(
                         Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
@@ -201,7 +201,7 @@ fun UserEditorDialog(
                                             UsernameValidation.ERR_CHARS -> stringResource(R.string.ue_username_err_chars)
                                             else -> stringResource(R.string.ue_username_err_consecutive)
                                         },
-                                        fontSize = 9.sp, color = GlassRed, fontWeight = FontWeight.Medium
+                                        fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
@@ -218,7 +218,7 @@ fun UserEditorDialog(
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
                                         Box(Modifier.size(5.dp).clip(RoundedCornerShape(50)).background(statusColor))
-                                        Text(stringResource(statusLabel), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
+                                        Text(stringResource(statusLabel), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
                                     DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
@@ -262,7 +262,7 @@ fun UserEditorDialog(
                                 val onHoldDaysValue = normalizePersianDigits(days).toIntOrNull() ?: 0
                                 Text(
                                     stringResource(if (onHoldDaysValue > 0) R.string.ue_on_hold_hint else R.string.ue_on_hold_days_required),
-                                    fontSize = 9.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
+                                    fontSize = 11.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
                                 )
                             }
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -272,7 +272,7 @@ fun UserEditorDialog(
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
                                             .clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }
                                             .padding(horizontal = 9.dp), contentAlignment = Alignment.Center
-                                    ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
+                                    ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                                 }
                             }
                         }
@@ -283,7 +283,7 @@ fun UserEditorDialog(
                                 onValueChange = { raw -> val normalized = normalizePersianDigits(raw); onHoldTimeoutDays = normalized.filter { c -> c.isDigit() }; onHoldTimeoutDirty = true },
                                 placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Calendar
                             )
-                            Text(stringResource(R.string.ue_on_hold_timeout_hint), fontSize = 9.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.ue_on_hold_timeout_hint), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -309,11 +309,11 @@ fun UserEditorDialog(
                                     ) {
                                         RoundedAppIcon(icon, tint = if (sel) theme.cardSurfaceColor else theme.mutedColor, size = 12.dp)
                                         Spacer(Modifier.width(5.dp))
-                                        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (sel) theme.cardSurfaceColor else theme.mutedColor)
+                                        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (sel) theme.cardSurfaceColor else theme.mutedColor)
                                         if (index == 0 && groupIds.isNotEmpty()) {
                                             Spacer(Modifier.width(5.dp))
                                             Box(Modifier.defaultMinSize(minWidth = 14.dp, minHeight = 14.dp).clip(RoundedCornerShape(50)).background(if (sel) theme.cardSurfaceColor else theme.inkColor).padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
-                                                Text("${groupIds.size}", fontSize = 8.sp, fontWeight = FontWeight.ExtraBold, color = if (sel) theme.inkColor else theme.cardSurfaceColor, style = TextStyle(platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)))
+                                                Text("${groupIds.size}", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (sel) theme.inkColor else theme.cardSurfaceColor, style = TextStyle(platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)))
                                             }
                                         }
                                     }
@@ -361,7 +361,7 @@ fun UserEditorDialog(
                                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(stringResource(R.string.ue_next_plan_desc), fontSize = 9.sp, color = theme.mutedColor)
+                                Text(stringResource(R.string.ue_next_plan_desc), fontSize = 11.sp, color = theme.mutedColor)
                                 Box {
                                     Row(
                                         Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
@@ -370,8 +370,8 @@ fun UserEditorDialog(
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 12.dp)
-                                        Text(templates.firstOrNull { it.id == nextPlanTemplate }?.name ?: stringResource(R.string.ue_next_plan_none), fontSize = 10.5.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Text("▾", fontSize = 9.sp, color = theme.mutedColor)
+                                        Text(templates.firstOrNull { it.id == nextPlanTemplate }?.name ?: stringResource(R.string.ue_next_plan_none), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        Text("▾", fontSize = 11.sp, color = theme.mutedColor)
                                     }
                                     DropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
                                         DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanDirty = true; nextPlanMenu = false })
@@ -381,7 +381,7 @@ fun UserEditorDialog(
                                 if (nextPlanTemplate != null) {
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Md).pressScale(0.99f).clickable { nextPlanCarry = !nextPlanCarry; nextPlanDirty = true }.padding(vertical = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         CheckboxIcon(selected = nextPlanCarry, onToggle = { nextPlanCarry = !nextPlanCarry; nextPlanDirty = true })
-                                        Text(stringResource(R.string.ue_next_plan_carry), fontSize = 10.sp, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                        Text(stringResource(R.string.ue_next_plan_carry), fontSize = 11.sp, color = theme.inkColor, modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -409,7 +409,7 @@ fun UserEditorDialog(
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_hwid))
                                         UserFormTextField(value = hwid, onValueChange = { raw -> val n = normalizePersianDigits(raw); hwid = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.ue_hwid_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Device)
-                                        Text(stringResource(R.string.ue_hwid_help), fontSize = 8.5.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
+                                        Text(stringResource(R.string.ue_hwid_help), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_reset_strategy))
@@ -418,7 +418,7 @@ fun UserEditorDialog(
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_auto_delete))
                                         UserFormTextField(value = autoDeleteDays, onValueChange = { raw -> val n = normalizePersianDigits(raw); autoDeleteDays = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.tpl_unlimited), keyboardType = KeyboardType.Number, leading = AppIcon.Delete)
-                                        Text(stringResource(R.string.ue_auto_delete_hint), fontSize = 8.5.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
+                                        Text(stringResource(R.string.ue_auto_delete_hint), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = 2.dp))
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                         FieldLabel(stringResource(R.string.ue_note))
@@ -487,7 +487,7 @@ fun UserEditorDialog(
 
 @Composable
 private fun EditorSectionLabel(text: String) {
-    Text(text, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.7f), letterSpacing = 0.3.sp, modifier = Modifier.padding(start = 2.dp))
+    Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.7f), letterSpacing = 0.3.sp, modifier = Modifier.padding(start = 2.dp))
 }
 
 @Composable
@@ -501,13 +501,13 @@ private fun EditorSection(title: String, content: @Composable ColumnScope.() -> 
 
 @Composable
 private fun FieldLabel(text: String) {
-    Text(text, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.8f))
+    Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = LocalThemeState.current.mutedColor.copy(0.8f))
 }
 
 @Composable
 private fun EmptyHint(text: String) {
     val theme = LocalThemeState.current
-    Box(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).padding(vertical = 10.dp), contentAlignment = Alignment.Center) { Text(text, fontSize = 10.sp, color = theme.mutedColor) }
+    Box(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).padding(vertical = 10.dp), contentAlignment = Alignment.Center) { Text(text, fontSize = 11.sp, color = theme.mutedColor) }
 }
 
 @Composable

@@ -214,7 +214,7 @@ fun PGRingStatCard(
                 RoundedAppIcon(icon, tint = resolved, size = 12.dp)
                 Text(
                     label,
-                    fontSize = 10.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = t.mutedColor,
                     maxLines = 1,
@@ -234,7 +234,7 @@ fun PGRingStatCard(
                 )
             }
             if (sub != null) {
-                Text(sub, fontSize = 9.5.sp, color = t.mutedLightColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

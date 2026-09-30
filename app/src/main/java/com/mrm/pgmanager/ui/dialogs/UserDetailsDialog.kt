@@ -48,7 +48,7 @@ private fun daysLeftLabel(expire: String?): String = daysLeftText(expire)
 private fun SectionLabel(text: String) {
     Text(
         text,
-        fontSize = 9.5.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         color = LocalThemeState.current.mutedColor.copy(alpha = 0.7f),
         letterSpacing = 0.4.sp,
@@ -96,8 +96,8 @@ private fun CircularUsage(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(if (unlimited) "∞" else "$percentage%", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
-            MrmText(usedLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
-            MrmText("/ $totalLabel", fontSize = 8.sp, color = theme.mutedColor, isTechnical = true)
+            MrmText(usedLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
+            MrmText("/ $totalLabel", fontSize = 11.sp, color = theme.mutedColor, isTechnical = true)
         }
     }
 }
@@ -123,8 +123,8 @@ private fun MiniStat(
     ) {
         RoundedAppIcon(icon, tint = theme.mutedColor, size = 11.dp)
         Column(verticalArrangement = Arrangement.Center) {
-            Text(label, fontSize = 7.5.sp, color = theme.mutedColor, maxLines = 1, lineHeight = 8.sp)
-            MrmText(value, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+            Text(label, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, lineHeight = 13.sp)
+            MrmText(value, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
     }
 }
@@ -159,7 +159,7 @@ private fun CompactAction(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         RoundedAppIcon(icon, tint = tint ?: if (isDestructive) GlassRed else theme.inkColor, size = 14.dp)
-        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isDestructive) GlassRed else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isDestructive) GlassRed else theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -168,7 +168,7 @@ private fun InfoRow(icon: AppIcon, label: String, value: String, modifier: Modif
     val theme = LocalThemeState.current
     Row(modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RoundedAppIcon(icon, tint = theme.mutedColor, size = 12.dp)
-        Text(label, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.width(64.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.width(64.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         MrmText(value, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
 }
@@ -301,9 +301,9 @@ fun UserDetailsDialog(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(5.dp).clip(CircleShape).background(statusColor))
-                            Text(statusLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = statusColor)
-                            Text("·", fontSize = 9.sp, color = theme.mutedColor)
-                            MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 9.5.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
+                            Text(statusLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor)
+                            Text("·", fontSize = 11.sp, color = theme.mutedColor)
+                            MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                         }
                     }
                     Box(Modifier.size(28.dp).clip(CircleShape).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
@@ -333,7 +333,7 @@ fun UserDetailsDialog(
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 13.dp)
-                            MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 10.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
+                            MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
                                 Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { qrOpen = true } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
@@ -348,8 +348,8 @@ fun UserDetailsDialog(
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 12.dp)
-                            Text(currentUser.note!!.trim(), fontSize = 10.5.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            Text("↗", fontSize = 10.sp, color = theme.accentPrimary)
+                            Text(currentUser.note!!.trim(), fontSize = 11.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text("↗", fontSize = 11.sp, color = theme.accentPrimary)
                         }
                     }
 
@@ -386,7 +386,7 @@ fun UserDetailsDialog(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             SectionLabel(stringResource(R.string.ud_more))
                             Spacer(Modifier.weight(1f))
-                            Text(if (showMore) "▴" else "▾", fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(4.dp))
+                            Text(if (showMore) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(4.dp))
                         }
                         AnimatedVisibility(visible = showMore, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = 10.dp, vertical = 2.dp)) {
@@ -403,14 +403,14 @@ fun UserDetailsDialog(
                             SectionLabel(stringResource(R.string.ud_devices))
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                    if (devices.isNotEmpty()) Box(Modifier.clip(DsRadius.Full).background(GlassRed.copy(0.10f)).pressScale(0.95f).clickable { devicesResetConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                    if (devices.isNotEmpty()) Box(Modifier.clip(DsRadius.Full).background(GlassRed.copy(0.10f)).pressScale(0.95f).clickable { devicesResetConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
-                                if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 9.5.sp, color = theme.mutedColor)
+                                if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 11.sp, color = theme.mutedColor)
                                 devices.take(2).forEach { d ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = 6.dp, vertical = 3.dp)) { Text(stringResource(R.string.ud_device_forget), fontSize = 8.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                        MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = 6.dp, vertical = 3.dp)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                     }
                                 }
                             }
@@ -430,20 +430,20 @@ fun UserDetailsDialog(
                                             ips.isEmpty() -> stringResource(R.string.ud_online_ips_empty)
                                             else -> stringResource(R.string.ud_online_ips_count, ips.size, ips.sumOf { it.connections })
                                         },
-                                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
+                                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
                                     )
                                     Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
+                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
                                     }
                                 }
                                 ips?.take(6)?.forEach { entry ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        MrmText(entry.ip, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
-                                        MrmText(nodeNames[entry.nodeId] ?: stringResource(R.string.st_node_unknown, entry.nodeId), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
-                                        Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 9.sp, color = theme.mutedColor, maxLines = 1)
+                                        MrmText(entry.ip, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
+                                        MrmText(nodeNames[entry.nodeId] ?: stringResource(R.string.st_node_unknown, entry.nodeId), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
+                                        Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
                                     }
                                 }
-                                if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 9.sp, color = theme.mutedColor)
+                                if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 11.sp, color = theme.mutedColor)
                             }
                         }
                     }
@@ -455,15 +455,15 @@ fun UserDetailsDialog(
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
                                     if (list.count == 0) stringResource(R.string.ud_sub_updates_empty) else stringResource(R.string.ud_sub_updates_count, list.count),
-                                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
                                 )
                                 list.updates.forEach { u ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            MrmText(u.client.ifBlank { "—" }, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                                            u.ip?.let { MrmText(it, fontSize = 8.5.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true) }
+                                            MrmText(u.client.ifBlank { "—" }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                                            u.ip?.let { MrmText(it, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true) }
                                         }
-                                        MrmText(lastSeenShort(u.createdAt, false).ifBlank { JalaliCalendar.isoToShamsi(u.createdAt) }, fontSize = 9.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
+                                        MrmText(lastSeenShort(u.createdAt, false).ifBlank { JalaliCalendar.isoToShamsi(u.createdAt) }, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                                     }
                                 }
                             }
@@ -474,10 +474,10 @@ fun UserDetailsDialog(
                         Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.15f)), DsRadius.Md).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 11.dp)
-                                Text(stringResource(R.string.ud_next_plan), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryBrush).border(BorderStroke(1.dp, theme.primaryEdge), DsRadius.Full).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
+                                Text(stringResource(R.string.ud_next_plan), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryBrush).border(BorderStroke(1.dp, theme.primaryEdge), DsRadius.Full).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = 8.dp, vertical = 4.dp)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
                             }
-                            Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 9.sp, color = theme.mutedColor)
+                            Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 11.sp, color = theme.mutedColor)
                         }
                     }
 
@@ -488,7 +488,7 @@ fun UserDetailsDialog(
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             RoundedAppIcon(if (debtorInfo != null) AppIcon.Warning else AppIcon.Money, tint = if (debtorInfo != null) GlassRed else theme.accentPrimary, size = 14.dp)
-                            Text(if (debtorInfo != null) stringResource(R.string.ud_debt_of, debtorInfo.amount.toString(), debtorInfo.currency) else stringResource(R.string.ud_invoice), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (debtorInfo != null) GlassRed else theme.inkColor, modifier = Modifier.weight(1f))
+                            Text(if (debtorInfo != null) stringResource(R.string.ud_debt_of, debtorInfo.amount.toString(), debtorInfo.currency) else stringResource(R.string.ud_invoice), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (debtorInfo != null) GlassRed else theme.inkColor, modifier = Modifier.weight(1f))
                             Text("›", fontSize = 14.sp, color = theme.mutedColor)
                         }
                     }

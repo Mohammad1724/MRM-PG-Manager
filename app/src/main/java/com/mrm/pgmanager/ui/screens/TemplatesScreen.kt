@@ -401,7 +401,7 @@ private fun TemplateRow(
                 }
             }
             Text(
-                summary, fontSize = 10.sp, color = theme.mutedColor,
+                summary, fontSize = 11.sp, color = theme.mutedColor,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
@@ -598,7 +598,7 @@ private fun TemplateEditorDialog(
                     if (availableGroups.isEmpty()) {
                         Text(
                             stringResource(R.string.tpl_no_groups_available),
-                            fontSize = 10.sp, color = theme.mutedColor
+                            fontSize = 11.sp, color = theme.mutedColor
                         )
                     } else {
                         Column(
@@ -773,7 +773,7 @@ private fun TemplateEditorDialog(
             }
 
             errorText?.let {
-                Text(it, fontSize = 10.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
+                Text(it, fontSize = 11.sp, color = DsSemantic.Danger, fontWeight = FontWeight.SemiBold)
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
