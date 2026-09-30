@@ -233,30 +233,26 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         )
                     }
 
-                    groups.isEmpty() -> {
-                        Column(
-                            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            RoundedAppIcon(AppIcon.Folder, tint = theme.mutedColor, size = 28.dp)
-                            Text(stringResource(R.string.no_groups), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                            Text(stringResource(R.string.no_groups_hint), fontSize = 10.sp, color = theme.mutedColor)
-                            Spacer(Modifier.height(2.dp))
-                            PGPrimaryButton(
-                                stringResource(R.string.create_group),
-                                onClick = { editing = GroupDetail(id = 0, name = "") },
-                                icon = AppIcon.Add
-                            )
-                        }
+                    groups.isEmpty() -> MrmEmptyState(
+                        title = stringResource(R.string.no_groups),
+                        subtitle = stringResource(R.string.no_groups_hint),
+                        icon = AppIcon.Folder
+                    ) {
+                        PGPrimaryButton(
+                            stringResource(R.string.create_group),
+                            onClick = { editing = GroupDetail(id = 0, name = "") },
+                            icon = AppIcon.Add
+                        )
                     }
 
                     filtered.isEmpty() -> {
                         // گروه هست ولی جست‌وجو چیزی پیدا نکرد.
-                        Box(Modifier.fillMaxWidth().padding(vertical = 28.dp), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.no_results), fontSize = 11.sp, color = theme.mutedColor)
+                        MrmEmptyState(
+                            title = stringResource(R.string.no_results),
+                            subtitle = stringResource(R.string.no_results_hint),
+                            icon = AppIcon.Search
+                        ) {
+                            PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" })
                         }
                     }
 

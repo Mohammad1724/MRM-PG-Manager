@@ -172,6 +172,7 @@
     <string name="no_inbounds_available">No inbounds available on the panel</string>
     <string name="search_groups">Search groups</string>
     <string name="no_results">No matching results</string>
+    <string name="no_results_hint">Try another search or clear it</string>
     <string name="err_name_short">Name must be at least 3 characters</string>
     <string name="err_name_long">Name must be at most 64 characters</string>
     <string name="err_no_inbound">Select at least one inbound</string>

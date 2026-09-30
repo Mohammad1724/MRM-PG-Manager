@@ -172,6 +172,7 @@
     <string name="no_inbounds_available">هیچ inbound‌ای روی پنل موجود نیست</string>
     <string name="search_groups">جست‌وجوی گروه</string>
     <string name="no_results">نتیجه‌ای یافت نشد</string>
+    <string name="no_results_hint">جست‌وجوی دیگری امتحان کنید یا آن را پاک کنید</string>
     <string name="err_name_short">نام باید حداقل ۳ کاراکتر باشد</string>
     <string name="err_name_long">نام باید حداکثر ۶۴ کاراکتر باشد</string>
     <string name="err_no_inbound">حداقل یک inbound انتخاب کنید</string>

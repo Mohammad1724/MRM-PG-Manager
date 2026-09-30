@@ -337,23 +337,24 @@ fun UsersScreen(
                 Box(Modifier.fillMaxSize().then(collapseShift)) {
                 when {
                     ui.loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
-                    ui.error != null -> Box(Modifier.fillMaxWidth().padding(top = listTopPad).clip(DsRadius.Lg).background(themeState.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.18f)), DsRadius.Lg).padding(18.dp)) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(stringResource(R.string.us_error), fontWeight = FontWeight.Bold, color = GlassRed, fontSize = 14.sp)
-                            Text(ui.error ?: "", color = themeState.mutedColor, fontSize = 12.sp)
-                            PGSecondaryButton(stringResource(R.string.us_retry), onClick = { ui.load() }, modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-                    processedUsers.isEmpty() -> MrmEmptyState(
+                    ui.error != null -> MrmErrorState(
                         modifier = Modifier.padding(top = listTopPad),
-                        title = stringResource(R.string.no_user_found),
-                        subtitle = if (ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
-                        icon = AppIcon.Search
-                    ) {
-                        if (ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL) {
-                            com.mrm.pgmanager.ui.components.PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { ui.query = ""; ui.currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                        onRetry = { ui.load() },
+                        message = ui.error
+                    )
+                    processedUsers.isEmpty() -> {
+                        val noMatches = ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL
+                        MrmEmptyState(
+                            modifier = Modifier.padding(top = listTopPad),
+                            title = if (noMatches) stringResource(R.string.no_results) else stringResource(R.string.no_user_found),
+                            subtitle = if (noMatches) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
+                            icon = if (noMatches) AppIcon.Search else AppIcon.Users
+                        ) {
+                            if (noMatches) {
+                                com.mrm.pgmanager.ui.components.PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { ui.query = ""; ui.currentFilter = com.mrm.pgmanager.data.model.UserFilter.ALL }, modifier = Modifier.height(36.dp))
+                            }
+                            if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PGPrimaryButton(stringResource(R.string.create_user), onClick = { ui.createUser = true }, icon = AppIcon.UserAdd)
                         }
-                        if (com.mrm.pgmanager.data.AdminAccess.can("users", "create")) com.mrm.pgmanager.ui.components.PGPrimaryButton(stringResource(R.string.create_user), onClick = { ui.createUser = true }, icon = AppIcon.UserAdd)
                     }
                     else -> {
                     // ورودِ پلکانیِ ردیف‌های اول — فقط در اولین نمایش بعد از بارگذاری.

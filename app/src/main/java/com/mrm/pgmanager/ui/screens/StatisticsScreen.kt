@@ -85,6 +85,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
     var reconnecting by remember { mutableStateOf<Int?>(null) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
+    // خطای بارگذاریِ اولیه — قبلاً کاملاً بلعیده می‌شد و صفحهٔ خالی بی‌توضیح می‌ماند.
+    var loadError by remember(session) { mutableStateOf<String?>(null) }
     var refreshing by remember { mutableStateOf(false) }
 
     // فیلترهای واقعی (قبلاً رشتهٔ ثابت و بی‌اثر بودند)
@@ -97,7 +99,9 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
-        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; PanelCache.put(statsKey, it) }
+        runCatching { PanelApi.systemStats(session) }
+            .onSuccess { stats = it; loadError = null; PanelCache.put(statsKey, it) }
+            .onFailure { if (stats == null) loadError = it.message ?: "" }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
@@ -159,6 +163,9 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
 
             if (loading && stats == null) {
                 Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
+            }
+            if (!loading && stats == null && loadError != null) {
+                MrmErrorState(onRetry = { scope.launch { load() } }, message = loadError)
             }
 
             stats?.let { s ->
