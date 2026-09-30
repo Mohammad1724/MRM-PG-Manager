@@ -17,7 +17,9 @@ import com.mrm.pgmanager.R
  * با ضربه روی هر اعلان:
  *  - اعلان‌های کاربر-محور (محدود/منقضی/نزدیک‌به‌سقف/بدهکار/...) → اپ باز می‌شود، تب «کاربران» انتخاب
  *    می‌گردد و مستقیم جزئیات همان کاربر باز می‌شود.
- *  - اعلان‌های سیستمی (CPU/RAM/Disk/قطع پنل/نود/تمدید نشست) → تب «داشبورد» باز می‌شود.
+ *  - اعلان‌های متریک و سلامت نود (CPU/RAM/Disk/ظرفیت/آنلاین-آفلاین نود) → تب «آمار» باز می‌شود؛
+ *    نمودارها و کارت سلامت نود همان‌جا هستند.
+ *  - اعلان‌های عمومی (قطع پنل/تمدید نشست) → تب «داشبورد» باز می‌شود.
  */
 object NotificationHelper {
     /** طلاییِ برند (DsAccent.Gold) — برای رنگِ اعلان‌ها. */
@@ -27,9 +29,10 @@ object NotificationHelper {
     const val CHANNEL_SYSTEM = "mrm_system_health"
 
     /** کلیدهای extra روی intent ضربه‌روی‌اعلان. */
-    const val EXTRA_DEST = "mrm_dest"           // مقدارش: DEST_USERS یا DEST_DASHBOARD
+    const val EXTRA_DEST = "mrm_dest"           // مقدارش: DEST_USERS، DEST_STATISTICS یا DEST_DASHBOARD
     const val EXTRA_USERNAME = "mrm_username"   // برای اعلان‌های کاربر-محور: نام کاربری مقصد
     const val DEST_USERS = "users"
+    const val DEST_STATISTICS = "statistics"    // تب «آمار» (ایندکس ۲) — مقصدِ اعلان‌های متریک/نود
     const val DEST_DASHBOARD = "dashboard"
 
     fun ensureChannels(context: Context) {
@@ -44,7 +47,8 @@ object NotificationHelper {
      *
      * @param targetUsername برای اعلان‌های مربوط به یک کاربر خاص، نام کاربری را می‌دهیم
      *                       تا با ضربه روی اعلان مستقیم جزئیات آن باز شود.
-     *                       برای اعلان‌های سیستمی/عمومی `null` بدهید (→ داشبورد).
+     *                       برای اعلان‌های متریک/نود `null` بدهید و `targetTab = DEST_STATISTICS`؛
+     *                       برای اعلان‌های عمومی هر دو را `null` بگذارید (→ داشبورد).
      */
     fun post(
         context: Context,
@@ -58,10 +62,13 @@ object NotificationHelper {
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         ensureChannels(context)
 
+        // نام کاربری یعنی مقصد «کاربران» (جزئیات همان کاربر باز شود)؛
+        // وگرنه targetTab حاکم است (آمار یا داشبورد).
+        val dest = if (!targetUsername.isNullOrBlank()) DEST_USERS else targetTab
         val launchIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(EXTRA_DEST, targetTab)
-            if (!targetUsername.isNullOrBlank()) putExtra(EXTRA_USERNAME, targetUsername)
+            putExtra(EXTRA_DEST, dest)
+            if (dest == DEST_USERS) putExtra(EXTRA_USERNAME, targetUsername.orEmpty())
         }
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

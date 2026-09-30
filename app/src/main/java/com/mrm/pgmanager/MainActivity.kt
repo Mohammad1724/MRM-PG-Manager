@@ -271,7 +271,11 @@ fun MRMApp() {
         // pending غیرنال بودن یعنی mainActivity هم غیرنال است (کامپایلر smart-cast می‌کند).
         if (pending != null && session != null) {
             mainActivity.pendingDeepLink = null
-            selectedTab = if (pending.first == NotificationHelper.DEST_USERS) 1 else 0 // statistics is tab 2, deep-link still goes to dashboard/users
+            selectedTab = when (pending.first) {
+                NotificationHelper.DEST_USERS -> TAB_USERS
+                NotificationHelper.DEST_STATISTICS -> TAB_STATISTICS
+                else -> TAB_DASHBOARD
+            }
             deepLinkUsername = pending.second.takeIf { it.isNotBlank() }
         }
     }

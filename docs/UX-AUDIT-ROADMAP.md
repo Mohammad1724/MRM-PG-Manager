@@ -167,7 +167,7 @@
 | 1.2 ✅ بازطراحی ناوبری | **انجام شد:** `ModalNavigationDrawer` + `PasarGuardDrawer.kt` حذف شدند؛ `AccountSheet` (ورقهٔ هویت: آواتار+نام+پنل فعال، سوییچ حساب‌ها، افزودن حساب، تنظیمات، خروج با `PanelCache.clear`) در ریشهٔ `MRMApp`؛ ورودی از چیپِ آواتارِ `MrmFloatingNav` (اولین آیتم کپسول)؛ `TAB_COUNT` جایگزین `ImplementedDrawerIds.size` در Pager؛ `BackHandler` شاخهٔ ورقه را می‌بندد | ترافیک هاردکد `12.43 TB` حذف شد؛ فقط یک سیستم ناوبری (نوار پایین)؛ تنظیمات از ورقهٔ حساب + مقصد ثابت ✅ |
 | 1.3 ✅ تفکیک `UsersScreen` | **انجام شد:** `UsersUiState.kt` (۳۹۹ خط — state + `loadPage/loadAll/loadMore/runAction` + `buildQuery` + خروجی فایل + `processUsers` خالص) و `UsersScreenDialogs.kt` (۵۷۵ خط — دیالوگ‌ها + `DebtorEditDialog`) جدا شد؛ `UsersScreen.kt` از **۱۳۴۱ به ۶۰۴ خط** رسید (فقط ترکیب UI + افکت‌ها)؛ state با `remember(session)` + `SideEffect` برای تنظیمات مانیتورینگ | فایل ترکیبی ≤ ~۷۰۰ خط ✓ (۶۰۴)؛ رفتار/امضای `UsersScreen`/تست‌ها بدون تغییر ✓ |
 | 1.4 ✅ ساختار تنظیمات | **انجام شد:** `SettingsSection` از ۵ تب به **۴ تب** رسید: `CONNECTION` (اتصال و حساب‌ها — `ConnectionSection` از پیشرفته منتقل شد + قفل برنامه و خروج از بخش امنیت) ← `APPEARANCE` ← `MONITORING` (اعلان‌ها + پایشِ ادغام‌شده روی یک صفحه) ← `ADVANCED` (۳ آکاردئون: کاربران/فاکتور/پشتیبان؛ ایندکس‌ها بازنشانی شد)؛ header + نوار تب بیرون از پیجر ثابت‌اند؛ `rememberSaveable` پیش‌فرض به CONNECTION | پیمایش ≤۲ کلیک تا هر تنظیم ✓ (تب ۱ + آکاردئون ۱؛ صفحات بدون آکاردئون ۰)؛ `ExpandableSettingsGroup` حفظ شد ✓ (۳ گروه)؛ رشته‌های fa/en هر دو ✅ |
-| 1.5 دیپ‌لینک کامل | پشتیبانی مقصد statistics (N5) | دیپ‌لینک آمار به تب ۲ برود |
+| 1.5 ✅ دیپ‌لینک کامل | **انجام شد:** `NotificationHelper.DEST_STATISTICS` اضافه شد و `MainActivity` با ثابت‌های `TAB_*` نقشه‌برداری می‌کند (`users`→۱، `statistics`→۲، بقیه→۰)؛ مقصدِ اعلان‌های متریک/نود (CPU/RAM/Disk/ظرفیت/آنلاین‌شدن نود — در `MonitoringWorker` و `DashboardScreen`) → **تب آمار** (نمودارها و کارت «سلامت نود» همان‌جا است)؛ رویدادهای وضعیت کاربر (limited/expired/near-limit/near-expiry/بدهکار — در worker و `UsersUiState` و `UsersScreen`) حالا `targetUsername` می‌فرستند → **تب کاربران + باز شدن جزئیات همان کاربر** (قولِ KDoc که قبلاً username نمی‌رسید و به داشبورد می‌افتاد)؛ قطع پنل/تمدید نشست → داشبورد؛ `dest` در `post()` قاعدهٔ واحد دارد: username یعنی کاربران، وگرنه `targetTab` | دیپ‌لینک آمار به تب ۲ می‌رود ✓؛ فهرست کامل ۱۶ call site دسته‌بندی‌شده ✓؛ ابزارهای ۵گانه سبز + `testDebugUnitTest` محلی سبز ✓ |
 
 ### 🟨 فاز ۲ — صیقل صفحه به صفحه — M
 
@@ -200,7 +200,7 @@
       │  1.1 شیت‌ها(مسیر اصلی)
   M   │  1.3 تفکیک Users    2.1+2.2 صیقل Users   3.4 داشبورد
       │  0.1 فیدبک واحد ✓
-  S   │  0.3 هپتیکس ✓  0.5 حذف مرده ✓   1.5 دیپ‌لینک
+  S   │  0.3 هپتیکس ✓  0.5 حذف مرده ✓   1.5 دیپ‌لینک ✓
       │  1.2 ناوبری/حذف دیتای فیک ⚡(نیمه‌سنگین اثر، کم تلاش)
 └──────────────────────────→ اثر UX
 ```
