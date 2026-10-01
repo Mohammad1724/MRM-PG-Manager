@@ -32,7 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.MrmText
-import com.mrm.pgmanager.ui.components.ActionIconButton
+import com.mrm.pgmanager.ui.components.PGIconButton
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsAnim
@@ -214,7 +214,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
             MrmText(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
         }
         if (copyable) {
-            ActionIconButton(
+            PGIconButton(
                 icon = { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 16.dp) },
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager

@@ -31,8 +31,8 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.components.MrmButton
-import com.mrm.pgmanager.ui.components.MrmButtonStyle
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
 import com.mrm.pgmanager.ui.designsystem.DsAnim
@@ -744,13 +744,12 @@ private fun ThemePreviewCard(themeState: ThemeState) {
         }
         // نمونهٔ دکمه‌ها — تا اثرِ «سبکِ دکمه» بدون رفتن به صفحه‌های دیگر دیده شود.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-            MrmButton(
-                text = stringResource(R.string.cancel), onClick = {}, modifier = Modifier.weight(1f),
-                style = MrmButtonStyle.Secondary, compact = true
+            PGSecondaryButton(
+                text = stringResource(R.string.cancel), onClick = {}, modifier = Modifier.weight(1f)
             )
-            MrmButton(
+            PGPrimaryButton(
                 text = stringResource(R.string.save_changes), onClick = {}, modifier = Modifier.weight(1f),
-                icon = AppIcon.Check, style = MrmButtonStyle.Primary, compact = true
+                icon = AppIcon.Check
             )
         }
         Text(stringResource(R.string.set_preview_hint), fontSize = 11.sp, color = theme.mutedColor)

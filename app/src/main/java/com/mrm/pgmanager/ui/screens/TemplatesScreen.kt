@@ -153,7 +153,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (canCreate) MrmFab(
+            if (canCreate) PGFAB(
                 icon = AppIcon.Add,
                 contentDescription = addTemplateLabel,
                 modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs)

@@ -115,85 +115,7 @@ fun PasswordEyeIcon(visible: Boolean) {
 // === MRM Premium UI Components (2026 Edition) ===
 
 @Composable
-fun PrimaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-    icon: AppIcon? = null
-) {
-    MrmButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        loading = loading,
-        icon = icon,
-        style = MrmButtonStyle.Primary
-    )
-}
-
-@Composable
-fun SecondaryButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-    icon: AppIcon? = null
-) {
-    MrmButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        loading = loading,
-        icon = icon,
-        style = MrmButtonStyle.Secondary
-    )
-}
-
-@Composable
-fun DangerButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    loading: Boolean = false,
-    icon: AppIcon? = null
-) {
-    MrmButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled,
-        loading = loading,
-        icon = icon,
-        style = MrmButtonStyle.Danger
-    )
-}
-
-@Composable
-fun SmallButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    isRed: Boolean = false
-) {
-    MrmButton(
-        text = text,
-        onClick = onClick,
-        modifier = modifier.height(DsComponent.ButtonCompact),
-        enabled = enabled,
-        style = if (isRed) MrmButtonStyle.Danger else MrmButtonStyle.Secondary,
-        compact = true
-    )
-}
-
-@Composable
-fun ActionIconButton(
+fun PGIconButton(
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -230,27 +152,14 @@ fun ActionIconButton(
     ) { icon() }
 }
 
-@Composable
-fun PrimarySaveButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false) {
-    PrimaryButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = AppIcon.Check)
-}
-
-@Composable
-fun MutedCancelButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    SecondaryButton(text = text, onClick = onClick, modifier = modifier)
-}
-
-@Composable
-fun MiniGlassButton(text: String, modifier: Modifier = Modifier, isRed: Boolean = false, onClick: () -> Unit) {
-    SmallButton(text = text, onClick = onClick, modifier = modifier, isRed = isRed)
-}
-
 /**
  * دکمهٔ شناورِ مشترکِ صفحه‌ها (کاربران، گروه‌ها، قالب‌ها).
  *
  * دایرهٔ ۵۶dp با همان زبانِ دکمهٔ اصلی: گرادیانِ سطحِ اصلی، لبهٔ سفیدِ نیمه‌شفاف،
  * برقِ بالا و هالهٔ نور. با [visible] هنگامِ اسکرول محو می‌شود و در اولین
  * نمایش با یک جهشِ کوچک می‌آید.
+ *
+ * ⚙️ **موتور**: بیرون از ui/components مستقیم صدا نزنید — از [PGFAB] استفاده کنید.
  */
 @Composable
 fun MrmFab(
@@ -342,6 +251,9 @@ sealed class MrmButtonStyle {
  * هم‌رنگ، و اگر [icon] داده شود یک «سکه»ی گرد در ابتدا و فلشِ کوچک در انتها.
  * در حالتِ [loading] اسپینر داخلِ همان سکه می‌چرخد. سبک‌های دیگر (Secondary/
  * Danger/Glass) تخت‌اند ولی هم‌شکل، تا کنارِ هم بنشینند.
+ *
+ * ⚙️ **موتور**: صفحه‌ها/دیالوگ‌ها مستقیم صدا نزنند — از [PGPrimaryButton] / [PGSecondaryButton] /
+ * [PGDangerButton] استفاده کنند (`tools/kt-family.py` در CI اجبار می‌کند).
  */
 @Composable
 fun MrmButton(

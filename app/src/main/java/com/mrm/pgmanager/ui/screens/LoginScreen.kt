@@ -160,10 +160,10 @@ fun LoginScreen(
                 }
 
                 // دکمهٔ ورود — کپسولِ شیشه‌ایِ اصلی؛ اسپینر داخلِ سکهٔ آیکون می‌چرخد.
-                MrmButton(
+                PGPrimaryButton(
                     text = stringResource(R.string.sign_in),
                     onClick = {
-                        if (loading) return@MrmButton
+                        if (loading) return@PGPrimaryButton
                         // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
                         error = null; urlError = null; userError = null; passError = null; keyError = null
                         var blocked = false
@@ -188,7 +188,7 @@ fun LoginScreen(
                             if (username.isBlank()) { userError = errRequired; blocked = true }
                             if (password.isBlank()) { passError = errRequired; blocked = true }
                         }
-                        if (blocked) return@MrmButton
+                        if (blocked) return@PGPrimaryButton
                         // مرحلهٔ ۲ — اتصال: فقط خطاهای شبکه/سرور در بنر سراسری؛ بقیه زیر فیلدِ مربوط.
                         loading = true
                         scope.launch {
@@ -213,7 +213,7 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     loading = loading,
                     icon = AppIcon.Lock,
-                    style = MrmButtonStyle.Primary
+                    compact = false
                 )
 
                 // info row

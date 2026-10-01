@@ -33,10 +33,9 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UsernamePattern
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.MrmButton
-import com.mrm.pgmanager.ui.components.MrmButtonStyle
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.MrmText
-import com.mrm.pgmanager.ui.components.PrimarySaveButton
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -204,7 +203,7 @@ internal fun ConnectionSection(
         val unreachable = stringResource(R.string.set_conn_unreachable)
 
         Text(stringResource(R.string.set_conn_test_desc), fontSize = 11.sp, color = theme.mutedColor)
-        PrimarySaveButton(
+        PGPrimaryButton(
             text = stringResource(
                 if (testing) R.string.set_conn_testing else R.string.set_conn_test_btn
             ),
@@ -226,7 +225,8 @@ internal fun ConnectionSection(
                     )
                     testing = false
                 }
-            }
+            },
+            compact = false
         )
         testResult?.let { (ok, message) ->
             val color = if (ok) GlassGreen else GlassRed
@@ -510,7 +510,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-            MrmButton(
+            PGPrimaryButton(
                 text = stringResource(
                     if (invoiceLogoPath != null) R.string.set_inv_change_logo
                     else R.string.set_inv_pick_logo
@@ -518,7 +518,7 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                 onClick = { invoiceLogoLauncher.launch("image/*") },
                 modifier = Modifier.weight(1f),
                 icon = AppIcon.Upload,
-                style = MrmButtonStyle.Primary
+                compact = false
             )
             if (invoiceLogoPath != null) {
                 Box(
@@ -785,21 +785,21 @@ internal fun BackupSection(
             Text(backupLastMsg, fontSize = 11.sp, color = theme.mutedColor)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
-            MrmButton(
+            PGPrimaryButton(
                 text = stringResource(R.string.set_bk_manual),
                 onClick = { performBackup(manual = true) },
                 modifier = Modifier.weight(1f),
                 enabled = !backupBusy,
                 loading = backupBusy,
                 icon = AppIcon.Backup,
-                style = MrmButtonStyle.Primary
+                compact = false
             )
-            MrmButton(
+            PGSecondaryButton(
                 text = stringResource(R.string.set_bk_restore_file),
                 onClick = { pickRestoreFile.launch(arrayOf("*/*")) },
                 modifier = Modifier.weight(1f),
                 icon = AppIcon.Restore,
-                style = MrmButtonStyle.Secondary
+                compact = false
             )
         }
         val lastAt = store.readLastBackupAt()

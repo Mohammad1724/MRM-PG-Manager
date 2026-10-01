@@ -216,22 +216,24 @@ fun PGSectionHeader(title: String, icon: AppIcon? = null, action: @Composable ((
 }
 
 // ─────────────────────────────────────────────────────────────
-//  PGPrimaryButton / PGSecondaryButton — همان MrmButton در اندازهٔ فشرده
-//  (کپسولِ شیشه‌ای؛ قبلاً نسخهٔ جداگانه‌ای با پرکنندهٔ تختِ زرد بودند)
+//  PGPrimaryButton / PGSecondaryButton / PGDangerButton — «تنها» دکمه‌های صفحه‌ها.
+//  پیش‌فرض فشرده (۴۰dp)؛ دکمهٔ تمام‌اندازهٔ CTA ← `compact = false` (۴۲dp).
+//  MrmButton/MrmFab فقط «موتورِ» این‌ها هستند و بیرون از ui/components صدا زده نمی‌شوند
+//  (tools/kt-family.py در CI اجبار می‌کند).
 // ─────────────────────────────────────────────────────────────
 @Composable
-fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = AppIcon.Check, enabled: Boolean = true, loading: Boolean = false) {
-    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = icon, style = MrmButtonStyle.Primary, compact = true)
+fun PGPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = AppIcon.Check, enabled: Boolean = true, loading: Boolean = false, compact: Boolean = true) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = icon, style = MrmButtonStyle.Primary, compact = compact)
 }
 
 @Composable
-fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null) {
-    MrmButton(text = text, onClick = onClick, modifier = modifier, icon = icon, style = MrmButtonStyle.Secondary, compact = true)
+fun PGSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: AppIcon? = null, enabled: Boolean = true, loading: Boolean = false, compact: Boolean = true) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = icon, style = MrmButtonStyle.Secondary, compact = compact)
 }
 
 @Composable
-fun PGDangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, style = MrmButtonStyle.Danger, compact = true)
+fun PGDangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false, icon: AppIcon? = null, compact: Boolean = true) {
+    MrmButton(text = text, onClick = onClick, modifier = modifier, enabled = enabled, loading = loading, icon = icon, style = MrmButtonStyle.Danger, compact = compact)
 }
 
 /** دکمهٔ شناورِ ساخت — همان پیاده‌سازی `MrmFab` با نامِ خانوادهٔ PG. */

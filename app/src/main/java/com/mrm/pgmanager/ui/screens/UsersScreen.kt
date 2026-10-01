@@ -294,7 +294,7 @@ fun UsersScreen(
     Scaffold(containerColor = Color.Transparent, floatingActionButton = {
         // ادمینی که مجوزِ users.create ندارد، دکمهٔ ساخت را نمی‌بیند (پنل ۴۰۳ می‌داد).
         if (ui.selectedUserIds.isEmpty() && com.mrm.pgmanager.data.AdminAccess.can("users", "create")) {
-            // هنگام اسکرول به پایین محو می‌شود تا جلوی ردیف‌ها را نگیرد (MrmFab).
+            // هنگام اسکرول به پایین محو می‌شود تا جلوی ردیف‌ها را نگیرد (PGFAB).
             PGFAB(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),

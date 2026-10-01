@@ -132,7 +132,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (canCreate) MrmFab(
+            if (canCreate) PGFAB(
                 icon = AppIcon.Add,
                 contentDescription = addGroupLabel,
                 modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs)

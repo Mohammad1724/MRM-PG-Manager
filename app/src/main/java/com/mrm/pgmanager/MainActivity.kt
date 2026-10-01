@@ -48,7 +48,7 @@ import com.mrm.pgmanager.work.BackupWorker
 import com.mrm.pgmanager.work.MonitoringWorker
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
-import com.mrm.pgmanager.ui.components.PrimarySaveButton
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import androidx.compose.ui.res.stringResource
@@ -589,7 +589,7 @@ fun AppLockScreen(
                 Text(stringResource(R.string.lock_title), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text(stringResource(R.string.lock_subtitle), fontSize = 12.sp, color = themeState.mutedColor, textAlign = TextAlign.Center)
             }
-            com.mrm.pgmanager.ui.components.PrimaryButton(stringResource(R.string.unlock_with_biometric), onClick = onUnlockClick, modifier = Modifier.fillMaxWidth())
+            PGPrimaryButton(stringResource(R.string.unlock_with_biometric), onClick = onUnlockClick, modifier = Modifier.fillMaxWidth(), icon = null, compact = false)
             androidx.compose.material3.TextButton(onClick = onLogout) {
                 Text(stringResource(R.string.logout), color = GlassRed, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
