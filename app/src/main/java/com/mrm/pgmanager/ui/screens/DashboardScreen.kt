@@ -204,6 +204,48 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
             }
 
             stats?.let { s ->
+                // ── کاربران، بالای صفحه (Above the fold)
+                //
+                // مهم‌ترین عددِ عملیاتیِ اپ «آنلاین» است؛ قبلاً بلوکِ کاربران
+                // بعد از چهار کارتِ سیستمی و Uptime می‌نشست و روی گوشی‌های
+                // کوتاه زیر اسکرول می‌ماند. حالا اولین چیزی که زیرِ سربرگ
+                // می‌آید همین بلوک است؛ بنرِ آفلاین (هشدار) همچنان مقدم بر
+                // همهٔ محتواست. فقط جابه‌جایی است — چیدمانِ داخلیِ کارت‌ها و
+                // رنگ‌ها دست‌نخورده می‌مانند.
+                // ── Users section — mirrors PG Dashboard Users block
+                PGSectionHeader(title = stringResource(R.string.users_section))
+                // Users / Active Users 2-col
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+                            RoundedAppIcon(AppIcon.Users, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        }
+                        Text("${animatedCount(s.totalUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.weight(1f)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+                                RoundedAppIcon(AppIcon.CheckCircle, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
+                            }
+                            Text("${animatedCount(s.activeUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                        }
+                        // این بَج قبلاً عددِ ثابتِ «93.2%» بود و با دادهٔ واقعی جور
+                        // درنمی‌آمد؛ حالا از خودِ آمار حساب می‌شود.
+                        PGBadge(percentOf(s.activeUsers, s.totalUsers))
+                    }
+                }
+                // Online Users full width
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+                            RoundedAppIcon(AppIcon.Wifi, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                        }
+                        Text("${animatedCount(s.onlineUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
+                    }
+                    PGBadge(percentOf(s.onlineUsers, s.totalUsers))
+                }
+
                 // ── معیارهای سیستم، حالا با نمودارِ حلقه‌ای
                 //
                 // قبلاً هر کاشی فقط عدد داشت و «چقدر پر شده» را باید ذهنی حساب
@@ -277,40 +319,6 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     }
                     // نسخهٔ پنل (از GET /api/system) — قبلاً فقط تهِ تنظیمات دیده می‌شد.
                     if (s.version.isNotBlank()) PGBadge("PasarGuard v${s.version}")
-                }
-
-                // ── Users section — mirrors PG Dashboard Users block
-                PGSectionHeader(title = stringResource(R.string.users_section))
-                // Users / Active Users 2-col
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
-                    Column(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Users, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.users_section), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                        }
-                        Text("${animatedCount(s.totalUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                    }
-                    Row(Modifier.weight(1f).clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.weight(1f)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                                RoundedAppIcon(AppIcon.CheckCircle, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.active_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                            }
-                            Text("${animatedCount(s.activeUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        }
-                        // این بَج قبلاً عددِ ثابتِ «93.2%» بود و با دادهٔ واقعی جور
-                        // درنمی‌آمد؛ حالا از خودِ آمار حساب می‌شود.
-                        PGBadge(percentOf(s.activeUsers, s.totalUsers))
-                    }
-                }
-                // Online Users full width
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                            RoundedAppIcon(AppIcon.Wifi, tint = theme.accentPrimary, size = 12.dp); Text(stringResource(R.string.online_users), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
-                        }
-                        Text("${animatedCount(s.onlineUsers)}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-                    }
-                    PGBadge(percentOf(s.onlineUsers, s.totalUsers))
                 }
 
                 // ── تفکیکِ کاربران و نمودارِ مصرف
