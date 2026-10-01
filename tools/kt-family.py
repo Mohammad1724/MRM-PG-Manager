@@ -83,6 +83,19 @@ def main() -> int:
             for m in FORBIDDEN_RE.finditer(code):
                 problems.append((norm, no, m.group(1), raw.strip()[:110]))
 
+    # pressScale باید «فقط ناظر» بماند: اگر لمس را مصرف کند و `.clickable` بیرونی‌تر از آن
+    # در زنجیره باشد، دکمه کار نمی‌کند (رگرسیونِ touch-1). detectTapGestures اولین down را consume می‌کند.
+    motion = f'{ROOT}/ui/designsystem/Motion.kt'
+    try:
+        with open(motion, encoding='utf-8') as f:
+            mtxt = f.read()
+        code = re.sub(r'//[^\n]*|/\*.*?\*/', '', mtxt, flags=re.S)
+        if re.search(r'detectTapGestures\s*\(', code):
+            problems.append(('ui/designsystem/Motion.kt', 0, 'detectTapGestures',
+                             'pressScale نباید لمس را مصرف کند (از awaitFirstDown(requireUnconsumed=false, Initial) استفاده کنید)'))
+    except FileNotFoundError:
+        problems.append((motion, 0, 'Motion.kt', 'فایل پیدا نشد'))
+
     missing = [n for n in REQUIRED_PG if n not in defined]
     for n in missing:
         problems.append(('(تعریف)', 0, n, 'تعریفِ این کامپوننتِ خانواده پیدا نشد'))

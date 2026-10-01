@@ -21,7 +21,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,7 +36,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -302,14 +305,22 @@ private class PressScaleNode(
 
     private val pointer = delegate(
         SuspendingPointerInputModifierNode {
-            detectTapGestures(
-                onPress = {
-                    animateTo(pressedScale)
-                    // منتظرِ رها شدن یا لغو می‌مانیم تا مقیاس در حالتِ فشرده گیر نکند.
-                    tryAwaitRelease()
-                    animateTo(1f)
+            // ⚠️ فقط «ناظر»: این نود هرگز رویدادِ لمس را مصرف نمی‌کند.
+            // نسخهٔ قبلی با detectTapGestures اولین down را consume می‌کرد؛ اگر `.clickable`
+            // «بیرونی‌تر» از pressScale بود (clickable.pressScale — درونی‌تر = زودتر رویداد را می‌گیرد)،
+            // لمس هرگز به clickable نمی‌رسید و دکمه کار نمی‌کرد. حالا ترتیبِ این دو مهم نیست.
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                animateTo(pressedScale)
+                // تا رها شدن یا لغو منتظر می‌مانیم تا مقیاس در حالتِ فشرده گیر نکند.
+                // down/up را clickable مصرف می‌کند (عادی)؛ فقط مصرفِ «حرکت» (اسکرول/کشیدن) = لغو.
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Final)
+                    if (event.changes.all { !it.pressed }) break
+                    if (event.changes.any { it.isConsumed && it.positionChanged() }) break
                 }
-            )
+                animateTo(1f)
+            }
         }
     )
 
