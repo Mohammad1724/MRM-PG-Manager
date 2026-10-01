@@ -1,0 +1,5 @@
+<resources>
+    <!-- تمِ پنجرهٔ راه‌اندازی در حالتِ شب — قبلاً فقط نسخهٔ روشن وجود داشت
+         و اپِ تیره هنگامِ سرد-شروع با یک فلشِ سفید باز می‌شد. -->
+    <style name="Theme.MRMPGManager" parent="android:style/Theme.Material.NoActionBar" />
+</resources>
