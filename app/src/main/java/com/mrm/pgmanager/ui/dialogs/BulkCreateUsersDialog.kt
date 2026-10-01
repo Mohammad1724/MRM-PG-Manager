@@ -155,7 +155,7 @@ fun BulkCreateUsersDialog(
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
                 .padding(DsSpacing.Xl)
         ) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 // هدر
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     Box(Modifier.size(38.dp).clip(DsRadius.Lg).background(GlassGreen.copy(.16f)).border(BorderStroke(DsBorder.Hairline, GlassGreen.copy(.32f)), DsRadius.Lg), contentAlignment = Alignment.Center) {
@@ -189,7 +189,7 @@ fun BulkCreateUsersDialog(
                             enabled = templates.isNotEmpty() || !useTemplate
                         ) { useTemplate = it == 0 }
                         if (templatesLoading) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                 CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
                                 Text(stringResource(R.string.bc_loading_templates), fontSize = 11.sp, color = theme.mutedColor)
                             }
@@ -207,7 +207,7 @@ fun BulkCreateUsersDialog(
                             }
                         }
                         if (!useTemplate) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                 CompactGlassField(limitGb, { raw ->
                                     val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
                                     limitGb = n.filter { c -> c.isDigit() || c == '.' }
@@ -239,13 +239,13 @@ fun BulkCreateUsersDialog(
                             Box(Modifier.fillMaxWidth(if (count > 0) progress.toFloat() / count else 0f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(if (errors.isEmpty()) GlassGreen else GlassAmber))
                         }
                         if (done) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = GlassGreen, size = 16.dp)
                                 Text(stringResource(R.string.bc_created_n, successCount), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
                             }
                             if (errors.isNotEmpty()) {
                                 Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
-                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(DsSpacing.Md).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Column(Modifier.fillMaxWidth().heightIn(max = 150.dp).clip(DsRadius.Md).background(GlassRed.copy(.06f)).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(.20f)), DsRadius.Md).padding(DsSpacing.Md).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                     errors.forEach { com.mrm.pgmanager.ui.components.MrmText(it, fontSize = 11.sp, isTechnical = true) }
                                 }
                             }

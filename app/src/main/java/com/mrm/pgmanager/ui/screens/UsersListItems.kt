@@ -163,7 +163,7 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
     ) {
-        Column(Modifier.padding(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(Modifier.padding(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                 CheckboxIcon(selected = selected, onToggle = onSelectToggle)
                 Column(modifier = Modifier.weight(1f)) {
@@ -204,15 +204,15 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
             // نوارِ نازکِ مصرف — ۴dp، انیمیت‌شونده (PGProgressBar در فازِ draw می‌کشد).
             PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
             // کپی/QR بیرون از اسکرول می‌مانند (همیشه دیده شوند)؛ فقط نشان‌های جانبی اسکرول می‌خورند.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
-                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                         OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
                     }
                     if (user.groupNames.isNotEmpty()) {
-                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(DsSemantic.Violet.copy(0.10f)).padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(DsSemantic.Violet.copy(0.10f)).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                             Text(user.groupNames.first(), fontSize = 11.sp, color = DsSemantic.Violet, maxLines = 1)
                         }
                     }
@@ -356,7 +356,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
             .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid)
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
@@ -411,7 +411,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             .background(if (selected) theme.accentPrimary.copy(alpha = 0.12f) else theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.accentPrimary.copy(alpha = 0.24f) else theme.borderColor), shape)
             .combinedClickable(onClick = onClick, onLongClick = { onLongClick(user) })
-            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Lg)
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Card)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
@@ -421,7 +421,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             }
             UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     MrmText(traffic, fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, isTechnical = true)
                     MrmText(remainingText(user), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = false)

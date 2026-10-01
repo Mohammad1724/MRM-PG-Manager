@@ -142,7 +142,7 @@ fun UserEditorDialog(
             ) {
                 // هدر جدید 28dp
                 Row(
-                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                 ) {
                     Box(
@@ -173,7 +173,7 @@ fun UserEditorDialog(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             Column(Modifier.weight(0.60f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                 FieldLabel(stringResource(R.string.ue_username))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                     if (isCreating) {
                                         UserFormTextField(value = username, onValueChange = { username = it.trim() }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
                                         Box(
@@ -216,7 +216,7 @@ fun UserEditorDialog(
                                         Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(statusColor.copy(0.10f))
                                             .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.25f)), DsRadius.Md).pressScale(0.96f)
                                             .clickable { statusMenuExpanded = true }.padding(horizontal = DsSpacing.Md),
-                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                                     ) {
                                         Box(Modifier.size(5.dp).clip(RoundedCornerShape(50)).background(statusColor))
                                         Text(stringResource(statusLabel), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
@@ -246,7 +246,7 @@ fun UserEditorDialog(
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                             FieldLabel(stringResource(if (isOnHold) R.string.ue_on_hold_duration else R.string.ue_expiry))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 UserFormTextField(
                                     value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() }; daysDirty = true },
                                     placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Timer, modifier = Modifier.weight(1f)
@@ -266,13 +266,13 @@ fun UserEditorDialog(
                                     fontSize = 11.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
                                 )
                             }
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
                                         Modifier.height(26.dp).clip(DsRadius.Full).background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
                                             .clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }
-                                            .padding(horizontal = 9.dp), contentAlignment = Alignment.Center
+                                            .padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center
                                     ) { Text(stringResource(R.string.ue_add_days, value), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
                                 }
                             }
@@ -289,7 +289,7 @@ fun UserEditorDialog(
                     }
 
                     // دسترسی
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         EditorSectionLabel(stringResource(R.string.ue_access))
                         Column(
                             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
@@ -309,11 +309,11 @@ fun UserEditorDialog(
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
                                     ) {
                                         RoundedAppIcon(icon, tint = if (sel) theme.cardSurfaceColor else theme.mutedColor, size = 12.dp)
-                                        Spacer(Modifier.width(5.dp))
+                                        Spacer(Modifier.width(DsSpacing.Sm))
                                         Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (sel) theme.cardSurfaceColor else theme.mutedColor)
                                         if (index == 0 && groupIds.isNotEmpty()) {
-                                            Spacer(Modifier.width(5.dp))
-                                            Box(Modifier.defaultMinSize(minWidth = 14.dp, minHeight = 14.dp).clip(RoundedCornerShape(50)).background(if (sel) theme.cardSurfaceColor else theme.inkColor).padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
+                                            Spacer(Modifier.width(DsSpacing.Sm))
+                                            Box(Modifier.defaultMinSize(minWidth = 14.dp, minHeight = 14.dp).clip(RoundedCornerShape(50)).background(if (sel) theme.cardSurfaceColor else theme.inkColor).padding(horizontal = DsSpacing.Xs), contentAlignment = Alignment.Center) {
                                                 Text("${groupIds.size}", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (sel) theme.inkColor else theme.cardSurfaceColor, style = TextStyle(platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)))
                                             }
                                         }
@@ -323,7 +323,7 @@ fun UserEditorDialog(
 
                             AnimatedContent(targetState = activeTab, transitionSpec = DsTransition.tabSwitch<Int>(activeTab == 1), label = "editorAccessTab") { tab ->
                                 if (tab == 0) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                         UserFormTextField(value = groupSearchQuery, onValueChange = { groupSearchQuery = it }, placeholder = stringResource(R.string.ue_search_groups), leading = AppIcon.Search)
                                         if (filteredGroups.isEmpty()) EmptyHint(stringResource(R.string.ue_no_groups))
                                         else filteredGroups.forEach { g ->
@@ -334,7 +334,7 @@ fun UserEditorDialog(
                                         }
                                     }
                                 } else {
-                                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                         if (templates.isEmpty()) EmptyHint(stringResource(R.string.ue_no_templates))
                                         else templates.forEach { t ->
                                             val picked = selectedTemplate == t.id
@@ -355,7 +355,7 @@ fun UserEditorDialog(
                     }
 
                     if (templates.isNotEmpty()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             EditorSectionLabel(stringResource(R.string.ue_next_plan))
                             Column(
                                 Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
@@ -389,7 +389,7 @@ fun UserEditorDialog(
                         }
                     }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         EditorSectionLabel(stringResource(R.string.ue_advanced))
                         Column(
                             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
@@ -398,7 +398,7 @@ fun UserEditorDialog(
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Md).pressScale(0.985f).clickable { advancedOpen = !advancedOpen }.padding(horizontal = DsSpacing.Md),
-                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                             ) {
                                 RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
                                 Text(stringResource(R.string.ue_advanced), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
@@ -407,21 +407,21 @@ fun UserEditorDialog(
                             }
                             androidx.compose.animation.AnimatedVisibility(visible = advancedOpen, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
                                 Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xs, vertical = DsSpacing.Xxs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_hwid))
                                         UserFormTextField(value = hwid, onValueChange = { raw -> val n = normalizePersianDigits(raw); hwid = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.ue_hwid_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Device)
                                         Text(stringResource(R.string.ue_hwid_help), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = DsSpacing.Xxs))
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_reset_strategy))
                                         ChipSelector(values = TemplateOptions.RESET_STRATEGIES, labels = listOf(stringResource(R.string.tpl_reset_no_reset), stringResource(R.string.tpl_reset_day), stringResource(R.string.tpl_reset_week), stringResource(R.string.tpl_reset_month), stringResource(R.string.tpl_reset_year)), selected = resetStrategy, onSelect = { resetStrategy = it })
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_auto_delete))
                                         UserFormTextField(value = autoDeleteDays, onValueChange = { raw -> val n = normalizePersianDigits(raw); autoDeleteDays = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.tpl_unlimited), keyboardType = KeyboardType.Number, leading = AppIcon.Delete)
                                         Text(stringResource(R.string.ue_auto_delete_hint), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = DsSpacing.Xxs))
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_note))
                                         UserFormTextField(value = note, onValueChange = { note = it.take(500) }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.height(52.dp))
                                     }
@@ -432,7 +432,7 @@ fun UserEditorDialog(
                 }
 
                 Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
-                Row(Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                Row(Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Md), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     PGSecondaryButton(text = stringResource(R.string.ue_cancel), onClick = onDismiss, modifier = Modifier.weight(0.35f))
                     PGPrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
@@ -494,9 +494,9 @@ private fun EditorSectionLabel(text: String) {
 @Composable
 private fun EditorSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     val theme = LocalThemeState.current
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         EditorSectionLabel(title)
-        Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(7.dp), content = content)
+        Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md), content = content)
     }
 }
 
@@ -533,7 +533,7 @@ private fun UserFormTextField(value: String, onValueChange: (String) -> Unit, pl
     val fieldStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
     Row(
         modifier = modifier.fillMaxWidth().height(if (singleLine) 32.dp else Dp.Unspecified).clip(DsRadius.Md).background(theme.searchBgColor)
-            .border(BorderStroke(if (isFocused) 1.dp else DsBorder.Hairline, borderColor), DsRadius.Md).padding(horizontal = 10.dp, vertical = if (singleLine) 0.dp else 8.dp),
+            .border(BorderStroke(if (isFocused) 1.dp else DsBorder.Hairline, borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Mid, vertical = if (singleLine) 0.dp else DsSpacing.Md),
         verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         if (leading != null) RoundedAppIcon(leading, tint = theme.mutedColor, size = 12.dp)

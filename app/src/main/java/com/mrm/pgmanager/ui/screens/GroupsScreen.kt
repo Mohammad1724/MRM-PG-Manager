@@ -135,7 +135,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             if (canCreate) MrmFab(
                 icon = AppIcon.Add,
                 contentDescription = addGroupLabel,
-                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs)
+                modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs)
             ) { editing = GroupDetail(id = 0, name = "") }
         }
     ) { padding ->
@@ -337,7 +337,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
-            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
@@ -354,7 +354,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
             )
         }
 
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text(
                     group.name, fontSize = 13.sp, fontWeight = FontWeight.Bold,
@@ -448,7 +448,7 @@ private fun GroupEditorDialog(
             )
 
             // نام گروه
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Text(stringResource(R.string.group_name), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.mutedColor)
                 CompactGlassField(
                     value = name,
@@ -460,7 +460,7 @@ private fun GroupEditorDialog(
             }
 
             // انتخاب inbound tags
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.inbound_tags), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.mutedColor)
                     if (selectedTags.isNotEmpty()) PGBadge(stringResource(R.string.selected_count, selectedTags.size))
@@ -482,9 +482,9 @@ private fun GroupEditorDialog(
                                         selectedTags = if (checked) selectedTags - tag else selectedTags + tag
                                         touched = true
                                     }
-                                    .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
+                                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(9.dp)
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                             ) {
                                 CheckboxIcon(
                                     selected = checked,
@@ -511,7 +511,7 @@ private fun GroupEditorDialog(
                     .clickable { disabled = !disabled }
                     .padding(vertical = DsSpacing.Xxs),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
             ) {
                 CheckboxIcon(selected = disabled, onToggle = { disabled = !disabled })
                 Text(stringResource(R.string.group_is_disabled_label), fontSize = 12.sp, color = theme.inkColor)

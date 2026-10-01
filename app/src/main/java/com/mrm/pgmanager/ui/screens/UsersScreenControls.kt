@@ -126,7 +126,7 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
             .clip(shape)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
-            .padding(horizontal = DsSpacing.Mid, vertical = 9.dp)
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid)
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
@@ -169,7 +169,7 @@ internal fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modi
         .clip(shape)
         .background(theme.searchBgColor)
         .border(BorderStroke(DsBorder.Hairline, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
-        .padding(horizontal = DsSpacing.Lg)
+        .padding(horizontal = DsSpacing.FieldHorizontal)
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
@@ -272,9 +272,9 @@ internal fun FilterAndControlBar(
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showFilterSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showFilterSheet = true }.padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
                     // برچسبِ ثابت «فیلتر» + مقدارِ فعلی زیرِ آن.
                     // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
@@ -287,9 +287,9 @@ internal fun FilterAndControlBar(
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showSortSheet = true }.padding(horizontal = 9.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).clickable { showSortSheet = true }.padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
                     // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -311,9 +311,9 @@ internal fun FilterAndControlBar(
                         .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
                         .pressScale(0.97f)
                         .clickable { groupMenu = true }
-                        .padding(horizontal = 9.dp),
+                        .padding(horizontal = DsSpacing.Mid),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                 ) {
                     RoundedAppIcon(AppIcon.Folder, tint = if (groupFilterId != null) theme.accentPrimary else theme.mutedColor, size = 13.dp)
                     Text(
@@ -366,7 +366,7 @@ internal fun FilterAndControlBar(
                     (if (debtorCount > 0) stringResource(R.string.debtor) + " ($debtorCount)" else stringResource(R.string.debtor)) to UserFilter.DEBTOR
                 ).forEach { (label, f) ->
                     val sel = currentFilter == f
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onFilterChange(f); showFilterSheet=false }.padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }
@@ -389,7 +389,7 @@ internal fun FilterAndControlBar(
                 Text(stringResource(R.string.sort), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
                 listOf(stringResource(R.string.name) to UserSort.NAME, stringResource(R.string.usage_sort) to UserSort.USAGE, stringResource(R.string.expiry) to UserSort.EXPIRY, stringResource(R.string.created) to UserSort.CREATED, stringResource(R.string.us_sort_last_online) to UserSort.LAST_ONLINE).forEach { (label, s) ->
                     val sel = currentSort == s
-                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+                    Box(Modifier.fillMaxWidth().height(40.dp).clip(DsRadius.Sm).primarySurface(theme, sel, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).clickable { onSortChange(s); showSortSheet=false }.padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                         Text(label, fontSize = 12.sp, fontWeight = if(sel) FontWeight.SemiBold else FontWeight.Medium, color = if(sel) theme.onPrimary else theme.inkColor)
                     }
                 }

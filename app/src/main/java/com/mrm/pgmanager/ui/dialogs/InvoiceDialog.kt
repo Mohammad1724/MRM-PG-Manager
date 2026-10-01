@@ -207,7 +207,7 @@ fun InvoiceDialog(
         Dialog(onDismissRequest = { textShareMode = false }) {
             Box(
                 Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Text(stringResource(R.string.inv_text_invoice), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)

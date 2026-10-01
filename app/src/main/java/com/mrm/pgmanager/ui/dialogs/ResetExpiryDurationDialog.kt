@@ -31,6 +31,7 @@ import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.MrmText
+import com.mrm.pgmanager.ui.designsystem.DsComponent
 
 @Composable
 fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
@@ -42,7 +43,7 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
         Column(Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
             Text(stringResource(R.string.re_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
             Text(stringResource(R.string.re_subtitle), fontSize = 11.sp, color = theme.mutedColor)
-            Box(Modifier.fillMaxWidth().height(46.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.fillMaxWidth().height(DsComponent.Field).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                 BasicTextField(days, { raw ->
                     val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
                     days = n.filter(Char::isDigit); error = null

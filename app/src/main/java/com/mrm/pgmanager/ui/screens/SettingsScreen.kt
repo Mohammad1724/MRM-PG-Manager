@@ -132,7 +132,7 @@ fun SettingsScreen(
         Row(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
@@ -165,7 +165,7 @@ fun SettingsScreen(
             state = tabListState,
             modifier = Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(DsSpacing.Xs),
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
         ) {
             items(tabs.size) { index ->
@@ -199,7 +199,7 @@ fun SettingsScreen(
         ) { page ->
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(11.dp)
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.SectionGap)
         ) {
             when (sections[page]) {
                 // ── اتصال و حساب‌ها: اطلاعات پنل/سوئیچ حساب (از پیشرفته منتقل شد)
@@ -394,7 +394,7 @@ private fun ExpandableSettingsGroup(
         ) {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xxs, vertical = DsSpacing.Xxs),
-                verticalArrangement = Arrangement.spacedBy(11.dp)
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
             ) { content() }
         }
     }
@@ -427,7 +427,7 @@ private fun AboutFooter(appVersion: String) {
                         )
                     }
                 }
-                .padding(horizontal = 7.dp, vertical = DsSpacing.Xs),
+                .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
         ) {
@@ -644,7 +644,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
             onThemeChange(themeState.copy(customColor = Color.hsv(hue, sat, bright)))
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             Box(
                 Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
                     .background(preview.copy(.18f))

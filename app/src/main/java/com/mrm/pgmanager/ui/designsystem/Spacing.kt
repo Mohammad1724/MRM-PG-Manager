@@ -18,7 +18,8 @@ object DsSpacing {
     val Card = 12.dp            // card internal padding
     val CardGap = 8.dp          // gap between cards
     val SectionGap = 12.dp      // gap between sections
-    val Dialog = 16.dp
+    val Dialog = 18.dp           // ریشهٔ دیالوگ (۵ ریشهٔ ۱۸dp)
     val FieldHorizontal = 12.dp
-    val FabClearance = 100.dp
+    val NavClearance = 70.dp    // اسپایرِ پایانِ ستون = ارتفاعِ نوارِ ناوبری
+    val FabClearance = 72.dp      // لنگرِ FAB بالای نوارِ ناوبری (۳ صفحه)
 }

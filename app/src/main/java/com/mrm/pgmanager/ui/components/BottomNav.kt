@@ -135,8 +135,8 @@ fun MrmFloatingNav(
         ) {
             androidx.compose.foundation.lazy.LazyRow(
                 state = listState,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(5.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(DsSpacing.Sm),
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 item(key = "account") {

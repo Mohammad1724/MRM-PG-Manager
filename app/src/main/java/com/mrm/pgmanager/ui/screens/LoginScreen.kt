@@ -124,7 +124,7 @@ fun LoginScreen(
                 }
 
                 // سوییچِ روشِ ورود: رمز عبور (JWT ۲۴ساعته) / کلید API (بدون انقضا).
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(DsSpacing.Xs), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                     @Composable fun ModeTab(selected: Boolean, label: String, onClick: () -> Unit) {
                         Box(
                             Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
@@ -297,7 +297,7 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (error != null) GlassRed else theme.inkColor)
         Box(
             Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.borderColor), DsRadius.Md)
-                .padding(horizontal = DsSpacing.Lg),
+                .padding(horizontal = DsSpacing.FieldHorizontal),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {

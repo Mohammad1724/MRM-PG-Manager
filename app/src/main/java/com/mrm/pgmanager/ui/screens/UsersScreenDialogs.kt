@@ -122,13 +122,13 @@ fun DebtorEditDialog(
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
     Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
+        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 if (existing != null) {
                     Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                         Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                         androidx.compose.foundation.text.BasicTextField(
@@ -148,7 +148,7 @@ fun DebtorEditDialog(
                         )
                     }
                 }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.Lg), contentAlignment = Alignment.CenterStart) {
+                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                     androidx.compose.foundation.text.BasicTextField(
                         value = notes,
                         onValueChange = { notes = it.take(200) },
@@ -227,7 +227,7 @@ internal fun UsersScreenDialogs(
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(18.dp),
+                    .padding(DsSpacing.Dialog),
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
             ) {
                 Text(
@@ -483,13 +483,13 @@ internal fun UsersScreenDialogs(
     ui.deleteUser?.let { user ->
         val theme = LocalThemeState.current
         Dialog(onDismissRequest = { ui.deleteUser = null }) {
-            Box(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(22.dp)) {
+            Box(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Xxxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                     Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                     Text(stringResource(R.string.us_delete_user_msg), color = theme.mutedColor, fontSize = 13.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.deleteUser = null }, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(DsSpacing.Mid))
                         PGDangerButton(stringResource(R.string.us_delete), onClick = { ui.deleteUser = null; ui.runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
                     }
                 }

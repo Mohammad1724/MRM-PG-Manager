@@ -144,7 +144,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             )
 
             // ── Nodes selector
-            Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+            Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 11.sp, color = theme.mutedColor) }
                     Box {
@@ -179,7 +179,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 val (downColor, upColor) = accentPair()
 
                 // ── System
-                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
@@ -268,7 +268,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 Column(
                     Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                        .padding(DsSpacing.Lg),
+                        .padding(DsSpacing.Card),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
@@ -298,10 +298,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Column(
                             Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
                                 .border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Sm)
-                                .padding(horizontal = 9.dp, vertical = DsSpacing.Md),
+                                .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(statusColor))
                                 MrmText(n.name, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
                                 Text(statusText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
@@ -318,7 +318,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                                     reconnecting = null
                                                 }
                                             }
-                                            .padding(horizontal = 7.dp, vertical = DsSpacing.Xs)
+                                            .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                                     ) {
                                         Text(
                                             stringResource(if (reconnecting == n.id) R.string.st_node_reconnecting else R.string.st_node_reconnect),
@@ -353,7 +353,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 }
 
                 // ── Traffic Usage
-                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
@@ -367,12 +367,12 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Text(stringResource(R.string.usage_in_range), fontSize = 11.sp, color = theme.mutedColor)
                     val periodTotal = remember(trafficPoints) { trafficPoints.sumOf { it.totalTraffic } }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(6.dp))
+                        RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(DsSpacing.Sm))
                         MrmText(formatBytes(periodTotal), isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                     UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = DsSpacing.Md, vertical = 3.dp)) {
+                        Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
                             Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
                         }
                     }
@@ -390,7 +390,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 }
 
                 // ── User Count
-                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
@@ -409,7 +409,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 }
                             }
                         }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(DsSpacing.Lg))
                     }
                     Text(stringResource(R.string.count_during_period), fontSize = 11.sp, color = theme.mutedColor)
                     val peakCount = remember(countPoints) { countPoints.maxOfOrNull { it.totalTraffic } ?: 0L }
@@ -420,7 +420,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         }
                     }
                     UsageChart(points = countPoints, accent = DsSemantic.Warning, themeIsDark = theme.isDark, valueFormatter = { it.toString() })
-                    Spacer(Modifier.height(56.dp))
+                    Spacer(Modifier.height(DsSpacing.NavClearance))
                 }
             }
         }
@@ -440,7 +440,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
     val grandTotal = totalUp + totalDown
     Column(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Lg),
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
@@ -462,7 +462,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
             usage.filter { it.total > 0L }.forEach { n ->
                 val name = nodes.firstOrNull { it.id == n.nodeId }?.name ?: stringResource(R.string.st_node_unknown, n.nodeId)
                 val share = (n.total.toDouble() / grandTotal).toFloat().coerceIn(0f, 1f)
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         MrmText(name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
                         MrmText(
@@ -481,7 +481,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
 
 @Composable private fun PGDropdown(value: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Row(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
+    Row(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(value, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
         Text("▾", fontSize = 11.sp, color = theme.mutedColor)

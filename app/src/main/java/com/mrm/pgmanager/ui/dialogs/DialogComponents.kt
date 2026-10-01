@@ -57,7 +57,7 @@ fun SettingsSwitchRow(
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg)
             .clickable(enabled = enabled) { onChange(!checked) }
-            .padding(vertical = 5.dp),
+            .padding(vertical = DsSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
@@ -346,7 +346,7 @@ fun ChipSelector(
                         DsRadius.Sm
                     )
                     .clickable { onSelect(v) }
-                    .padding(horizontal = DsSpacing.Mid, vertical = 7.dp)
+                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
             ) {
                 Text(
                     labels.getOrElse(i) { v },

@@ -416,7 +416,7 @@ fun MrmButton(
             .let { if (isPrimary) it.glassGloss(shape, isPressed && active) else it }
             .border(borderStroke, shape)
             .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick)
-            .padding(horizontal = if (showCoin) (if (compact) 5.dp else 6.dp) else (if (compact) 14.dp else 20.dp)),
+            .padding(horizontal = if (showCoin) (DsSpacing.Sm) else (if (compact) DsSpacing.Screen else DsSpacing.Xxl)),
         contentAlignment = Alignment.Center
     ) {
         if (showCoin) {
@@ -456,7 +456,7 @@ fun MrmButton(
                 AppIcon.Next,
                 tint = contentColor.copy(alpha = DsGlass.ChevronAlpha),
                 size = chevronSize,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = if (compact) 3.dp else 5.dp)
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = if (compact) DsSpacing.Xs else DsSpacing.Sm)
             )
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -469,7 +469,7 @@ fun MrmButton(
                 } else {
                     if (icon != null) {
                         RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(DsSpacing.Md))
                     }
                     Text(
                         text = text,
@@ -667,6 +667,6 @@ private fun BulkActionChip(label: String, icon: AppIcon, color: Color, onClick: 
             .padding(horizontal = DsSpacing.Lg),
         contentAlignment = Alignment.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) { RoundedAppIcon(icon, tint = color, size = 14.dp); Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) { RoundedAppIcon(icon, tint = color, size = 14.dp); Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color) }
     }
 }

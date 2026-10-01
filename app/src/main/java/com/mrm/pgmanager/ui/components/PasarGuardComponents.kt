@@ -86,7 +86,7 @@ fun PGStatCard(
             .clip(shape)
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), shape)
-            .padding(DsSpacing.Lg),
+            .padding(DsSpacing.Card),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
@@ -136,7 +136,7 @@ fun PGScreenHeader(
     Row(
         modifier.fillMaxWidth().clip(DsRadius.Lg).background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
-            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -247,7 +247,7 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
     val t = LocalThemeState.current
     val shape = DsRadius.Md
     Box(
-        modifier.fillMaxWidth().height(40.dp).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = DsSpacing.Lg),
+        modifier.fillMaxWidth().height(DsComponent.SearchBar).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = DsSpacing.FieldHorizontal),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
@@ -300,7 +300,7 @@ fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4
 @Composable
 fun PGStatusChip(text: String, dot: Color = DsSemantic.Success) {
     Row(
-        Modifier.clip(RoundedCornerShape(50)).background(DsSemantic.SuccessBg).border(BorderStroke(0.5.dp, DsSemantic.SuccessBorder), RoundedCornerShape(50)).padding(horizontal = 7.dp, vertical = 3.dp),
+        Modifier.clip(RoundedCornerShape(50)).background(DsSemantic.SuccessBg).border(BorderStroke(0.5.dp, DsSemantic.SuccessBorder), RoundedCornerShape(50)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
     ) {
         Box(Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(dot))

@@ -208,10 +208,10 @@ fun PGRingStatCard(
                 centerIcon != null -> RoundedAppIcon(centerIcon, tint = resolved, size = 17.dp)
             }
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
             ) {
                 RoundedAppIcon(icon, tint = resolved, size = 12.dp)
                 Text(

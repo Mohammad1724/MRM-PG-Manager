@@ -65,14 +65,14 @@ fun BulkApplyTemplateDialog(
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
-                Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(22.dp)
+                Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(DsSpacing.Xxxl)
             ) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                 Text(stringResource(R.string.bt_title, selectedCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                 Text(stringResource(R.string.bt_subtitle, selectedCount), color = theme.mutedColor, fontSize = 11.5.sp)
 
                 if (isLoading) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                         CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
                         Text(stringResource(R.string.bt_loading), fontSize = 11.sp, color = theme.mutedColor)
                     }

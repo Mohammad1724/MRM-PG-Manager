@@ -79,7 +79,7 @@ fun QuickActionSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(DsSpacing.Lg))
                         Column(Modifier.weight(1f)) { 
                             MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 11.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)

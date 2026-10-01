@@ -88,7 +88,7 @@ internal fun RestoreBackupDialog(
     ) {
         Box(
             Modifier.fillMaxWidth().navigationBarsPadding()
-                .padding(18.dp)
+                .padding(DsSpacing.Dialog)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 Text(

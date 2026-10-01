@@ -209,7 +209,7 @@ fun MrmEmptyState(
             .clip(DsRadius.Lg)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(28.dp),
+            .padding(DsSpacing.X4l),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
     ) {

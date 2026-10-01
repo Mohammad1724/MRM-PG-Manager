@@ -298,7 +298,7 @@ fun UsersScreen(
             PGFAB(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
-                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs),
+                modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs),
                 visible = fabVisible.value
             ) { ui.createMenuOpen = true }
         }
@@ -528,7 +528,7 @@ fun UsersScreen(
                                     } else ui.cleanupNames = names
                                 }
                             }
-                            .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
+                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {

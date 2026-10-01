@@ -289,7 +289,7 @@ fun UserDetailsDialog(
             Column(Modifier.fillMaxWidth().heightIn(max = 720.dp).navigationBarsPadding().imePadding().padding(bottom = DsSpacing.Md)) {
                 // ── هدر جدید: آواتار مینیمال 28dp بدون گرادینت
                 Row(
-                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+                    Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                 ) {
                     // آواتار جدید: مربع گرد 28dp با پس‌زمینه خنثی + حرف اول کوچک
@@ -301,7 +301,7 @@ fun UserDetailsDialog(
                             MrmText(currentUser.username, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                             if (currentUser.isOnline) Box(Modifier.size(6.dp).clip(CircleShape).background(GlassGreen))
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(5.dp).clip(CircleShape).background(statusColor))
                             Text(statusLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor)
                             Text("·", fontSize = 11.sp, color = theme.mutedColor)
@@ -412,7 +412,7 @@ fun UserDetailsDialog(
                                 devices.take(2).forEach { d ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                         MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = DsSpacing.Sm, vertical = 3.dp)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                     }
                                 }
                             }
@@ -486,7 +486,7 @@ fun UserDetailsDialog(
                     if (debtorInfo != null || onMarkDebtor != null) {
                         Row(
                             Modifier.fillMaxWidth().clip(DsRadius.Md).background(if (debtorInfo != null) GlassRed.copy(0.06f) else theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, if (debtorInfo != null) GlassRed.copy(0.15f) else theme.borderColor), DsRadius.Md)
-                                .pressScale(0.98f).clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }.padding(horizontal = DsSpacing.Mid, vertical = 9.dp),
+                                .pressScale(0.98f).clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }.padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                         ) {
                             RoundedAppIcon(if (debtorInfo != null) AppIcon.Warning else AppIcon.Money, tint = if (debtorInfo != null) GlassRed else theme.accentPrimary, size = 14.dp)

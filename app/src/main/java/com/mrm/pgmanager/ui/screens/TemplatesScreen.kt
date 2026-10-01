@@ -156,7 +156,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             if (canCreate) MrmFab(
                 icon = AppIcon.Add,
                 contentDescription = addTemplateLabel,
-                modifier = Modifier.padding(bottom = 72.dp, end = DsSpacing.Xs)
+                modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs)
             ) { editing = UserTemplateItem(id = 0, name = "") }
         }
     ) { padding ->
@@ -375,7 +375,7 @@ private fun TemplateRow(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
-            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
@@ -386,7 +386,7 @@ private fun TemplateRow(
             RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 17.dp)
         }
 
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
@@ -544,7 +544,7 @@ private fun TemplateEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
             ) {
                 // ── نام
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     FieldLabel(stringResource(R.string.template_name))
                     CompactGlassField(
                         value = name,
@@ -557,7 +557,7 @@ private fun TemplateEditorDialog(
 
                 // ── حجم و مدت، کنار هم
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(stringResource(R.string.tpl_data_limit) + " (" + stringResource(R.string.tpl_gb) + ")")
                         CompactGlassField(
                             value = dataGb,
@@ -570,7 +570,7 @@ private fun TemplateEditorDialog(
                             placeholder = stringResource(R.string.tpl_unlimited)
                         )
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(stringResource(R.string.tpl_expire_duration) + " (" + stringResource(R.string.tpl_days) + ")")
                         CompactGlassField(
                             value = days,
@@ -584,7 +584,7 @@ private fun TemplateEditorDialog(
                 }
 
                 // ── گروه‌ها
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -616,9 +616,9 @@ private fun TemplateEditorDialog(
                                                 if (checked) selectedGroups - g.id else selectedGroups + g.id
                                             touched = true
                                         }
-                                        .padding(horizontal = DsSpacing.Mid, vertical = 7.dp),
+                                        .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                                 ) {
                                     CheckboxIcon(
                                         selected = checked,
@@ -660,7 +660,7 @@ private fun TemplateEditorDialog(
 
                 if (showAdvanced) {
                     // وضعیت اولیه
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(stringResource(R.string.tpl_initial_status))
                         ChipSelector(
                             values = TemplateOptions.STATUSES,
@@ -672,7 +672,7 @@ private fun TemplateEditorDialog(
 
                     // مهلت فعال‌سازی — فقط در حالتِ on_hold معنی دارد
                     if (status == TemplateOptions.STATUS_ON_HOLD) {
-                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             FieldLabel(
                                 stringResource(R.string.tpl_on_hold_timeout) +
                                     " (" + stringResource(R.string.tpl_days) + ")"
@@ -689,7 +689,7 @@ private fun TemplateEditorDialog(
                     }
 
                     // دورهٔ ریست حجم
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(stringResource(R.string.tpl_reset_strategy))
                         ChipSelector(
                             values = TemplateOptions.RESET_STRATEGIES,
@@ -700,7 +700,7 @@ private fun TemplateEditorDialog(
                     }
 
                     // سقف دستگاه
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(
                             stringResource(R.string.tpl_hwid_limit) +
                                 " (" + stringResource(R.string.tpl_devices) + ")"
@@ -717,7 +717,7 @@ private fun TemplateEditorDialog(
 
                     // پیشوند و پسوندِ نام کاربری
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             FieldLabel(stringResource(R.string.tpl_username_prefix))
                             CompactGlassField(
                                 value = prefix,
@@ -726,7 +726,7 @@ private fun TemplateEditorDialog(
                                 keyboardType = KeyboardType.Text
                             )
                         }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             FieldLabel(stringResource(R.string.tpl_username_suffix))
                             CompactGlassField(
                                 value = suffix,
@@ -738,7 +738,7 @@ private fun TemplateEditorDialog(
                     }
 
                     // روش رمزنگاری Shadowsocks
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         FieldLabel(stringResource(R.string.tpl_ss_method))
                         ChipSelector(
                             values = TemplateOptions.SS_METHODS,
@@ -754,7 +754,7 @@ private fun TemplateEditorDialog(
                             .clickable { resetUsages = !resetUsages }
                             .padding(vertical = DsSpacing.Xxs),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(9.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                     ) {
                         CheckboxIcon(selected = resetUsages, onToggle = { resetUsages = !resetUsages })
                         Text(stringResource(R.string.tpl_reset_usages), fontSize = 12.sp, color = theme.inkColor)
@@ -764,7 +764,7 @@ private fun TemplateEditorDialog(
                             .clickable { isDisabled = !isDisabled }
                             .padding(vertical = DsSpacing.Xxs),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(9.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                     ) {
                         CheckboxIcon(selected = isDisabled, onToggle = { isDisabled = !isDisabled })
                         Text(stringResource(R.string.tpl_is_disabled), fontSize = 12.sp, color = theme.inkColor)

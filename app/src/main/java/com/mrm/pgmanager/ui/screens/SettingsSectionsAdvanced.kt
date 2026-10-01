@@ -234,7 +234,7 @@ internal fun ConnectionSection(
                 Modifier.fillMaxWidth().clip(DsRadius.Lg)
                     .background(color.copy(.10f))
                     .border(BorderStroke(1.dp, color.copy(.30f)), DsRadius.Lg)
-                    .padding(horizontal = DsSpacing.Mid, vertical = 9.dp),
+                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
             ) {
@@ -672,7 +672,7 @@ internal fun BackupSection(
                 .background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
                 .clickable { pickBackupDir.launch(null) }
-                .padding(horizontal = DsSpacing.Lg),
+                .padding(horizontal = DsSpacing.FieldHorizontal),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(

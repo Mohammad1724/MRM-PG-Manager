@@ -576,10 +576,10 @@ fun AppLockScreen(
     onUnlockClick: () -> Unit,
     onLogout: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize().padding(28.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().padding(DsSpacing.X4l), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxxl),
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(themeState.cardSurfaceColor).border(BorderStroke(1.dp, themeState.borderColor), RoundedCornerShape(16.dp)).padding(DsSpacing.Xxxl)
         ) {
             Box(Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(DsAccent.IconBg).border(BorderStroke(1.dp, DsSemantic.WarningBorder), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {

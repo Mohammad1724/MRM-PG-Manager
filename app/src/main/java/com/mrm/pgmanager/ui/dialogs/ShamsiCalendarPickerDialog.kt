@@ -71,7 +71,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
     }
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(18.dp)) {
+            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.cal_title), fontWeight = FontWeight.Bold, color = theme.inkColor)
