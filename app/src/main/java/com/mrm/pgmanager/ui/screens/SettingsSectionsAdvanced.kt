@@ -171,9 +171,9 @@ internal fun ConnectionSection(
                     }
                 } else {
                     Box(
-                        Modifier.clip(DsRadius.Sm).background(GlassGreen.copy(.16f)).clickable {
+                        Modifier.clickable {
                             store.setActive(acc); accounts = store.readAccounts(); onSwitchAccount(acc)
-                        }.padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
+                        }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(GlassGreen.copy(.16f)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                     ) {
                         Text(
                             stringResource(R.string.set_conn_connect), fontSize = 11.sp,

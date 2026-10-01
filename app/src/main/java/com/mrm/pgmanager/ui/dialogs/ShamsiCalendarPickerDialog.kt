@@ -87,7 +87,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                         items((1..daysInMonth).toList()) { day ->
                             val sel = day == d
                             // روز انتخاب‌شده = پرکنندهٔ اصلیِ تم و متنِ روی آن؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
-                            Box(Modifier.aspectRatio(1f).clip(DsRadius.Full).primarySurface(theme, sel, DsRadius.Full, idle = Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.heightIn(min = 40.dp).aspectRatio(1f).clip(DsRadius.Full).primarySurface(theme, sel, DsRadius.Full, idle = Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
                                 Text("$day", color = if (sel) theme.onPrimary else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                             }
                         }

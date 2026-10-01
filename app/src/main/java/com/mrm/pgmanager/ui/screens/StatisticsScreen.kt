@@ -307,17 +307,17 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 Text(statusText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
                                 if (n.status == "error" || n.status == "connecting") {
                                     Box(
-                                        Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                                            .pressScale(0.94f)
-                                            .clickable {
+                                        Modifier.clickable {
                                                 reconnecting = n.id
                                                 scope.launch {
                                                     runCatching { PanelApi.reconnectNode(session, n.id) }
                                                     load(true)
                                                     reconnecting = null
                                                 }
-                                            }
+                                            }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(theme.cardSurfaceColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+                                            .pressScale(0.94f)
+                                            
                                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                                     ) {
                                         Text(

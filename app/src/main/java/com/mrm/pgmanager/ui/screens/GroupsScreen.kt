@@ -382,9 +382,9 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         }
 
         if (onDelete != null) Box(
-            Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+            Modifier.clickable { onDelete() }.padding(4.dp).size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
                 .semantics { contentDescription = deleteGroupLabel }
-                .clickable { onDelete() },
+                ,
             contentAlignment = Alignment.Center
         ) { RoundedAppIcon(AppIcon.Delete, tint = DsSemantic.Danger, size = 15.dp) }
     }

@@ -358,11 +358,11 @@ private fun ExpandableSettingsGroup(
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl)
+            Modifier.clickable { onToggle() }.heightIn(min = 40.dp).fillMaxWidth().clip(DsRadius.Xl)
                 .background(if (expanded) accent.copy(.10f) else Color.Transparent)
                 .semantics { contentDescription = toggleLabel }
                 .pressScale(0.985f)
-                .clickable { onToggle() }
+                
                 .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -416,8 +416,7 @@ private fun AboutFooter(appVersion: String) {
             color = theme.mutedColor, modifier = Modifier.weight(1f)
         )
         Row(
-            Modifier.clip(DsRadius.Sm).background(theme.searchBgColor)
-                .clickable {
+            Modifier.clickable {
                     runCatching {
                         context.startActivity(
                             android.content.Intent(
@@ -426,7 +425,8 @@ private fun AboutFooter(appVersion: String) {
                             )
                         )
                     }
-                }
+                }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+                
                 .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)

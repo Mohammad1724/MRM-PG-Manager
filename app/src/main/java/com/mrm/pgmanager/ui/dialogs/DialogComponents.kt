@@ -221,7 +221,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, value))
                     com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.copied))
                 },
-                size = 36.dp
+                size = 40.dp
             )
         }
     }
@@ -337,7 +337,7 @@ fun ChipSelector(
         values.forEachIndexed { i, v ->
             val active = v == selected
             Box(
-                Modifier.clip(DsRadius.Sm)
+                Modifier.clickable { onSelect(v) }.heightIn(min = 40.dp).clip(DsRadius.Sm)
                     .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
                     .border(
                         BorderStroke(
@@ -346,7 +346,7 @@ fun ChipSelector(
                         ),
                         DsRadius.Sm
                     )
-                    .clickable { onSelect(v) }
+                    
                     .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
             ) {
                 Text(

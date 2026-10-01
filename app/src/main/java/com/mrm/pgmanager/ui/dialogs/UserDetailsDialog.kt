@@ -345,8 +345,8 @@ fun UserDetailsDialog(
 
                     if (!currentUser.note.isNullOrBlank()) {
                         Row(
-                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.12f)), DsRadius.Md)
-                                .pressScale(0.98f).clickable { notesSheetOpen = true }.padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                            Modifier.clickable { notesSheetOpen = true }.heightIn(min = 40.dp).fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.12f)), DsRadius.Md)
+                                .pressScale(0.98f).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                         ) {
                             RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 12.dp)
@@ -388,7 +388,7 @@ fun UserDetailsDialog(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             SectionLabel(stringResource(R.string.ud_more))
                             Spacer(Modifier.weight(1f))
-                            Text(if (showMore) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(DsSpacing.Xs))
+                            Text(if (showMore) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.pressScale(0.9f).clickable { showMore = !showMore }.padding(start = 30.dp, top = 13.dp, end = DsSpacing.Xs, bottom = 13.dp))
                         }
                         AnimatedVisibility(visible = showMore, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Xxs)) {
@@ -406,13 +406,13 @@ fun UserDetailsDialog(
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                     Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                    if (devices.isNotEmpty()) Box(Modifier.clip(DsRadius.Full).background(GlassRed.copy(0.10f)).pressScale(0.95f).clickable { devicesResetConfirm = true }.padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    if (devices.isNotEmpty()) Box(Modifier.clickable { devicesResetConfirm = true }.heightIn(min = 40.dp).clip(DsRadius.Full).background(GlassRed.copy(0.10f)).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                 }
                                 if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 11.sp, color = theme.mutedColor)
                                 devices.take(2).forEach { d ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                         MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Box(Modifier.clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                        Box(Modifier.clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
                                     }
                                 }
                             }
@@ -434,7 +434,7 @@ fun UserDetailsDialog(
                                         },
                                         fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
                                     )
-                                    Box(Modifier.clip(DsRadius.Full).background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
+                                    Box(Modifier.clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.heightIn(min = 40.dp).clip(DsRadius.Full).background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
                                         Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
                                     }
                                 }
@@ -477,7 +477,7 @@ fun UserDetailsDialog(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 11.dp)
                                 Text(stringResource(R.string.ud_next_plan), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                if (session != null) Box(Modifier.clip(DsRadius.Full).background(theme.primaryBrush).border(BorderStroke(1.dp, theme.primaryEdge), DsRadius.Full).pressScale(0.95f).clickable { nextPlanConfirm = true }.padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
+                                if (session != null) Box(Modifier.clickable { nextPlanConfirm = true }.heightIn(min = 40.dp).clip(DsRadius.Full).background(theme.primaryBrush).border(BorderStroke(1.dp, theme.primaryEdge), DsRadius.Full).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_next_plan_activate), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.onPrimary) }
                             }
                             Text("${np.dataLimit?.let { formatBytes(it) } ?: unlimitedLabel} · ${(np.expireSeconds ?: 0L) / 86400L}d", fontSize = 11.sp, color = theme.mutedColor)
                         }

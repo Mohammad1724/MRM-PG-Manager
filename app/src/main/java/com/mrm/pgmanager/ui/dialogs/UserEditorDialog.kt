@@ -297,7 +297,7 @@ fun UserEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().height(30.dp).clip(DsRadius.Full).background(theme.searchBgColor)
+                                Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Full).background(theme.searchBgColor)
                                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).padding(DsSpacing.Xxs),
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
                             ) {

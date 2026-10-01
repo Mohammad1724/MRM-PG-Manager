@@ -579,13 +579,13 @@ fun BulkActionsBar(
             Box(Modifier.width(1.dp).height(16.dp).background(theme.borderColor))
 
             // Trash action (Delete)
-            IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
+            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
                 RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 15.dp)
             }
 
             // More actions (...)
             Box(contentAlignment = Alignment.TopStart) {
-                IconButton(onClick = { expanded = true }, modifier = Modifier.size(26.dp)) {
+                IconButton(onClick = { expanded = true }, modifier = Modifier.size(40.dp)) {
                     Text("•••", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, textAlign = TextAlign.Center)
                 }
                 DropdownMenu(
@@ -648,7 +648,7 @@ fun BulkActionsBar(
             Box(Modifier.width(1.dp).height(16.dp).background(theme.borderColor))
 
             // Close button (Clear selection)
-            IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
+            IconButton(onClick = onClear, modifier = Modifier.size(40.dp)) {
                 Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
             }
         }
