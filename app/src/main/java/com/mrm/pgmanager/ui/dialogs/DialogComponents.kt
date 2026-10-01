@@ -84,9 +84,9 @@ fun SettingsStepper(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
         Text(label, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
         Box(
-            Modifier.size(30.dp).clip(DsRadius.Sm)
+            Modifier.clickable(enabled = enabled) { onChange((value - step).coerceIn(range)) }.padding(5.dp).size(30.dp).clip(DsRadius.Sm)
                 .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
-                .clickable(enabled = enabled) { onChange((value - step).coerceIn(range)) },
+                ,
             contentAlignment = Alignment.Center
         ) { Text("−", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
         Box(
@@ -96,9 +96,9 @@ fun SettingsStepper(
             contentAlignment = Alignment.Center
         ) { Text("$value $unit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Box(
-            Modifier.size(30.dp).clip(DsRadius.Sm)
+            Modifier.clickable(enabled = enabled) { onChange((value + step).coerceIn(range)) }.padding(5.dp).size(30.dp).clip(DsRadius.Sm)
                 .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
-                .clickable(enabled = enabled) { onChange((value + step).coerceIn(range)) },
+                ,
             contentAlignment = Alignment.Center
         ) { Text("+", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
     }
@@ -261,7 +261,7 @@ fun CompactGlassField(
                 )
             }
             if (value.isNotEmpty()) Box(
-                Modifier.size(20.dp).clip(DsRadius.Md).background(if (theme.isDark) Color.White.copy(0.10f) else Color.Black.copy(0.06f)).clickable { onValueChange("") },
+                Modifier.clickable { onValueChange("") }.padding(10.dp).size(20.dp).clip(DsRadius.Md).background(if (theme.isDark) Color.White.copy(0.10f) else Color.Black.copy(0.06f)),
                 contentAlignment = Alignment.Center
             ) { Text("×", fontSize = 12.sp, color = theme.mutedColor) }
         }
@@ -279,12 +279,13 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
     val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
         modifier = modifier
+            .clickable { com.mrm.pgmanager.utils.Haptics.tick(context); onToggle() }
+            .padding(11.dp)
             .size(18.dp)
             .clip(DsRadius.Xs)
             .background(bg)
             .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
-            .semantics { contentDescription = if (selected) unselectLabel else selectLabel }
-            .clickable { com.mrm.pgmanager.utils.Haptics.tick(context); onToggle() },
+            .semantics { contentDescription = if (selected) unselectLabel else selectLabel },
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.animation.AnimatedVisibility(

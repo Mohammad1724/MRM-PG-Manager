@@ -356,10 +356,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { trafficRange = r }.padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                            Box(Modifier.clickable { trafficRange = r }.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }
@@ -394,10 +394,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
-                            Box(Modifier.height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).clickable { countRange = r }.padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                            Box(Modifier.clickable { countRange = r }.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }

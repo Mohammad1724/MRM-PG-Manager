@@ -132,11 +132,11 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
             modifier = Modifier.weight(1f)
         )
         Box(
-            Modifier
+            Modifier.clickable { onDismiss() }.padding(2.dp)
                 .size(36.dp)
                 .clip(DsRadius.Sm)
                 .semantics { contentDescription = dismissDesc }
-                .clickable { onDismiss() },
+                ,
             contentAlignment = Alignment.Center
         ) {
             Text("✕", fontSize = 13.sp, color = theme.mutedColor)

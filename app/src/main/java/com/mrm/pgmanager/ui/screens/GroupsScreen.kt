@@ -197,7 +197,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Danger.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Danger.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                            .padding(horizontal = DsSpacing.Mid),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
@@ -208,7 +208,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
                         )
                         Box(
-                            Modifier.size(20.dp).clip(DsRadius.Xs).clickable { banner = null },
+                            Modifier.clickable { banner = null }.padding(10.dp).size(20.dp).clip(DsRadius.Xs),
                             contentAlignment = Alignment.Center
                         ) { Text("×", fontSize = 13.sp, color = DsSemantic.Danger) }
                     }
@@ -337,6 +337,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
+            .heightIn(min = 40.dp)
             .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -482,7 +483,7 @@ private fun GroupEditorDialog(
                                         selectedTags = if (checked) selectedTags - tag else selectedTags + tag
                                         touched = true
                                     }
-                                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                                    .padding(horizontal = DsSpacing.Mid),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                             ) {

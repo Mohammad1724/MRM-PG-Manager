@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 
 object DsComponent {
     val Button = 42.dp
-    val ButtonCompact = 36.dp
+    val ButtonCompact = 40.dp
     val ButtonSmall = 32.dp
     val Field = 46.dp
     val SearchBar = 40.dp

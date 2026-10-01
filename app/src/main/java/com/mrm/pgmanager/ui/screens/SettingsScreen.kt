@@ -138,10 +138,10 @@ fun SettingsScreen(
         ) {
             // با Alignment/padding نسبی، در فارسی خودکار سمت راست می‌نشیند.
             Box(
-                Modifier.size(34.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+                Modifier.clickable { onBack() }.padding(3.dp).size(34.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
                     .semantics { contentDescription = backLabel }
-                    .clickable { onBack() },
+                    ,
                 contentAlignment = Alignment.Center
             ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
 
@@ -172,10 +172,10 @@ fun SettingsScreen(
                 val (id, label) = tabs[index]
                 val selected = section == id
                 Box(
-                    Modifier.height(34.dp).clip(DsRadius.Full)
+                    Modifier.clickable { scope.launch { pagerState.animateScrollToPage(index) } }.padding(vertical = 3.dp).height(34.dp).clip(DsRadius.Full)
                         .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
                         .pressScale(0.95f)
-                        .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
+                        
                         .padding(horizontal = DsSpacing.Lg),
                     contentAlignment = Alignment.Center
                 ) {
@@ -646,10 +646,10 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             Box(
-                Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
+                Modifier.clickable { onThemeChange(themeState.copy(customColor = preview)) }.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm)
                     .background(preview.copy(.18f))
                     .border(BorderStroke(1.dp, preview.copy(.4f)), DsRadius.Sm)
-                    .clickable { onThemeChange(themeState.copy(customColor = preview)) },
+                    ,
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -659,10 +659,10 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
             }
             if (activeCustom != null) {
                 Box(
-                    Modifier.weight(1f).height(30.dp).clip(DsRadius.Sm)
+                    Modifier.clickable { onThemeChange(themeState.copy(customColor = null)) }.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm)
                         .background(GlassRed.copy(.10f))
                         .border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm)
-                        .clickable { onThemeChange(themeState.copy(customColor = null)) },
+                        ,
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

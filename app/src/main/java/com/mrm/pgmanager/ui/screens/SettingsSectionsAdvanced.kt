@@ -181,9 +181,9 @@ internal fun ConnectionSection(
                         )
                     }
                     Box(
-                        Modifier.size(24.dp).clip(DsRadius.Sm).background(GlassRed.copy(.12f)).clickable {
+                        Modifier.clickable {
                             store.removeAccount(acc.baseUrl, acc.username); accounts = store.readAccounts()
-                        },
+                        }.padding(8.dp).size(24.dp).clip(DsRadius.Sm).background(GlassRed.copy(.12f)),
                         contentAlignment = Alignment.Center
                     ) { RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 12.dp) }
                 }
@@ -693,13 +693,13 @@ internal fun BackupSection(
         }
         if (backupFolderUri != null) {
             Box(
-                Modifier.fillMaxWidth().height(32.dp).clip(DsRadius.Sm)
-                    .background(GlassRed.copy(0.08f))
-                    .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), DsRadius.Sm)
-                    .clickable {
+                Modifier.clickable {
                         store.saveBackupUri(null)
                         backupFolderUri = null
-                    }.padding(horizontal = DsSpacing.Mid),
+                    }.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Sm)
+                    .background(GlassRed.copy(0.08f))
+                    .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), DsRadius.Sm)
+                    .padding(horizontal = DsSpacing.Mid),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

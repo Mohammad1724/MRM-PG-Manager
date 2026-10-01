@@ -185,7 +185,7 @@ fun SmallButton(
     MrmButton(
         text = text,
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.height(DsComponent.ButtonCompact),
         enabled = enabled,
         style = if (isRed) MrmButtonStyle.Danger else MrmButtonStyle.Secondary,
         compact = true

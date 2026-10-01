@@ -370,10 +370,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         // بدونِ رفتارش. حالا واقعاً نمودار را عوض می‌کند.
                         Box {
                             Row(
-                                Modifier.clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor)
+                                Modifier.clickable { chartMenuOpen = true }.padding(vertical = 8.dp).clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor)
                                     .border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp))
                                     .pressScale(0.95f)
-                                    .clickable { chartMenuOpen = true }
+                                    
                                     .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)

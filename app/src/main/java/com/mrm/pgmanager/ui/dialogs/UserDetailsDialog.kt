@@ -308,7 +308,7 @@ fun UserDetailsDialog(
                             MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                         }
                     }
-                    Box(Modifier.size(28.dp).clip(CircleShape).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+                    Box(Modifier.clickable(onClick = onDismiss).padding(6.dp).size(28.dp).clip(CircleShape).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f), contentAlignment = Alignment.Center) {
                         Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
                 }
@@ -336,9 +336,9 @@ fun UserDetailsDialog(
                         ) {
                             RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 13.dp)
                             MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
-                            Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
-                                Box(Modifier.size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f).clickable { ensureSub { qrOpen = true } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
+                            Row {
+                                Box(Modifier.clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }.padding(7.dp).size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
+                                Box(Modifier.clickable { ensureSub { qrOpen = true } }.padding(7.dp).size(26.dp).clip(CircleShape).background(theme.searchBgColor).pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
                             }
                         }
                     }
@@ -485,8 +485,8 @@ fun UserDetailsDialog(
 
                     if (debtorInfo != null || onMarkDebtor != null) {
                         Row(
-                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(if (debtorInfo != null) GlassRed.copy(0.06f) else theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, if (debtorInfo != null) GlassRed.copy(0.15f) else theme.borderColor), DsRadius.Md)
-                                .pressScale(0.98f).clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }.padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
+                            Modifier.clickable { if (debtorInfo != null) onClearDebt?.invoke() else onMarkDebtor?.invoke() }.padding(vertical = 4.dp).fillMaxWidth().clip(DsRadius.Md).background(if (debtorInfo != null) GlassRed.copy(0.06f) else theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, if (debtorInfo != null) GlassRed.copy(0.15f) else theme.borderColor), DsRadius.Md)
+                                .pressScale(0.98f).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                         ) {
                             RoundedAppIcon(if (debtorInfo != null) AppIcon.Warning else AppIcon.Money, tint = if (debtorInfo != null) GlassRed else theme.accentPrimary, size = 14.dp)
@@ -497,8 +497,8 @@ fun UserDetailsDialog(
 
                     // بستن تنها
                     Box(
-                        Modifier.fillMaxWidth().height(38.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
-                            .pressScale(0.98f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center
+                        Modifier.clickable(onClick = onDismiss).padding(vertical = 1.dp).fillMaxWidth().height(38.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                            .pressScale(0.98f), contentAlignment = Alignment.Center
                     ) { Text(closeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
                 }
             }
@@ -541,7 +541,7 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
             Row(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xl, vertical = DsSpacing.Md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Box(Modifier.size(32.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.12f)), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 16.dp) }
                 Text(stringResource(R.string.ud_note_sheet_title), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                Box(Modifier.size(32.dp).clip(DsRadius.Full).background(theme.searchBgColor).pressScale(0.9f).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) { Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
+                Box(Modifier.clickable(onClick = onDismiss).padding(4.dp).size(32.dp).clip(DsRadius.Full).background(theme.searchBgColor).pressScale(0.9f), contentAlignment = Alignment.Center) { Text("×", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
             }
             Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
             Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Xl, vertical = DsSpacing.Screen), verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {

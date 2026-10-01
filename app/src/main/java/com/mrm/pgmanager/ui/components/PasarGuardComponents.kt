@@ -156,13 +156,13 @@ fun PGScreenHeader(
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                Modifier.clickable(onClick = onRefresh).padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
                     .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
                     .semantics { contentDescription = refreshLabel }
                     .pressScale(0.92f)
-                    .clickable(onClick = onRefresh),
+                    ,
                 contentAlignment = Alignment.Center
             ) {
                 // آیکون خودش می‌چرخد؛ جایگزین‌کردنش با اسپینر پرش داشت.
@@ -174,11 +174,11 @@ fun PGScreenHeader(
                 )
             }
             Box(
-                Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                Modifier.clickable(onClick = onOpenSettings).padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
                     .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
                     .semantics { contentDescription = settingsLabel }
                     .pressScale(0.92f)
-                    .clickable(onClick = onOpenSettings),
+                    ,
                 contentAlignment = Alignment.Center
             ) { RoundedAppIcon(AppIcon.Settings, tint = t.mutedColor, size = 16.dp) }
         }
@@ -317,7 +317,7 @@ fun PGTopBar(title: String, subtitle: String? = null, onMenu: (() -> Unit)? = nu
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 if (onMenu != null) {
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onMenu), contentAlignment = Alignment.Center) {
+                    Box(Modifier.clickable(onClick = onMenu).padding(4.dp).size(32.dp).clip(RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         Text("☰", fontSize = 16.sp, color = t.inkColor)
                     }
                 }

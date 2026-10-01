@@ -219,7 +219,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Modifier.fillMaxWidth().clip(DsRadius.Md)
                             .background(DsSemantic.Danger.copy(0.12f))
                             .border(BorderStroke(DsBorder.Hairline, DsSemantic.Danger.copy(0.24f)), DsRadius.Md)
-                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                            .padding(horizontal = DsSpacing.Mid),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
@@ -230,7 +230,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
                         )
                         Box(
-                            Modifier.size(20.dp).clip(DsRadius.Xs).clickable { banner = null },
+                            Modifier.clickable { banner = null }.padding(10.dp).size(20.dp).clip(DsRadius.Xs),
                             contentAlignment = Alignment.Center
                         ) { Text("×", fontSize = 13.sp, color = DsSemantic.Danger) }
                     }
@@ -375,6 +375,7 @@ private fun TemplateRow(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .clickable { onEdit() }
+            .heightIn(min = 40.dp)
             .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -616,7 +617,7 @@ private fun TemplateEditorDialog(
                                                 if (checked) selectedGroups - g.id else selectedGroups + g.id
                                             touched = true
                                         }
-                                        .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                                        .padding(horizontal = DsSpacing.Mid),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                                 ) {
@@ -644,6 +645,7 @@ private fun TemplateEditorDialog(
                 Row(
                     Modifier.fillMaxWidth().clip(DsRadius.Md)
                         .clickable { showAdvanced = !showAdvanced }
+                        .heightIn(min = 40.dp)
                         .padding(vertical = DsSpacing.Xs),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)

@@ -84,9 +84,9 @@ fun BulkApplyTemplateDialog(
                             val sel = selectedTemplateId == t.id
                             // ردیف انتخاب تمپلت: انتخاب‌شده = پرکنندهٔ اصلیِ تم + متنِ روی آن، بقیه = کاشی خاکستری.
                             Box(
-                                Modifier.fillMaxWidth().height(36.dp).clip(DsRadius.Md)
+                                Modifier.clickable { selectedTemplateId = t.id }.padding(vertical = 2.dp).fillMaxWidth().height(36.dp).clip(DsRadius.Md)
                                     .primarySurface(theme, sel, DsRadius.Md, idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp)
-                                    .clickable { selectedTemplateId = t.id }.padding(horizontal = DsSpacing.Lg),
+                                    .padding(horizontal = DsSpacing.Lg),
                                 contentAlignment = Alignment.CenterStart
                             ) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

@@ -124,11 +124,11 @@ fun AccountSheet(
                     )
                 }
                 Box(
-                    Modifier
+                    Modifier.clickable(onClick = onDismiss).padding(2.dp)
                         .size(36.dp)
                         .clip(DsRadius.Sm)
                         .semantics { contentDescription = closeLabel }
-                        .clickable(onClick = onDismiss),
+                        ,
                     contentAlignment = Alignment.Center
                 ) {
                     Text("✕", fontSize = 15.sp, color = theme.mutedColor)

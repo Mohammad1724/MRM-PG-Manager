@@ -247,7 +247,7 @@ private fun RestoreCheckRow(label: String, checked: Boolean, onCheckedChange: (B
         Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+            .padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {

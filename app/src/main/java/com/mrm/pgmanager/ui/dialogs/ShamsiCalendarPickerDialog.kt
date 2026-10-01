@@ -79,9 +79,9 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
-                        Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.clickable { if (m > 1) m-- else { m = 12; y-- } }.padding(4.dp).size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
                         Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), contentAlignment = Alignment.Center) { Text("${com.mrm.pgmanager.utils.jalaliMonthName(JalaliCalendar.Date(y, m, 1))} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                        Box(Modifier.size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.clickable { if (m < 12) m++ else { m = 1; y++ } }.padding(4.dp).size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                     }
                     LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.height(200.dp)) {
                         items((1..daysInMonth).toList()) { day ->
