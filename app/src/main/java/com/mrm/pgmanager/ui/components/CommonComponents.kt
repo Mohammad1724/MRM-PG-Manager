@@ -68,7 +68,6 @@ import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsGlass
-import com.mrm.pgmanager.ui.designsystem.DsMotion
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 
 @Composable
@@ -208,7 +207,7 @@ fun ActionIconButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed && enabled) 0.90f else 1.0f,
-        animationSpec = DsMotion.ScaleSpring,
+        animationSpec = DsAnim.snappy(),
         label = "iconScale"
     )
     val shape = DsRadius.Md
@@ -266,7 +265,7 @@ fun MrmFab(
     val pressed by interaction.collectIsPressedAsState()
     val pressFactor by animateFloatAsState(
         targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = DsMotion.PressBounceDamping, stiffness = DsMotion.PressBounceStiffness),
+        animationSpec = DsAnim.snappy(),
         label = "fabPress"
     )
     // ورودِ اول با فنرِ سرزنده؛ محو/ظهورِ هنگامِ اسکرول با tween کوتاه تا با هر
@@ -362,7 +361,7 @@ fun MrmButton(
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed && active) 0.96f else 1.0f,
-        animationSpec = spring(dampingRatio = DsMotion.PressBounceDamping, stiffness = DsMotion.PressBounceStiffness),
+        animationSpec = DsAnim.snappy(),
         label = "btnScale"
     )
     val contentAlpha by animateFloatAsState(targetValue = if (enabled) 1f else DsGlass.DisabledAlpha, label = "btnAlpha")

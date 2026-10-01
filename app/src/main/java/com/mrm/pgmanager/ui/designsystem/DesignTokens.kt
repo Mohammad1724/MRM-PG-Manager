@@ -115,19 +115,6 @@ object DsBorder {
 }
 
 /** Motion — fast & subtle */
-object DsMotion {
-    const val PressBounceDamping = 0.6f
-    const val PressBounceStiffness = 700f
-    const val SpringBouncyDamping = 0.45f
-    const val SpringBouncyStiffness = 400f
-    val Instant = androidx.compose.animation.core.tween<Float>(60)
-    val Fast = androidx.compose.animation.core.tween<Float>(180, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Normal = androidx.compose.animation.core.tween<Float>(250, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Slow = androidx.compose.animation.core.tween<Float>(350, easing = androidx.compose.animation.core.FastOutSlowInEasing)
-    val Shimmer = androidx.compose.animation.core.tween<Float>(900)
-    val Pulse = androidx.compose.animation.core.tween<Float>(850)
-    val ScaleSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.55f, stiffness = 500f)
-}
 
 object DsGradients {
     fun accentVertical(primary: Color, light: Color): Brush =

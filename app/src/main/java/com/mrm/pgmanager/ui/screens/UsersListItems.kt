@@ -99,7 +99,6 @@ import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
-import com.mrm.pgmanager.ui.designsystem.DsMotion
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing

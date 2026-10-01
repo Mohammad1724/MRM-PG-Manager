@@ -95,12 +95,12 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.DsDuration
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.DsComponent
 import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
-import com.mrm.pgmanager.ui.designsystem.DsMotion
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
@@ -150,7 +150,7 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
 internal fun SkeletonCard(modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmer")
-    val alpha = infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
+    val alpha = infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(DsDuration.Shimmer), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
     // خواندنِ مقدارِ انیمیشن داخلِ drawBehind: هر فریمِ سوسو فقط دوباره *رسم*
     // می‌شود، نه اینکه شش‌هفت کارتِ اسکلت هر ۱۶ میلی‌ثانیه recompose شوند.
     val shape = DsRadius.Lg

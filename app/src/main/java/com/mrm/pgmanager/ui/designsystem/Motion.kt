@@ -84,10 +84,11 @@ object DsDuration {
     const val Normal = 260    // کارت، شیت، جابه‌جاییِ محتوا
     const val Slow = 380      // صفحهٔ کامل، شمارشِ اعداد
     const val Counter = 700   // بالا رفتنِ عددِ آمار
+    const val Shimmer = 900   // سوسوی اسکلتِ بارگذاری
 }
 
 /**
- * اسپک‌های آمادهٔ جنریک. جنریک بودنشان مهم است: نسخهٔ قدیمی [DsMotion] فقط
+ * اسپک‌های آمادهٔ جنریک. جنریک بودنشان مهم است: نسخهٔ قدیمی `DsMotion` فقط
  * `tween<Float>` بود و برای انیمیشنِ رنگ/اندازه قابل استفاده نبود، برای همین
  * هرجا رنگ انیمیت می‌شد، عددهای دستی تکرار می‌شدند.
  */
@@ -327,10 +328,7 @@ private class PressScaleNode(
         animation = coroutineScope.launch {
             current.animateTo(
                 targetValue = target,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
+                animationSpec = DsAnim.snappy()
             ) { invalidateDraw() }
         }
     }
