@@ -157,6 +157,7 @@
     <string name="all_nodes">همهٔ نودها</string>
     <string name="usage_in_range">مصرف در این بازه</string>
     <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
+    <string name="chart_a11y_summary">نمودار مصرف، %1$d نقطه، آخرین مقدار %2$s</string>
     <!-- مدیریت گروه‌ها -->
     <string name="groups_subtitle">مدیریت گروه‌های inbound</string>
     <string name="group_name">نام گروه</string>

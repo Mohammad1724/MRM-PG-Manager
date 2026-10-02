@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +45,7 @@ fun UsageChart(
     themeIsDark: Boolean,
     height: Dp = 110.dp,
     showAxisLabels: Boolean = true,
+    showScaleLabels: Boolean = true,
     valueFormatter: (Long) -> String = { it.toString() }
 ) {
     val theme = LocalThemeState.current
@@ -60,11 +63,23 @@ fun UsageChart(
 
     val maxValue = remember(points) { points.maxOf { it.totalTraffic }.coerceAtLeast(1L) }
 
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(valueFormatter(maxValue), fontSize = 11.sp, color = theme.mutedColor)
-        Text(valueFormatter(0L), fontSize = 11.sp, color = theme.mutedColor)
+    // خلاصهٔ متنی برای صفحه‌خوان: Canvas برای TalkBack یک عنصرِ بی‌نام است، پس
+    // مقدارها باید صریح اعلام شوند («یک الگو، یک کامپوننت» — همان‌جا که رسم می‌شود).
+    val a11ySummary = stringResource(
+        R.string.chart_a11y_summary,
+        points.size,
+        valueFormatter(points.last().totalTraffic)
+    )
+
+    if (showScaleLabels) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(valueFormatter(maxValue), fontSize = 11.sp, color = theme.mutedColor)
+            Text(valueFormatter(0L), fontSize = 11.sp, color = theme.mutedColor)
+        }
     }
-    Canvas(Modifier.fillMaxWidth().height(height)) {
+    Canvas(
+        Modifier.fillMaxWidth().height(height).semantics { contentDescription = a11ySummary }
+    ) {
         val w = size.width; val h = size.height
         for (i in 1..4) drawLine(grid, Offset(0f, h * i / 5f), Offset(w, h * i / 5f), 0.7f)
         if (points.size > 1) {

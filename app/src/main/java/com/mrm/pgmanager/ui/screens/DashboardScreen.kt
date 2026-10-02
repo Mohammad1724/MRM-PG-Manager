@@ -1,7 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -393,7 +392,15 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                                 }
                             }
                         }
-                        UsageMiniChart(points = trafficPoints, themeIsDark = theme.isDark, accent = theme.accentPrimary)
+                        UsageChart(
+                            points = trafficPoints,
+                            accent = theme.accentPrimary,
+                            themeIsDark = theme.isDark,
+                            height = 90.dp,
+                            showAxisLabels = false,
+                            showScaleLabels = false,
+                            valueFormatter = ::formatBytes
+                        )
                         run {
                             val totalPeriod = trafficPoints.sumOf { it.totalTraffic }
                             val trendingText = if (trafficPoints.size >= 2) {
@@ -467,38 +474,6 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 // keep subtle spacing at bottom for nav bar
                 Spacer(Modifier.height(DsSpacing.NavClearance))
             }
-        }
-    }
-}
-
-@Composable
-private fun UsageMiniChart(points: List<TrafficPoint>, themeIsDark: Boolean, accent: Color) {
-    Canvas(Modifier.fillMaxWidth().height(90.dp)) {
-        val w = size.width; val h = size.height
-        // grid
-        for (i in 1..3) drawLine(if (themeIsDark) Color.White.copy(0.08f) else DsNeutral.HairlineLight, androidx.compose.ui.geometry.Offset(0f, h * i / 4f), androidx.compose.ui.geometry.Offset(w, h * i / 4f), 0.7f)
-        val max = points.maxOfOrNull { it.totalTraffic }?.coerceAtLeast(1L) ?: 1L
-        if (points.size > 1) {
-            val path = androidx.compose.ui.graphics.Path()
-            points.forEachIndexed { idx, p ->
-                val x = w * idx / (points.size - 1)
-                val y = h - (p.totalTraffic.toFloat() / max * h * 0.85f) - h * 0.05f
-                if (idx == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            // fill
-            val fillPath = androidx.compose.ui.graphics.Path().apply {
-                addPath(path)
-                lineTo(w, h); lineTo(0f, h); close()
-            }
-            drawPath(fillPath, accent.copy(0.18f))
-            drawPath(path, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        } else if (points.isEmpty()) {
-            // mock gentle curve if no data
-            val p = androidx.compose.ui.graphics.Path().apply {
-                moveTo(0f, h * 0.45f); cubicTo(w*0.25f, h*0.2f, w*0.55f, h*0.15f, w*0.75f, h*0.35f); lineTo(w*0.85f, h*0.25f); lineTo(w, h*0.85f)
-            }
-            drawPath(androidx.compose.ui.graphics.Path().apply { addPath(p); lineTo(w,h); lineTo(0f,h); close() }, accent.copy(0.14f))
-            drawPath(p, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.4f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
     }
 }

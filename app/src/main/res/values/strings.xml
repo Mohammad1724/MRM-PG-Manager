@@ -157,6 +157,7 @@
     <string name="all_nodes">All nodes</string>
     <string name="usage_in_range">Usage During Period</string>
     <string name="no_chart_data">No data for this period</string>
+    <string name="chart_a11y_summary">Usage chart, %1$d points, latest value %2$s</string>
     <!-- Groups management -->
     <string name="groups_subtitle">Manage inbound groups</string>
     <string name="group_name">Group name</string>
