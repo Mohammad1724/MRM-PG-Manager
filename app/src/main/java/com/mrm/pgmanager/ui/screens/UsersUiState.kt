@@ -207,8 +207,16 @@ internal class UsersUiState(
             // پرت می‌شد.
             val limit = if (silent && users.size > PAGE_SIZE) users.size.coerceAtMost(PAGE_SIZE * 10) else PAGE_SIZE
             val defaultView = isDefaultView()
+            // فاز ۶.۲ — رفرشِ بی‌صدا لیست را «جایگزین» نمی‌کند، «هم‌تراز» می‌کند:
+            // ردیف‌های تازه از پنل می‌آیند، ولی ترتیبِ فعلی و ردیف‌هایی که هنوز
+            // در پاسخ نیستند دست‌نخورده می‌مانند تا لیست نلرزد.
+            val previousOrder = if (silent) users.map { it.id } else emptyList()
             runCatching { PanelApi.usersPage(session, buildQuery(0, limit)) }.onSuccess { page ->
-                users = page.users
+                users = if (previousOrder.isEmpty()) page.users else {
+                    val incoming = page.users.associateBy { it.id }
+                    val merged = previousOrder.mapNotNull { incoming[it] } + page.users.filter { it.id !in previousOrder }
+                    merged.ifEmpty { page.users }
+                }
                 totalMatches = page.total
                 endReached = page.users.isEmpty() || page.users.size >= page.total
                 offlineAt = null
@@ -352,6 +360,74 @@ internal class UsersUiState(
     }
 
     /**
+     * **وصلهٔ موضعیِ ردیف‌ها (فاز ۶.۱)** — قلبِ «Optimistic UI».
+     *
+     * چرا: پیش از این هر عملیات بعد از موفقیت `load()` می‌زد که (الف) اسکلتِ
+     * بارگذاری را روشن می‌کرد، (ب) سربرگ را جمع می‌کرد و (ج) لیست را از صفر
+     * می‌ساخت. کاربر بعد از تأییدِ هر عمل یک سکوتِ بصری و یک پرشِ اسکرول
+     * می‌دید. حالا تغییر **همان لحظه** روی ردیف‌های موجود اعمال می‌شود و بعد
+     * یک رفرشِ بی‌صدا فقط برای هم‌ترازی با پنل می‌آید.
+     */
+    fun patchRows(ids: Set<Long>, transform: (PanelUser) -> PanelUser) {
+        if (ids.isEmpty()) return
+        users = users.map { if (it.id in ids) transform(it) else it }
+    }
+
+    /**
+     * برداشتنِ فوریِ ردیف‌ها از لیست (برای حذف).
+     *
+     * عمداً بازگردانی («rollback») ندارد: اگر پنل نپذیرد، `runAction` پیام می‌دهد
+     * و رفرشِ بی‌صدا ردیف را از خودِ پنل برمی‌گرداند. برگرداندنِ خوش‌بینانه‌یِ
+     * ردیفی که شاید واقعاً حذف شده باشد، بدترین حالت است (کاربر فکر می‌کند اپ
+     * دروغ گفته) — اینجا صداقت را به سرعت ترجیح می‌دهیم.
+     */
+    fun removeRows(ids: Set<Long>) {
+        if (ids.isEmpty()) return
+        users = users.filterNot { it.id in ids }
+        totalMatches = (totalMatches - ids.size).coerceAtLeast(0)
+    }
+
+    /** عکسِ لحظه‌ایِ ردیف‌های هدف — برای بازگردانی در صورتِ خطا. */
+    fun snapshotRows(ids: Set<Long>): Map<Long, PanelUser> =
+        if (ids.isEmpty()) emptyMap() else users.filter { it.id in ids }.associateBy { it.id }
+
+    /** بازگرداندنِ عکسِ لحظه‌ای (rollback). ردیف‌های حذف‌شده هم برمی‌گردند. */
+    fun restoreRows(snapshot: Map<Long, PanelUser>) {
+        if (snapshot.isEmpty()) return
+        val present = users.map { it.id }.toSet()
+        val restored = users.map { snapshot[it.id] ?: it }
+        val missing = snapshot.values.filter { it.id !in present }
+        // ترتیبِ اصلی حفظ می‌شود: ردیف‌های بازگشته به جای خودشان در انتها اضافه می‌شوند
+        // (اگر کاربر در این فاصله فیلتر/مرتب‌سازی را عوض کرده باشد، رفرشِ بعدی راست می‌کند).
+        users = restored + missing
+    }
+
+    /**
+     * اجرای عملیات با پیش‌نمایشِ فوری.
+     *
+     * ترتیب عمدی است: **اول** وصله، **بعد** درخواست. اگر درخواست شکست بخورد
+     * عکسِ لحظه‌ای برمی‌گردد و پنل هم بی‌صدا هم‌تراز می‌شود؛ اگر موفق شود فقط
+     * یک رفرشِ بی‌صدا می‌آید (بدونِ اسکلت و بدونِ پرشِ اسکرول).
+     */
+    fun runOptimistic(
+        ids: Set<Long>,
+        notification: Pair<String, String>? = null,
+        undo: (suspend () -> Unit)? = null,
+        /** پیش‌نمایشِ فوری روشن است؛ فقط برای حالتی که می‌خواهیم فقط ثبتِ عکسِ لحظه‌ای کنیم. */
+        applyPreview: Boolean = true,
+        patch: (PanelUser) -> PanelUser,
+        action: suspend () -> Unit
+    ) {
+        val snapshot = snapshotRows(ids)
+        if (applyPreview) patchRows(ids, patch)
+        runAction(
+            notification = notification,
+            undo = undo,
+            rollback = { restoreRows(snapshot) }
+        ) { action() }
+    }
+
+    /**
      * اجرای یک عملیاتِ نوشتاری با بازخوردِ واحد.
      *
      * @param notification (عنوان، متن) — اسنکِ موفقیت + (اختیاری) اعلانِ سیستمی.
@@ -364,6 +440,12 @@ internal class UsersUiState(
         notification: Pair<String, String>? = null,
         undo: (suspend () -> Unit)? = null,
         successMessage: String? = null,
+        /**
+         * بازگردانیِ پیش‌نمایشِ خوش‌بینانه در صورتِ خطا (فاز ۶.۱). برای عملیاتِ
+         * بدونِ وصله (حذف/ساخت) عمداً خالی می‌ماند — وگرنه ردیفی که پنل واقعاً
+         * حذف کرده به لیست برمی‌گشت و کاربر فکر می‌کرد حذف نشده.
+         */
+        rollback: (() -> Unit)? = null,
         action: suspend () -> Unit
     ) {
         scope.launch {
@@ -379,6 +461,10 @@ internal class UsersUiState(
                 if (!com.mrm.pgmanager.utils.NetworkStatus.isOnline(context)) return@launch
             }
             runCatching { action() }.onFailure {
+                // پیش‌نمایشِ خوش‌بینانه باید فوراً پس گرفته شود؛ بعدش پیامِ خطا.
+                // رفرشِ بی‌صدا هم می‌آید تا اگر بخشی از تغییرات روی پنل اعمال شده
+                // بود، لیست به واقعیتِ سرور برگردد (نه به حدسِ ما).
+                rollback?.invoke()
                 val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
                 error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                 if (kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
@@ -419,7 +505,9 @@ internal class UsersUiState(
                     val settings = store.readMonitoringSettings()
                     if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message)
                 }
-                load()
+                // فاز ۶.۲ — رفرشِ بی‌صدا و بدونِ برگشت به بالا: ردیف‌ها همین حالا
+                // به‌روز شده‌اند؛ این فقط هم‌ترازیِ نهایی با پنل است.
+                load(resetHeader = false, silent = true)
             }
         }
     }

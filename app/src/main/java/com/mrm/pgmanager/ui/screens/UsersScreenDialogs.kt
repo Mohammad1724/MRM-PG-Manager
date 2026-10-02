@@ -282,10 +282,24 @@ internal fun UsersScreenDialogs(
                             if (amount == null || amount == 0.0) return@PGPrimaryButton
                             ui.selectedUserIds = emptySet()
                             // معکوسِ دقیق همان عدد: +۳۰ روز ⇄ −۳۰ روز (و همین برای حجم).
-                            ui.runAction(
+                            // وصلهٔ فوری هم **همان معیارِ پنل** را دارد (سنجیده شد):
+                            //  • زمان: فقط کاربری که تاریخِ انقضا دارد جابه‌جا می‌شود.
+                            //  • حجم: فقط کاربری که سقفش صفر نیست.
+                            // پس عددی که کاربر روی ردیف می‌بیند با «N از M» دیالوگ یکی است.
+                            ui.runOptimistic(
+                                ids = ids,
                                 undo = {
                                     if (kind == "days") PanelApi.bulkAddDays(session, ids, -amount.toInt())
                                     else PanelApi.bulkAddData(session, ids, -amount)
+                                },
+                                patch = { row ->
+                                    if (kind == "days") {
+                                        com.mrm.pgmanager.utils.DateLogic.shiftIsoDays(row.expire, amount.toLong())
+                                            ?.let { row.copy(expire = it) } ?: row
+                                    } else {
+                                        if (row.dataLimit <= 0L) row
+                                        else row.copy(dataLimit = row.dataLimit + (amount * 1_073_741_824.0).toLong())
+                                    }
                                 }
                             ) {
                                 if (kind == "days") PanelApi.bulkAddDays(session, ids, amount.toInt())
@@ -429,16 +443,28 @@ internal fun UsersScreenDialogs(
             onDismiss = { ui.quickActionUser = null },
             onUseTemplate = { ui.quickTemplateUser = u },
             onToggle = {
-                // معکوسِ وضعیت: اگر از disabled درآوردیم، برگشتش غیرفعال‌کردن است.
-                ui.runAction(
+                // فاز ۶.۱ — ردیف همین لحظه عوض می‌شود؛ برچسبِ وضعیتِ ورقه هم که از
+                // همان آبجکت می‌خواند بلافاصله به‌روز می‌شود (قبلش کاربر یک سکوتِ
+                // کوتاه می‌دید تا وقتی اسنکِ موفقیت برسد).
+                val nowDisabled = u.status != "disabled"
+                ui.runOptimistic(
+                    ids = setOf(u.id),
                     notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username),
-                    undo = { PanelApi.setDisabled(session, u, u.status == "disabled") }
-                ) { PanelApi.setDisabled(session, u, u.status != "disabled") }
+                    // معکوسِ وضعیت: اگر از disabled درآوردیم، برگشتش غیرفعال‌کردن است.
+                    undo = { PanelApi.setDisabled(session, u, !nowDisabled) },
+                    patch = { row -> row.copy(status = if (nowDisabled) "disabled" else "active") }
+                ) { PanelApi.setDisabled(session, u, nowDisabled) }
             },
             onCopySub = { ui.copySubWithFetch(u) },
             onQr = { ui.qrUser = u },
             onEdit = { ui.selectedUser = u },
-            onResetUsage = { ui.runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username)) { PanelApi.resetUsage(session, u) } },
+            onResetUsage = { ui.runOptimistic(
+                ids = setOf(u.id),
+                notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, u.username),
+                // نکته: `lifetimeUsedTraffic` عمداً دست‌نخورده می‌ماند — ریستِ مصرف
+                // تاریخِ مصرفِ کل را پاک نمی‌کند و ردیف هم نباید دروغ بگوید.
+                patch = { row -> row.copy(usedTraffic = 0L) }
+            ) { PanelApi.resetUsage(session, u) } },
             onResetExpiry = { ui.resetExpiryTarget = u },
             onDelete = { ui.deleteUser = u },
             onDebtor = { ui.debtorDialogUser = u },
@@ -457,15 +483,22 @@ internal fun UsersScreenDialogs(
             },
             onToggle = {
                 ui.selectedUser = null
-                // همان الگوی اکشنِ سریع: بازگرداندنِ وضعیت با یک ضربه.
-                ui.runAction(
+                // همان الگوی اکشنِ سریع + پیش‌نمایشِ فوری (فاز ۶.۱).
+                val nowDisabled = user.status != "disabled"
+                ui.runOptimistic(
+                    ids = setOf(user.id),
                     notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, user.username),
-                    undo = { PanelApi.setDisabled(session, user, user.status == "disabled") }
-                ) { PanelApi.setDisabled(session, user, user.status != "disabled") }
+                    undo = { PanelApi.setDisabled(session, user, !nowDisabled) },
+                    patch = { row -> row.copy(status = if (nowDisabled) "disabled" else "active") }
+                ) { PanelApi.setDisabled(session, user, nowDisabled) }
             },
             onDelete = { ui.deleteUser = user; ui.selectedUser = null },
             onResetUsage = {
-                ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user) }
+                ui.selectedUser = null; ui.runOptimistic(
+                    ids = setOf(user.id),
+                    notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username),
+                    patch = { row -> row.copy(usedTraffic = 0L) }
+                ) { PanelApi.resetUsage(session, user) }
             },
             onResetExpiry = { days ->
                 ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
@@ -487,10 +520,13 @@ internal fun UsersScreenDialogs(
                 com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_debt_cleared))
                 if (wasAutoDisabled) {
                     scope.launch {
-                        runCatching { PanelApi.setDisabled(session, user, false) }.onSuccess { ui.load() }
+                        runCatching { PanelApi.setDisabled(session, user, false) }
+                            .onSuccess { ui.load(resetHeader = false, silent = true) }
                     }
                 }
             },
+            // دادهٔ تازهٔ ورقه به ردیفِ پشتش هم می‌رسد (فاز ۶.۲: وصلهٔ ردیف، نه رفرشِ کلِ لیست).
+            onRefreshed = { fresh -> ui.patchRows(setOf(fresh.id)) { fresh } },
             onInvoice = {
                 ui.invoiceDialogUser = user
                 ui.selectedUser = null
@@ -536,7 +572,12 @@ internal fun UsersScreenDialogs(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.deleteUser = null }, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(DsSpacing.Mid))
-                        PGDangerButton(stringResource(R.string.us_delete), onClick = { ui.deleteUser = null; ui.runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) } }, modifier = Modifier.weight(1f))
+                        PGDangerButton(stringResource(R.string.us_delete), onClick = {
+                            // ردیف بلافاصله برود؛ اگر پنل نپذیرد، رفرشِ بی‌صدا برمی‌گرداندش.
+                            ui.removeRows(setOf(user.id))
+                            ui.runAction(notification = context.getString(R.string.us_n_deleted) to context.getString(R.string.us_n_deleted_body, user.username)) { PanelApi.deleteUser(session, user) }
+                            ui.deleteUser = null
+                        }, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -598,7 +639,9 @@ internal fun UsersScreenDialogs(
                 if (wasAutoDisabled) {
                     scope.launch {
                         runCatching { PanelApi.setDisabled(session, u, false) }.onSuccess {
-                            ui.load()
+                            // وضعیتِ ردیف فوراً عوض می‌شود؛ رفرشِ بی‌صدا هم‌ترازی می‌آورد (فاز ۶.۲).
+                            ui.patchRows(setOf(u.id)) { it.copy(status = "active") }
+                            ui.load(resetHeader = false, silent = true)
                             com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_user_enabled))
                         }
                     }

@@ -191,7 +191,15 @@ fun UserDetailsDialog(
     debtorInfo: DebtorInfo? = null,
     onMarkDebtor: (() -> Unit)? = null,
     onClearDebt: (() -> Unit)? = null,
-    onInvoice: (() -> Unit)? = null
+    onInvoice: (() -> Unit)? = null,
+    /**
+     * فاز ۶.۳ — «پیش‌نمایش از لیست + تازه‌سازیِ بی‌صدا».
+     *
+     * ورقه همان لحظه با دادهٔ لیست باز می‌شود (صفر انتظارِ شبکه) و بعد در
+     * پس‌زمینه از پنل تازه می‌شود؛ نتیجه به لیست هم پس داده می‌شود تا ردیفِ
+     * پشتِ ورقه با چیزی که کاربر دید یکی بماند.
+     */
+    onRefreshed: ((PanelUser) -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -239,6 +247,13 @@ fun UserDetailsDialog(
         reloadDevices()
         if (session != null) runCatching { PanelApi.userSubUpdates(session, currentUser.id, limit = 5) }.onSuccess { subUpdates = it }
         if (user.isOnline) loadOnlineIps()
+        // تازه‌سازیِ بی‌صدا: هیچ اسپینری نشان داده نمی‌شود چون دادهٔ اولیه از خودِ
+        // لیست آمده؛ این فقط اعداد را دقیق می‌کند (فاز ۶.۳).
+        if (session != null) {
+            runCatching { PanelApi.user(session, user) }.onSuccess { fresh ->
+                if (fresh != currentUser) { currentUser = fresh; onRefreshed?.invoke(fresh) }
+            }
+        }
     }
 
     val copiedMsg = stringResource(R.string.ud_copied)

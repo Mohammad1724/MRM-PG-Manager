@@ -51,6 +51,23 @@ object DateLogic {
      * (`AwareDatetime`)، بنابراین ارسالِ لحظهٔ دقیق درست‌تر از «now + N روز» است.
      * با این کار، انتخابِ «امروز» یعنی «تا آخرِ امشب» — نه ۲۴ ساعت از این لحظه.
      */
+    /**
+     * جابه‌جاییِ تاریخِ انقضا به‌اندازهٔ [days] روز (منفی = کم‌کردن) — فاز ۶.۱.
+     *
+     * برای «پیش‌نمایشِ خوش‌بینانه» لازم است: کاربر بعد از تأییدِ «+۳۰ روز»
+     * باید **همان لحظه** تاریخِ تازه را روی ردیف ببیند، نه بعد از برگشتِ پاسخ.
+     *
+     * ورودی همان ISO-8601 پنل است (مثل `2026-11-01T20:29:59Z`). اگر مقدار
+     * نامعتبر/خالی/`null` باشد، `null` برمی‌گردد — و همین درست است: پنل هم
+     * کاربرِ بدونِ تاریخِ انقضا را هدفِ «افزودن روز» نمی‌شمارد.
+     */
+    fun shiftIsoDays(expire: String?, days: Long): String? {
+        val raw = expire?.trim()
+        if (raw.isNullOrBlank() || raw == "0" || raw == "null") return null
+        val instant = runCatching { Instant.parse(raw) }.getOrNull() ?: return null
+        return instant.plus(days, ChronoUnit.DAYS).toString()
+    }
+
     fun expireValue(date: String?): Any {
         if (date.isNullOrBlank() || date == "null" || date == "0") return 0
         val target = runCatching { LocalDate.parse(date.take(10)) }.getOrNull() ?: return 0

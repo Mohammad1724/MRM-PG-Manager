@@ -168,4 +168,32 @@ class DateLogicTest {
         assertNull(DateLogic.expiryDate("null"))
         assertNull(DateLogic.expiryDate("not-a-date"))
     }
+
+    // ── جابه‌جاییِ ISO برای پیش‌نمایشِ خوش‌بینانه (فاز ۶.۱) ────────────────
+
+    @Test fun `shiftIsoDays moves an iso instant forward and backward`() {
+        val base = "2026-11-01T20:29:59Z"
+
+        assertEquals("2026-12-01T20:29:59Z", DateLogic.shiftIsoDays(base, 30))
+        assertEquals("2026-10-02T20:29:59Z", DateLogic.shiftIsoDays(base, -30))
+        assertEquals(base, DateLogic.shiftIsoDays(base, 0))
+    }
+
+    @Test fun `shiftIsoDays keeps the exact inverse property used by undo`() {
+        // همین ویژگی است که «بازگرداندن» را برای کاربر باورپذیر می‌کند:
+        // پیش‌نمایشِ +N و سپس −N باید به همان لحظه برگردد.
+        val base = "2027-03-15T19:00:00Z"
+        val shifted = DateLogic.shiftIsoDays(base, 7)!!
+        assertEquals(base, DateLogic.shiftIsoDays(shifted, -7))
+    }
+
+    @Test fun `shiftIsoDays returns null when the user has no expiry`() {
+        // کاربرِ بدونِ تاریخِ انقضا هدفِ «افزودن روز» نیست (همان قاعدهٔ پنل)؛
+        // null یعنی «این ردیف را وصله نکن» و درست است که پیش‌نمایش هم عوض نشود.
+        assertNull(DateLogic.shiftIsoDays(null, 30))
+        assertNull(DateLogic.shiftIsoDays("", 30))
+        assertNull(DateLogic.shiftIsoDays("null", 30))
+        assertNull(DateLogic.shiftIsoDays("0", 30))
+        assertNull(DateLogic.shiftIsoDays("not-a-date", 30))
+    }
 }
