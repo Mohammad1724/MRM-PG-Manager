@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.foundation.text.selection.textSelection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -208,12 +207,16 @@ fun LoginScreen(
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
                         ) {
                             report.forEach { step ->
-                                Text(
-                                    "${if (step.ok) "✅" else "❌"} ${step.label}: ${step.detail}",
-                                    fontSize = 10.sp,
-                                    color = if (step.ok) theme.inkColor else GlassRed,
-                                    modifier = Modifier.fillMaxWidth().textSelection()
-                                )
+                                // متنِ گزارش قابلِ انتخاب است تا کاربر بتواند آن را
+                                // کپی کند و برای پشتیبانی بفرستد (SelectionContainer).
+                                androidx.compose.foundation.text.selection.SelectionContainer {
+                                    Text(
+                                        "${if (step.ok) "✅" else "❌"} ${step.label}: ${step.detail}",
+                                        fontSize = 10.sp,
+                                        color = if (step.ok) theme.inkColor else GlassRed,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
@@ -222,12 +225,14 @@ fun LoginScreen(
                             Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
                                 .padding(DsSpacing.Md)
                         ) {
-                            Text(
-                                errorDetail!!,
-                                fontSize = 10.sp,
-                                color = theme.mutedColor,
-                                modifier = Modifier.fillMaxWidth().textSelection()
-                            )
+                            androidx.compose.foundation.text.selection.SelectionContainer {
+                                Text(
+                                    errorDetail!!,
+                                    fontSize = 10.sp,
+                                    color = theme.mutedColor,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }
