@@ -1026,4 +1026,9 @@
     <string name="notif_perm_off_title">Notifications are blocked by Android</string>
     <string name="notif_perm_off_body">Android is blocking notifications for this app. Alerts will not arrive until you allow them in system settings.</string>
     <string name="notif_perm_settings">Open notification settings</string>
+    <string name="login_err_admin_disabled">This admin account is disabled on the panel. Enable it there and try again.</string>
+    <string name="login_err_forbidden">The server refused the request (403) — a proxy or firewall may be blocking the app.</string>
+    <string name="login_err_panel_said">The panel said: %1$s</string>
+    <string name="login_tech_details">Technical details</string>
+    <string name="login_tech_details_hide">Hide details</string>
 </resources>

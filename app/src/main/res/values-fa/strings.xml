@@ -1026,4 +1026,9 @@
     <string name="notif_perm_off_title">اعلان‌ها در سطح سیستم خاموش است</string>
     <string name="notif_perm_off_body">اندروید اعلان‌های این اپ را مسدود کرده است. تا وقتی در تنظیمات سیستم مجاز نکنید، هشداری نمی‌رسد.</string>
     <string name="notif_perm_settings">باز کردن تنظیمات اعلان‌ها</string>
+    <string name="login_err_admin_disabled">حسابِ ادمین در پنل غیرفعال است. از پنل فعالش کنید و دوباره وارد شوید.</string>
+    <string name="login_err_forbidden">سرور درخواست را رد کرد (۴۰۳) — ممکن است پروکسی یا فایروال جلوی اپ را گرفته باشد.</string>
+    <string name="login_err_panel_said">پنل گفت: %1$s</string>
+    <string name="login_tech_details">جزئیات فنی</string>
+    <string name="login_tech_details_hide">بستنِ جزئیات</string>
 </resources>

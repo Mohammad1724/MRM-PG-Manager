@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.foundation.text.selection.textSelection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +69,11 @@ fun LoginScreen(
     var userError by remember { mutableStateOf<String?>(null) }
     var passError by remember { mutableStateOf<String?>(null) }
     var keyError by remember { mutableStateOf<String?>(null) }
+    // متنِ خامِ خطا (کدِ وضعیت + پاسخِ پنل) — فقط پشتِ «جزئیاتِ فنی» نشان داده می‌شود.
+    // برای پنلِ self-hosted این تنها راهِ تشخیصِ سریع است: مثلاً تفاوتِ ۴۰۱ پنل با
+    // ۴۰۳ پروکسی یا گواهیِ نادرست، در پیامِ دسته‌بندی‌شده دیده نمی‌شود.
+    var errorDetail by remember { mutableStateOf<String?>(null) }
+    var showDetail by remember { mutableStateOf(false) }
     val theme = themeState
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -82,6 +88,10 @@ fun LoginScreen(
     val errNotFound = stringResource(R.string.login_err_not_found)
     val errApiKey = stringResource(R.string.login_err_api_key)
     val errApiKeyFormat = stringResource(R.string.login_err_api_key_format)
+    val errDisabled = stringResource(R.string.login_err_admin_disabled)
+    val errForbidden = stringResource(R.string.login_err_forbidden)
+    val techDetails = stringResource(R.string.login_tech_details)
+    val techDetailsHide = stringResource(R.string.login_tech_details_hide)
     val errRequired = stringResource(R.string.login_field_required)
     val stepConnecting = stringResource(R.string.login_step_connecting)
 
@@ -156,6 +166,31 @@ fun LoginScreen(
                         RoundedAppIcon(AppIcon.Warning, tint = GlassRed, size = 16.dp)
                         Text(error!!, color = GlassRed, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                     }
+                    // «چرا؟» — متنِ خامِ خطا برای پنلِ self-hosted: کدِ وضعیت و پاسخِ سرور.
+                    // پیش‌فرض بسته است تا رابط شلوغ نشود و متنِ خام به‌عنوانِ پیامِ اصلی دیده نشود.
+                    androidx.compose.material3.TextButton(
+                        onClick = { showDetail = !showDetail },
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = DsSpacing.Md, vertical = 0.dp)
+                    ) {
+                        Text(
+                            if (showDetail) techDetailsHide else techDetails,
+                            fontSize = 11.sp,
+                            color = theme.mutedColor
+                        )
+                    }
+                    if (showDetail && errorDetail != null) {
+                        Box(
+                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
+                                .padding(DsSpacing.Md)
+                        ) {
+                            Text(
+                                errorDetail!!,
+                                fontSize = 10.sp,
+                                color = theme.mutedColor,
+                                modifier = Modifier.fillMaxWidth().textSelection()
+                            )
+                        }
+                    }
                 }
 
                 // دکمهٔ ورود — کپسولِ شیشه‌ایِ اصلی؛ اسپینر داخلِ سکهٔ آیکون می‌چرخد.
@@ -164,7 +199,8 @@ fun LoginScreen(
                     onClick = {
                         if (loading) return@PGPrimaryButton
                         // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
-                        error = null; urlError = null; userError = null; passError = null; keyError = null
+                        error = null; errorDetail = null; showDetail = false
+                        urlError = null; userError = null; passError = null; keyError = null
                         var blocked = false
                         val trimmedUrl = url.trim()
                         val prepared = if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) trimmedUrl else "https://$trimmedUrl"
@@ -194,12 +230,21 @@ fun LoginScreen(
                             runCatching {
                                 if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
                             }.onSuccess(onLoggedIn).onFailure { e ->
+                                errorDetail = e.message ?: e::class.java.simpleName
+                                val mapper = com.mrm.pgmanager.utils.ApiErrorMapper
+                                val detail = mapper.panelDetail(e)
                                 when {
                                     e.message?.contains("Credentials required", true) == true -> passError = errCredentials
                                     e.message?.contains("Invalid API key", true) == true -> keyError = errApiKeyFormat
                                     e.message?.contains("Invalid URL", true) == true || e.message?.contains("Panel address is required", true) == true -> urlError = errUrl
                                     e.message?.contains("Cleartext http", true) == true -> urlError = errHttps
                                     PanelApi.isUnauthorized(e) -> if (useApiKey) keyError = errApiKey else passError = errAuth
+                                    // پنل برای ادمینِ **غیرفعال** صریحاً ۴۰۳ با متنِ
+                                    // «your account has been disabled» می‌دهد؛ پیامِ
+                                    // عمومیِ «دسترسی ندارید» کاربر را به مسیرِ غلط می‌فرستاد.
+                                    detail?.contains("disabled", true) == true -> error = errDisabled
+                                    mapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN -> error =
+                                        detail?.let { context.getString(R.string.login_err_panel_said, it) } ?: errForbidden
                                     e is java.net.UnknownHostException -> error = errHost
                                     e is java.net.SocketTimeoutException -> error = errTimeout
                                     e.message?.contains("404", true) == true -> error = errNotFound
