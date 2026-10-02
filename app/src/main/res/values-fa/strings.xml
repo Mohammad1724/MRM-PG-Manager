@@ -1031,4 +1031,8 @@
     <string name="login_err_panel_said">پنل گفت: %1$s</string>
     <string name="login_tech_details">جزئیات فنی</string>
     <string name="login_tech_details_hide">بستنِ جزئیات</string>
+    <string name="err_tls_chain">زنجیرهٔ گواهیِ پنل ناقص است — سرور باید کلِ زنجیره را بفرستد (گواهی + واسط‌ها). مرورگرها این نقص را می‌پوشانند، اندروید نه.</string>
+    <string name="err_tls_protocol">سرورِ این آدرس با TLS صحبت نمی‌کند؛ احتمالاً پنل روی http است یا پورت/آدرس اشتباه است.</string>
+    <string name="err_tls_hostname">گواهی برای همین دامنه صادر نشده — دامنه را با زیردامنهٔ دقیق بررسی کنید.</string>
+    <string name="err_tls_expired">گواهی منقضی شده یا هنوز معتبر نشده — تاریخِ گواهی پنل و ساعتِ گوشی را بررسی کنید.</string>
 </resources>

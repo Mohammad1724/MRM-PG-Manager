@@ -116,4 +116,34 @@ class ApiErrorMapperTest {
             ApiErrorMapper.kindOf(SecurityException("Permission Denial"), ErrorOrigin.LOCAL)
         )
     }
+
+    // ── تفکیکِ علتِ خطای TLS (گزارشِ «ورود انجام نمی‌شود» — Secure connection failed) ──
+
+    @Test fun `tls reason detects an incomplete certificate chain`() {
+        // متنِ واقعیِ اندروید در این حالت همین است (واسط در زنجیره نیست).
+        val e = java.io.IOException("Trust anchor for certification path not found.", java.security.cert.CertPathValidatorException())
+        assertEquals(ApiErrorMapper.TlsReason.CHAIN, ApiErrorMapper.tlsReason(e))
+    }
+
+    @Test fun `tls reason detects a non-TLS endpoint`() {
+        // سرورِ http یا پورتِ اشتباه: هندشیک با «wrong version number» می‌شکند.
+        val e = javax.net.ssl.SSLException("Read error: ssl=0x7f: Failure in SSL library, usually a protocol error")
+        assertEquals(ApiErrorMapper.TlsReason.PROTOCOL, ApiErrorMapper.tlsReason(e))
+    }
+
+    @Test fun `tls reason detects hostname and expiry problems`() {
+        assertEquals(
+            ApiErrorMapper.TlsReason.HOSTNAME,
+            ApiErrorMapper.tlsReason(javax.net.ssl.SSLPeerUnverifiedException("Hostname panel.example.com not verified: No subject alternative names present"))
+        )
+        assertEquals(
+            ApiErrorMapper.TlsReason.EXPIRED,
+            ApiErrorMapper.tlsReason(javax.net.ssl.SSLHandshakeException("Certificate expired at Sun Oct 01 00:00:00 UTC 2023"))
+        )
+    }
+
+    @Test fun `tls reason falls back to unknown for anything else`() {
+        assertEquals(ApiErrorMapper.TlsReason.UNKNOWN, ApiErrorMapper.tlsReason(javax.net.ssl.SSLException("something else")))
+        assertEquals(ApiErrorMapper.TlsReason.UNKNOWN, ApiErrorMapper.tlsReason(null))
+    }
 }

@@ -113,12 +113,46 @@ object ApiErrorMapper {
         return raw.replace("\\\"", "\"").replace("\\n", " ").trim().takeIf { it.isNotBlank() }
     }
 
+    /**
+     * ریزِ علتِ شکستِ TLS — چهار حالتی که در عمل پیش می‌آید و **هرکدام درمانِ
+     * جداگانه‌ای دارند**. پیامِ کلیِ «گواهی یا پروتکل را بررسی کنید» کاربر را
+     * سرگردان می‌کرد؛ حالا اپ خودش می‌گوید کدام‌یک است.
+     *
+     * نکتهٔ عملی: پیامِ خودِ اندروید برای بعضی حالت‌ها در `cause` می‌نشیند، نه در
+     * پیامِ استثنای اصلی؛ پس هر دو را می‌خوانیم.
+     */
+    enum class TlsReason { CHAIN, PROTOCOL, HOSTNAME, EXPIRED, UNKNOWN }
+
+    fun tlsReason(e: Throwable?): TlsReason {
+        val text = listOfNotNull(e?.message, e?.cause?.message, e?.cause?.cause?.message).joinToString(" ")
+        return when {
+            // گواهی درست است ولی سرور کلِ زنجیره را نمی‌فرستد — شایع‌ترین حالت بعد از
+            // تمدیدِ گواهی یا تغییرِ پروکسی. مرورگرها واسطِ گم‌شده را خودشان دانلود
+            // می‌کنند (AIA)، اندروید این کار را نمی‌کند.
+            text.contains("Trust anchor", true) || text.contains("CertPathValidator", true) -> TlsReason.CHAIN
+            // سرور روی این پورت TLS صحبت نمی‌کند (پنلِ http، پورتِ اشتباه، یا واسطِ شبکه).
+            text.contains("wrong version number", true) || text.contains("protocol error", true) ||
+                text.contains("protocol_version", true) || text.contains("handshake failure", true) -> TlsReason.PROTOCOL
+            text.contains("No subject alternative", true) ||
+                text.contains("Hostname", true) && text.contains("verif", true) -> TlsReason.HOSTNAME
+            text.contains("expired", true) || text.contains("NotYetValid", true) ||
+                text.contains("CertificateExpired", true) -> TlsReason.EXPIRED
+            else -> TlsReason.UNKNOWN
+        }
+    }
+
     /** پیامِ نهاییِ کاربر — هرگز متنِ خام نیست. */
     fun friendly(context: Context, e: Throwable?, origin: ErrorOrigin = ErrorOrigin.NETWORK): String =
         when (kindOf(e, origin)) {
             ApiErrorKind.OFFLINE -> context.getString(R.string.err_offline_panel)
             ApiErrorKind.TIMEOUT -> context.getString(R.string.err_timeout_panel)
-            ApiErrorKind.TLS -> context.getString(R.string.err_tls_panel)
+            ApiErrorKind.TLS -> when (tlsReason(e)) {
+                TlsReason.CHAIN -> context.getString(R.string.err_tls_chain)
+                TlsReason.PROTOCOL -> context.getString(R.string.err_tls_protocol)
+                TlsReason.HOSTNAME -> context.getString(R.string.err_tls_hostname)
+                TlsReason.EXPIRED -> context.getString(R.string.err_tls_expired)
+                TlsReason.UNKNOWN -> context.getString(R.string.err_tls_panel)
+            }
             ApiErrorKind.UNAUTHORIZED -> context.getString(R.string.us_session_expired)
             ApiErrorKind.FORBIDDEN -> context.getString(R.string.err_forbidden_panel)
             ApiErrorKind.NOT_FOUND -> context.getString(R.string.err_not_found_panel)
