@@ -26,6 +26,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -145,7 +148,7 @@ fun PGIconButton(
             )
             .clip(shape)
             .background(if (isRed) GlassRed.copy(0.14f) else theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, if (isRed) GlassRed.copy(0.38f) else theme.borderColor), shape)
+            .border(BorderStroke(DsBorder.Hairline, if (isRed) GlassRed else theme.controlBorderColor), shape)
             .semantics { if (contentDescription != null) this.contentDescription = contentDescription }
             .clickable(interactionSource = interactionSource, indication = ripple(bounded = true, radius = size), enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -289,7 +292,7 @@ fun MrmButton(
         MrmButtonStyle.Secondary -> Triple(
             Brush.verticalGradient(listOf(theme.searchBgColor.copy(0.7f), theme.searchBgColor.copy(0.4f))),
             theme.inkColor,
-            BorderStroke(DsBorder.Hairline, theme.borderColor)
+            BorderStroke(DsBorder.Hairline, theme.controlBorderColor)
         )
         MrmButtonStyle.Danger -> Triple(
             Brush.verticalGradient(listOf(GlassRed.copy(0.16f), GlassRed.copy(0.07f))),
@@ -486,12 +489,14 @@ fun BulkActionsBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
         ) {
-            // Target count text
+            // Target count text — با هر تپِ انتخاب عوض می‌شود، پس تغییرش باید
+            // برای صفحه‌خوان اعلام شود (فاز ۷.۲)، نه اینکه بی‌صدا بماند.
             Text(
                 text = if (isFa) stringResource(R.string.cc_n_users, selectedCount) else "$selectedCount Targets",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = theme.inkColor
+                color = theme.inkColor,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
             )
 
             // Vertical divider

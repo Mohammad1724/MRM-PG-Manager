@@ -75,7 +75,7 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.cal_title), fontWeight = FontWeight.Bold, color = theme.inkColor)
-                        TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text(stringResource(R.string.cal_today), color = theme.accentPrimary) }
+                        TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text(stringResource(R.string.cal_today), color = theme.accentTextColor) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                         // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.

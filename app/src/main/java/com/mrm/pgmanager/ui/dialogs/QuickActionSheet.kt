@@ -31,6 +31,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -75,14 +76,14 @@ fun QuickActionSheet(
         dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(DsSpacing.Xxl)) {
+            Box(Modifier.fillMaxWidth().paneTitle(user.username).navigationBarsPadding().padding(DsSpacing.Xxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
                         Spacer(Modifier.width(DsSpacing.Lg))
                         Column(Modifier.weight(1f)) { 
                             MrmText(user.username, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                            MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 11.sp, color = if (user.isOnline) GlassGreen else theme.mutedColor, isTechnical = true)
+                            MrmText(lastSeenText(user.onlineAt, user.isOnline), fontSize = 11.sp, color = if (user.isOnline) theme.successTextColor else theme.mutedColor, isTechnical = true)
                         }
                         run {
                             val (c, label) = when (user.status) {

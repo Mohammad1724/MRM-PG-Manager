@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
@@ -87,7 +88,8 @@ internal fun RestoreBackupDialog(
         dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         Box(
-            Modifier.fillMaxWidth().navigationBarsPadding()
+            Modifier.fillMaxWidth().paneTitle(stringResource(R.string.set_rs_title))
+                .navigationBarsPadding()
                 .padding(DsSpacing.Dialog)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
@@ -137,7 +139,7 @@ internal fun RestoreBackupDialog(
                         if (info.encrypted) {
                             Text(
                                 stringResource(R.string.set_rs_encrypted), fontSize = 11.sp,
-                                color = GlassGreen, fontWeight = FontWeight.Bold
+                                color = theme.successTextColor, fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -167,7 +169,7 @@ internal fun RestoreBackupDialog(
                 }
 
                 result?.let {
-                    Text(it, fontSize = 11.sp, color = GlassGreen, fontWeight = FontWeight.Bold)
+                    Text(it, fontSize = 11.sp, color = theme.successTextColor, fontWeight = FontWeight.Bold)
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {

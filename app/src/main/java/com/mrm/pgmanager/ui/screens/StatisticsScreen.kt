@@ -130,7 +130,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     }
     val pullState = rememberPullToRefreshState()
     PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
-        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
+        indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentTextColor) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
 
@@ -323,7 +323,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     ) {
                                         Text(
                                             stringResource(if (reconnecting == n.id) R.string.st_node_reconnecting else R.string.st_node_reconnect),
-                                            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary, maxLines = 1
+                                            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentTextColor, maxLines = 1
                                         )
                                     }
                                 }
@@ -341,7 +341,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 }
                                 MrmText(
                                     stringResource(R.string.st_node_speed, formatBytes(live.incomingSpeed), formatBytes(live.outgoingSpeed)),
-                                    fontSize = 11.sp, color = theme.mutedLightColor, maxLines = 1, isTechnical = true
+                                    fontSize = 11.sp, color = theme.tertiaryColor, maxLines = 1, isTechnical = true
                                 )
                             } else {
                                 Text(
@@ -374,7 +374,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, emptyActionLabel = stringResource(R.string.chart_empty_refresh), onEmptyAction = { scope.launch { load(silent = true) } }, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
-                            Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
+                            Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 11.sp, color = theme.accentTextColor, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -455,15 +455,15 @@ private fun NodeTrafficCard(
         Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
             RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp)
             Text(stringResource(R.string.st_node_traffic), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor, modifier = Modifier.weight(1f))
-            Text("${range.label} · $scopeLabel", fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text("${range.label} · $scopeLabel", fontSize = 11.sp, color = theme.accentTextColor, fontWeight = FontWeight.Medium, maxLines = 1)
         }
         Text(stringResource(R.string.st_node_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 13.sp)
         if (usage.isEmpty() || grandTotal == 0L) {
             Text(stringResource(R.string.st_node_traffic_empty), fontSize = 11.sp, color = theme.mutedColor)
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Screen, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-                MrmText(stringResource(R.string.st_node_traffic_down, formatBytes(totalDown)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
-                MrmText(stringResource(R.string.st_node_traffic_up, formatBytes(totalUp)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.accentPrimary)
+                MrmText(stringResource(R.string.st_node_traffic_down, formatBytes(totalDown)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.successTextColor)
+                MrmText(stringResource(R.string.st_node_traffic_up, formatBytes(totalUp)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.accentTextColor)
                 MrmText(formatBytes(grandTotal), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
             UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, emptyActionLabel = if (onRefresh != null) stringResource(R.string.chart_empty_refresh) else null, onEmptyAction = onRefresh, valueFormatter = ::formatBytes)

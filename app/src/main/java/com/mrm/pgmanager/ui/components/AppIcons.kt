@@ -52,6 +52,7 @@ import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.EventBusy
 import androidx.compose.material.icons.rounded.PauseCircle
@@ -79,7 +80,7 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh
     // ناوبری
     Menu, Add, ChevronUp, ChevronDown,
     // زبان
-    Language }
+    Language, Accessibility }
 
 private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Lock -> Icons.Rounded.Lock
@@ -97,6 +98,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Random -> Icons.Rounded.Casino
     AppIcon.Settings -> Icons.Rounded.Settings
     AppIcon.Palette -> Icons.Rounded.Palette
+    AppIcon.Accessibility -> Icons.Rounded.AccessibilityNew
     AppIcon.Search -> Icons.Rounded.Search
     AppIcon.Calendar -> Icons.Rounded.CalendarMonth
     AppIcon.Template -> Icons.Rounded.Inventory2

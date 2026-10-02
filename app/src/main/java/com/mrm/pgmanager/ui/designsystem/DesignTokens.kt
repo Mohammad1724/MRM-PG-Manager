@@ -15,8 +15,31 @@ object DsNeutral {
     val Black = Color(0xFF000000)
     val Ink = Color(0xFF1A1F2E)           // primary text - very dark gray, not black
     val InkSoft = Color(0xFF2E3440)
-    val Muted = Color(0xFF6B7280)         // secondary — medium gray
-    val MutedLight = Color(0xFF9CA3AF)    // tertiary — light gray
+    val Muted = Color(0xFF6B7280)         // secondary — medium gray, 4.83 on white ✓ AA
+    /**
+     * نامِ قدیمی برای خاکستریِ روشن. **دیگر برای متنِ خواندنی استفاده نشود**:
+     * روی سفید فقط 2.54 می‌دهد (زیر AA). نقشِ مجازش «عنصرِ غیرفعال» است
+     * (فاز ۷.۱) — به همین دلیل نامِ معنادارِ [DisabledText] هم اضافه شده.
+     */
+    val MutedLight = Color(0xFF9CA3AF)
+    /** متنِ عناصرِ غیرفعال — طبق WCAG مشمولِ آستانهٔ کنتراست نیست. */
+    val DisabledText = Color(0xFF9CA3AF)
+    /** متنِ ثالثیه (زیرنویسِ کارت‌ها/راهنماهای ریز) — 5.98 روی سفید ✓ AA. */
+    val Tertiary = Color(0xFF5B6472)
+    /**
+     * مرزِ کنترلِ فرم (ورودی، دکمهٔ خط‌دار، دراپ‌داون).
+     *
+     * عدد پیشنهادیِ سند `#8B93A1` بود (3.09 روی سفید) ولی روی **پس‌زمینهٔ
+     * صفحه** (`#F8F9FA`) به 2.94 می‌افتاد و AA را رد می‌کرد؛ همان ورودی‌ها
+     * هم روی همین پس‌زمینه می‌نشینند. `#858D9B` هر سه سطح را پاس می‌کند:
+     * سفید 3.34 · پس‌زمینهٔ صفحه 3.17 · پس‌زمینهٔ فیلد 3.20.
+     */
+    val ControlBorder = Color(0xFF858D9B)
+    /**
+     * مرزِ کنترل در تمِ تیره. «سفیدِ ۱۴٪» قبلی روی سطحِ تیره فقط ۱.۵ می‌داد؛
+     * این معادلِ ترکیبِ سفیدِ ۳۸٪ روی `SurfaceDark` است (3.59 ✓).
+     */
+    val ControlBorderDark = Color(0xFF707174)
     val MutedOnDark = Color(0xFFA6A7AD)
     val HairlineLight = Color(0xFFE5E7EB) // border
     val HairlineSubtle = Color(0xFFEEF0F3)
@@ -35,10 +58,14 @@ object DsNeutral {
 
 /** Semantic status — soft, desaturated to match PG. */
 object DsSemantic {
-    val Success = Color(0xFF16A34A)        // green for active/traffic
+    val Success = Color(0xFF16A34A)        // green for active/traffic — آیکون/گرافیک
+    /** سبزِ **متن** روی سطحِ روشن — 5.02 روی سفید ✓ AA (نگه‌داشتنِ ۱۶A۳۴A برای آیکون). */
+    val SuccessText = Color(0xFF15803D)
     val SuccessBg = Color(0xFFDCFCE7)
     val SuccessBorder = Color(0xFFBBF7D0)
-    val Warning = Color(0xFFD97706)
+    val Warning = Color(0xFFD97706)        // کهرباییِ آیکون/گرافیک
+    /** کهرباییِ **متن** روی سطحِ روشن — 5.02 روی سفید ✓ AA. */
+    val WarningText = Color(0xFFB45309)
     val WarningBg = Color(0xFFFEF3C7)
     val Danger = Color(0xFFDC2626)
     val DangerBg = Color(0xFFFEE2E2)

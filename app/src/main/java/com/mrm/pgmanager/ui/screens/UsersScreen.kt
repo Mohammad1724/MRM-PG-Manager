@@ -30,6 +30,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -543,7 +546,13 @@ fun UsersScreen(
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                        Text(stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassAmber, maxLines = 1)
+                        Text(
+                            stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))),
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            color = LocalThemeState.current.warningTextColor, maxLines = 1,
+                            // ظهورِ این بنر یعنی «دادهٔ زنده نیست» — باید اعلام شود.
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        )
                     }
                 }
             }

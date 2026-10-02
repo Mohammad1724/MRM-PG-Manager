@@ -170,7 +170,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 PullToRefreshDefaults.Indicator(
                     isRefreshing = refreshing, state = pullState,
                     modifier = Modifier.align(Alignment.TopCenter),
-                    containerColor = theme.cardSurfaceColor, color = theme.accentPrimary
+                    containerColor = theme.cardSurfaceColor, color = theme.accentTextColor
                 )
             }
         ) {
@@ -209,7 +209,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                     ) {
                         RoundedAppIcon(AppIcon.CheckCircle, tint = DsSemantic.Success, size = 14.dp)
-                        Text(msg, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DsSemantic.Success)
+                        Text(msg, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.successTextColor)
                     }
                 }
 

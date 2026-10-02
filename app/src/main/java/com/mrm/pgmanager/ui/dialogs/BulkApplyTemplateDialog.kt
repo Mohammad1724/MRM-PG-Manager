@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -65,7 +66,7 @@ fun BulkApplyTemplateDialog(
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
-                Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(DsSpacing.Xxxl)
+                Modifier.fillMaxWidth().paneTitle(stringResource(R.string.bt_title, selectedCount)).padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(DsSpacing.Xxxl)
             ) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                 Text(stringResource(R.string.bt_title, selectedCount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)

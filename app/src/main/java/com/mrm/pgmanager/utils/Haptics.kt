@@ -17,8 +17,23 @@ import android.os.Vibrator
  */
 object Haptics {
 
+    /**
+     * کشِ store برای خواندنِ تنظیمِ هپتیک. `SessionStore` خودش پرِفرنسِ
+     * مشترک را کش می‌کند، پس اینجا فقط از ساختنِ مکررِ wrapper جلوگیری می‌کنیم.
+     */
+    @Volatile private var store: com.mrm.pgmanager.data.storage.SessionStore? = null
+
+    private fun enabled(context: Context): Boolean = try {
+        val app = context.applicationContext
+        val s = store ?: com.mrm.pgmanager.data.storage.SessionStore(app).also { store = it }
+        s.readUiPrefs().hapticsEnabled
+    } catch (_: Exception) {
+        true // تنظیمات نباید هرگز مانعِ بازخوردِ لمسیِ پیش‌فرض شود
+    }
+
     private fun vibrate(context: Context, ms: Long, amplitude: Int) {
         try {
+            if (!enabled(context)) return
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return
             if (!vibrator.hasVibrator()) return
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

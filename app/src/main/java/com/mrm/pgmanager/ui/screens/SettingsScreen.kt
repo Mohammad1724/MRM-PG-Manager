@@ -90,6 +90,9 @@ fun SettingsScreen(
     onAppLockChange: (Boolean) -> Unit = {},
     monitoringSettings: MonitoringSettings = MonitoringSettings(),
     onMonitoringChange: (MonitoringSettings) -> Unit = {},
+    // ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷)
+    uiPrefs: com.mrm.pgmanager.data.model.UiPrefs = com.mrm.pgmanager.data.model.UiPrefs(),
+    onUiPrefsChange: (com.mrm.pgmanager.data.model.UiPrefs) -> Unit = {},
     appLockTimeout: Int = 0,
     onLockTimeoutChange: (Int) -> Unit = {},
     appLanguage: String = "system",
@@ -227,7 +230,9 @@ fun SettingsScreen(
                     themeState = themeState,
                     onThemeChange = onThemeChange,
                     appLanguage = appLanguage,
-                    onLanguageChange = onLanguageChange
+                    onLanguageChange = onLanguageChange,
+                    uiPrefs = uiPrefs,
+                    onUiPrefsChange = onUiPrefsChange
                 )
 
                 // ── اعلان‌ها و مانیتورینگ: دو بخشِ سابق روی یک صفحه (فاز ۱.۴).
@@ -449,7 +454,9 @@ private fun AppearanceSection(
     themeState: ThemeState,
     onThemeChange: (ThemeState) -> Unit,
     appLanguage: String,
-    onLanguageChange: (String) -> Unit
+    onLanguageChange: (String) -> Unit,
+    uiPrefs: com.mrm.pgmanager.data.model.UiPrefs,
+    onUiPrefsChange: (com.mrm.pgmanager.data.model.UiPrefs) -> Unit
 ) {
     val theme = LocalThemeState.current
 
@@ -466,6 +473,30 @@ private fun AppearanceSection(
             }
         )
         Text(stringResource(R.string.language_desc), fontSize = 11.sp, color = theme.mutedColor)
+    }
+
+    // ── دسترس‌پذیری و حریم خصوصی (فاز ۷)
+    // این سه کلید دقیقاً سه یافتهٔ فاز ۷ هستند: کاهش حرکت، هپتیکِ اختیاری و
+    // پنهان‌بودنِ محتوا در Recents. جای پیش‌فرضِ هر سه «بی‌آزار» انتخاب شده:
+    // هپتیک و FLAG_SECURE روشن، کاهش حرکت خاموش (چون تجربهٔ بصریِ پیش‌فرض است).
+    SettingsCard(stringResource(R.string.set_a11y_title), AppIcon.Accessibility, accent = theme.accentPrimary) {
+        SettingsSwitchRow(
+            stringResource(R.string.set_a11y_haptics),
+            stringResource(R.string.set_a11y_haptics_desc),
+            uiPrefs.hapticsEnabled
+        ) { onUiPrefsChange(uiPrefs.copy(hapticsEnabled = it)) }
+
+        SettingsSwitchRow(
+            stringResource(R.string.set_a11y_reduce_motion),
+            stringResource(R.string.set_a11y_reduce_motion_desc),
+            uiPrefs.reduceMotion
+        ) { onUiPrefsChange(uiPrefs.copy(reduceMotion = it)) }
+
+        SettingsSwitchRow(
+            stringResource(R.string.set_a11y_secure_screen),
+            stringResource(R.string.set_a11y_secure_screen_desc),
+            uiPrefs.secureScreen
+        ) { onUiPrefsChange(uiPrefs.copy(secureScreen = it)) }
     }
 
     SettingsCard(stringResource(R.string.set_display_mode), AppIcon.Palette) {

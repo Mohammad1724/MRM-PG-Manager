@@ -47,6 +47,8 @@ jobs:
           # یک خانوادهٔ دکمه/FAB: بیرون از ui/components فقط PG* (موتور Mrm* ممنوع)
           python3 tools/kt-family.py
           python3 tools/kt-modifier-order.py
+          # فاز ۷.۱ — پالت باید AA بماند؛ اگر کسی توکنی را روشن/تیره کند، همین‌جا رد می‌شود.
+          python3 tools/check-contrast.py
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest

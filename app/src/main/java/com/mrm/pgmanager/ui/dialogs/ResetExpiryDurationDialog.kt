@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.dialogs
 import androidx.compose.ui.res.stringResource
 
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -40,10 +41,10 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     var days by remember { mutableStateOf("30") }
     var error by remember { mutableStateOf<String?>(null) }
     Dialog(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
+        Column(Modifier.fillMaxWidth().paneTitle(stringResource(R.string.re_title)).imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
             Text(stringResource(R.string.re_title), fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
             Text(stringResource(R.string.re_subtitle), fontSize = 11.sp, color = theme.mutedColor)
-            Box(Modifier.fillMaxWidth().height(DsComponent.Field).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.fillMaxWidth().height(DsComponent.Field).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
                 BasicTextField(days, { raw ->
                     val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
                     days = n.filter(Char::isDigit); error = null
@@ -52,7 +53,7 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
             }
             error?.let { Text(it, fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.padding(vertical = 4.dp).weight(1f).height(32.dp).clip(DsRadius.Sm).clickable { days = value.toString(); error = null }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { Text(stringResource(R.string.re_days_value, value), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor) } }
+                listOf(7, 30, 60, 90).forEach { value -> Box(Modifier.padding(vertical = 4.dp).weight(1f).height(32.dp).clip(DsRadius.Sm).clickable { days = value.toString(); error = null }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { Text(stringResource(R.string.re_days_value, value), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.inkColor) } }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 PGSecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))

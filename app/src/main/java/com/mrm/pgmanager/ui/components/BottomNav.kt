@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -172,7 +173,7 @@ private fun AccountNavChip(
             .size(46.dp)
             .clip(DsRadius.Full)
             .background(theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
+            .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Full)
             .semantics { contentDescription = cd }
             .pressScale(0.94f)
             .clickable(onClick = onClick),
@@ -215,7 +216,9 @@ private fun NavChip(
     Row(
         modifier
             // ۴۶dp ارتفاع + padding کپسول ⇒ هدفِ لمس بالای ۴۸dpِ توصیه‌شده.
-            .height(46.dp)
+            // «حداقل» است نه «ثابت»: با fontScale = ۲ برچسبِ تب نباید بُرده شود
+            // (فاز ۷.۴ — همان علتی که در QA دستی به‌عنوان ریسک ثبت شده بود).
+            .heightIn(min = 46.dp)
             .clip(DsRadius.Full)
             .drawBehind {
                 if (selectedAlpha > 0.01f) {

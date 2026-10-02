@@ -24,6 +24,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.LocalMotionDurationScale
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,6 +70,31 @@ import androidx.compose.ui.unit.dp
  * منحنی‌ها از مجموعهٔ «emphasized» متریال ۳ گرفته شده‌اند که برای حرکت‌های
  * بزرگ (شیت، صفحه) طراحی شده و از FastOutSlowIn طبیعی‌تر است.
  */
+/**
+ * «کاهش انیمیشن» (فاز ۷.۳).
+ *
+ * Compose مدت‌زمانِ همهٔ انیمیشن‌هایش را در `LocalMotionDurationScale` ضرب می‌کند.
+ * با صفر کردنِ این ضریب، حرکت‌ها **حذف** می‌شوند نه کوتاه — دقیقاً همان چیزی که
+ * کاربرِ حساس به حرکت (و کسی که فقط می‌خواهد اپ سریع‌تر حس شود) می‌خواهد.
+ *
+ * چرا اینجا و نه در هر کامپوننت؟ چون یک نقطهٔ واحد، همهٔ `tween`/`animate*AsState`/
+ * `AnimatedVisibility`/شیمِرِ اسکلت را یک‌جا پوشش می‌دهد؛ اگر هر کامپوننت خودش
+ * تصمیم می‌گرفت، یکی‌شان قطعاً جا می‌ماند.
+ *
+ * نکته: تنظیمِ سیستمیِ «حذفِ انیمیشن» مستقل از این هم توسط خودِ Compose رعایت
+ * می‌شود؛ این سوئیچِ *اپ* است برای کسی که سیستمش را دست نمی‌زند.
+ */
+@Composable
+fun ProvideMotionScale(reduceMotion: Boolean, content: @Composable () -> Unit) {
+    val scale = LocalMotionDurationScale.current
+    val provided = remember(reduceMotion, scale) {
+        if (!reduceMotion) scale else object : MotionDurationScale {
+            override val scaleFactor: Float = 0f
+        }
+    }
+    CompositionLocalProvider(LocalMotionDurationScale provides provided, content = content)
+}
+
 object DsEasing {
     /** حرکت‌های معمولی: شروعِ قاطع، پایانِ نرم. */
     val Standard: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)

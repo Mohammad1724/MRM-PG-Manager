@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -72,7 +73,7 @@ fun ConfirmActionDialog(
     val wordSatisfied = confirmWord == null || typed.trim() == confirmWord
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xxxl)) {
+            Box(Modifier.fillMaxWidth().paneTitle(title).clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xxxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                     Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
@@ -85,7 +86,7 @@ fun ConfirmActionDialog(
                             Box(
                                 Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(DsRadius.Md)
                                     .background(theme.searchBgColor)
-                                    .border(BorderStroke(DsBorder.Hairline, if (wordSatisfied) theme.borderColor else theme.accentPrimary.copy(0.45f)), DsRadius.Md)
+                                    .border(BorderStroke(DsBorder.Hairline, if (wordSatisfied) theme.controlBorderColor else theme.accentPrimary), DsRadius.Md)
                                     .padding(horizontal = DsSpacing.FieldHorizontal),
                                 contentAlignment = Alignment.CenterStart
                             ) {

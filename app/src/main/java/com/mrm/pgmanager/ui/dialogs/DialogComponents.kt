@@ -28,7 +28,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.MrmText
@@ -54,9 +56,13 @@ fun SettingsSwitchRow(
     onChange: (Boolean) -> Unit
 ) {
     val theme = LocalThemeState.current
+    // اعلامِ صریحِ وضعیت برای صفحه‌خوان (فاز ۷.۲): Switch در Compose وضعیتش را
+    // می‌گوید، ولی این ردیفِ کلیک‌پذیر است و کاربر ممکن است روی متن هم بزند.
+    val stateText = stringResource(if (checked) R.string.a11y_switch_on else R.string.a11y_switch_off)
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg)
             .clickable(enabled = enabled) { onChange(!checked) }
+            .semantics { if (enabled) stateDescription = stateText }
             .padding(vertical = DsSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -92,7 +98,7 @@ fun SettingsStepper(
         Box(
             Modifier.width(66.dp).height(30.dp).clip(DsRadius.Sm)
                 .background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm),
+                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Sm),
             contentAlignment = Alignment.Center
         ) { Text("$value $unit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Box(
@@ -204,7 +210,7 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Xl)
             .background(theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
+            .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Xl)
             .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -360,3 +366,12 @@ fun ChipSelector(
         }
     }
 }
+
+/**
+ * عنوانِ پنجره/شیت برای صفحه‌خوان (فاز ۷.۲).
+ *
+ * بدونِ `paneTitle`، TalkBack هنگامِ باز شدنِ یک شیت فقط می‌گوید «جعبه» و کاربر
+ * باید کلِ محتوا را پیمایش کند تا بفهمد کجاست. با آن، نامِ پنجره یک بار اعلام
+ * می‌شود و هر عنصر یک برچسبِ مکان دارد.
+ */
+fun Modifier.paneTitle(text: String): Modifier = this.semantics { paneTitle = text }

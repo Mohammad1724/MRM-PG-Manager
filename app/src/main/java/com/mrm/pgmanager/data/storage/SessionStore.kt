@@ -436,6 +436,18 @@ class SessionStore(context: Context) {
     fun readInvoiceSeller(): String = prefs.getString("invoice_seller", "") ?: ""
     fun saveInvoiceSeller(name: String) = prefs.edit().putString("invoice_seller", name).apply()
 
+    // === ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷) ===
+    fun readUiPrefs() = com.mrm.pgmanager.data.model.UiPrefs(
+        hapticsEnabled = prefs.getBoolean("ui_haptics", true),
+        reduceMotion = prefs.getBoolean("ui_reduce_motion", false),
+        secureScreen = prefs.getBoolean("ui_secure_screen", true)
+    )
+    fun saveUiPrefs(p: com.mrm.pgmanager.data.model.UiPrefs) = prefs.edit()
+        .putBoolean("ui_haptics", p.hapticsEnabled)
+        .putBoolean("ui_reduce_motion", p.reduceMotion)
+        .putBoolean("ui_secure_screen", p.secureScreen)
+        .apply()
+
     // === تنظیمات پشتیبان‌گیری ===
     fun readBackupUri(): String? = prefs.getString("backup_uri", null)
     fun saveBackupUri(uri: String?) = prefs.edit().putString("backup_uri", uri).apply()

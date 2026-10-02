@@ -32,7 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -147,6 +149,9 @@ private fun AppSnackbarSurface(
                 onClick = {},
                 onLongClick = { if (event.detail != null) onToggleDetail() }
             )
+            // فاز ۷.۲ — «اعلامِ تغییراتِ زنده»: Snackbar بدونِ liveRegion برای
+            // صفحه‌خوان یک متنِ ساکن است و ممکن است هیچ‌وقت خوانده نشود.
+            .semantics { liveRegion = LiveRegionMode.Polite }
             .padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Lg)
     ) {
     Row(
@@ -183,7 +188,7 @@ private fun AppSnackbarSurface(
                     event.actionLabel,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = LocalThemeState.current.accentPrimary
+                    color = LocalThemeState.current.accentTextColor
                 )
             }
         }

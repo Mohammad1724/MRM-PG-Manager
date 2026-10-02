@@ -875,6 +875,17 @@
     <string name="chart_empty_range">Change range</string>
     <string name="err_technical">Technical details</string>
     <string name="err_technical_hint">Long-press to see technical details</string>
+    <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
+    <string name="a11y_switch_on">On</string>
+    <string name="a11y_switch_off">Off</string>
+    <string name="set_a11y_title">Accessibility &amp; privacy</string>
+    <string name="set_a11y_haptics">Vibration feedback</string>
+    <string name="set_a11y_haptics_desc">A short vibration confirms completed actions. Turn off if you keep the phone on silent or find it distracting.</string>
+    <string name="set_a11y_reduce_motion">Reduce motion</string>
+    <string name="set_a11y_reduce_motion_desc">Removes animations instead of shortening them. Useful if motion makes you uncomfortable, or you simply want the app to feel faster.</string>
+    <string name="set_a11y_secure_screen">Hide content in recent apps</string>
+    <string name="set_a11y_secure_screen_desc">Blocks screenshots and hides the app in the recent-apps switcher. Keep it on while panel tokens and subscription links are on screen.</string>
+    <string name="set_link_copy_warning">Anyone with this link can use the subscription — share it privately.</string>
     <string name="err_generic">Something went wrong</string>
     <string name="cd_account">Account menu</string>
     <string name="confirm">Confirm</string>

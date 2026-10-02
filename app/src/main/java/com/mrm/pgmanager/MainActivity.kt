@@ -190,6 +190,21 @@ fun MRMApp() {
     var appLanguage by remember { mutableStateOf(store.readAppLanguage()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
     var monitoringSettings by remember { mutableStateOf(store.readMonitoringSettings()) }
+    // ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷): هپتیک، کاهش حرکت، FLAG_SECURE.
+    var uiPrefs by remember { mutableStateOf(store.readUiPrefs()) }
+
+    // حریمِ خصوصیِ صفحه: با روشن‌بودنِ این تنظیم، محتوای اپ در Recents و در
+    // اسکرین‌شات/ضبطِ صفحه دیده نمی‌شود (توکنِ پنل و لینک‌های اشتراک این‌جا هستند).
+    // کلیدِ افکت شاملِ `activity` است تا با بازیابیِ اپ هم دوباره اعمال شود.
+    DisposableEffect(activity, uiPrefs.secureScreen) {
+        val window = activity?.window
+        if (window != null && uiPrefs.secureScreen) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
+        onDispose { }
+    }
     var isUnlocked by rememberSaveable { mutableStateOf(false) }
     // مهلت قفل خودکار (ثانیه)؛ 0 یعنی قفل فوری هنگام خروج از برنامه.
     var appLockTimeout by remember { mutableStateOf(store.readAppLockTimeoutSecs()) }
@@ -290,6 +305,8 @@ fun MRMApp() {
     }
 
     LiquidGlassTheme(themeState = effectiveTheme) {
+      // «کاهش انیمیشن» یک نقطهٔ واحد: کلِ درختِ UI زیرِ این ارائه‌دهنده می‌نشیند.
+      com.mrm.pgmanager.ui.designsystem.ProvideMotionScale(uiPrefs.reduceMotion) {
         // جعبهٔ ریشه: همه شاخه‌ها (لاگین/قفل/اصلی) + میزبانِ بازخوردِ سراسری
         // را در یک لایهٔ واحد می‌نشاند تا پیامِ بازخورد با عوض‌شدنِ شاخه
         // (مثلاً انقضای نشست ← صفحهٔ ورود) از بین نرود.
@@ -523,6 +540,8 @@ fun MRMApp() {
                             onAppLockChange = handleAppLockChange,
                             monitoringSettings = monitoringSettings,
                             onMonitoringChange = { value -> monitoringSettings = value; store.saveMonitoringSettings(value) },
+                            uiPrefs = uiPrefs,
+                            onUiPrefsChange = { value -> uiPrefs = value; store.saveUiPrefs(value) },
                             appLockTimeout = appLockTimeout,
                             onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
                             appLanguage = appLanguage,
@@ -567,6 +586,7 @@ fun MRMApp() {
                 .padding(bottom = 96.dp)
         )
         }
+      }
     }
 }
 

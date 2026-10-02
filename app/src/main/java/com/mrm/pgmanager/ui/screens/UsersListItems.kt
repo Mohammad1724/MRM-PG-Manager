@@ -210,11 +210,11 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                 IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
                 IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
                 Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.height(24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
+                    Box(Modifier.heightIn(min = 24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                         OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
                     }
                     if (user.groupNames.isNotEmpty()) {
-                        Box(Modifier.height(24.dp).clip(RoundedCornerShape(7.dp)).background(DsSemantic.Violet.copy(0.10f)).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
+                        Box(Modifier.heightIn(min = 24.dp).clip(RoundedCornerShape(7.dp)).background(DsSemantic.Violet.copy(0.10f)).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                             Text(user.groupNames.first(), fontSize = 11.sp, color = DsSemantic.Violet, maxLines = 1)
                         }
                     }

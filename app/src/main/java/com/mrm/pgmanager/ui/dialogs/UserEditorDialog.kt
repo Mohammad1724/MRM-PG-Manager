@@ -223,7 +223,7 @@ fun UserEditorDialog(
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
                                     DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = GlassGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; daysDirty = true; statusMenuExpanded = false })
+                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = theme.successTextColor, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; daysDirty = true; statusMenuExpanded = false })
                                         DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; daysDirty = true; statusMenuExpanded = false })
                                         // پنل اجازهٔ ساختِ کاربرِ غیرفعال نمی‌دهد (UserStatusCreate = active | on_hold).
                                         if (!isCreating) DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "disabled"; statusMenuExpanded = false })

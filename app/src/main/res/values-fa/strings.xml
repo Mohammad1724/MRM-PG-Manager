@@ -875,6 +875,17 @@
     <string name="chart_empty_range">تغییر بازه</string>
     <string name="err_technical">جزئیات فنی</string>
     <string name="err_technical_hint">برای دیدنِ جزئیات فنی، پیام را نگه دارید</string>
+    <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
+    <string name="a11y_switch_on">روشن</string>
+    <string name="a11y_switch_off">خاموش</string>
+    <string name="set_a11y_title">دسترس‌پذیری و حریم خصوصی</string>
+    <string name="set_a11y_haptics">بازخوردِ لرزشی</string>
+    <string name="set_a11y_haptics_desc">لرزشِ کوتاه، انجام‌شدنِ کار را تأیید می‌کند. اگر گوشی همیشه بی‌صدا است یا اذیت می‌شوید، خاموشش کنید.</string>
+    <string name="set_a11y_reduce_motion">کاهشِ انیمیشن</string>
+    <string name="set_a11y_reduce_motion_desc">انیمیشن‌ها را کوتاه نمی‌کند، حذف می‌کند. مناسبِ کسی که حرکت اذیتش می‌کند یا می‌خواهد اپ سریع‌تر حس شود.</string>
+    <string name="set_a11y_secure_screen">پنهان‌کردنِ محتوا در اپ‌های اخیر</string>
+    <string name="set_a11y_secure_screen_desc">از عکس‌گرفتنِ صفحه جلوگیری می‌کند و اپ را در فهرستِ اپ‌های اخیر پنهان می‌کند. تا وقتی توکنِ پنل و لینک‌های اشتراک روی صفحه است، روشن بماند.</string>
+    <string name="set_link_copy_warning">هر کسی این لینک را داشته باشد می‌تواند از اشتراک استفاده کند — فقط در جای امن به اشتراک بگذارید.</string>
     <string name="err_generic">خطایی رخ داد</string>
     <string name="cd_account">فهرست حساب</string>
     <string name="confirm">تایید</string>

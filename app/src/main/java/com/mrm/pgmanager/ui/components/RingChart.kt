@@ -240,7 +240,7 @@ fun PGRingStatCard(
             }
             if (sub != null) {
                 // دو خط مجاز (با '\n')؛ minHeight=88dp جا را نگه می‌دارد تا کاشی‌های هم‌ردیف هم‌قد بمانند.
-                Text(sub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("ring_sub"))
+                Text(sub, fontSize = 11.sp, color = t.tertiaryColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("ring_sub"))
             }
         }
     }

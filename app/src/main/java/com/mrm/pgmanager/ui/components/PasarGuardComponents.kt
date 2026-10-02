@@ -40,7 +40,10 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 
 // ─────────────────────────────────────────────────────────────
@@ -106,7 +109,7 @@ fun PGStatCard(
                 Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (valueSub != null) {
-                Text(valueSub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 1)
+                Text(valueSub, fontSize = 11.sp, color = t.tertiaryColor, maxLines = 1)
             }
         }
     }
@@ -249,7 +252,7 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
     val t = LocalThemeState.current
     val shape = DsRadius.Md
     Box(
-        modifier.fillMaxWidth().height(DsComponent.SearchBar).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.borderColor), shape).padding(horizontal = DsSpacing.FieldHorizontal),
+        modifier.fillMaxWidth().height(DsComponent.SearchBar).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.controlBorderColor), shape).padding(horizontal = DsSpacing.FieldHorizontal),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
@@ -261,7 +264,7 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = t.inkColor),
                 modifier = Modifier.weight(1f),
                 decorationBox = { inner ->
-                    if (query.isEmpty()) Text(placeholder, fontSize = 13.sp, color = t.mutedLightColor)
+                    if (query.isEmpty()) Text(placeholder, fontSize = 13.sp, color = t.tertiaryColor)
                     inner()
                 }
             )
@@ -287,6 +290,8 @@ fun PGProgressBar(progress: Float, modifier: Modifier = Modifier, height: Dp = 4
     Box(
         modifier
             .height(height)
+            // درصدِ مصرف برای صفحه‌خوان قابلِ اعلام شود (فاز ۷.۲).
+            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(target, 0f..1f) }
             .drawBehind {
                 val r = CornerRadius(size.height / 2f, size.height / 2f)
                 drawRoundRect(color = resolvedTrack, cornerRadius = r)
@@ -323,7 +328,12 @@ fun PGTopBar(title: String, subtitle: String? = null, onMenu: (() -> Unit)? = nu
                         Text("☰", fontSize = 16.sp, color = t.inkColor)
                     }
                 }
-                Column {
+                Column(
+                    // فاز ۷.۲ — «یک الگو، یک کامپوننت»: عنوانِ هر صفحه از همین
+                    // نوار می‌آید، پس یک `heading()` اینجا هر ۵ تب را ساختارمند
+                    // می‌کند و TalkBack می‌تواند مستقیم به سربرگ بپرد.
+                    Modifier.semantics { heading() }
+                ) {
                     Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = t.inkColor)
                     if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = t.mutedColor)
                 }

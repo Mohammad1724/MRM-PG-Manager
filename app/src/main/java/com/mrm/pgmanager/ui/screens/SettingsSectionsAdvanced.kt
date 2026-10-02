@@ -176,7 +176,7 @@ internal fun ConnectionSection(
                     ) {
                         Text(
                             stringResource(R.string.set_conn_connect), fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold, color = GlassGreen
+                            fontWeight = FontWeight.Bold, color = theme.successTextColor
                         )
                     }
                     Box(
@@ -229,7 +229,7 @@ internal fun ConnectionSection(
             compact = false
         )
         testResult?.let { (ok, message) ->
-            val color = if (ok) GlassGreen else GlassRed
+            val color = if (ok) theme.successTextColor else GlassRed
             Row(
                 Modifier.fillMaxWidth().clip(DsRadius.Lg)
                     .background(color.copy(.10f))
@@ -367,7 +367,7 @@ internal fun UsersSettingsSection(
                 R.string.set_usr_sample,
                 if (pattern.sequential) pattern.sequentialName(0) else pattern.randomName()
             ),
-            fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold
+            fontSize = 11.sp, color = theme.accentTextColor, fontWeight = FontWeight.Bold
         )
     }
 

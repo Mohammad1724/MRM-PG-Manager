@@ -21,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import com.mrm.pgmanager.ui.designsystem.WcagContrast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
@@ -156,7 +158,35 @@ data class ThemeState(
 
     val inkColor: Color get() = if (isDark) DsNeutral.InkDark else DsNeutral.Ink
     val mutedColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Muted
-    val mutedLightColor: Color get() = if (isDark) DsNeutral.MutedOnDark.copy(0.7f) else DsNeutral.MutedLight
+    /** نامِ قدیمی؛ برای متنِ خواندنی از [tertiaryColor] استفاده کنید (فاز ۷.۱). */
+    val mutedLightColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.MutedLight
+    /**
+     * متنِ ثالثیه (زیرنویس/راهنمای ریز). روشن: `#5B6472` (5.98) · تیره: `MutedOnDark` (7.25).
+     * جانشینِ `MutedLight` در نقشِ متن — همان مقداری که در §۳ سند اندازه‌گیری شده بود.
+     */
+    val tertiaryColor: Color get() = if (isDark) DsNeutral.MutedOnDark else DsNeutral.Tertiary
+    /** خاکستریِ «غیرفعال» — عمداً کم‌کنتراست و فقط برای عناصرِ غیرفعال. */
+    val disabledTextColor: Color get() = DsNeutral.MutedLight
+    /** مرزِ کنترلِ فرم (AA ≥۳:۱ روی سطحِ مجاور). */
+    val controlBorderColor: Color get() = if (isDark) DsNeutral.ControlBorderDark else DsNeutral.ControlBorder
+    /** متنِ موفقیت/هشدار روی سطحِ روشن تیره‌تر می‌شود؛ روی سطحِ تیره همان تنِ روشن AA است. */
+    val successTextColor: Color get() = if (isDark) DsSemantic.Success else DsSemantic.SuccessText
+    val warningTextColor: Color get() = if (isDark) DsSemantic.Warning else DsSemantic.WarningText
+    /**
+     * رنگِ **متنیِ** اکسنت کارِ جاری.
+     *
+     * طلایی (`#FACC15`) روی سفید فقط 1.53 می‌دهد؛ این ویژگی همان فام را
+     * گام‌به‌گام تیره می‌کند تا به AA برسد (برای طلایی ≈ `#826803`، 5.3).
+     * مزیت نسبت به هاردکد: برای هر ۶ چراغ و **رنگِ سفارشیِ کاربر** هم درست کار می‌کند.
+     * برای پرشدگی/انتخاب همچنان [accentPrimary] استفاده می‌شود (متن روی آن).
+     */
+    val accentTextColor: Color
+        get() = Color(
+            WcagContrast.forTextOn(
+                accentPrimary.toArgb(),
+                (if (isDark) DsNeutral.BackgroundDark else DsNeutral.BackgroundLight).toArgb()
+            )
+        )
     val cardBgColor: Color get() = when {
         isDark && amoledDark -> Color(0xFF121214)
         isDark -> DsNeutral.SurfaceSoftDark

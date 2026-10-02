@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.ui.components.*
@@ -286,7 +287,7 @@ fun UserDetailsDialog(
         dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Column(Modifier.fillMaxWidth().heightIn(max = 720.dp).navigationBarsPadding().imePadding().padding(bottom = DsSpacing.Md)) {
+            Column(Modifier.fillMaxWidth().paneTitle(user.username).heightIn(max = 720.dp).navigationBarsPadding().imePadding().padding(bottom = DsSpacing.Md)) {
                 // ── هدر جدید: آواتار مینیمال 28dp بدون گرادینت
                 Row(
                     Modifier.fillMaxWidth().background(theme.cardSurfaceColor).padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
@@ -351,7 +352,7 @@ fun UserDetailsDialog(
                         ) {
                             RoundedAppIcon(AppIcon.Note, tint = theme.accentPrimary, size = 12.dp)
                             Text(currentUser.note!!.trim(), fontSize = 11.sp, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                            Text("↗", fontSize = 11.sp, color = theme.accentPrimary)
+                            Text("↗", fontSize = 11.sp, color = theme.accentTextColor)
                         }
                     }
 
@@ -435,7 +436,7 @@ fun UserDetailsDialog(
                                         fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
                                     )
                                     Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Full).clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
-                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary)
+                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentTextColor)
                                     }
                                 }
                                 ips?.take(6)?.forEach { entry ->

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.dialogs.paneTitle
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
@@ -150,7 +151,7 @@ fun BulkCreateUsersDialog(
 
     Dialog(onDismissRequest = { if (!running) onDismiss() }) {
         Box(
-            Modifier.fillMaxWidth().imePadding().heightIn(max = 640.dp).clip(DsRadius.Xxl)
+            Modifier.fillMaxWidth().paneTitle(stringResource(R.string.bc_title)).imePadding().heightIn(max = 640.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
                 .padding(DsSpacing.Xl)
@@ -179,7 +180,7 @@ fun BulkCreateUsersDialog(
                         )
                         if (pattern.sequential) SettingsStepper(stringResource(R.string.bc_start_from), pattern.sequentialStart, stringResource(R.string.bc_number), 1..999000) { pattern = pattern.copy(sequentialStart = it) }
                         else SettingsStepper(stringResource(R.string.bc_digits), pattern.randomDigits, stringResource(R.string.bc_digit), 3..6) { pattern = pattern.copy(randomDigits = it) }
-                        Text(stringResource(R.string.bc_examples, if (pattern.sequential) "${pattern.sequentialName(0)} · ${pattern.sequentialName(1)}" else "${pattern.randomName()} · ${pattern.randomName()}"), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(R.string.bc_examples, if (pattern.sequential) "${pattern.sequentialName(0)} · ${pattern.sequentialName(1)}" else "${pattern.randomName()} · ${pattern.randomName()}"), fontSize = 11.sp, color = theme.accentTextColor, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     // کارت مشخصات
                     SettingsCard(stringResource(R.string.bc_plan), AppIcon.Template) {
@@ -241,7 +242,7 @@ fun BulkCreateUsersDialog(
                         if (done) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                 RoundedAppIcon(AppIcon.CheckCircle, tint = GlassGreen, size = 16.dp)
-                                Text(stringResource(R.string.bc_created_n, successCount), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
+                                Text(stringResource(R.string.bc_created_n, successCount), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = theme.successTextColor)
                             }
                             if (errors.isNotEmpty()) {
                                 Text(stringResource(R.string.bc_errors_n, errors.size), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)

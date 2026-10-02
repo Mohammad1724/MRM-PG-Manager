@@ -122,7 +122,8 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
     val shape = DsRadius.Lg
     Box(
         modifier = modifier
-            .height(72.dp)
+            // کارتِ آماری: ۷۲dp حداقل است؛ با فونتِ بزرگ‌شده دو سطر متن جا می‌شود.
+            .heightIn(min = 72.dp)
             .clip(shape)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
@@ -168,7 +169,7 @@ internal fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modi
         .height(40.dp)
         .clip(shape)
         .background(theme.searchBgColor)
-        .border(BorderStroke(DsBorder.Hairline, if (isFocused) theme.accentPrimary.copy(0.4f) else theme.borderColor), shape)
+        .border(BorderStroke(DsBorder.Hairline, if (isFocused) theme.accentPrimary else theme.controlBorderColor), shape)
         .padding(horizontal = DsSpacing.FieldHorizontal)
         .onFocusChanged { isFocused = it.isFocused }
         , contentAlignment = Alignment.CenterStart) {
@@ -272,7 +273,7 @@ internal fun FilterAndControlBar(
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).clickable { showFilterSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.padding(vertical = 1.dp).weight(1f).heightIn(min = 38.dp).clip(DsRadius.Sm).clickable { showFilterSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
@@ -287,7 +288,7 @@ internal fun FilterAndControlBar(
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).clickable { showSortSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.padding(vertical = 1.dp).weight(1f).heightIn(min = 38.dp).clip(DsRadius.Sm).clickable { showSortSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
@@ -306,7 +307,7 @@ internal fun FilterAndControlBar(
             val selectedName = groups.firstOrNull { it.id == groupFilterId }?.name
             Box {
                 Row(
-                    Modifier.padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Sm).clickable { groupMenu = true }
+                    Modifier.padding(vertical = 1.dp).heightIn(min = 38.dp).clip(DsRadius.Sm).clickable { groupMenu = true }
                         .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
                         .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
                         .pressScale(0.97f)
@@ -403,7 +404,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
     Box(modifier = Modifier.padding(vertical = 4.dp)
-        .height(32.dp)
+        .heightIn(min = 32.dp)
         .clip(shape)
         .clickable(onClick = onClick)
         .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)

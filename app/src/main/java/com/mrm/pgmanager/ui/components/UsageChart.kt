@@ -75,7 +75,7 @@ fun UsageChart(
                     emptyActionLabel,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = theme.accentPrimary,
+                    color = theme.accentTextColor,
                     modifier = Modifier
                         .padding(top = DsSpacing.Sm)
                         .clip(DsRadius.Sm)

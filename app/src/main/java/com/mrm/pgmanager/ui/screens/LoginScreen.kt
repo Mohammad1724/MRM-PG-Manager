@@ -296,7 +296,7 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (error != null) GlassRed else theme.inkColor)
         Box(
-            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.borderColor), DsRadius.Md)
+            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.controlBorderColor), DsRadius.Md)
                 .padding(horizontal = DsSpacing.FieldHorizontal),
             contentAlignment = Alignment.CenterStart
         ) {

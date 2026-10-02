@@ -322,7 +322,7 @@ fun InvoiceDialog(
                 ) {
                     InfoRow(stringResource(R.string.inv_username), user.username, theme)
                     InfoRow(stringResource(R.string.inv_data), dataLimitText, theme, bold = true)
-                    InfoRow(stringResource(R.string.inv_duration), durationText, theme, bold = true, color = theme.accentPrimary)
+                    InfoRow(stringResource(R.string.inv_duration), durationText, theme, bold = true, color = theme.accentTextColor)
                     InfoRow(stringResource(R.string.inv_start), startJalali, theme)
                     InfoRow(stringResource(R.string.inv_end), endJalali, theme, color = GlassRed, bold = true)
                 }
@@ -395,8 +395,8 @@ fun InvoiceDialog(
                         }
                         if (paidAmount > 0L) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(R.string.inv_paid), fontSize = 11.sp, color = GlassGreen)
-                                Text("%,d %s".format(Locale.US, paidAmount, currency), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GlassGreen)
+                                Text(stringResource(R.string.inv_paid), fontSize = 11.sp, color = theme.successTextColor)
+                                Text("%,d %s".format(Locale.US, paidAmount, currency), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.successTextColor)
                             }
                         }
                         if (paidAmount > 0L && remainingDebt > 0L) {
