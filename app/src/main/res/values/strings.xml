@@ -1035,4 +1035,6 @@
     <string name="err_tls_protocol">The server at this address does not speak TLS. It is probably a plain-http panel, or the port/address is wrong.</string>
     <string name="err_tls_hostname">The certificate is not issued for this exact host name — check the domain (including any subdomain).</string>
     <string name="err_tls_expired">The certificate is expired or not yet valid — check the panel’s certificate dates and the phone’s date/time.</string>
+    <string name="login_diagnose">Check connection</string>
+    <string name="login_diagnose_busy">Checking…</string>
 </resources>

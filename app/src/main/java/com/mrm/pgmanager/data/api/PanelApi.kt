@@ -50,6 +50,23 @@ object PanelApi {
     fun isUnauthorized(e: Throwable?): Boolean =
         e is SessionExpiredException || e?.message?.contains("401") == true
 
+    /**
+     * کلاینتی که **فقط TLS 1.2** حرف می‌زند.
+     *
+     * چرا لازم است: روی برخی پنل‌های self-hosted (و برخی واسط‌های شبکه) هندشیکِ
+     * TLS 1.3 پاسخ نمی‌گیرد یا نیمه‌کاره رها می‌شود، در حالی که همان سرور با 1.2
+     * بی‌مشکل جواب می‌دهد. تلاشِ آخرِ ورود با این کلاینت انجام می‌شود — بدونِ
+     * اینکه امنیتِ مسیرِ عادی کم شود (پیش‌فرض همان TLS 1.3 می‌ماند).
+     */
+    private val clientTls12: OkHttpClient by lazy {
+        client.newBuilder()
+            .connectionSpecs(listOf(okhttp3.ConnectionSpec.CLEARTEXT, okhttp3.ConnectionSpec.COMPATIBLE_TLS))
+            .build()
+    }
+
+    /** آدرسِ نرمال‌شده با همان قاعده‌ای که خودِ اپ استفاده می‌کند (برای ابزارِ تشخیصی). */
+    internal fun normalizedBaseForDiagnostics(address: String): String = baseUrl(address)
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -168,11 +185,26 @@ object PanelApi {
         val base = baseUrl(address)
         val body = FormBody.Builder().add("username", username).add("password", password).build()
         val request = Request.Builder().url("$base/api/admin/token").post(body).build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("Login failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
-            val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
-            Session(base, token, username)
+        // ورود idempotent است، پس تکرار بی‌خطر است — و خطای هندشیکِ TLS در عمل
+        // گذرا است (فیلتر/واسطِ شبکه/مشکلِ 1.3). سه تلاش، بدونِ دو منبعِ حقیقت:
+        //  ۱) کلاینتِ پیش‌فرض   ۲) دوباره بعد از ۴۰۰ms   ۳) با TLS 1.2
+        // فقط `SSLException` را دوباره می‌کوشیم؛ ۴۰۱/۴۰۳ یعنی سرور جواب داده و
+        // تکرار بی‌معناست.
+        var lastTlsError: Throwable? = null
+        val attempts = listOf(client to 0L, client to 400L, clientTls12 to 0L)
+        for ((httpClient, delayMs) in attempts) {
+            if (delayMs > 0) Thread.sleep(delayMs)
+            try {
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) error("Login failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+                    val token = JSONObject(response.body?.string() ?: error("Empty login response")).getString("access_token")
+                    return@withContext Session(base, token, username)
+                }
+            } catch (e: javax.net.ssl.SSLException) {
+                lastTlsError = e
+            }
         }
+        throw lastTlsError ?: IllegalStateException("Login failed")
     }
 
     /**

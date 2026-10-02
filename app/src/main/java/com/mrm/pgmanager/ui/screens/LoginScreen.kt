@@ -74,6 +74,9 @@ fun LoginScreen(
     // ۴۰۳ پروکسی یا گواهیِ نادرست، در پیامِ دسته‌بندی‌شده دیده نمی‌شود.
     var errorDetail by remember { mutableStateOf<String?>(null) }
     var showDetail by remember { mutableStateOf(false) }
+    // گزارشِ «تستِ اتصال» — از روی همان گوشی؛ علتِ واقعیِ شکست را قدم‌به‌قدم می‌گوید.
+    var diagReport by remember { mutableStateOf<List<com.mrm.pgmanager.utils.PanelDiagnostics.Step>?>(null) }
+    var diagRunning by remember { mutableStateOf(false) }
     val theme = themeState
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -91,6 +94,8 @@ fun LoginScreen(
     val errDisabled = stringResource(R.string.login_err_admin_disabled)
     val errForbidden = stringResource(R.string.login_err_forbidden)
     val techDetails = stringResource(R.string.login_tech_details)
+    val diagLabel = stringResource(R.string.login_diagnose)
+    val diagRunningLabel = stringResource(R.string.login_diagnose_busy)
     val techDetailsHide = stringResource(R.string.login_tech_details_hide)
     val errRequired = stringResource(R.string.login_field_required)
     val stepConnecting = stringResource(R.string.login_step_connecting)
@@ -178,6 +183,40 @@ fun LoginScreen(
                             color = theme.mutedColor
                         )
                     }
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            if (diagRunning) return@TextButton
+                            diagRunning = true
+                            diagReport = null
+                            scope.launch {
+                                diagReport = com.mrm.pgmanager.utils.PanelDiagnostics.run(url)
+                                diagRunning = false
+                            }
+                        },
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = DsSpacing.Md, vertical = 0.dp)
+                    ) {
+                        Text(
+                            if (diagRunning) diagRunningLabel else diagLabel,
+                            fontSize = 11.sp,
+                            color = theme.inkColor
+                        )
+                    }
+                    diagReport?.let { report ->
+                        Column(
+                            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
+                                .padding(DsSpacing.Md),
+                            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+                        ) {
+                            report.forEach { step ->
+                                Text(
+                                    "${if (step.ok) "✅" else "❌"} ${step.label}: ${step.detail}",
+                                    fontSize = 10.sp,
+                                    color = if (step.ok) theme.inkColor else GlassRed,
+                                    modifier = Modifier.fillMaxWidth().textSelection()
+                                )
+                            }
+                        }
+                    }
                     if (showDetail && errorDetail != null) {
                         Box(
                             Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor)
@@ -199,7 +238,7 @@ fun LoginScreen(
                     onClick = {
                         if (loading) return@PGPrimaryButton
                         // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
-                        error = null; errorDetail = null; showDetail = false
+                        error = null; errorDetail = null; showDetail = false; diagReport = null
                         urlError = null; userError = null; passError = null; keyError = null
                         var blocked = false
                         val trimmedUrl = url.trim()
@@ -230,7 +269,19 @@ fun LoginScreen(
                             runCatching {
                                 if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
                             }.onSuccess(onLoggedIn).onFailure { e ->
-                                errorDetail = e.message ?: e::class.java.simpleName
+                                // زنجیرهٔ علت را هم نگه می‌داریم: پیامِ اصلیِ OkHttp
+                                // («Read error…») بدونِ cause («Trust anchor…» یا
+                                // «Connection reset») کاربر را به نتیجه نمی‌رساند.
+                                errorDetail = buildString {
+                                    append(e.message ?: e::class.java.simpleName)
+                                    var cause = e.cause
+                                    var depth = 0
+                                    while (cause != null && depth < 3) {
+                                        append("\n← ").append(cause.message ?: cause::class.java.simpleName)
+                                        cause = cause.cause
+                                        depth++
+                                    }
+                                }
                                 val mapper = com.mrm.pgmanager.utils.ApiErrorMapper
                                 val detail = mapper.panelDetail(e)
                                 when {

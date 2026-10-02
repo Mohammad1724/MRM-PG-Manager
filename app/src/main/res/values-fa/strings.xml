@@ -1035,4 +1035,6 @@
     <string name="err_tls_protocol">سرورِ این آدرس با TLS صحبت نمی‌کند؛ احتمالاً پنل روی http است یا پورت/آدرس اشتباه است.</string>
     <string name="err_tls_hostname">گواهی برای همین دامنه صادر نشده — دامنه را با زیردامنهٔ دقیق بررسی کنید.</string>
     <string name="err_tls_expired">گواهی منقضی شده یا هنوز معتبر نشده — تاریخِ گواهی پنل و ساعتِ گوشی را بررسی کنید.</string>
+    <string name="login_diagnose">تستِ اتصال</string>
+    <string name="login_diagnose_busy">در حالِ بررسی…</string>
 </resources>
