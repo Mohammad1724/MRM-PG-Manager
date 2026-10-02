@@ -49,6 +49,10 @@ jobs:
           python3 tools/kt-modifier-order.py
           # فاز ۷.۱ — پالت باید AA بماند؛ اگر کسی توکنی را روشن/تیره کند، همین‌جا رد می‌شود.
           python3 tools/check-contrast.py
+          # آرگومانِ موقعیتی روی پارامترِ لامبدا: با اضافه‌شدنِ پارامتری قبل از
+          # یک پارامترِ تابعی، فراخوانی‌های موقعیتیِ قدیمی جابه‌جا می‌شوند و
+          # کامپایل می‌شکند (باگِ واقعیِ فاز ۶: Type mismatch + No value passed).
+          python3 tools/kt-lambdaargs.py
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest

@@ -455,7 +455,16 @@ internal class UsersUiState(
                 com.mrm.pgmanager.ui.feedback.AppFeedback.error(
                     context.getString(R.string.err_offline_queued),
                     actionLabel = context.getString(R.string.err_retry),
-                    onAction = { runAction(notification, undo, successMessage, action) }
+                    // نام‌دار و نه موقعیتی: در فاز ۶ پارامترِ `rollback` قبل از `action`
+                    // اضافه شد؛ آرگومانِ موقعیتیِ چهارم به‌جای `action` روی `rollback`
+                    // می‌نشست و کامپایل به «No value passed for parameter action» می‌رسید.
+                    onAction = { runAction(
+                        notification = notification,
+                        undo = undo,
+                        successMessage = successMessage,
+                        rollback = rollback,
+                        action = action
+                    ) }
                 )
                 com.mrm.pgmanager.utils.NetworkStatus.awaitOnline(context)
                 if (!com.mrm.pgmanager.utils.NetworkStatus.isOnline(context)) return@launch
@@ -477,7 +486,13 @@ internal class UsersUiState(
                         message = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
                         actionLabel = if (retryable) context.getString(R.string.err_retry) else null,
                         onAction = if (retryable) {
-                            { runAction(notification, undo, successMessage, action) }
+                            { runAction(
+                                notification = notification,
+                                undo = undo,
+                                successMessage = successMessage,
+                                rollback = rollback,
+                                action = action
+                            ) }
                         } else null,
                         detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
                     )
