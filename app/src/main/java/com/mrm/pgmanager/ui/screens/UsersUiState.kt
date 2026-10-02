@@ -33,7 +33,18 @@ import kotlinx.coroutines.launch
 internal const val PAGE_SIZE = 60
 
 /** یک عملیاتِ گروهیِ در انتظارِ تأییدِ کاربر. */
-internal data class PendingBulk(val title: String, val message: String, val confirmLabel: String, val action: () -> Unit, val danger: Boolean = false)
+internal data class PendingBulk(
+    val title: String,
+    val message: String,
+    val confirmLabel: String,
+    val action: () -> Unit,
+    val danger: Boolean = false,
+    /**
+     * عملیاتِ برگشت‌ناپذیرِ پرخطر (حذفِ گروهی): واژه‌ای که کاربر باید تایپ کند.
+     * `null` یعنی تأییدِ ساده کافی است.
+     */
+    val confirmWord: String? = null
+)
 
 internal class UsersUiState(
     val scope: CoroutineScope,
@@ -114,6 +125,9 @@ internal class UsersUiState(
     // دیالوگِ عددی برای تمدید/افزودنِ حجمِ گروهی
     var bulkAmountKind by mutableStateOf<String?>(null)   // "days" یا "data"
     var bulkAmountText by mutableStateOf("")
+    /** تعدادِ کاربرانِ متأثر از عملیات — از `dry_run` پنل؛ `-1` یعنی نامعلوم، `null` یعنی هنوز نرسیده. */
+    var bulkPreviewCount by mutableStateOf<Int?>(null)
+    var bulkPreviewLoading by mutableStateOf(false)
     var bulkRevokeConfirm by mutableStateOf(false)
     var showBulkTemplateDialog by mutableStateOf(false)
     var pendingBulk by mutableStateOf<PendingBulk?>(null)
@@ -312,13 +326,45 @@ internal class UsersUiState(
         }
     }
 
+    /**
+     * پیش‌نمایشِ عملیاتِ گروهیِ عددی (تمددید/افزودنِ حجم) با `dry_run` پنل.
+     *
+     * چرا لازم است؟ چون پنل فقط کاربرانی را می‌گیرد که واقعاً هدفِ معتبرند
+     * (مثلاً کاربرِ بدونِ تاریخِ انقضا در «افزودن روز» بی‌اثر است) و ادمین بدونِ
+     * این عدد فکر می‌کند همهٔ انتخاب‌شده‌ها تغییر کرده‌اند.
+     */
+    fun loadBulkPreview(kind: String, ids: Set<Long>) {
+        bulkPreviewCount = null
+        if (ids.isEmpty()) { bulkPreviewLoading = false; return }
+        bulkPreviewLoading = true
+        scope.launch {
+            val result = runCatching { PanelApi.bulkPreview(session, ids, kind) }
+            bulkPreviewCount = result.getOrDefault(-1)
+            bulkPreviewLoading = false
+        }
+    }
+
     /** مسیرِ درست را خودش انتخاب می‌کند. */
     fun load(resetHeader: Boolean = true, silent: Boolean = false) {
         if (serverMode) loadPage(silent = silent, resetHeader = resetHeader)
         else loadAll(resetHeader = resetHeader, silent = silent)
     }
 
-    fun runAction(notification: Pair<String, String>? = null, action: suspend () -> Unit) {
+    /**
+     * اجرای یک عملیاتِ نوشتاری با بازخوردِ واحد.
+     *
+     * @param notification (عنوان، متن) — اسنکِ موفقیت + (اختیاری) اعلانِ سیستمی.
+     * @param undo عملِ **معکوس** برای «بازگرداندن»؛ اگر داده شود، اسنک یک اکشن
+     *   «بازگرداندن» می‌گیرد. فقط برای عملیات‌های برگشت‌پذیر پر می‌شود
+     *   (فعال/غیرفعال، افزودن/کاستنِ زمان و حجم). حذف و ریستِ مصرف برگشت‌پذیر نیستند.
+     * @param successMessage پیامِ موفقیتِ مستقل (برای اجرای undo که عنوانِ اعلان ندارد).
+     */
+    fun runAction(
+        notification: Pair<String, String>? = null,
+        undo: (suspend () -> Unit)? = null,
+        successMessage: String? = null,
+        action: suspend () -> Unit
+    ) {
         scope.launch {
             runCatching { action() }.onFailure {
                 error = it.message
@@ -332,8 +378,22 @@ internal class UsersUiState(
                 // بازخوردِ در‌جا (اسنک + لمس) فوری است؛ اعلانِ سیستمی فقط وقتی
                 // خودِ کاربر در تنظیمات فعالش کرده باشد می‌رود (تنظیمات ← رویدادها).
                 com.mrm.pgmanager.utils.Haptics.confirm(context)
+                // یک «بازگرداندن» کافی است: undoِ خودِ undo پیشنهاد نمی‌شود.
+                val undoRunner: (() -> Unit)? = undo?.let { inverse ->
+                    {
+                        runAction(successMessage = context.getString(R.string.undo_done)) { inverse() }
+                    }
+                }
+                val headline = notification?.first ?: successMessage
+                when {
+                    undoRunner != null -> com.mrm.pgmanager.ui.feedback.AppFeedback.success(
+                        headline ?: context.getString(R.string.action_done),
+                        actionLabel = context.getString(R.string.undo),
+                        onAction = undoRunner
+                    )
+                    headline != null -> com.mrm.pgmanager.ui.feedback.AppFeedback.success(headline)
+                }
                 notification?.let { (title, message) ->
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.success(title)
                     val settings = store.readMonitoringSettings()
                     if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message)
                 }

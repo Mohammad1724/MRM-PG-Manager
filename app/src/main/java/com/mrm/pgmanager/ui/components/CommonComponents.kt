@@ -460,7 +460,14 @@ fun BulkActionsBar(
     onGroupRemove: () -> Unit = {},
     onAddDays: () -> Unit = {},
     onAddData: () -> Unit = {},
-    onRevokeSubs: () -> Unit = {}
+    onRevokeSubs: () -> Unit = {},
+    /**
+     * نمایشِ اکشن‌های «افزودن زمان/حجم» — پنل برای این دو `scope_all` می‌خواهد
+     * (`require_scope_all("users","update")`)، پس برای ادمینِ محدود به کاربرانِ
+     * خودش این آیتم‌ها **پنهان** می‌شوند تا به ۴۰۳ نخورد.
+     */
+    showAddDays: Boolean = true,
+    showAddData: Boolean = true
 ) {
     val theme = LocalThemeState.current
     val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
@@ -523,14 +530,18 @@ fun BulkActionsBar(
                     )
                     // تمدید و افزودنِ حجم به‌صورت گروهی — پنل این‌ها را دارد
                     // (`bulk/expire` و `bulk/data_limit`) و اپ نداشت.
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_days), color = theme.inkColor) } },
-                        onClick = { onAddDays(); expanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_data), color = theme.inkColor) } },
-                        onClick = { onAddData(); expanded = false }
-                    )
+                    if (showAddDays) {
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Calendar, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_days), color = theme.inkColor) } },
+                            onClick = { onAddDays(); expanded = false }
+                        )
+                    }
+                    if (showAddData) {
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.us_bulk_data), color = theme.inkColor) } },
+                            onClick = { onAddData(); expanded = false }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
                         onClick = { onRevokeSubs(); expanded = false }

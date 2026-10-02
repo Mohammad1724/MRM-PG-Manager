@@ -1330,6 +1330,35 @@ object PanelApi {
         )
     }
 
+    /**
+     * پیش‌نمایشِ عملیاتِ گروهی — پنل از v5 `dry_run` دارد و **هیچ تغییری اعمال نمی‌کند**.
+     *
+     * `POST /api/users/bulk/{expire|data_limit}` با `dry_run=true` فقط
+     * `BulkOperationDryRunResponse{affected_users}` را برمی‌گرداند.
+     *
+     * سمتِ پنل شمارش این‌گونه است (`app/db/crud/bulk.py`):
+     *  - `expire` → کاربرانی که `expire` دارند (کاربرِ بدونِ تاریخِ انقضا بی‌اثر است)؛
+     *  - `data_limit` → کاربرانی که حجمِ محدود دارند (`data_limit` صفر/تهی نیست).
+     *
+     * @return تعدادِ کاربرانِ متأثر؛ یا `-1` اگر پنل عدد را برنگرداند (نامعلوم).
+     *   عددِ منفی هرگز به‌عنوان «صفر کاربر» نمایش داده نمی‌شود — UI متنِ «نامعلوم» می‌گذارد.
+     */
+    suspend fun bulkPreview(session: Session, userIds: Set<Long>, kind: String): Int = withContext(Dispatchers.IO) {
+        if (userIds.isEmpty()) return@withContext 0
+        val path = if (kind == "days") "expire" else "data_limit"
+        val body = JSONObject().apply {
+            put("amount", 0)
+            put("users", org.json.JSONArray(userIds))
+            put("dry_run", true)
+        }
+        val request = requestBuilder(session, "${session.baseUrl}/api/users/bulk/$path")
+            .post(body.toString().toRequestBody(jsonType)).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Preview failed: ${response.code}")
+            JSONObject(response.body?.string() ?: "{}").optInt("affected_users", -1)
+        }
+    }
+
     /** باطل‌کردنِ لینکِ اشتراکِ چند کاربر — `POST /api/users/bulk/revoke_sub`. */
     suspend fun bulkRevokeSubs(session: Session, userIds: Set<Long>) = withContext(Dispatchers.IO) {
         if (userIds.isEmpty()) return@withContext

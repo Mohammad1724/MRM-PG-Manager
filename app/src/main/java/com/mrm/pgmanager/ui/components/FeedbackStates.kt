@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -82,7 +83,15 @@ fun AppFeedbackHost(modifier: Modifier = Modifier) {
     LaunchedEffect(current, visible) {
         val event = current ?: return@LaunchedEffect
         if (!visible) return@LaunchedEffect
-        delay(if (event.tone == FeedbackTone.Error) 5000L else 3000L)
+        // پیامِ دارای اکشن (بازگرداندن/تلاش دوباره) وقتِ بیشتری می‌گیرد تا کاربر
+        // فرصتِ واکنش داشته باشد؛ بعد از انقضا اکشن هم از دست می‌رود.
+        delay(
+            when {
+                event.onAction != null -> 6500L
+                event.tone == FeedbackTone.Error -> 5000L
+                else -> 3000L
+            }
+        )
         visible = false
     }
 
@@ -131,6 +140,24 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        if (event.actionLabel != null && event.onAction != null) {
+            val action = event.onAction
+            Box(
+                Modifier
+                    .heightIn(min = 36.dp)
+                    .clip(DsRadius.Sm)
+                    .clickable { onDismiss(); action() }
+                    .padding(horizontal = DsSpacing.Md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    event.actionLabel,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = LocalThemeState.current.accentPrimary
+                )
+            }
+        }
         Box(
             Modifier.padding(2.dp)
                 .size(36.dp)

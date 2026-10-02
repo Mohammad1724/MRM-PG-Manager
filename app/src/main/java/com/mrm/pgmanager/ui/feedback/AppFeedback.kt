@@ -12,8 +12,19 @@ import kotlinx.coroutines.flow.receiveAsFlow
  */
 enum class FeedbackTone { Info, Success, Error }
 
-/** یک رویدادِ بازخوردِ سراسری: پیام + لحن. */
-data class FeedbackEvent(val message: String, val tone: FeedbackTone)
+/**
+ * یک رویدادِ بازخوردِ سراسری: پیام + لحن (+ اکشنِ اختیاری).
+ *
+ * [actionLabel] و [onAction] برای «بازگرداندن» (Undo) و «تلاش دوباره» است:
+ * پیام تا وقتی اکشن دارد ۶.۵ ثانیه روی صفحه می‌ماند تا کاربر فرصتِ زدنش را
+ * داشته باشد؛ بعد از آن اکشن منقضی می‌شود (خودِ عملیات ولی انجام شده است).
+ */
+data class FeedbackEvent(
+    val message: String,
+    val tone: FeedbackTone,
+    val actionLabel: String? = null,
+    val onAction: (() -> Unit)? = null
+)
 
 /**
  * اتوبوسِ بازخوردِ سراسریِ اپ — جایگزینِ Toastهای پراکنده.
@@ -29,9 +40,14 @@ data class FeedbackEvent(val message: String, val tone: FeedbackTone)
 object AppFeedback {
     private val channel = Channel<FeedbackEvent>(Channel.BUFFERED)
 
-    fun info(message: String) = offer(message, FeedbackTone.Info)
-    fun success(message: String) = offer(message, FeedbackTone.Success)
-    fun error(message: String) = offer(message, FeedbackTone.Error)
+    fun info(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) =
+        offer(FeedbackEvent(message, FeedbackTone.Info, actionLabel, onAction))
+
+    fun success(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) =
+        offer(FeedbackEvent(message, FeedbackTone.Success, actionLabel, onAction))
+
+    fun error(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) =
+        offer(FeedbackEvent(message, FeedbackTone.Error, actionLabel, onAction))
     fun show(message: String, tone: FeedbackTone) = offer(message, tone)
 
     private fun offer(message: String, tone: FeedbackTone) {

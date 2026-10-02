@@ -157,6 +157,17 @@
     <string name="all_nodes">همهٔ نودها</string>
     <string name="usage_in_range">مصرف در این بازه</string>
     <string name="no_chart_data">داده‌ای برای این بازه موجود نیست</string>
+    <!-- فاز ۴ — اعتماد و ایمنی: بازگردانی، پیش‌نمایش، تأییدِ تایپی -->
+    <string name="action_done">انجام شد</string>
+    <string name="undo">بازگرداندن</string>
+    <string name="undo_done">بازگردانده شد</string>
+    <string name="us_preview_checking">در حال بررسی تعداد کاربران…</string>
+    <string name="us_preview_affected">%1$d از %2$d کاربرِ انتخاب‌شده تغییر می‌کند</string>
+    <string name="us_preview_note_expire">کاربران بدونِ تاریخِ انقضا از «افزودن روز» اثری نمی‌گیرند.</string>
+    <string name="us_preview_note_data">کاربران با حجمِ نامحدود از «افزودن حجم» اثری نمی‌گیرند.</string>
+    <string name="us_preview_unavailable">تعداد کاربرانِ متأثر معلوم نشد — پنل عملیات را روی همهٔ کاربرانِ معتبر اعمال می‌کند.</string>
+    <string name="us_confirm_delete_word">حذف</string>
+    <string name="us_confirm_type_hint">برای فعال‌شدن دکمهٔ تأیید، %1$s را بنویسید</string>
     <string name="chart_a11y_summary">نمودار مصرف، %1$d نقطه، آخرین مقدار %2$s</string>
     <!-- مدیریت گروه‌ها -->
     <string name="groups_subtitle">مدیریت گروه‌های inbound</string>

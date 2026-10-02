@@ -157,6 +157,17 @@
     <string name="all_nodes">All nodes</string>
     <string name="usage_in_range">Usage During Period</string>
     <string name="no_chart_data">No data for this period</string>
+    <!-- فاز ۴ — اعتماد و ایمنی: بازگردانی، پیش‌نمایش، تأییدِ تایپی -->
+    <string name="action_done">Done</string>
+    <string name="undo">Undo</string>
+    <string name="undo_done">Reverted</string>
+    <string name="us_preview_checking">Checking how many users are affected…</string>
+    <string name="us_preview_affected">%1$d of %2$d selected users will change</string>
+    <string name="us_preview_note_expire">Users without an expiry date are not affected by adding days.</string>
+    <string name="us_preview_note_data">Users with unlimited data are not affected by adding volume.</string>
+    <string name="us_preview_unavailable">Could not check how many users are affected — the panel will apply the operation to every valid user.</string>
+    <string name="us_confirm_delete_word">DELETE</string>
+    <string name="us_confirm_type_hint">Type %1$s to enable the confirm button</string>
     <string name="chart_a11y_summary">Usage chart, %1$d points, latest value %2$s</string>
     <!-- Groups management -->
     <string name="groups_subtitle">Manage inbound groups</string>

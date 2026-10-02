@@ -25,6 +25,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
@@ -57,22 +58,53 @@ fun ConfirmActionDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     /** عملیات مخرب (مثل حذف) → قرمز؛ بقیه → اکسنت برنامه. */
-    danger: Boolean = false
+    danger: Boolean = false,
+    /**
+     * تأییدِ تایپی برای عملیاتِ پرخطرِ برگشت‌ناپذیر (مثلاً حذفِ گروهی).
+     * وقتی مقدار داشته باشد، دکمهٔ تأیید تا تایپِ دقیقِ همان واژه غیرفعال است —
+     * الگویی که جلوی «تأییدِ رفلکسی و پشیمانی» را می‌گیرد.
+     */
+    confirmWord: String? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
+    var typed by remember(confirmWord) { mutableStateOf("") }
+    val wordSatisfied = confirmWord == null || typed.trim() == confirmWord
     Dialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Xxxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = theme.inkColor)
                     Text(message, fontSize = 13.5.sp, color = theme.mutedColor, lineHeight = 20.sp)
+                    if (confirmWord != null) {
+                        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                            Text(
+                                stringResource(R.string.us_confirm_type_hint, confirmWord),
+                                fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.mutedColor
+                            )
+                            Box(
+                                Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(DsRadius.Md)
+                                    .background(theme.searchBgColor)
+                                    .border(BorderStroke(DsBorder.Hairline, if (wordSatisfied) theme.borderColor else theme.accentPrimary.copy(0.45f)), DsRadius.Md)
+                                    .padding(horizontal = DsSpacing.FieldHorizontal),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                BasicTextField(
+                                    value = typed,
+                                    onValueChange = { typed = it },
+                                    singleLine = true,
+                                    textStyle = TextStyle(fontSize = 13.sp, color = theme.inkColor),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                         PGSecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                         if (danger) {
-                            PGDangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f))
+                            PGDangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f), enabled = wordSatisfied)
                         } else {
-                            PGPrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f))
+                            PGPrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f), enabled = wordSatisfied)
                         }
                     }
                 }

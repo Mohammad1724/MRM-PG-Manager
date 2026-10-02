@@ -569,10 +569,10 @@ fun UsersScreen(
                         onClear = { ui.selectedUserIds = emptySet() },
                         onSelectAll = { ui.selectedUserIds = processedUsers.map { it.id }.toSet() },
                         onExport = { ui.exportChooserOpen = true },
-                        onDelete = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_delete) to context.getString(R.string.us_n_bulk_delete_body, ids.size)) { PanelApi.bulkDeleteUsers(session, ids) } }) },
+                        onDelete = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, confirmWord = if (ids.size >= 5) context.getString(R.string.us_confirm_delete_word) else null, action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_delete) to context.getString(R.string.us_n_bulk_delete_body, ids.size)) { PanelApi.bulkDeleteUsers(session, ids) } }) },
                         onResetUsage = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_reset_title, ids.size), message = context.getString(R.string.us_bulk_reset_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_reset) to context.getString(R.string.us_n_bulk_reset_body, ids.size)) { PanelApi.bulkResetUsersUsage(session, ids) } }) },
-                        onDisable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_disable_title, ids.size), message = context.getString(R.string.us_bulk_disable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_disable) to context.getString(R.string.us_n_bulk_disable_body, ids.size)) { PanelApi.bulkDisableUsers(session, ids) } }) },
-                        onEnable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size)) { PanelApi.bulkEnableUsers(session, ids) } }) },
+                        onDisable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_disable_title, ids.size), message = context.getString(R.string.us_bulk_disable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_disable) to context.getString(R.string.us_n_bulk_disable_body, ids.size), undo = { PanelApi.bulkEnableUsers(session, ids) }) { PanelApi.bulkDisableUsers(session, ids) } }) },
+                        onEnable = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_enable_title, ids.size), message = context.getString(R.string.us_bulk_enable_msg), confirmLabel = context.getString(R.string.us_confirm), action = { ui.runAction(notification = context.getString(R.string.us_n_bulk_enable) to context.getString(R.string.us_n_bulk_enable_body, ids.size), undo = { PanelApi.bulkDisableUsers(session, ids) }) { PanelApi.bulkEnableUsers(session, ids) } }) },
                         onApplyTemplate = {
                             ui.showBulkTemplateDialog = true
                         },
@@ -580,7 +580,12 @@ fun UsersScreen(
                         onGroupRemove = { ui.bulkGroupAdd = false; ui.bulkGroupPicker = true },
                         onAddDays = { ui.bulkAmountText = ""; ui.bulkAmountKind = "days" },
                         onAddData = { ui.bulkAmountText = ""; ui.bulkAmountKind = "data" },
-                        onRevokeSubs = { ui.bulkRevokeConfirm = true }
+                        onRevokeSubs = { ui.bulkRevokeConfirm = true },
+                        // پنل برای bulk/expire و bulk/data_limit مجوزِ scope=ALL می‌خواهد
+                        // (`require_scope_all("users","update")`)؛ برای ادمینِ محدود به
+                        // کاربرانِ خودش این دو آیتم پنهان می‌شوند تا به ۴۰۳ نخورد.
+                        showAddDays = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update"),
+                        showAddData = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update")
                     )
                 }
             }

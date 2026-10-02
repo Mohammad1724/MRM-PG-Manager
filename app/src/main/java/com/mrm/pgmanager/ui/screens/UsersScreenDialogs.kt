@@ -223,6 +223,10 @@ internal fun UsersScreenDialogs(
     ui.bulkAmountKind?.let { kind ->
         val ids = ui.selectedUserIds.toSet()
         val theme = LocalThemeState.current
+        // پیش‌نمایشِ dry-run پنل: «چند نفر واقعاً تغییر می‌کنند؟»
+        // کاربرِ بدونِ تاریخِ انقضا در «افزودن روز» و کاربرِ بی‌سقف در «افزودن حجم»
+        // هدفِ معتبر نیستند؛ عددِ واقعی جلوی اشتباهِ ادمین را می‌گیرد.
+        LaunchedEffect(kind, ids) { ui.loadBulkPreview(kind, ids) }
         Dialog(onDismissRequest = { ui.bulkAmountKind = null }) {
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
@@ -239,6 +243,28 @@ internal fun UsersScreenDialogs(
                         stringResource(if (kind == "days") R.string.us_bulk_amount_days else R.string.us_bulk_amount_gb),
                     fontSize = 11.sp, color = theme.mutedColor
                 )
+                val preview = ui.bulkPreviewCount
+                when {
+                    ui.bulkPreviewLoading -> Text(
+                        stringResource(R.string.us_preview_checking),
+                        fontSize = 11.sp, color = theme.mutedColor
+                    )
+                    preview != null && preview >= 0 -> Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+                        Text(
+                            stringResource(R.string.us_preview_affected, preview, ids.size),
+                            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor
+                        )
+                        // فقط وقتی تفاوت هست توضیح بده — وگرنه فیلدِ بی‌مصرف می‌شود.
+                        if (preview < ids.size) Text(
+                            stringResource(if (kind == "days") R.string.us_preview_note_expire else R.string.us_preview_note_data),
+                            fontSize = 11.sp, color = theme.mutedColor
+                        )
+                    }
+                    preview != null -> Text(
+                        stringResource(R.string.us_preview_unavailable),
+                        fontSize = 11.sp, color = theme.mutedColor
+                    )
+                }
                 GlassSearchBar(query = ui.bulkAmountText, onQueryChange = { text ->
                     // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن». + نرمال‌سازی فارسی
                     val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
@@ -255,7 +281,13 @@ internal fun UsersScreenDialogs(
                             ui.bulkAmountKind = null
                             if (amount == null || amount == 0.0) return@PGPrimaryButton
                             ui.selectedUserIds = emptySet()
-                            ui.runAction {
+                            // معکوسِ دقیق همان عدد: +۳۰ روز ⇄ −۳۰ روز (و همین برای حجم).
+                            ui.runAction(
+                                undo = {
+                                    if (kind == "days") PanelApi.bulkAddDays(session, ids, -amount.toInt())
+                                    else PanelApi.bulkAddData(session, ids, -amount)
+                                }
+                            ) {
                                 if (kind == "days") PanelApi.bulkAddDays(session, ids, amount.toInt())
                                 else PanelApi.bulkAddData(session, ids, amount)
                             }
@@ -384,6 +416,7 @@ internal fun UsersScreenDialogs(
             message = p.message,
             confirmLabel = p.confirmLabel,
             danger = p.danger,
+            confirmWord = p.confirmWord,
             onDismiss = { ui.pendingBulk = null },
             onConfirm = { p.action(); ui.pendingBulk = null }
         )
@@ -395,7 +428,13 @@ internal fun UsersScreenDialogs(
             user = u,
             onDismiss = { ui.quickActionUser = null },
             onUseTemplate = { ui.quickTemplateUser = u },
-            onToggle = { ui.runAction(notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username)) { PanelApi.setDisabled(session, u, u.status != "disabled") } },
+            onToggle = {
+                // معکوسِ وضعیت: اگر از disabled درآوردیم، برگشتش غیرفعال‌کردن است.
+                ui.runAction(
+                    notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, u.username),
+                    undo = { PanelApi.setDisabled(session, u, u.status == "disabled") }
+                ) { PanelApi.setDisabled(session, u, u.status != "disabled") }
+            },
             onCopySub = { ui.copySubWithFetch(u) },
             onQr = { ui.qrUser = u },
             onEdit = { ui.selectedUser = u },
@@ -416,7 +455,14 @@ internal fun UsersScreenDialogs(
             onSave = { limitGb, expireShamsi ->
                 ui.selectedUser = null; ui.runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
             },
-            onToggle = { ui.selectedUser = null; ui.runAction { PanelApi.setDisabled(session, user, user.status != "disabled") } },
+            onToggle = {
+                ui.selectedUser = null
+                // همان الگوی اکشنِ سریع: بازگرداندنِ وضعیت با یک ضربه.
+                ui.runAction(
+                    notification = context.getString(R.string.us_n_status) to context.getString(R.string.us_n_status_body, user.username),
+                    undo = { PanelApi.setDisabled(session, user, user.status == "disabled") }
+                ) { PanelApi.setDisabled(session, user, user.status != "disabled") }
+            },
             onDelete = { ui.deleteUser = user; ui.selectedUser = null },
             onResetUsage = {
                 ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_usage) to context.getString(R.string.us_n_reset_usage_body, user.username)) { PanelApi.resetUsage(session, user) }
