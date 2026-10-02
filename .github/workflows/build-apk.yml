@@ -57,6 +57,10 @@ jobs:
           # Compose بیرون است و lint هم در این CI اجرا نمی‌شود؛ پس همین‌جا
           # اندازهٔ هر view کلیک‌شدنی از XML حساب و با ۴۸dp سنجیده می‌شود.
           python3 tools/check-widget-targets.py
+          # وجودِ خودِ APIها در نسخهٔ Compose پروژه: دو بار CI به‌خاطرِ همین سرخ شد
+          # (LocalMotionDurationScale و Modifier.textSelection). نمایه از خودِ
+          # AARها ساخته شده و در مخزن کامیت است، پس اینجا دانلودی لازم نیست.
+          python3 tools/kt-compose-api.py
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
