@@ -65,7 +65,12 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
             Result.success()
         } catch (e: Exception) {
             store.saveLastBackupSuccess(false)
-            store.saveLastBackupMessage(applicationContext.getString(R.string.bk_auto_failed, e.message.orEmpty()))
+            store.saveLastBackupMessage(
+                applicationContext.getString(
+                    R.string.bk_auto_failed,
+                    com.mrm.pgmanager.utils.ApiErrorMapper.friendly(applicationContext, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL)
+                )
+            )
             Result.failure()
         }
     }

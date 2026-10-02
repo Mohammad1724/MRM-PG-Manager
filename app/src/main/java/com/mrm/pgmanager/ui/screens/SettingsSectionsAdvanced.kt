@@ -199,8 +199,6 @@ internal fun ConnectionSection(
 
     SettingsCard(stringResource(R.string.set_conn_test), AppIcon.CheckCircle, accent = GlassGreen) {
         val okTemplate = stringResource(R.string.set_conn_ok)
-        val failTemplate = stringResource(R.string.set_conn_fail)
-        val unreachable = stringResource(R.string.set_conn_unreachable)
 
         Text(stringResource(R.string.set_conn_test_desc), fontSize = 11.sp, color = theme.mutedColor)
         PGPrimaryButton(
@@ -221,7 +219,9 @@ internal fun ConnectionSection(
                                 ((s.uptimeSeconds % 86400L) / 3600L).toString()
                             )
                         },
-                        onFailure = { e -> false to String.format(failTemplate, e.message ?: unreachable) }
+                        // تستِ اتصال: پیامِ دسته‌بندی‌شده جای «Connection error: <raw>» —
+                        // همین‌جا «به پنل دسترسی پیدا نشد…» دقیقاً همان چیزی است که لازم است.
+                        onFailure = { e -> false to com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e) }
                     )
                     testing = false
                 }
@@ -475,7 +475,10 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
                     }
                 }.onFailure { e ->
                     withContext(Dispatchers.Main) {
-                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(String.format(errorTemplate, e.message ?: ""))
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                            String.format(errorTemplate, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL)),
+                            detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(e)
+                        )
                     }
                 }
             }
@@ -653,11 +656,14 @@ internal fun BackupSection(
                     com.mrm.pgmanager.ui.feedback.AppFeedback.success(savedMsg)
                 }
             }.onFailure { e ->
-                backupLastMsg = String.format(errorTemplate, e.message ?: "")
+                backupLastMsg = String.format(errorTemplate, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL))
                 store.saveLastBackupSuccess(false)
                 store.saveLastBackupMessage(backupLastMsg)
                 withContext(Dispatchers.Main) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(String.format(errorToastTemplate, e.message ?: ""))
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                        String.format(errorToastTemplate, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL)),
+                        detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(e)
+                    )
                 }
             }
             withContext(Dispatchers.Main) { backupBusy = false }

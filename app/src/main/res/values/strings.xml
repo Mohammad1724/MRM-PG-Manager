@@ -859,6 +859,22 @@
     <string name="cd_unselect">Unselect</string>
     <string name="cd_select">Select</string>
     <string name="cd_dismiss">Dismiss</string>
+    <!-- فاز ۵ — خطا و شبکه: پیام‌های دسته‌بندی‌شده به‌جای متنِ خامِ استثنا -->
+    <string name="err_offline_panel">Couldn’t reach the panel — check your connection or the panel address.</string>
+    <string name="err_timeout_panel">The panel took too long to answer. Try again.</string>
+    <string name="err_tls_panel">Secure connection failed — check the panel’s certificate or protocol.</string>
+    <string name="err_forbidden_panel">This account doesn’t have permission for that action.</string>
+    <string name="err_not_found_panel">That item no longer exists — it may have been removed on the panel.</string>
+    <string name="err_server_fmt">The panel returned a server error (%1$d). Try again in a moment.</string>
+    <string name="err_validation_fmt">The panel rejected this request: %1$s</string>
+    <string name="err_local_permission">Access to that location was denied — pick the file again.</string>
+    <string name="err_local_storage">Couldn’t write the file — check free space and the path.</string>
+    <string name="err_offline_queued">You’re offline — this will run automatically when the connection returns.</string>
+    <string name="err_retry">Retry</string>
+    <string name="chart_empty_refresh">Refresh</string>
+    <string name="chart_empty_range">Change range</string>
+    <string name="err_technical">Technical details</string>
+    <string name="err_technical_hint">Long-press to see technical details</string>
     <string name="err_generic">Something went wrong</string>
     <string name="cd_account">Account menu</string>
     <string name="confirm">Confirm</string>

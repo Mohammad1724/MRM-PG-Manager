@@ -132,7 +132,8 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
             else {
                 if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats)); panelOfflineAlerted = true }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
-                if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null } else error = e.message ?: context.getString(R.string.db_error_stats)
+                if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
+                else error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             }
         }
         runCatching { PanelApi.trafficUsage(session, chartRange) }.onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
@@ -399,7 +400,10 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                             height = 90.dp,
                             showAxisLabels = false,
                             showScaleLabels = false,
-                            valueFormatter = ::formatBytes
+                            valueFormatter = ::formatBytes,
+                            // فاز ۵.۴: نمودارِ بی‌داده کاربر را رها نمی‌کند.
+                            emptyActionLabel = stringResource(R.string.chart_empty_refresh),
+                            onEmptyAction = { scope.launch { load(silent = true) } }
                         )
                         run {
                             val totalPeriod = trafficPoints.sumOf { it.totalTraffic }

@@ -23,7 +23,13 @@ data class FeedbackEvent(
     val message: String,
     val tone: FeedbackTone,
     val actionLabel: String? = null,
-    val onAction: (() -> Unit)? = null
+    val onAction: (() -> Unit)? = null,
+    /**
+     * متنِ فنیِ اختیاری (نوعِ استثنا + پیامِ خام). هرگز به‌عنوانِ پیامِ اصلی نشان
+     * داده نمی‌شود؛ فقط با **نگه‌داشتنِ** اسنک باز می‌شود (فاز ۵.۲). برای ادمینِ
+     * فنی لازم است و برای بقیه بی‌ضرر: تا وقتی نخواهد، دیده نمی‌شود.
+     */
+    val detail: String? = null
 )
 
 /**
@@ -46,13 +52,22 @@ object AppFeedback {
     fun success(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) =
         offer(FeedbackEvent(message, FeedbackTone.Success, actionLabel, onAction))
 
-    fun error(message: String, actionLabel: String? = null, onAction: (() -> Unit)? = null) =
-        offer(FeedbackEvent(message, FeedbackTone.Error, actionLabel, onAction))
-    fun show(message: String, tone: FeedbackTone) = offer(message, tone)
+    fun error(
+        message: String,
+        actionLabel: String? = null,
+        onAction: (() -> Unit)? = null,
+        detail: String? = null
+    ) = offer(FeedbackEvent(message, FeedbackTone.Error, actionLabel, onAction, detail))
 
-    private fun offer(message: String, tone: FeedbackTone) {
-        if (message.isBlank()) return
-        channel.trySend(FeedbackEvent(message, tone))
+    /** رویدادِ آماده — برای جاهایی که به `detail` هم نیاز دارند. */
+    fun post(event: FeedbackEvent) = offer(event)
+
+    /** سازگاریِ عقب‌رو: `show(message, tone)` قدیمی. */
+    fun show(message: String, tone: FeedbackTone) = offer(FeedbackEvent(message, tone))
+
+    private fun offer(event: FeedbackEvent) {
+        if (event.message.isBlank()) return
+        channel.trySend(event)
     }
 
     /** جریانِ رویدادها — فقط یک مصرف‌کننده (میزبانِ ریشه) دارد. */

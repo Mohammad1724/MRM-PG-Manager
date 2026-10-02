@@ -2,11 +2,14 @@ package com.mrm.pgmanager.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,12 +24,15 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
@@ -46,17 +52,37 @@ fun UsageChart(
     height: Dp = 110.dp,
     showAxisLabels: Boolean = true,
     showScaleLabels: Boolean = true,
-    valueFormatter: (Long) -> String = { it.toString() }
+    valueFormatter: (Long) -> String = { it.toString() },
+    /**
+     * فاز ۵.۴ — حالتِ خالیِ اقدام‌محور: به‌جای «داده‌ای نیست» و رهاکردنِ کاربر،
+     * یک اقدامِ پیشنهادی («دریافت دوباره» / «تغییر بازه») نشان می‌دهد.
+     */
+    emptyActionLabel: String? = null,
+    onEmptyAction: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val grid = if (themeIsDark) Color(0xFF374151) else DsNeutral.HairlineLight
 
     if (points.isEmpty()) {
-        Box(
+        Column(
             Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor),
-            contentAlignment = Alignment.Center
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(stringResource(R.string.no_chart_data), fontSize = 11.sp, color = theme.mutedColor)
+            if (emptyActionLabel != null && onEmptyAction != null) {
+                Text(
+                    emptyActionLabel,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = theme.accentPrimary,
+                    modifier = Modifier
+                        .padding(top = DsSpacing.Sm)
+                        .clip(DsRadius.Sm)
+                        .clickable(onClick = onEmptyAction)
+                        .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
+                )
+            }
         }
         return
     }

@@ -224,7 +224,7 @@ internal fun RestoreBackupDialog(
                                         }
                                     }.onFailure { e ->
                                         withContext(Dispatchers.Main) {
-                                            result = String.format(errorTemplate, e.message ?: "")
+                                            result = String.format(errorTemplate, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL))
                                             restoring = false
                                         }
                                     }

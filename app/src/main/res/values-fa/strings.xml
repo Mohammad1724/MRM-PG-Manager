@@ -859,6 +859,22 @@
     <string name="cd_unselect">لغو انتخاب</string>
     <string name="cd_select">انتخاب</string>
     <string name="cd_dismiss">بستن پیام</string>
+    <!-- فاز ۵ — خطا و شبکه: پیام‌های دسته‌بندی‌شده به‌جای متنِ خامِ استثنا -->
+    <string name="err_offline_panel">به پنل دسترسی پیدا نشد — اینترنت یا آدرسِ پنل را بررسی کنید.</string>
+    <string name="err_timeout_panel">پنل دیر جواب داد؛ دوباره تلاش کنید.</string>
+    <string name="err_tls_panel">ارتباطِ امن برقرار نشد — گواهی یا پروتکلِ پنل را بررسی کنید.</string>
+    <string name="err_forbidden_panel">این حساب برای این کار مجوز ندارد.</string>
+    <string name="err_not_found_panel">این مورد دیگر وجود ندارد — ممکن است از پنل حذف شده باشد.</string>
+    <string name="err_server_fmt">پنل خطای سرور داد (%1$d) — چند لحظه بعد دوباره تلاش کنید.</string>
+    <string name="err_validation_fmt">پنل این درخواست را نپذیرفت: %1$s</string>
+    <string name="err_local_permission">دسترسی به آن محل داده نشد — فایل را دوباره انتخاب کنید.</string>
+    <string name="err_local_storage">نوشتنِ فایل ممکن نشد — فضای آزاد و مسیر را بررسی کنید.</string>
+    <string name="err_offline_queued">آفلاین هستید — با بازگشتِ اتصال، این کار خودکار انجام می‌شود.</string>
+    <string name="err_retry">تلاش دوباره</string>
+    <string name="chart_empty_refresh">دریافت دوباره</string>
+    <string name="chart_empty_range">تغییر بازه</string>
+    <string name="err_technical">جزئیات فنی</string>
+    <string name="err_technical_hint">برای دیدنِ جزئیات فنی، پیام را نگه دارید</string>
     <string name="err_generic">خطایی رخ داد</string>
     <string name="cd_account">فهرست حساب</string>
     <string name="confirm">تایید</string>

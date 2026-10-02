@@ -98,7 +98,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         if (!silent) loading = true
         runCatching { PanelApi.groupsDetailed(session) }
             .onSuccess { groups = it; loadError = null; PanelCache.put(groupsKey, it) }
-            .onFailure { loadError = it.message ?: context.getString(R.string.err_generic) }
+            .onFailure { loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
         // تگ‌ها اختیاری‌اند؛ نبودشان صفحه را از کار نمی‌اندازد.
         runCatching { PanelApi.inboundTags(session) }
             .onSuccess { availableInbounds = it; PanelCache.put(inboundsKey, it) }
@@ -297,7 +297,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         load(silent = true)
                     }.onFailure { e ->
                         // دیالوگ باز می‌ماند و خطا داخل خودش نمایش داده می‌شود.
-                        onResult(e.message ?: context.getString(R.string.err_generic))
+                        onResult(com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e))
                     }
                 }
             }
@@ -320,7 +320,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     runCatching { PanelApi.deleteGroup(session, target.id) }
                         .onSuccess { toast = msgDeleted; load(silent = true) }
                         // فهرست روی صفحه است، پس نوار خطای بالای فهرست را نشان می‌دهیم.
-                        .onFailure { banner = it.message ?: msgLoadFailed }
+                        .onFailure { banner = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
                     deleting = null
                 }
             }

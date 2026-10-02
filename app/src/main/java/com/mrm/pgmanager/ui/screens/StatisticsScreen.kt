@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
     val theme = LocalThemeState.current
@@ -102,7 +103,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }
             .onSuccess { stats = it; loadError = null; PanelCache.put(statsKey, it) }
-            .onFailure { if (stats == null) loadError = it.message ?: "" }
+            .onFailure { if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
@@ -370,7 +371,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.mutedColor, size = 12.dp); Spacer(Modifier.width(DsSpacing.Sm))
                         MrmText(formatBytes(periodTotal), isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
-                    UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
+                    UsageChart(points = trafficPoints, accent = theme.accentPrimary, themeIsDark = theme.isDark, emptyActionLabel = stringResource(R.string.chart_empty_refresh), onEmptyAction = { scope.launch { load(silent = true) } }, valueFormatter = ::formatBytes)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         Box(Modifier.clip(RoundedCornerShape(6.dp)).background(theme.accentPrimary.copy(alpha = 0.12f)).border(BorderStroke(0.7.dp, theme.accentPrimary.copy(alpha = 0.24f)), RoundedCornerShape(6.dp)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
                             Text(selectedNode?.name ?: stringResource(R.string.all_nodes), fontSize = 11.sp, color = theme.accentPrimary, fontWeight = FontWeight.Medium)
@@ -419,7 +420,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             MrmText("$peakCount", isTechnical = true, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    UsageChart(points = countPoints, accent = DsSemantic.Warning, themeIsDark = theme.isDark, valueFormatter = { it.toString() })
+                    UsageChart(points = countPoints, accent = DsSemantic.Warning, themeIsDark = theme.isDark, emptyActionLabel = stringResource(R.string.chart_empty_refresh), onEmptyAction = { scope.launch { load(silent = true) } }, valueFormatter = { it.toString() })
                     Spacer(Modifier.height(DsSpacing.NavClearance))
                 }
             }
@@ -457,7 +458,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
                 MrmText(stringResource(R.string.st_node_traffic_up, formatBytes(totalUp)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.accentPrimary)
                 MrmText(formatBytes(grandTotal), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-            UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, valueFormatter = ::formatBytes)
+            UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, emptyActionLabel = stringResource(R.string.chart_empty_refresh), onEmptyAction = { scope.launch { load(silent = true) } }, valueFormatter = ::formatBytes)
             // سهمِ هر نود — پرمصرف‌ترین اول (PanelApi از قبل مرتب کرده).
             usage.filter { it.total > 0L }.forEach { n ->
                 val name = nodes.firstOrNull { it.id == n.nodeId }?.name ?: stringResource(R.string.st_node_unknown, n.nodeId)

@@ -69,6 +69,7 @@ fun LoginScreen(
     var passError by remember { mutableStateOf<String?>(null) }
     var keyError by remember { mutableStateOf<String?>(null) }
     val theme = themeState
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // پیام‌های خطا باید *قبل از* لامبدای کلیک خوانده شوند؛ stringResource فقط در
     // بدنهٔ کامپوزبل قابل فراخوانی است، نه داخلِ coroutine.
@@ -79,8 +80,6 @@ fun LoginScreen(
     val errTimeout = stringResource(R.string.login_err_timeout)
     val errAuth = stringResource(R.string.login_err_auth)
     val errNotFound = stringResource(R.string.login_err_not_found)
-    val errUnknown = stringResource(R.string.login_err_unknown)
-    val errGenericTemplate = stringResource(R.string.login_err_generic)
     val errApiKey = stringResource(R.string.login_err_api_key)
     val errApiKeyFormat = stringResource(R.string.login_err_api_key_format)
     val errRequired = stringResource(R.string.login_field_required)
@@ -204,7 +203,8 @@ fun LoginScreen(
                                     e is java.net.UnknownHostException -> error = errHost
                                     e is java.net.SocketTimeoutException -> error = errTimeout
                                     e.message?.contains("404", true) == true -> error = errNotFound
-                                    else -> error = String.format(errGenericTemplate, e.message ?: errUnknown)
+                                    // متنِ خام فقط در لاگ می‌ماند؛ کاربر پیامِ دسته‌بندی‌شده می‌بیند.
+                                    else -> error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
                                 }
                             }
                             loading = false

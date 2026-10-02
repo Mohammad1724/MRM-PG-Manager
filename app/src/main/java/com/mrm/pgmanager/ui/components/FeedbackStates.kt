@@ -8,7 +8,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,17 +74,21 @@ private fun toneColor(tone: FeedbackTone) = when (tone) {
 fun AppFeedbackHost(modifier: Modifier = Modifier) {
     var current by remember { mutableStateOf<FeedbackEvent?>(null) }
     var visible by remember { mutableStateOf(false) }
+    // بازبودنِ «جزئیات فنی» (فاز ۵.۲) — تا وقتی باز است، پیام بسته نمی‌شود.
+    var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         AppFeedback.events.collect { event ->
             current = event
+            expanded = false
             visible = true
         }
     }
     // تایمرِ بسته‌شدن: با هر پیامِ جدید از نو شروع می‌شود.
-    LaunchedEffect(current, visible) {
+    LaunchedEffect(current, visible, expanded) {
         val event = current ?: return@LaunchedEffect
-        if (!visible) return@LaunchedEffect
+        // خواندنِ جزئیاتِ فنی نباید با ناپدیدشدنِ پیام قطع شود.
+        if (!visible || expanded) return@LaunchedEffect
         // پیامِ دارای اکشن (بازگرداندن/تلاش دوباره) وقتِ بیشتری می‌گیرد تا کاربر
         // فرصتِ واکنش داشته باشد؛ بعد از انقضا اکشن هم از دست می‌رود.
         delay(
@@ -104,24 +110,47 @@ fun AppFeedbackHost(modifier: Modifier = Modifier) {
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         ) {
-            current?.let { event -> AppSnackbarSurface(event = event, onDismiss = { visible = false }) }
+            current?.let { event ->
+                AppSnackbarSurface(
+                    event = event,
+                    onDismiss = { visible = false },
+                    expanded = expanded,
+                    onToggleDetail = { expanded = !expanded }
+                )
+            }
         }
     }
 }
 
 /** بدنهٔ کارتِ بازخورد. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
+private fun AppSnackbarSurface(
+    event: FeedbackEvent,
+    onDismiss: () -> Unit,
+    expanded: Boolean = false,
+    onToggleDetail: () -> Unit = {}
+) {
     val theme = LocalThemeState.current
     val dismissDesc = stringResource(R.string.cd_dismiss)
-    Row(
+    val detailHint = stringResource(R.string.err_technical_hint)
+    Column(
         modifier = Modifier
             .padding(horizontal = DsSpacing.Xl)
             .fillMaxWidth()
             .clip(DsRadius.Lg)
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Lg),
+            .combinedClickable(
+                // نگه‌داشتنِ پیام = بازشدنِ جزئیاتِ فنی؛ لمسِ کوتاه کاری نمی‌کند تا
+                // بستنِ ناخواسته پیش نیاید (✕ همچنان کار می‌کند).
+                onClick = {},
+                onLongClick = { if (event.detail != null) onToggleDetail() }
+            )
+            .padding(horizontal = DsSpacing.Screen, vertical = DsSpacing.Lg)
+    ) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
@@ -136,7 +165,7 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
             text = event.message,
             style = com.mrm.pgmanager.ui.designsystem.DsTextStyle.SnackMessage,
             color = theme.inkColor,
-            maxLines = 3,
+            maxLines = if (expanded) Int.MAX_VALUE else 3,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
@@ -168,6 +197,33 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Text("✕", fontSize = 13.sp, color = theme.mutedColor)
+        }
+    }
+        // راهنمای کشف‌پذیری + متنِ فنی. متنِ فنی برای صفحه‌خوان هم در
+        // contentDescription خوانده می‌شود (نگه‌داشتنِ لمس برای TalkBack سخت است).
+        val detail = event.detail
+        if (!detail.isNullOrBlank()) {
+            if (expanded) {
+                Text(
+                    stringResource(R.string.err_technical),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = theme.mutedColor
+                )
+                Text(
+                    detail,
+                    fontSize = 11.sp,
+                    color = theme.mutedColor,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+            } else {
+                Text(
+                    detailHint,
+                    fontSize = 10.sp,
+                    color = theme.mutedColor,
+                    modifier = Modifier.semantics { contentDescription = detailHint + ": " + detail }
+                )
+            }
         }
     }
 }

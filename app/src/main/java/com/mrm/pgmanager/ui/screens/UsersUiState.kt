@@ -241,7 +241,7 @@ internal class UsersUiState(
                         offlineAt = cache.second
                         endReached = true
                         error = null
-                    } else if (!silent) error = it.message
+                    } else if (!silent) error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                 }
             }
             // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
@@ -318,7 +318,8 @@ internal class UsersUiState(
                         offlineAt = cache.second
                         error = null
                     } else if (!silent) {
-                        error = it.message
+                        // پیامِ انسانی جای متنِ خام: «به پنل دسترسی پیدا نشد…»
+                        error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                     }
                 }
             }
@@ -366,13 +367,34 @@ internal class UsersUiState(
         action: suspend () -> Unit
     ) {
         scope.launch {
+            // فاز ۵.۳ — صفر تلاشِ نوشتاری در آفلاین: به‌جای ۱۵ ثانیه انتظار و
+            // خطای شبکه، همین‌جا نگه می‌داریم و با بازگشتِ اتصال خودکار اجرا می‌کنیم.
+            if (!com.mrm.pgmanager.utils.NetworkStatus.isOnline(context)) {
+                com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                    context.getString(R.string.err_offline_queued),
+                    actionLabel = context.getString(R.string.err_retry),
+                    onAction = { runAction(notification, undo, successMessage, action) }
+                )
+                com.mrm.pgmanager.utils.NetworkStatus.awaitOnline(context)
+                if (!com.mrm.pgmanager.utils.NetworkStatus.isOnline(context)) return@launch
+            }
             runCatching { action() }.onFailure {
-                error = it.message
-                if (PanelApi.isUnauthorized(it)) {
+                val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
+                error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+                if (kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
                     com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
                 } else {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_error_fmt, it.message?.take(120).orEmpty()))
+                    // خطاهای گذرا «تلاش دوباره» می‌گیرند؛ متنِ خام فقط در جزئیاتِ فنی.
+                    val retryable = com.mrm.pgmanager.utils.ApiErrorMapper.isTransient(kind)
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                        message = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                        actionLabel = if (retryable) context.getString(R.string.err_retry) else null,
+                        onAction = if (retryable) {
+                            { runAction(notification, undo, successMessage, action) }
+                        } else null,
+                        detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
+                    )
                 }
             }.onSuccess {
                 // بازخوردِ در‌جا (اسنک + لمس) فوری است؛ اعلانِ سیستمی فقط وقتی

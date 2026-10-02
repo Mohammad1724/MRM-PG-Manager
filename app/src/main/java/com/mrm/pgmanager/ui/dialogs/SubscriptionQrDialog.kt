@@ -102,7 +102,10 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
             }
             shareFile(file, "image/png", context.getString(R.string.qr_share_qr))
         }.onFailure { e ->
-            com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_share_error, e.message.orEmpty()))
+            com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                context.getString(R.string.qr_share_error, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL)),
+                detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(e)
+            )
         }
     }
 
@@ -131,7 +134,10 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
             } else {
                 runCatching { shareFile(file, "image/png", context.getString(R.string.qr_send_card)) }
                     .onFailure { e ->
-                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.qr_share_error, e.message.orEmpty()))
+                        com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                context.getString(R.string.qr_share_error, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL)),
+                detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(e)
+            )
                     }
             }
         }

@@ -124,7 +124,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
         if (!silent) loading = true
         runCatching { PanelApi.userTemplates(session) }
             .onSuccess { templates = it; loadError = null; PanelCache.put(templatesKey, it) }
-            .onFailure { loadError = it.message ?: context.getString(R.string.err_generic) }
+            .onFailure { loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
         // گروه‌ها برای انتخابگرِ فرم لازم‌اند؛ نبودشان صفحه را از کار نمی‌اندازد.
         runCatching { PanelApi.groups(session) }
             .onSuccess { availableGroups = it; PanelCache.put(templateGroupsKey, it) }
@@ -317,7 +317,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         toast = if (isCreate) msgCreated else msgUpdated
                         load(silent = true)
                     }.onFailure { e ->
-                        onResult(e.message ?: context.getString(R.string.err_generic))
+                        onResult(com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e))
                     }
                 }
             }
@@ -336,7 +336,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 scope.launch {
                     runCatching { PanelApi.deleteUserTemplate(session, target.id) }
                         .onSuccess { toast = msgDeleted; load(silent = true) }
-                        .onFailure { banner = it.message ?: msgLoadFailed }
+                        .onFailure { banner = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
                     deleting = null
                 }
             }
