@@ -208,7 +208,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
                         )
                         Box(
-                            Modifier.clickable { banner = null }.padding(10.dp).size(20.dp).clip(DsRadius.Xs),
+                            Modifier.padding(10.dp).size(20.dp).clip(DsRadius.Xs).clickable { banner = null },
                             contentAlignment = Alignment.Center
                         ) { Text("×", fontSize = 13.sp, color = DsSemantic.Danger) }
                     }
@@ -382,7 +382,7 @@ private fun GroupRow(group: GroupDetail, onEdit: () -> Unit, onDelete: (() -> Un
         }
 
         if (onDelete != null) Box(
-            Modifier.clickable { onDelete() }.padding(4.dp).size(32.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+            Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Sm).clickable { onDelete() }.background(theme.searchBgColor)
                 .semantics { contentDescription = deleteGroupLabel }
                 ,
             contentAlignment = Alignment.Center

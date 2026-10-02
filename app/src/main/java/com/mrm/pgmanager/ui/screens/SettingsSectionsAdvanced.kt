@@ -170,9 +170,9 @@ internal fun ConnectionSection(
                     }
                 } else {
                     Box(
-                        Modifier.clickable {
+                        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable {
                             store.setActive(acc); accounts = store.readAccounts(); onSwitchAccount(acc)
-                        }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(GlassGreen.copy(.16f)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
+                        }.background(GlassGreen.copy(.16f)).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                     ) {
                         Text(
                             stringResource(R.string.set_conn_connect), fontSize = 11.sp,
@@ -180,9 +180,9 @@ internal fun ConnectionSection(
                         )
                     }
                     Box(
-                        Modifier.clickable {
+                        Modifier.padding(8.dp).size(24.dp).clip(DsRadius.Sm).clickable {
                             store.removeAccount(acc.baseUrl, acc.username); accounts = store.readAccounts()
-                        }.padding(8.dp).size(24.dp).clip(DsRadius.Sm).background(GlassRed.copy(.12f)),
+                        }.background(GlassRed.copy(.12f)),
                         contentAlignment = Alignment.Center
                     ) { RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 12.dp) }
                 }
@@ -693,10 +693,10 @@ internal fun BackupSection(
         }
         if (backupFolderUri != null) {
             Box(
-                Modifier.clickable {
+                Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Sm).clickable {
                         store.saveBackupUri(null)
                         backupFolderUri = null
-                    }.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Sm)
+                    }
                     .background(GlassRed.copy(0.08f))
                     .border(BorderStroke(0.8.dp, GlassRed.copy(0.20f)), DsRadius.Sm)
                     .padding(horizontal = DsSpacing.Mid),

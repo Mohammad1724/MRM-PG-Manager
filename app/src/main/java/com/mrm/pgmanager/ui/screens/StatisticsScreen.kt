@@ -195,23 +195,23 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         )
                         PGRingStatCard(
                             label = stringResource(R.string.ram_usage),
-                            value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}",
+                            value = formatBytes(s.memUsed),
                             icon = AppIcon.Memory,
                             modifier = Modifier.weight(1f),
                             fraction = memFraction,
                             percent = memFraction.times(100).toInt(),
-                            sub = stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
+                            sub = stringResource(R.string.of_total_fmt, formatBytes(s.memTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
                         )
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                         PGRingStatCard(
                             label = stringResource(R.string.disk_usage),
-                            value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}",
+                            value = formatBytes(s.diskUsed),
                             icon = AppIcon.Storage,
                             modifier = Modifier.weight(1f),
                             fraction = diskFraction,
                             percent = diskFraction.times(100).toInt(),
-                            sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
+                            sub = stringResource(R.string.of_total_fmt, formatBytes(s.diskTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
                         )
                         // حلقهٔ ترافیک سقف ندارد؛ سهمِ دانلود/آپلود را با دو سایه از
                         // رنگِ تم نشان می‌دهد.
@@ -226,7 +226,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             ),
                             ringColor = theme.accentPrimary,
                             centerIcon = AppIcon.Storage,
-                            sub = "↓ ${formatBytes(s.incomingBandwidth)}  ↑ ${formatBytes(s.outgoingBandwidth)}"
+                            sub = "↓ ${formatBytes(s.incomingBandwidth)}\n↑ ${formatBytes(s.outgoingBandwidth)}"
                         )
                     }
                     // دانلود/آپلود — حلقه سهمِ هرکدام از کلِ ترافیک را می‌گوید.
@@ -307,14 +307,14 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 Text(statusText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
                                 if (n.status == "error" || n.status == "connecting") {
                                     Box(
-                                        Modifier.clickable {
+                                        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable {
                                                 reconnecting = n.id
                                                 scope.launch {
                                                     runCatching { PanelApi.reconnectNode(session, n.id) }
                                                     load(true)
                                                     reconnecting = null
                                                 }
-                                            }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(theme.cardSurfaceColor)
+                                            }.background(theme.cardSurfaceColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
                                             .pressScale(0.94f)
                                             
@@ -359,7 +359,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
-                            Box(Modifier.clickable { trafficRange = r }.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { trafficRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }
@@ -397,7 +397,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
-                            Box(Modifier.clickable { countRange = r }.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { countRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                 Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
                             }
                         }

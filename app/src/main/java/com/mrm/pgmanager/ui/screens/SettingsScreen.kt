@@ -138,7 +138,7 @@ fun SettingsScreen(
         ) {
             // با Alignment/padding نسبی، در فارسی خودکار سمت راست می‌نشیند.
             Box(
-                Modifier.clickable { onBack() }.padding(3.dp).size(34.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }.background(theme.searchBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
                     .semantics { contentDescription = backLabel }
                     ,
@@ -172,7 +172,7 @@ fun SettingsScreen(
                 val (id, label) = tabs[index]
                 val selected = section == id
                 Box(
-                    Modifier.clickable { scope.launch { pagerState.animateScrollToPage(index) } }.padding(vertical = 3.dp).height(34.dp).clip(DsRadius.Full)
+                    Modifier.padding(vertical = 3.dp).height(34.dp).clip(DsRadius.Full).clickable { scope.launch { pagerState.animateScrollToPage(index) } }
                         .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
                         .pressScale(0.95f)
                         
@@ -358,7 +358,7 @@ private fun ExpandableSettingsGroup(
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Row(
-            Modifier.clickable { onToggle() }.heightIn(min = 40.dp).fillMaxWidth().clip(DsRadius.Xl)
+            Modifier.heightIn(min = 40.dp).fillMaxWidth().clip(DsRadius.Xl).clickable { onToggle() }
                 .background(if (expanded) accent.copy(.10f) else Color.Transparent)
                 .semantics { contentDescription = toggleLabel }
                 .pressScale(0.985f)
@@ -416,7 +416,7 @@ private fun AboutFooter(appVersion: String) {
             color = theme.mutedColor, modifier = Modifier.weight(1f)
         )
         Row(
-            Modifier.clickable {
+            Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable {
                     runCatching {
                         context.startActivity(
                             android.content.Intent(
@@ -425,7 +425,7 @@ private fun AboutFooter(appVersion: String) {
                             )
                         )
                     }
-                }.heightIn(min = 40.dp).clip(DsRadius.Sm).background(theme.searchBgColor)
+                }.background(theme.searchBgColor)
                 
                 .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
             verticalAlignment = Alignment.CenterVertically,
@@ -646,7 +646,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
             Box(
-                Modifier.clickable { onThemeChange(themeState.copy(customColor = preview)) }.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm)
+                Modifier.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = preview)) }
                     .background(preview.copy(.18f))
                     .border(BorderStroke(1.dp, preview.copy(.4f)), DsRadius.Sm)
                     ,
@@ -659,7 +659,7 @@ private fun CustomColorCard(themeState: ThemeState, onThemeChange: (ThemeState) 
             }
             if (activeCustom != null) {
                 Box(
-                    Modifier.clickable { onThemeChange(themeState.copy(customColor = null)) }.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm)
+                    Modifier.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm).clickable { onThemeChange(themeState.copy(customColor = null)) }
                         .background(GlassRed.copy(.10f))
                         .border(BorderStroke(1.dp, GlassRed.copy(.3f)), DsRadius.Sm)
                         ,

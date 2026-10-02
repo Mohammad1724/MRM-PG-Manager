@@ -35,6 +35,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
@@ -177,7 +178,7 @@ fun PGRingStatCard(
     centerIcon: AppIcon? = null,
     sub: String? = null,
     minHeight: Dp = 88.dp,
-    ringSize: Dp = 50.dp,
+    ringSize: Dp = 44.dp,
     trailing: @Composable (() -> Unit)? = null
 ) {
     val t = LocalThemeState.current
@@ -193,7 +194,8 @@ fun PGRingStatCard(
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
             .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
+        // Sm (نه Mid): در کاشیِ نیم‌عرضِ ۳۶۰dp هر dp برای متن لازم است ('970.87 MB' بریده می‌شد).
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         RingChart(segments = segs, diameter = ringSize, stroke = 5.dp) {
             when {
@@ -232,11 +234,13 @@ fun PGRingStatCard(
                     fontWeight = FontWeight.Bold,
                     color = t.inkColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("ring_value")
                 )
             }
             if (sub != null) {
-                Text(sub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // دو خط مجاز (با '\n')؛ minHeight=88dp جا را نگه می‌دارد تا کاشی‌های هم‌ردیف هم‌قد بمانند.
+                Text(sub, fontSize = 11.sp, color = t.mutedLightColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("ring_sub"))
             }
         }
     }

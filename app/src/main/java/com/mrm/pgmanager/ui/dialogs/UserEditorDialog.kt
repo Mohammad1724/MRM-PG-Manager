@@ -157,7 +157,7 @@ fun UserEditorDialog(
                         Text(stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Box(
-                        Modifier.clickable(onClick = onDismiss).padding(6.dp).size(28.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor)
+                        Modifier.padding(6.dp).size(28.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onDismiss).background(theme.searchBgColor)
                             .semantics { contentDescription = closeLabel }.pressScale(0.9f),
                         contentAlignment = Alignment.Center
                     ) { Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
@@ -177,7 +177,7 @@ fun UserEditorDialog(
                                     if (isCreating) {
                                         UserFormTextField(value = username, onValueChange = { username = it.trim() }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
                                         Box(
-                                            Modifier.clickable { username = store.readUsernamePattern().randomName() }.padding(4.dp).size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                            Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Md).clickable { username = store.readUsernamePattern().randomName() }.background(theme.searchBgColor)
                                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                                 .semantics { contentDescription = randomLabel }.pressScale(0.92f)
                                                 ,
@@ -213,7 +213,7 @@ fun UserEditorDialog(
                                 val statusLabel = when (editorStatus) { "active" -> R.string.active; "on_hold" -> R.string.on_hold; else -> R.string.disabled }
                                 Box {
                                     Row(
-                                        Modifier.clickable { statusMenuExpanded = true }.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(statusColor.copy(0.10f))
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { statusMenuExpanded = true }.background(statusColor.copy(0.10f))
                                             .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.25f)), DsRadius.Md).pressScale(0.96f)
                                             .padding(horizontal = DsSpacing.Md),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
@@ -253,7 +253,7 @@ fun UserEditorDialog(
                                 )
                                 // تقویم فقط برای تاریخِ انقضای مطلق معنا دارد؛ on_hold مدت نسبی است.
                                 if (!isOnHold) Box(
-                                    Modifier.clickable { showCalendar = true }.padding(4.dp).size(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                    Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Md).clickable { showCalendar = true }.background(theme.searchBgColor)
                                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                         .semantics { contentDescription = pickDateLabel }.pressScale(0.92f),
                                     contentAlignment = Alignment.Center
@@ -269,7 +269,7 @@ fun UserEditorDialog(
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
-                                        Modifier.clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }.padding(7.dp).height(26.dp).clip(DsRadius.Full).background(theme.searchBgColor)
+                                        Modifier.padding(7.dp).height(26.dp).clip(DsRadius.Full).clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }.background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
                                             
                                             .padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center
@@ -365,7 +365,7 @@ fun UserEditorDialog(
                                 Text(stringResource(R.string.ue_next_plan_desc), fontSize = 11.sp, color = theme.mutedColor)
                                 Box {
                                     Row(
-                                        Modifier.clickable { nextPlanMenu = true }.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { nextPlanMenu = true }.background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).pressScale(0.98f)
                                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
@@ -397,7 +397,7 @@ fun UserEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                         ) {
                             Row(
-                                Modifier.clickable { advancedOpen = !advancedOpen }.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).pressScale(0.985f).padding(horizontal = DsSpacing.Md),
+                                Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { advancedOpen = !advancedOpen }.pressScale(0.985f).padding(horizontal = DsSpacing.Md),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                             ) {
                                 RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
@@ -515,7 +515,7 @@ private fun EmptyHint(text: String) {
 private fun PickerRow(icon: AppIcon, label: String, selected: Boolean, onClick: () -> Unit, trailing: @Composable () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.clickable(onClick = onClick).padding(vertical = 2.dp).fillMaxWidth().height(36.dp).clip(DsRadius.Md).background(if (selected) theme.inkColor.copy(0.06f) else theme.searchBgColor)
+        Modifier.padding(vertical = 2.dp).fillMaxWidth().height(36.dp).clip(DsRadius.Md).clickable(onClick = onClick).background(if (selected) theme.inkColor.copy(0.06f) else theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.inkColor.copy(0.15f) else theme.borderColor), DsRadius.Md).pressScale(0.98f).padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {

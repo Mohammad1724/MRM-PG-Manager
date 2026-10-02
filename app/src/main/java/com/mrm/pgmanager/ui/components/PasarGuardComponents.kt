@@ -158,7 +158,7 @@ fun PGScreenHeader(
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.clickable(onClick = onRefresh).padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                Modifier.padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onRefresh).background(t.searchBgColor)
                     .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
                     .semantics { contentDescription = refreshLabel }
                     .pressScale(0.92f)
@@ -174,7 +174,7 @@ fun PGScreenHeader(
                 )
             }
             Box(
-                Modifier.clickable(onClick = onOpenSettings).padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).background(t.searchBgColor)
+                Modifier.padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).background(t.searchBgColor)
                     .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
                     .semantics { contentDescription = settingsLabel }
                     .pressScale(0.92f)
@@ -319,7 +319,7 @@ fun PGTopBar(title: String, subtitle: String? = null, onMenu: (() -> Unit)? = nu
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 if (onMenu != null) {
-                    Box(Modifier.clickable(onClick = onMenu).padding(4.dp).size(32.dp).clip(RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                    Box(Modifier.padding(4.dp).size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onMenu), contentAlignment = Alignment.Center) {
                         Text("☰", fontSize = 16.sp, color = t.inkColor)
                     }
                 }

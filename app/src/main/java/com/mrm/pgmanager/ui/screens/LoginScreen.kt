@@ -127,7 +127,7 @@ fun LoginScreen(
                 Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(DsSpacing.Xs), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                     @Composable fun ModeTab(selected: Boolean, label: String, onClick: () -> Unit) {
                         Box(
-                            Modifier.clickable(enabled = !loading) { onClick(); error = null; urlError = null; userError = null; passError = null; keyError = null }.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm)
+                            Modifier.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm).clickable(enabled = !loading) { onClick(); error = null; urlError = null; userError = null; passError = null; keyError = null }
                                 .background(if (selected) theme.cardSurfaceColor else Color.Transparent)
                                 .border(BorderStroke(DsBorder.Hairline, if (selected) theme.borderColor else Color.Transparent), DsRadius.Sm)
                                 ,
@@ -265,7 +265,7 @@ private fun LanguageToggle(
     val nextLabel = if (currentIsFa) stringResource(R.string.language_en) else stringResource(R.string.language_fa)
     val switchLabel = stringResource(R.string.cd_change_language)
     Row(
-        Modifier.clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }.padding(vertical = 2.dp).height(36.dp).clip(DsRadius.Sm)
+        Modifier.padding(vertical = 2.dp).height(36.dp).clip(DsRadius.Sm).clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .semantics { contentDescription = switchLabel }
@@ -325,7 +325,7 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                     }
                 )
                 if (isPassword) {
-                    Box(Modifier.clickable { visible = !visible }.padding(2.dp).size(36.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                    Box(Modifier.padding(2.dp).size(36.dp).clip(DsRadius.Sm).clickable { visible = !visible }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) {
                         PasswordEyeIcon(visible = visible)
                     }
                 }

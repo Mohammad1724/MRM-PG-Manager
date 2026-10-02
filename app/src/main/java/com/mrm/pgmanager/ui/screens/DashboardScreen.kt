@@ -269,23 +269,23 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                     )
                     PGRingStatCard(
                         label = stringResource(R.string.ram_usage),
-                        value = "${formatBytes(s.memUsed)}/${formatBytes(s.memTotal)}",
+                        value = formatBytes(s.memUsed),
                         icon = AppIcon.Memory,
                         modifier = Modifier.weight(1f),
                         fraction = memFraction,
                         percent = memFraction.times(100).toInt(),
-                        sub = stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
+                        sub = stringResource(R.string.of_total_fmt, formatBytes(s.memTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
                     )
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
                     PGRingStatCard(
                         label = stringResource(R.string.disk_usage),
-                        value = "${formatBytes(s.diskUsed)}/${formatBytes(s.diskTotal)}",
+                        value = formatBytes(s.diskUsed),
                         icon = AppIcon.Storage,
                         modifier = Modifier.weight(1f),
                         fraction = diskFraction,
                         percent = diskFraction.times(100).toInt(),
-                        sub = stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
+                        sub = stringResource(R.string.of_total_fmt, formatBytes(s.diskTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
                     )
                     // ترافیک سقف ندارد، پس حلقه‌اش «نسبتِ پرشدن» نیست؛ سهمِ دانلود
                     // و آپلود را از کلِ ترافیک نشان می‌دهد — با دو سایه از رنگِ تم.
@@ -301,7 +301,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         ),
                         ringColor = theme.accentPrimary,
                         centerIcon = AppIcon.Storage,
-                        sub = "↓ ${formatBytes(s.incomingBandwidth)}  ↑ ${formatBytes(s.outgoingBandwidth)}"
+                        sub = "↓ ${formatBytes(s.incomingBandwidth)}\n↑ ${formatBytes(s.outgoingBandwidth)}"
                     )
                 }
                 // Uptime — full width
@@ -370,7 +370,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         // بدونِ رفتارش. حالا واقعاً نمودار را عوض می‌کند.
                         Box {
                             Row(
-                                Modifier.clickable { chartMenuOpen = true }.padding(vertical = 8.dp).clip(RoundedCornerShape(6.dp)).background(theme.searchBgColor)
+                                Modifier.padding(vertical = 8.dp).clip(RoundedCornerShape(6.dp)).clickable { chartMenuOpen = true }.background(theme.searchBgColor)
                                     .border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp))
                                     .pressScale(0.95f)
                                     

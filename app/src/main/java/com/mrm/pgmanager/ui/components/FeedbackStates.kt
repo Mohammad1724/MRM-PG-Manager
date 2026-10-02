@@ -132,9 +132,10 @@ private fun AppSnackbarSurface(event: FeedbackEvent, onDismiss: () -> Unit) {
             modifier = Modifier.weight(1f)
         )
         Box(
-            Modifier.clickable { onDismiss() }.padding(2.dp)
+            Modifier.padding(2.dp)
                 .size(36.dp)
                 .clip(DsRadius.Sm)
+                .clickable { onDismiss() }
                 .semantics { contentDescription = dismissDesc }
                 ,
             contentAlignment = Alignment.Center

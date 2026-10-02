@@ -516,14 +516,14 @@ fun UsersScreen(
                 // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
                 if (ui.currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
                     Row(
-                        Modifier.clickable {
+                        Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).clickable {
                                 scope.launch {
                                     val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
                                     if (names.isEmpty()) {
                                         com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
                                     } else ui.cleanupNames = names
                                 }
-                            }.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm)
+                            }
                             .background(GlassRed.copy(0.10f))
                             .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.26f)), DsRadius.Sm)
                             .pressScale(0.98f)

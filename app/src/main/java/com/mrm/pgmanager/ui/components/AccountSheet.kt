@@ -124,9 +124,10 @@ fun AccountSheet(
                     )
                 }
                 Box(
-                    Modifier.clickable(onClick = onDismiss).padding(2.dp)
+                    Modifier.padding(2.dp)
                         .size(36.dp)
                         .clip(DsRadius.Sm)
+                        .clickable(onClick = onDismiss)
                         .semantics { contentDescription = closeLabel }
                         ,
                     contentAlignment = Alignment.Center

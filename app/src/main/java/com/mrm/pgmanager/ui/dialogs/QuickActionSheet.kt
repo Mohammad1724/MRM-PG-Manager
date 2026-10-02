@@ -135,7 +135,7 @@ fun QuickActionSheet(
 @Composable
 private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (مرز یک‌چهارم رنگ).
-    Box(modifier.clickable(onClick = onClick).padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Md).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md), contentAlignment = Alignment.Center) {
+    Box(modifier.padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Md).clickable(onClick = onClick).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md), contentAlignment = Alignment.Center) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             RoundedAppIcon(icon, tint = color, size = 16.dp)
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)

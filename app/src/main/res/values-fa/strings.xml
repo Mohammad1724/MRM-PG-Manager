@@ -56,6 +56,7 @@
     <string name="total_traffic">ترافیک کل</string>
     <string name="cpu_cores_fmt">%1$d هسته</string>
     <string name="free_fmt">%1$s آزاد</string>
+    <string name="of_total_fmt">از %1$s</string>
     <string name="users_section">کاربران</string>
     <string name="active_users">کاربران فعال</string>
     <string name="online_users">کاربران آنلاین</string>

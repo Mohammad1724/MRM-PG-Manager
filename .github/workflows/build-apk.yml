@@ -46,6 +46,7 @@ jobs:
           python3 tools/kt-callcheck.py
           # یک خانوادهٔ دکمه/FAB: بیرون از ui/components فقط PG* (موتور Mrm* ممنوع)
           python3 tools/kt-family.py
+          python3 tools/kt-modifier-order.py
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest

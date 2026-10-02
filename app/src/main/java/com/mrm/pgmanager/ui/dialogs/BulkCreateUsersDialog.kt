@@ -200,7 +200,7 @@ fun BulkCreateUsersDialog(
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
-                                    Box(Modifier.clickable { selectedTemplate = t.id }.padding(vertical = 5.dp).height(30.dp).clip(DsRadius.Sm).primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                                    Box(Modifier.padding(vertical = 5.dp).height(30.dp).clip(DsRadius.Sm).clickable { selectedTemplate = t.id }.primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
                                         Text(t.name, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (picked) theme.onPrimary else theme.inkColor, maxLines = 1)
                                     }
                                 }

@@ -186,7 +186,7 @@ internal fun GlassSearchBar(query: String, onQueryChange: (String) -> Unit, modi
                     decorationBox = { inner -> Box(contentAlignment = Alignment.CenterStart) { inner() } }
                 )
             }
-            if (query.isNotEmpty()) Box(Modifier.clickable { onQueryChange("") }.padding(8.dp).size(24.dp).clip(RoundedCornerShape(6.dp)).background(theme.borderSubtle), contentAlignment = Alignment.Center) { Text("×", color = theme.mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+            if (query.isNotEmpty()) Box(Modifier.padding(8.dp).size(24.dp).clip(RoundedCornerShape(6.dp)).clickable { onQueryChange("") }.background(theme.borderSubtle), contentAlignment = Alignment.Center) { Text("×", color = theme.mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }
@@ -272,7 +272,7 @@ internal fun FilterAndControlBar(
     var showSortSheet by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
         // Filter dropdown button like PasarGuard panel
-        Box(Modifier.clickable { showFilterSheet = true }.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).clickable { showFilterSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
@@ -287,7 +287,7 @@ internal fun FilterAndControlBar(
             }
         }
         // Sort dropdown - with icon
-        Box(Modifier.clickable { showSortSheet = true }.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.padding(vertical = 1.dp).weight(1f).height(38.dp).clip(DsRadius.Sm).clickable { showSortSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
@@ -306,7 +306,7 @@ internal fun FilterAndControlBar(
             val selectedName = groups.firstOrNull { it.id == groupFilterId }?.name
             Box {
                 Row(
-                    Modifier.clickable { groupMenu = true }.padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Sm)
+                    Modifier.padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Sm).clickable { groupMenu = true }
                         .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
                         .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
                         .pressScale(0.97f)
@@ -402,9 +402,10 @@ internal fun FilterAndControlBar(
 internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clickable(onClick = onClick).padding(vertical = 4.dp)
+    Box(modifier = Modifier.padding(vertical = 4.dp)
         .height(32.dp)
         .clip(shape)
+        .clickable(onClick = onClick)
         .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)
         
         .padding(horizontal = DsSpacing.Lg),
@@ -418,7 +419,7 @@ internal fun FilterChipItem(label: String, selected: Boolean, onClick: () -> Uni
 internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clickable(onClick = onClick).padding(vertical = 8.dp).clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm)) {
+    Box(modifier = Modifier.padding(vertical = 8.dp).clip(shape).clickable(onClick = onClick).primarySurface(theme, selected, shape, idle = Color.Transparent).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm)) {
         Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
@@ -427,7 +428,7 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 internal fun ViewModeIcon(icon: AppIcon, contentDescription: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.clickable(onClick = onClick).padding(4.dp).size(32.dp).clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.padding(4.dp).size(32.dp).clip(shape).clickable(onClick = onClick).primarySurface(theme, selected, shape, idle = Color.Transparent), contentAlignment = Alignment.Center) {
         RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
     }
 }

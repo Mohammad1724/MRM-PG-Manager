@@ -56,6 +56,7 @@
     <string name="total_traffic">Total Traffic</string>
     <string name="cpu_cores_fmt">%1$d cores</string>
     <string name="free_fmt">%1$s free</string>
+    <string name="of_total_fmt">of %1$s</string>
     <string name="users_section">Users</string>
     <string name="active_users">Active Users</string>
     <string name="online_users">Online Users</string>
