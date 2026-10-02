@@ -3,15 +3,18 @@ package com.mrm.pgmanager.ui.screens
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.PanelUser
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +66,16 @@ class MicroRowLayoutTest {
         node("micro_bar").assertWidthIsAtLeast(90.dp)
         val bar = bounds("micro_bar"); val name = bounds("micro_name")
         assertTrue("نوار (${bar.width}px) باید از ستونِ نام (${name.width}px) عریض‌تر باشد", bar.width > name.width)
+    }
+
+    @Test fun usageText_isNeverEllipsized_forWorstCase() {
+        render()
+        for (tag in listOf("micro_traffic", "micro_remaining")) {
+            val results = mutableListOf<TextLayoutResult>()
+            node(tag).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+            assertTrue("$tag: نتیجهٔ layout متن در دسترس نیست", results.isNotEmpty())
+            assertFalse("$tag بریده شده (…) — حدِ مصرف/روزِ مانده باید کامل دیده شود", results[0].isLineEllipsized(0))
+        }
     }
 
     @Test fun trafficAndRemaining_neverOverlap() {

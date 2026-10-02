@@ -857,6 +857,7 @@
     <string name="dl_one_day">1 day</string>
     <string name="dl_days">%1$d days</string>
     <string name="dl_on_hold_days">%1$d days after first connection</string>
+    <string name="dl_days_short">%1$dd</string>
     <string name="up_days_hours">%1$dd %2$dh</string>
     <string name="up_hours_minutes">%1$dh %2$dm</string>
     <string name="up_minutes">%1$d min</string>

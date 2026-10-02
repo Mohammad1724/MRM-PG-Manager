@@ -43,6 +43,21 @@ fun remainingText(user: PanelUser): String {
     return if (onHoldDays != null) stringResource(R.string.dl_on_hold_days, onHoldDays) else daysLeftText(user.expire)
 }
 
+/**
+ * نسخهٔ فشرده‌ی [remainingText] برای ردیفِ micro: «19d» به‌جای «19 days»، «∞» به‌جای «Unlimited».
+ * برای on_hold همان تعدادِ روز (نشانِ on_hold را بج می‌دهد).
+ */
+@Composable
+fun remainingTextShort(user: PanelUser): String {
+    user.onHoldDays?.let { return stringResource(R.string.dl_days_short, it) }
+    return when (val d = DateLogic.daysLeft(user.expire)) {
+        DateLogic.DaysLeft.Unlimited -> "∞"
+        DateLogic.DaysLeft.Expired -> stringResource(R.string.dl_expired)
+        DateLogic.DaysLeft.Today -> stringResource(R.string.dl_today)
+        is DateLogic.DaysLeft.Days -> stringResource(R.string.dl_days_short, d.count)
+    }
+}
+
 /** نسخهٔ غیرکامپوزبل برای جاهایی مثل رندرِ کارتِ اشتراک روی بوم. */
 fun Context.daysLeftText(expire: String?): String = when (val d = DateLogic.daysLeft(expire)) {
     DateLogic.DaysLeft.Unlimited -> getString(R.string.dl_unlimited)

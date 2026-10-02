@@ -88,6 +88,7 @@ import com.mrm.pgmanager.utils.lastSeenText
 import com.mrm.pgmanager.utils.lastSeenShort
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.remainingText
+import com.mrm.pgmanager.utils.remainingTextShort
 import com.mrm.pgmanager.utils.NotificationHelper
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
@@ -398,11 +399,12 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
 }
 
 /**
- * هندسهٔ ردیفِ micro (۳۶۰dp): نام ۰٫۸ : مصرف ۱٫۲ از جای باقی‌مانده. دکمه‌ها ۳۲dp — ۲۴dp خیلی کوچک بود و
- * ۴۰dp (فاز ۲٫۱) نوارِ مصرف را له می‌کرد. حوزهٔ لمس را خودِ Compose تا ۴۸dp گسترش می‌دهد.
+ * هندسهٔ ردیفِ micro (گوشیِ ۳۶۰dp): ستونِ مصرف عرضِ ثابتِ کافی دارد تا «used/limit + روزِ مانده» هیچ‌وقت
+ * بریده نشود (در رندرِ واقعی دیدیم با weight هر دو ستون «…» می‌خوردند)؛ فقط نام انعطاف‌پذیر است.
+ * دکمه‌ها ۳۲dp — ۲۴dp خیلی کوچک بود و ۴۰dp (فاز ۲٫۱) نوارِ مصرف را له می‌کرد.
+ * حوزهٔ لمس را خودِ Compose تا ۴۸dp گسترش می‌دهد.
  */
-internal const val MICRO_NAME_WEIGHT = 0.8f
-internal const val MICRO_USAGE_WEIGHT = 1.2f
+internal val MICRO_USAGE_WIDTH = 116.dp
 internal val MICRO_ACTION_SIZE = 32.dp
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -424,20 +426,19 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             CheckboxIcon(selected = selected, onToggle = onSelectToggle)
-            // عرضِ نام انعطاف‌پذیر است (قبلاً ۹۶dp ثابت = فضای خالیِ بی‌دلیل برای نام‌های کوتاه)؛
-            // سهمِ بیشتر به ستونِ مصرف می‌رسد تا نوار و «روزِ مانده» جا داشته باشند.
-            Column(Modifier.weight(MICRO_NAME_WEIGHT).testTag("micro_name"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
+            // عرضِ نام انعطاف‌پذیر است (قبلاً ۹۶dp ثابت = فضای خالیِ بی‌دلیل)؛ ستونِ مصرف عرضِ ثابتِ MICRO_USAGE_WIDTH دارد.
+            Column(Modifier.weight(1f).testTag("micro_name"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
                 OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
             }
             UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
-            Column(Modifier.weight(MICRO_USAGE_WEIGHT), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+            Column(Modifier.width(MICRO_USAGE_WIDTH), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                 // «روزِ مانده» اول و با سقفِ عرض اندازه‌گیری می‌شود؛ متنِ مصرف باقیِ جا را می‌گیرد و در
                 // تنگنا با «…» کوتاه می‌شود — دیگر دو متن روی هم نمی‌افتند («7 GB/30 GB19»).
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     MrmText(traffic, modifier = Modifier.weight(1f, fill = false).testTag("micro_traffic"), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                    MrmText(remainingText(user), modifier = Modifier.padding(start = DsSpacing.Xs).widthIn(max = 64.dp).testTag("micro_remaining"), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = false)
+                    MrmText(remainingTextShort(user), modifier = Modifier.padding(start = DsSpacing.Xs).widthIn(max = 56.dp).testTag("micro_remaining"), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = false)
                 }
                 PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth().testTag("micro_bar"), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
             }

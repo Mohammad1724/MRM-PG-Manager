@@ -857,6 +857,7 @@
     <string name="dl_one_day">۱ روز</string>
     <string name="dl_days">%1$d روز</string>
     <string name="dl_on_hold_days">%1$d روز پس از اولین اتصال</string>
+    <string name="dl_days_short">%1$d روز</string>
     <string name="up_days_hours">%1$d روز و %2$d ساعت</string>
     <string name="up_hours_minutes">%1$d ساعت و %2$d دقیقه</string>
     <string name="up_minutes">%1$d دقیقه</string>
