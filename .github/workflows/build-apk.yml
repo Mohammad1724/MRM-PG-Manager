@@ -50,6 +50,15 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
+      # PNGهای رندرِ Robolectric (MicroRowScreenshotTest) — برای دیدنِ چیدمانِ واقعی بدون گوشی.
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: app/build/test-screens/
+          if-no-files-found: ignore
+
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
