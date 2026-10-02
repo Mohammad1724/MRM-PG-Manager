@@ -8,6 +8,7 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -24,10 +25,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.LocalMotionDurationScale
-import androidx.compose.ui.MotionDurationScale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,28 +69,22 @@ import androidx.compose.ui.unit.dp
  * بزرگ (شیت، صفحه) طراحی شده و از FastOutSlowIn طبیعی‌تر است.
  */
 /**
- * «کاهش انیمیشن» (فاز ۷.۳).
+ * «کاهش انیمیشن» (فاز ۷.۳) — پرچمِ زندهٔ اپ.
  *
- * Compose مدت‌زمانِ همهٔ انیمیشن‌هایش را در `LocalMotionDurationScale` ضرب می‌کند.
- * با صفر کردنِ این ضریب، حرکت‌ها **حذف** می‌شوند نه کوتاه — دقیقاً همان چیزی که
- * کاربرِ حساس به حرکت (و کسی که فقط می‌خواهد اپ سریع‌تر حس شود) می‌خواهد.
+ * چرا پرچم و نه `LocalMotionDurationScale`؟ چون آن ترکیب‌محلی در Compose 1.7
+ * عمومی نشده؛ اسکیلِ مدت‌زمان در آن نسخه از **کوروتین‌کانتکستِ** پنجره خوانده
+ * می‌شود (و همین باعث می‌شود تنظیمِ سیستمیِ «حذفِ انیمیشن» خودکار رعایت شود).
+ * پس اسکیلِ *اپ* را همان‌جا اعمال می‌کنیم که خودِ اپ انیمیشن می‌سازد: [DsAnim].
+ * تمام ۲۷ محلِ انیمیشنِ اپ از همین توابع می‌گذرند، پس یک پرچم کافی است.
  *
- * چرا اینجا و نه در هر کامپوننت؟ چون یک نقطهٔ واحد، همهٔ `tween`/`animate*AsState`/
- * `AnimatedVisibility`/شیمِرِ اسکلت را یک‌جا پوشش می‌دهد؛ اگر هر کامپوننت خودش
- * تصمیم می‌گرفت، یکی‌شان قطعاً جا می‌ماند.
- *
- * نکته: تنظیمِ سیستمیِ «حذفِ انیمیشن» مستقل از این هم توسط خودِ Compose رعایت
- * می‌شود؛ این سوئیچِ *اپ* است برای کسی که سیستمش را دست نمی‌زند.
+ * مدت‌زمانِ صفر یعنی «پرشِ فوری» — دقیقاً همان چیزی که کاربرِ حساس به حرکت
+ * می‌خواهد، نه نسخهٔ کوتاه‌شدهٔ حرکت.
  */
-@Composable
-fun ProvideMotionScale(reduceMotion: Boolean, content: @Composable () -> Unit) {
-    val scale = LocalMotionDurationScale.current
-    val provided = remember(reduceMotion, scale) {
-        if (!reduceMotion) scale else object : MotionDurationScale {
-            override val scaleFactor: Float = 0f
-        }
-    }
-    CompositionLocalProvider(LocalMotionDurationScale provides provided, content = content)
+object MotionPrefs {
+    @Volatile var reduceMotion: Boolean = false
+
+    /** مدت‌زمانِ مؤثر: صفر وقتی کاهشِ حرکت روشن است. */
+    fun ms(base: Int): Int = if (reduceMotion) 0 else base
 }
 
 object DsEasing {
@@ -125,20 +117,22 @@ object DsDuration {
  * هرجا رنگ انیمیت می‌شد، عددهای دستی تکرار می‌شدند.
  */
 object DsAnim {
-    fun <T> quick(): FiniteAnimationSpec<T> = tween(DsDuration.Quick, easing = DsEasing.Standard)
-    fun <T> fast(): FiniteAnimationSpec<T> = tween(DsDuration.Fast, easing = DsEasing.Standard)
-    fun <T> normal(): FiniteAnimationSpec<T> = tween(DsDuration.Normal, easing = DsEasing.Standard)
-    fun <T> enter(): FiniteAnimationSpec<T> = tween(DsDuration.Normal, easing = DsEasing.Decelerate)
-    fun <T> exit(): FiniteAnimationSpec<T> = tween(DsDuration.Fast, easing = DsEasing.Accelerate)
-    fun <T> counter(): FiniteAnimationSpec<T> = tween(DsDuration.Counter, easing = DsEasing.Decelerate)
+    fun <T> quick(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Quick), easing = DsEasing.Standard)
+    fun <T> fast(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Fast), easing = DsEasing.Standard)
+    fun <T> normal(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Normal), easing = DsEasing.Standard)
+    fun <T> enter(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Normal), easing = DsEasing.Decelerate)
+    fun <T> exit(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Fast), easing = DsEasing.Accelerate)
+    fun <T> counter(): FiniteAnimationSpec<T> = tween(MotionPrefs.ms(DsDuration.Counter), easing = DsEasing.Decelerate)
 
     /** فنرِ بی‌نوسان برای بازخوردِ لمس و جابه‌جاییِ کوچک. */
     fun <T> snappy(): FiniteAnimationSpec<T> =
-        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+        if (MotionPrefs.reduceMotion) snap()
+        else spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
 
     /** فنرِ کمی سرزنده برای ظاهر شدنِ عناصرِ شاخص. */
     fun <T> bouncy(): FiniteAnimationSpec<T> =
-        spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMedium)
+        if (MotionPrefs.reduceMotion) snap()
+        else spring(dampingRatio = 0.62f, stiffness = Spring.StiffnessMedium)
 }
 
 /** ترکیب‌های آمادهٔ ورود/خروج. */
@@ -165,7 +159,7 @@ object DsTransition {
             fadeIn(DsAnim.fast())
     val expandExit: ExitTransition =
         shrinkVertically(DsAnim.exit(), shrinkTowards = androidx.compose.ui.Alignment.Top) +
-            fadeOut(tween(DsDuration.Quick))
+            fadeOut(tween(MotionPrefs.ms(DsDuration.Quick)))
 
     /** نوار/پیامِ موقتی که از بالا سُر می‌خورد. */
     val bannerEnter: EnterTransition =
@@ -181,7 +175,7 @@ object DsTransition {
     fun <S> tabSwitch(forward: Boolean): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
         val dir = if (forward) 1 else -1
         (fadeIn(DsAnim.enter()) + slideInHorizontallySmall(dir))
-            .togetherWith(fadeOut(tween(DsDuration.Quick)) + slideOutHorizontallySmall(-dir))
+            .togetherWith(fadeOut(tween(MotionPrefs.ms(DsDuration.Quick))) + slideOutHorizontallySmall(-dir))
     }
 
     private fun slideInHorizontallySmall(dir: Int): EnterTransition =

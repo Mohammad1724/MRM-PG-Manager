@@ -305,8 +305,10 @@ fun MRMApp() {
     }
 
     LiquidGlassTheme(themeState = effectiveTheme) {
-      // «کاهش انیمیشن» یک نقطهٔ واحد: کلِ درختِ UI زیرِ این ارائه‌دهنده می‌نشیند.
-      com.mrm.pgmanager.ui.designsystem.ProvideMotionScale(uiPrefs.reduceMotion) {
+      // «کاهش انیمیشن»: قبل از رنگ‌آمیزیِ فریمِ بعد اعمال می‌شود تا هیچ حرکتی جا نماند.
+      androidx.compose.runtime.SideEffect {
+          com.mrm.pgmanager.ui.designsystem.MotionPrefs.reduceMotion = uiPrefs.reduceMotion
+      }
         // جعبهٔ ریشه: همه شاخه‌ها (لاگین/قفل/اصلی) + میزبانِ بازخوردِ سراسری
         // را در یک لایهٔ واحد می‌نشاند تا پیامِ بازخورد با عوض‌شدنِ شاخه
         // (مثلاً انقضای نشست ← صفحهٔ ورود) از بین نرود.
@@ -586,7 +588,6 @@ fun MRMApp() {
                 .padding(bottom = 96.dp)
         )
         }
-      }
     }
 }
 

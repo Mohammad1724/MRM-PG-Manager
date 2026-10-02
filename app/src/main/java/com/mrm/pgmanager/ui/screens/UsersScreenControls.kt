@@ -150,8 +150,15 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
 @Composable
 internal fun SkeletonCard(modifier: Modifier = Modifier) {
     val theme = LocalThemeState.current
+    // سوسوی اسکلت فقط وقتی معنا دارد که حرکت مجاز باشد؛ با «کاهشِ انیمیشن»
+    // (فاز ۷.۳) کارت ساکن می‌ماند — همان اطلاعات، بدونِ حرکتِ دائمی.
     val infinite = androidx.compose.animation.core.rememberInfiniteTransition(label = "shimmer")
-    val alpha = infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(DsDuration.Shimmer), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
+    val shimmerAlpha = if (com.mrm.pgmanager.ui.designsystem.MotionPrefs.reduceMotion) {
+        androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0.5f) }
+    } else {
+        infinite.animateFloat(initialValue = 0.35f, targetValue = 0.65f, animationSpec = androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(DsDuration.Shimmer), androidx.compose.animation.core.RepeatMode.Reverse), label = "alpha")
+    }
+    val alpha = shimmerAlpha
     // خواندنِ مقدارِ انیمیشن داخلِ drawBehind: هر فریمِ سوسو فقط دوباره *رسم*
     // می‌شود، نه اینکه شش‌هفت کارتِ اسکلت هر ۱۶ میلی‌ثانیه recompose شوند.
     val shape = DsRadius.Lg

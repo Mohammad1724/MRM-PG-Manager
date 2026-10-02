@@ -79,8 +79,8 @@ object WcagContrast {
         // سیاه/سفید می‌رسد که همیشه آستانه را رد می‌کند.
         var l = l0
         repeat(31) {
-            l = if (darken) l - 0.04 else l + 0.04
-            if (l <= 0.04 || l >= 0.96) return@repeat
+            l = if (darken) l - 0.04f else l + 0.04f
+            if (l <= 0.04f || l >= 0.96f) return@repeat
             val candidate = fromHsl(h, s, l, alphaOf(fg))
             if (ratio(candidate, bg) >= minRatio) return candidate
         }
