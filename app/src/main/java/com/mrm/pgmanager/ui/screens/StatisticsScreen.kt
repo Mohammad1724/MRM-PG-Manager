@@ -386,7 +386,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         usage = nodeUsageList,
                         nodes = nodes,
                         range = trafficRange,
-                        scopeLabel = selectedNode?.name ?: stringResource(R.string.all_nodes)
+                        scopeLabel = selectedNode?.name ?: stringResource(R.string.all_nodes),
+                        onRefresh = { scope.launch { load(silent = true) } }
                     )
                 }
 
@@ -433,7 +434,14 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
  * و زیرش سهمِ هر نود با تفکیکِ دانلود/آپلود. بازه و نود از فیلترهای بالای صفحه می‌آیند.
  */
 @Composable
-private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, range: StatsRange, scopeLabel: String) {
+private fun NodeTrafficCard(
+    usage: List<NodeUsage>,
+    nodes: List<PanelNode>,
+    range: StatsRange,
+    scopeLabel: String,
+    /** اکشنِ «دریافت دوباره» برای حالتِ خالی — از والد می‌آید چون `scope`/`load` آن‌جاست. */
+    onRefresh: (() -> Unit)? = null
+) {
     val theme = LocalThemeState.current
     val merged = remember(usage) { NodeUsage.merge(usage) }
     val totalUp = remember(usage) { usage.sumOf { it.uplink } }
@@ -458,7 +466,7 @@ private fun NodeTrafficCard(usage: List<NodeUsage>, nodes: List<PanelNode>, rang
                 MrmText(stringResource(R.string.st_node_traffic_up, formatBytes(totalUp)), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.accentPrimary)
                 MrmText(formatBytes(grandTotal), isTechnical = true, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
-            UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, emptyActionLabel = stringResource(R.string.chart_empty_refresh), onEmptyAction = { scope.launch { load(silent = true) } }, valueFormatter = ::formatBytes)
+            UsageChart(points = merged, accent = DsSemantic.Success, themeIsDark = theme.isDark, emptyActionLabel = if (onRefresh != null) stringResource(R.string.chart_empty_refresh) else null, onEmptyAction = onRefresh, valueFormatter = ::formatBytes)
             // سهمِ هر نود — پرمصرف‌ترین اول (PanelApi از قبل مرتب کرده).
             usage.filter { it.total > 0L }.forEach { n ->
                 val name = nodes.firstOrNull { it.id == n.nodeId }?.name ?: stringResource(R.string.st_node_unknown, n.nodeId)
