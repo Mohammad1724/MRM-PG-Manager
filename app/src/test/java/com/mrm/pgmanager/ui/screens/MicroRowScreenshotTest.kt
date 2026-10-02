@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.ui.screens
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.data.model.PanelUser
 import org.junit.Rule
@@ -33,7 +32,7 @@ import java.time.temporal.ChronoUnit
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h900dp-xhdpi")
 class MicroRowScreenshotTest {
-    @get:Rule val rule = createComposeRule()
+    @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val gb = 1024L * 1024 * 1024
     private fun u(id: Long, name: String, status: String, used: Double, limit: Long, days: Long?) = PanelUser(
@@ -62,7 +61,17 @@ class MicroRowScreenshotTest {
                 }
             }
             rule.waitForIdle()
-            val bmp = rule.onRoot().captureToImage().asAndroidBitmap()
+            // captureToImage() زیرِ Robolectric روی ‌forceRedraw تایم‌اوت می‌شود (حلقهٔ اصلی متوقف است)؛
+            // پس decorView را مستقیم روی Bitmap می‌کشیم.
+            val view = rule.activity.window.decorView
+            val w = view.width; val h = view.height
+            require(w > 0 && h > 0) { "decorView size ${w}x$h" }
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(bmp))
+            var nonWhite = 0
+            val px = IntArray(w * h); bmp.getPixels(px, 0, w, 0, 0, w, h)
+            for (c in px) if (c != -1 && c != 0) nonWhite++
+            File(out, "info.txt").writeText("size=${w}x$h nonWhitePixels=$nonWhite")
             File(out, "micro_rows.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } catch (t: Throwable) {
             File(out, "error.txt").writeText(t.stackTraceToString())
