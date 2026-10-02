@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -189,8 +190,17 @@ private fun AccountNavChip(
 }
 
 /**
- * یک چیپِ داخلِ کپسول. برچسبِ همهٔ بخش‌ها همیشه دیده می‌شود (کپسول اسکرول
- * می‌شود، پس نیازی به کوچک‌کردنشان نیست) و بخشِ فعال پرکنندهٔ اصلیِ تم را می‌گیرد.
+ * یک چیپِ داخلِ کپسول — تصمیمِ فاز ۸.۲.
+ *
+ * **فقط بخشِ فعال برچسب دارد؛ بقیه آیکون‌محورند.** دلیلش سنجش است، نه سلیقه:
+ * پنج چیپِ برچسب‌دار ≈۶۲۰dp پهنا می‌خواهند در حالی که عرضِ گوشی ۳۶۰–۴۱۱dp است؛
+ * یعنی «گروه‌ها» و «تمپلیت‌ها» همیشه بیرونِ کادر می‌ماندند و کاربر وجودشان را
+ * نمی‌دید (اسکرولِ خودکار فقط بعد از انتخابِ همان تب کار می‌کند — دورِ باطل).
+ * با آیکون‌محور شدن، هر پنج بخش به‌علاوهٔ چیپِ حساب در ≈۳۳۰–۳۸۰dp جا می‌شوند.
+ *
+ * چه چیزی از دست نمی‌رود: برچسبِ بخشِ فعال (تنها چیزی که کاربر در نگاهِ معمول
+ * لازم دارد) با انیمیشنِ باز/بسته شدن می‌ماند، و `contentDescription` روی چیپِ
+ * غیرفعال صدا زده می‌شود تا TalkBack همچنان نامِ بخش را بخواند.
  */
 @Composable
 private fun NavChip(
@@ -218,7 +228,9 @@ private fun NavChip(
             // ۴۶dp ارتفاع + padding کپسول ⇒ هدفِ لمس بالای ۴۸dpِ توصیه‌شده.
             // «حداقل» است نه «ثابت»: با fontScale = ۲ برچسبِ تب نباید بُرده شود
             // (فاز ۷.۴ — همان علتی که در QA دستی به‌عنوان ریسک ثبت شده بود).
-            .heightIn(min = 46.dp)
+            // ۴۸dpِ کفِ لمس (فاز ۷ + ۸): چیپِ آیکون‌محور هم به‌تنهایی لمس‌پذیر می‌ماند.
+            .heightIn(min = 48.dp)
+            .widthIn(min = 48.dp)
             .clip(DsRadius.Full)
             .drawBehind {
                 if (selectedAlpha > 0.01f) {
@@ -230,21 +242,35 @@ private fun NavChip(
                     )
                 }
             }
-            .semantics { contentDescription = label }
+            // وقتی برچسب دیده می‌شود، خودِ متن نامِ بخش را می‌خواند؛ فقط در حالتِ
+            // آیکون‌محور به contentDescription نیاز داریم (وگرنه TalkBack دوبار می‌خواند).
+            .semantics { if (!selected) contentDescription = label }
             .pressScale(0.94f)
             .clickable(onClick = onClick)
-            .padding(horizontal = DsSpacing.Screen),
+            .padding(
+                start = DsSpacing.Screen,
+                end = if (selected) DsSpacing.Lg else DsSpacing.Screen
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         RoundedAppIcon(icon, tint = tint, size = 18.dp)
-        Text(
-            label,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = tint,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        // برچسب فقط برای بخشِ فعال — با باز/بسته شدنِ افقی تا پهنای کپسول نپرد.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = selected,
+            enter = androidx.compose.animation.fadeIn(DsAnim.enter()) +
+                androidx.compose.animation.expandHorizontally(DsAnim.enter()),
+            exit = androidx.compose.animation.fadeOut(DsAnim.exit()) +
+                androidx.compose.animation.shrinkHorizontally(DsAnim.exit())
+        ) {
+            Text(
+                label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = tint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
