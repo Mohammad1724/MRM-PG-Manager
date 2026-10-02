@@ -528,7 +528,7 @@ fun MRMApp() {
                             appLanguage = appLanguage,
                             onLanguageChange = handleLanguageChange,
                             onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
-                            appVersion = BuildConfig.VERSION_NAME,
+                            appVersion = "${BuildConfig.VERSION_NAME} · ${BuildConfig.BUILD_SHA}",
                             session = session,
                             store = store,
                             onSwitchAccount = switchAccount,

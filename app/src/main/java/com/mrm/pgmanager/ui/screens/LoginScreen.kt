@@ -234,7 +234,7 @@ fun LoginScreen(
             }
 
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text("v${BuildConfig.VERSION_NAME}", fontSize = 11.sp, color = theme.mutedColor)
+                Text("v${BuildConfig.VERSION_NAME} · ${BuildConfig.BUILD_SHA}", fontSize = 11.sp, color = theme.mutedColor)
             }
         }
     }

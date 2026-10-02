@@ -13,6 +13,9 @@ android {
         targetSdk = 35
         versionCode = 18
         versionName = "0.9.1"
+        // فقط برای «نمایش»: کامیتِ سازندهٔ همین APK (در CI = GITHUB_SHA). versionName عمداً
+        // دست‌نخورده می‌ماند چون در متادیتای بک‌آپ هم نوشته می‌شود.
+        buildConfigField("String", "BUILD_SHA", "\"${System.getenv("GITHUB_SHA")?.take(7) ?: "dev"}\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -72,6 +75,9 @@ android {
         }
     }
 
+    // تست‌های رفتاریِ Compose (لمسِ واقعی) زیر Robolectric اجرا می‌شوند و به منابعِ merge‌شده نیاز دارند.
+    testOptions { unitTests { isIncludeAndroidResources = true } }
+
     buildFeatures { compose = true; buildConfig = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
@@ -100,6 +106,10 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     // تست‌های واحد (JVM)
     testImplementation("junit:junit:4.13.2")
+    // رفتارِ لمس (clickable/pressScale) را با رویدادهای واقعیِ pointer می‌سنجد؛ فقط تست، نه APK.
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     // org.json در JVM tests استاب است؛ پیاده‌سازی واقعی لازم داریم.
