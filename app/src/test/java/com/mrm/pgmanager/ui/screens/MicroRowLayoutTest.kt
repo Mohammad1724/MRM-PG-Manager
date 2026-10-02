@@ -45,7 +45,9 @@ class MicroRowLayoutTest {
         Box(Modifier.width(360.dp)) { LuxuryMicroRow(worst, onClick = {}) }
     }
 
-    private fun bounds(tag: String) = rule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+    // ردیف clickable است و زیرمجموعه‌ها را merge می‌کند؛ تگ‌ها فقط در درخت unmerged دیده می‌شوند.
+    private fun node(tag: String) = rule.onNodeWithTag(tag, useUnmergedTree = true)
+    private fun bounds(tag: String) = node(tag).fetchSemanticsNode().boundsInRoot
 
     @Test fun actionButtons_areCompact() {
         render()
@@ -58,7 +60,7 @@ class MicroRowLayoutTest {
 
     @Test fun usageBar_isNotSqueezed_andWiderThanName() {
         render()
-        rule.onNodeWithTag("micro_bar").assertWidthIsAtLeast(90.dp)
+        node("micro_bar").assertWidthIsAtLeast(90.dp)
         val bar = bounds("micro_bar"); val name = bounds("micro_name")
         assertTrue("نوار (${bar.width}px) باید از ستونِ نام (${name.width}px) عریض‌تر باشد", bar.width > name.width)
     }
