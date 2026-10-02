@@ -32,6 +32,8 @@ import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.NotificationPermissionCard
+import com.mrm.pgmanager.ui.components.rememberNotificationPermissionState
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.graphicsLayer
@@ -856,6 +858,10 @@ private fun NotificationsSection(
     val theme = LocalThemeState.current
     val master = monitoringSettings.notificationsEnabled
     val pct = stringResource(R.string.set_unit_percent)
+    // فاز ۸.۳ — اگر مجوزِ سیستم داده نشده باشد، وضعیت و راهِ رفعش همین‌جا هست
+    // (پیش‌تر فقط در سطحِ سیستم معلوم می‌شد و کاربر فکر می‌کرد اپ خراب است).
+    val notifPermission = rememberNotificationPermissionState()
+    NotificationPermissionCard(notifPermission)
 
     SettingsCard(stringResource(R.string.set_general), AppIcon.Bell) {
         SettingsSwitchRow(

@@ -1014,4 +1014,16 @@
     <string name="ud_note_copy">Copy note</string>
     <string name="ud_note_edit">Edit note</string>
     <string name="ud_note_copied">Note copied</string>
+    <string name="nc_actions">Action results</string>
+    <string name="nc_actions_desc">Results of operations you run yourself (create, delete, reset, enable/disable)</string>
+    <string name="notif_action_open">View</string>
+    <string name="notif_action_mute">Mute these</string>
+    <string name="notif_mute_done">These alerts are muted — you can turn them back on in the app settings.</string>
+    <string name="notif_perm_title">Turn on alerts</string>
+    <string name="notif_perm_body">Alerts tell you when a user gets limited or expires, or when panel health crosses a threshold. Every alert has a mute action, so you stay in control.</string>
+    <string name="notif_perm_enable">Allow notifications</string>
+    <string name="notif_perm_later">Later</string>
+    <string name="notif_perm_off_title">Notifications are blocked by Android</string>
+    <string name="notif_perm_off_body">Android is blocking notifications for this app. Alerts will not arrive until you allow them in system settings.</string>
+    <string name="notif_perm_settings">Open notification settings</string>
 </resources>

@@ -168,6 +168,16 @@ class SessionStore(context: Context) {
     /** مهلت قفل خودکار بر حسب ثانیه؛ 0 یعنی بلافاصله پس از خروج از برنامه. */
     fun readAppLockTimeoutSecs(): Int = prefs.getInt("app_lock_timeout", 0).coerceIn(0, 3600)
 
+    /**
+     * آیا توضیحِ درون‌برنامه‌ایِ مجوزِ اعلان **یک‌بار** نشان داده شده؟ (فاز ۸.۳)
+     *
+     * بدونِ این فلگ، هر بار باز شدنِ اپ (و هر بار ورود) دیالوگِ توضیح تکرار می‌شد
+     * و همان چیزی می‌شد که می‌خواستیم از آن فرار کنیم: اذیتِ کاربر.
+     */
+    fun readNotifPrompted(): Boolean = prefs.getBoolean("notif_prompt_shown", false)
+
+    fun saveNotifPrompted(value: Boolean) = prefs.edit().putBoolean("notif_prompt_shown", value).apply()
+
     fun saveAppLockTimeoutSecs(value: Int) = prefs.edit().putInt("app_lock_timeout", value.coerceIn(0, 3600)).apply()
 
     // === نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری) ===

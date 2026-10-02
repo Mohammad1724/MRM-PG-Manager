@@ -53,6 +53,10 @@ jobs:
           # یک پارامترِ تابعی، فراخوانی‌های موقعیتیِ قدیمی جابه‌جا می‌شوند و
           # کامپایل می‌شکند (باگِ واقعیِ فاز ۶: Type mismatch + No value passed).
           python3 tools/kt-lambdaargs.py
+          # فاز ۸.۴ — هدف‌های لمسِ ویجتِ صفحهٔ خانه: RemoteViews از بررسی‌های
+          # Compose بیرون است و lint هم در این CI اجرا نمی‌شود؛ پس همین‌جا
+          # اندازهٔ هر view کلیک‌شدنی از XML حساب و با ۴۸dp سنجیده می‌شود.
+          python3 tools/check-widget-targets.py
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest

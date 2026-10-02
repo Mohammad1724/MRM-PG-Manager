@@ -518,7 +518,7 @@ internal class UsersUiState(
                 }
                 notification?.let { (title, message) ->
                     val settings = store.readMonitoringSettings()
-                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, message)
+                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_ACTIONS, title, message)
                 }
                 // فاز ۶.۲ — رفرشِ بی‌صدا و بدونِ برگشت به بالا: ردیف‌ها همین حالا
                 // به‌روز شده‌اند؛ این فقط هم‌ترازیِ نهایی با پنل است.

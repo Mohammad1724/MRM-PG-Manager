@@ -111,14 +111,14 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
     LaunchedEffect(Unit) { refreshDebtors() }
     fun evaluateHealth(s: SystemStats) {
         if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
-        fun alert(id: Int, title: String, message: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message, targetTab = NotificationHelper.DEST_STATISTICS)
-        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage))); cpuAlerted = true } else cpuAlerted = false
+        fun alert(id: Int, title: String, message: String, kind: String? = null) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message, targetTab = NotificationHelper.DEST_STATISTICS, kind = kind)
+        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
         val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
-        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram)); ramAlerted = true } else ramAlerted = false
+        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
         val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
-        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk)); diskAlerted = true } else diskAlerted = false
+        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk), "system_health"); diskAlerted = true } else diskAlerted = false
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
-            if (!capacityAlerted) alert(3105, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit)); capacityAlerted = true
+            if (!capacityAlerted) alert(3105, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit), "capacity"); capacityAlerted = true
         } else capacityAlerted = false
     }
     suspend fun load(silent: Boolean = false) {
@@ -133,7 +133,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         }.onFailure { e ->
             if (PanelApi.isUnauthorized(e)) { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired)); onSessionExpired() }
             else {
-                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats)); panelOfflineAlerted = true }
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); panelOfflineAlerted = true }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
                 else error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
@@ -144,7 +144,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         runCatching { PanelApi.admins(session) }.onSuccess { admins = it }.onFailure { admins = emptyList() }
         runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
-                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
+                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
                 if (prev == false && online) NotificationHelper.post(context, 4200+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
             }
             lastNodeStates = states

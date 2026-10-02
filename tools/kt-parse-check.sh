@@ -16,7 +16,14 @@ if [ -z "$KOTLINC" ] || [ ! -x "$KOTLINC" ]; then
   exit 0
 fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-if [ "$#" -gt 0 ]; then FILES=("$@"); else mapfile -t FILES < <(cd "$ROOT" && git ls-files 'app/src/main/java/**/*.kt' 'app/src/test/**/*.kt'); fi
+if [ "$#" -gt 0 ]; then
+  FILES=("$@")
+else
+  # `--others` هم لازم است: فایل‌های تازه‌ای که هنوز `git add` نشده‌اند در
+  # `git ls-files` نیستند و بی‌سروصدا از دروازه جا می‌ماندند (همین اتفاق برای
+  # سه فایلِ تازهٔ فاز ۸.۳ افتاد).
+  mapfile -t FILES < <(cd "$ROOT" && git ls-files --cached --others --exclude-standard 'app/src/main/java/**/*.kt' 'app/src/test/**/*.kt')
+fi
 [ "${#FILES[@]}" -eq 0 ] && { echo "✖ فایلی پیدا نشد"; exit 1; }
 BATCH=12; fails=0; checked=0
 for ((i=0; i<${#FILES[@]}; i+=BATCH)); do

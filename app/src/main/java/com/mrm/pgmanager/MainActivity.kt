@@ -1,9 +1,7 @@
 package com.mrm.pgmanager
 
 import android.os.Bundle
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -61,6 +59,8 @@ import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.AppFeedbackHost
+import com.mrm.pgmanager.ui.components.NotificationPermissionDialog
+import com.mrm.pgmanager.ui.components.rememberNotificationPermissionState
 import com.mrm.pgmanager.ui.components.AccountSheet
 import com.mrm.pgmanager.ui.components.TAB_COUNT
 import com.mrm.pgmanager.ui.components.MrmFloatingNav
@@ -110,7 +110,9 @@ class MainActivity : FragmentActivity() {
         // می‌شد (`window.statusBarColor`) که از اندروید ۱۵ منسوخ است و روی
         // نسخه‌های جدید بی‌اثر می‌شود؛ این API جایگزینِ رسمی‌اش است.
         enableEdgeToEdge()
-        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7001)
+        // فاز ۸.۳ — مجوزِ اعلان این‌جا خواسته **نمی‌شود**: قبلاً پیش از دیدنِ هر
+        // صفحه‌ای، یک دیالوگِ سیستمیِ بی‌زمینه نشان داده می‌شد. حالا بعد از ورود و
+        // با توضیحِ درون‌برنامه‌ای (MRMApp) و همچنین در «تنظیمات ← اعلان‌ها».
         readDeepLink(intent)
         setContent { MRMApp() }
     }
@@ -211,6 +213,16 @@ fun MRMApp() {
     var lastStoppedAt by remember { mutableStateOf(0L) }
     // حالت «افزودن حساب»: صفحهٔ ورود بدون پاک‌کردن نشست فعلی نمایش داده می‌شود.
     var addingAccount by rememberSaveable { mutableStateOf(false) }
+    // فاز ۸.۳ — مجوزِ اعلان حالا **زمینه‌دار** خواسته می‌شود: یک‌بار پس از ورود،
+    // همراه با توضیحِ درون‌برنامه‌ای؛ و برای همیشه از «تنظیمات ← اعلان‌ها».
+    // (درخواستِ بی‌زمینهٔ onCreate حذف شد.)
+    val notifPermission = rememberNotificationPermissionState()
+    var notifPromptOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(session?.baseUrl, isUnlocked, notifPermission.granted) {
+        if (session != null && !store.readNotifPrompted() && !notifPermission.granted) {
+            notifPromptOpen = true
+        }
+    }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
     // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
@@ -577,6 +589,21 @@ fun MRMApp() {
                 onOpenSettings = { showAccountSheet = false; showDashboardSettings = true },
                 onLogout = { showAccountSheet = false; store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
                 onDismiss = { showAccountSheet = false }
+            )
+        }
+        // توضیحِ «چرا اعلان؟» پیش از دیالوگِ سیستم — فقط یک‌بار در عمرِ نصب.
+        if (notifPromptOpen) {
+            NotificationPermissionDialog(
+                state = notifPermission,
+                onAllow = {
+                    store.saveNotifPrompted(true)
+                    notifPromptOpen = false
+                    notifPermission.request()
+                },
+                onDismiss = {
+                    store.saveNotifPrompted(true)
+                    notifPromptOpen = false
+                }
             )
         }
         // میزبانِ بازخوردِ سراسری — بالایِ کپسولِ ناوبری، رویِ همه شاخه‌ها.

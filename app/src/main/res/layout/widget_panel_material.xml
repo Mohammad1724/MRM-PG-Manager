@@ -84,18 +84,23 @@
             android:layout_marginEnd="8dp"
             android:visibility="gone" />
 
+        <!-- هدفِ لمسِ ۴۸dp: شناسه و محتوای دسترس‌پذیر روی ظرف است، نه روی
+             آیکونِ کوچکِ داخلش. پیش‌تر کلیک روی خودِ ImageView بیست‌ودوپیکسلی
+             بسته می‌شد و هدفِ لمس ۲۰dp بود (فاز ۸.۴ — ممیزیِ تارگت‌ها). -->
         <FrameLayout
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:id="@+id/w_refresh"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="13dp"
+            android:contentDescription="@string/widget_refresh"
             android:background="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:id="@+id/w_refresh"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_widget_refresh"
-                android:contentDescription="@string/widget_refresh" />
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_refresh" />
         </FrameLayout>
     </LinearLayout>
 
@@ -118,6 +123,7 @@
             android:id="@+id/w_tile_online"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
             android:background="@drawable/widget_tile_accent_bg"
@@ -147,6 +153,7 @@
             android:id="@+id/w_tile_total"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_weight="1"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
@@ -177,6 +184,7 @@
             android:id="@+id/w_tile_active"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
             android:background="@drawable/widget_tile_bg"
@@ -335,6 +343,7 @@
             android:id="@+id/w_tile_debtors"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_weight="1"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"

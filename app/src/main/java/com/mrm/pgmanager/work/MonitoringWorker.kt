@@ -64,7 +64,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             if (oldStates.isNotEmpty()) users.forEach { user ->
                 val old = oldStates[user.id] ?: return@forEach; val now = newStates[user.id] ?: return@forEach
                 if (old == now) return@forEach
-                fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, (kind + user.id).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, body, targetUsername = user.username)
+                fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, (kind + user.id).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, body, targetUsername = user.username, kind = kind)
                 if (settings.notifyLimited && user.status == "limited" && !old.startsWith("limited")) notify("limited", applicationContext.getString(R.string.us_n_limited), applicationContext.getString(R.string.us_n_limited_body, user.username))
                 if (settings.notifyExpired && user.status == "expired" && !old.startsWith("expired")) notify("expired", applicationContext.getString(R.string.us_n_expired), applicationContext.getString(R.string.us_n_expired_body, user.username))
                 val oldUsage = old.split("|").getOrNull(1)?.toIntOrNull() ?: 0; val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
@@ -80,7 +80,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val oldNodes = store.readNodeStates()
                 if (settings.notifyNodeOffline && oldNodes.isNotEmpty()) states.forEach { (id, online) ->
                     val prev = oldNodes[id]
-                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_offline), applicationContext.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
+                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_offline), applicationContext.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
                     if (prev == false && online) NotificationHelper.post(applicationContext, 6200 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_online), applicationContext.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
                 }
                 store.saveNodeStates(states)
@@ -108,7 +108,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     runCatching { PanelApi.setDisabled(session, pu, true) }.onSuccess {
                         store.setDebtor(d.copy(autoDisabled = true))
                         if (settings.notificationsEnabled && settings.notifyDebtorOverdue) {
-                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username)
+                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
                         }
                     }
                 }
@@ -119,7 +119,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             if (settings.notificationsEnabled && settings.notifySystemHealth) {
                 fun healthAlert(key: String, id: Int, title: String, body: String, condition: Boolean) {
                     if (condition && !store.readAlertFlag(key)) {
-                        NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body, targetTab = NotificationHelper.DEST_STATISTICS)
+                        NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body, targetTab = NotificationHelper.DEST_STATISTICS, kind = if (key == "capacity") "capacity" else "system_health")
                     }
                     store.saveAlertFlag(key, condition)
                 }
@@ -163,7 +163,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         NotificationHelper.post(
                             applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM,
                             applicationContext.getString(R.string.mw_unreachable),
-                            applicationContext.getString(R.string.mw_unreachable_body, host)
+                            applicationContext.getString(R.string.mw_unreachable_body, host),
+                            kind = "panel_offline"
                         )
                         store.saveAlertFlag("panel_offline", true)
                     }

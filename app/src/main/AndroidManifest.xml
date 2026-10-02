@@ -31,6 +31,12 @@
         </receiver>
 
         <!-- FileProvider برای اشتراک‌گذاری فایل‌های PDF فاکتور -->
+        <!-- فاز ۸.۳ — اکشنِ «بی‌صدا کردن» روی اعلان‌ها. بدونِ exported: فقط سیستمی
+             که اعلان را نشان داده می‌تواند این broadcast را بفرستد (با PendingIntent ما). -->
+        <receiver
+            android:name=".utils.NotificationActionReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

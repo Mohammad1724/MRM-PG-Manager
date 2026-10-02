@@ -1014,4 +1014,16 @@
     <string name="ud_note_copy">کپی یادداشت</string>
     <string name="ud_note_edit">ویرایش یادداشت</string>
     <string name="ud_note_copied">یادداشت کپی شد</string>
+    <string name="nc_actions">نتیجهٔ عملیات‌ها</string>
+    <string name="nc_actions_desc">نتیجهٔ کارهایی که خودتان انجام می‌دهید (ساخت، حذف، ریست، فعال/غیرفعال)</string>
+    <string name="notif_action_open">مشاهده</string>
+    <string name="notif_action_mute">بی‌صدا کردن</string>
+    <string name="notif_mute_done">این هشدارها بی‌صدا شد — از بخشِ «کلی» در تنظیماتِ اپ می‌توانید برگردانید.</string>
+    <string name="notif_perm_title">اعلان‌های هشدار را روشن کنید</string>
+    <string name="notif_perm_body">اعلان‌ها خبر محدود/منقضی‌شدن کاربران و عبور سلامت پنل از حد را می‌رسانند. هر اعلان اکشن «بی‌صدا کردن» دارد، پس کنترل دست شماست.</string>
+    <string name="notif_perm_enable">اجازهٔ اعلان</string>
+    <string name="notif_perm_later">بعداً</string>
+    <string name="notif_perm_off_title">اعلان‌ها در سطح سیستم خاموش است</string>
+    <string name="notif_perm_off_body">اندروید اعلان‌های این اپ را مسدود کرده است. تا وقتی در تنظیمات سیستم مجاز نکنید، هشداری نمی‌رسد.</string>
+    <string name="notif_perm_settings">باز کردن تنظیمات اعلان‌ها</string>
 </resources>
