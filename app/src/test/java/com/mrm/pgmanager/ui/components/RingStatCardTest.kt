@@ -3,8 +3,13 @@ package com.mrm.pgmanager.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.fetchSemanticsNode
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -72,5 +77,66 @@ class RingStatCardTest {
                 assertFalse("زیرخطِ کاشی #$i خطِ $line بریده شده (…)", l.isLineEllipsized(line))
             assertTrue("زیرخط بیش از ۲ خط شده", l.lineCount <= 2)
         }
+    }
+
+    /**
+     * قفلِ رگرسیونِ گزارشِ کاربر: «کارتِ RAM از کارتِ CPU بلندتر بود و خطِ
+     * «1.27 GB free» ته کارت آویزان می‌شد».
+     *
+     * دلیلِ ساختاری: در `Row` هر کارت ارتفاع را از محتوای خودش می‌گیرد؛ کارتِ
+     * یک‌خطیِ CPU کوتاه‌تر از کارتِ دوخطیِ RAM می‌ماند. راهِ درست،
+     * [PGRingStatRow] است (IntrinsicSize.Min) + `fillMaxHeight()` روی کارت‌ها:
+     * هر دو به قدِ بلندترین محتوا می‌رسند، نه بیشتر.
+     */
+    @Test fun rowSiblings_getEqualHeight_viaPGRingStatRow() {
+        var density = 1f
+        rule.setContent {
+            density = LocalDensity.current.density
+            Column(Modifier.width(308.dp)) {
+                PGRingStatRow(spacing = 8.dp) {
+                    PGRingStatCard(
+                        label = "CPU Usage", value = "9.3%", icon = AppIcon.Gauge,
+                        modifier = Modifier.weight(1f).fillMaxHeight().testTag("card_cpu"),
+                        fraction = .09f, percent = 9, sub = "1 cores"
+                    )
+                    PGRingStatCard(
+                        label = "RAM Usage", value = "614.95 MB", icon = AppIcon.Memory,
+                        modifier = Modifier.weight(1f).fillMaxHeight().testTag("card_ram"),
+                        fraction = .32f, percent = 32, sub = "of 1.87 GB\n1.27 GB free"
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+        val hCpu = rule.onNodeWithTag("card_cpu").fetchSemanticsNode().boundsInRoot.height
+        val hRam = rule.onNodeWithTag("card_ram").fetchSemanticsNode().boundsInRoot.height
+        assertEquals("کارت‌های هم‌ردیف باید هم‌قد باشند (CPU=${hCpu / density}dp، RAM=${hRam / density}dp)", hCpu, hRam, 0.5f)
+        // کفِ ۸۸dp برای متن + سقفِ ۱۵۰dp: اگر کسی کارت را کشیده باشد، این می‌شکند.
+        assertTrue("کارتِ بلندتر از حدِ محتوا شده: ${hRam / density}dp", hRam <= 150f * density)
+        assertTrue("کارت از کفِ ۸۸dp کوچک‌تر است: ${hRam / density}dp", hRam >= 88f * density - 1f)
+    }
+
+    /** بی [PGRingStatRow] (یعنی همان اشتباهِ قبلی) ارتفاع‌ها *باید* فرق کند — سندِ علتِ باگ. */
+    @Test fun withoutRowHelper_siblings_driftApart() {
+        rule.setContent {
+            Column(Modifier.width(308.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PGRingStatCard(
+                        label = "CPU Usage", value = "9.3%", icon = AppIcon.Gauge,
+                        modifier = Modifier.weight(1f).testTag("plain_cpu"),
+                        fraction = .09f, percent = 9, sub = "1 cores"
+                    )
+                    PGRingStatCard(
+                        label = "RAM Usage", value = "614.95 MB", icon = AppIcon.Memory,
+                        modifier = Modifier.weight(1f).testTag("plain_ram"),
+                        fraction = .32f, percent = 32, sub = "of 1.87 GB\n1.27 GB free"
+                    )
+                }
+            }
+        }
+        rule.waitForIdle()
+        val a = rule.onNodeWithTag("plain_cpu").fetchSemanticsNode().boundsInRoot.height
+        val b = rule.onNodeWithTag("plain_ram").fetchSemanticsNode().boundsInRoot.height
+        assertTrue("بدونِ هلپر انتظارِ ناهم‌قدی داریم (cpu=$a ram=$b)", b > a + 1f)
     }
 }

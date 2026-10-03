@@ -184,12 +184,12 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                         RoundedAppIcon(AppIcon.Gauge, tint = theme.accentPrimary, size = 14.dp); Text(stringResource(R.string.system), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                    PGRingStatRow(spacing = DsSpacing.Md) {
                         PGRingStatCard(
                             label = stringResource(R.string.cpu_usage),
                             value = "${formatPercent(s.cpuUsage)}%",
                             icon = AppIcon.Gauge,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = cpuFraction,
                             percent = cpuFraction.times(100).toInt(),
                             sub = stringResource(R.string.cpu_cores_fmt, s.cpuCores)
@@ -198,18 +198,18 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             label = stringResource(R.string.ram_usage),
                             value = formatBytes(s.memUsed),
                             icon = AppIcon.Memory,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = memFraction,
                             percent = memFraction.times(100).toInt(),
                             sub = stringResource(R.string.of_total_fmt, formatBytes(s.memTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
                         )
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                    PGRingStatRow(spacing = DsSpacing.Md) {
                         PGRingStatCard(
                             label = stringResource(R.string.disk_usage),
                             value = formatBytes(s.diskUsed),
                             icon = AppIcon.Storage,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = diskFraction,
                             percent = diskFraction.times(100).toInt(),
                             sub = stringResource(R.string.of_total_fmt, formatBytes(s.diskTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
@@ -220,7 +220,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             label = stringResource(R.string.total_traffic),
                             value = formatBytes(totalTraffic),
                             icon = AppIcon.Storage,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             segments = listOf(
                                 RingSegment(downShare, downColor),
                                 RingSegment(1f - downShare, upColor)
@@ -231,12 +231,12 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         )
                     }
                     // دانلود/آپلود — حلقه سهمِ هرکدام از کلِ ترافیک را می‌گوید.
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                    PGRingStatRow(spacing = DsSpacing.Md) {
                         PGRingStatCard(
                             label = stringResource(R.string.download),
                             value = formatBytes(s.incomingBandwidth),
                             icon = AppIcon.Download,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = downShare,
                             percent = (downShare * 100).toInt(),
                             ringColor = downColor,
@@ -247,7 +247,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             label = stringResource(R.string.upload),
                             value = formatBytes(s.outgoingBandwidth),
                             icon = AppIcon.Upload,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = 1f - downShare,
                             percent = ((1f - downShare) * 100).toInt(),
                             ringColor = upColor,

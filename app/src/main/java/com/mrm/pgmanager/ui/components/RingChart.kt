@@ -10,7 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -154,6 +158,31 @@ fun RingChart(
         }
         content()
     }
+}
+
+/**
+ * ردیفِ کارت‌های حلقه‌ای با **ارتفاعِ یکسان**.
+ *
+ * چرا لازم است: در یک `Row` هر کارت ارتفاعش را از محتوای خودش می‌گیرد؛ کارتی که
+ * `sub` دوخطی دارد بلندتر از همسایهٔ یک‌خطی‌اش می‌شود و ردیف «شکسته» دیده می‌شود
+ * (گزارشِ کاربر: کارتِ RAM از کارتِ CPU بلندتر بود و «1.27 GB free» ته کارت می‌افتاد).
+ *
+ * راه‌حل: `height(IntrinsicSize.Min)` روی ردیف + `Modifier.weight(1f).fillMaxHeight()`
+ * روی هر کارت. یعنی هر دو به قدِ *بلندترین محتوا* می‌رسند — نه بیشتر.
+ * `IntrinsicSize` را عمداً همین‌جا گذاشتیم تا هر صفحه‌ای که این ردیف را می‌سازد
+ * مجبور نباشد جزئیاتِ چیدمان را تکرار کند.
+ */
+@Composable
+fun PGRingStatRow(
+    modifier: Modifier = Modifier,
+    spacing: Dp = DsSpacing.CardGap,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+) {
+    Row(
+        modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
+        content = content
+    )
 }
 
 /**

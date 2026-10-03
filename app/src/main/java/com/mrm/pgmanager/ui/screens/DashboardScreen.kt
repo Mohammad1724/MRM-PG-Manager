@@ -264,12 +264,12 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                PGRingStatRow(spacing = DsSpacing.CardGap) {
                     PGRingStatCard(
                         label = stringResource(R.string.cpu_usage),
                         value = "${formatPercent(s.cpuUsage)}%",
                         icon = AppIcon.Gauge,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         fraction = cpuFraction,
                         percent = cpuFraction.times(100).toInt(),
                         sub = stringResource(R.string.cpu_cores_fmt, s.cpuCores)
@@ -278,18 +278,18 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         label = stringResource(R.string.ram_usage),
                         value = formatBytes(s.memUsed),
                         icon = AppIcon.Memory,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         fraction = memFraction,
                         percent = memFraction.times(100).toInt(),
                         sub = stringResource(R.string.of_total_fmt, formatBytes(s.memTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                PGRingStatRow(spacing = DsSpacing.CardGap) {
                     PGRingStatCard(
                         label = stringResource(R.string.disk_usage),
                         value = formatBytes(s.diskUsed),
                         icon = AppIcon.Storage,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         fraction = diskFraction,
                         percent = diskFraction.times(100).toInt(),
                         sub = stringResource(R.string.of_total_fmt, formatBytes(s.diskTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
@@ -301,7 +301,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         label = stringResource(R.string.total_traffic),
                         value = formatBytes(totalTraffic),
                         icon = AppIcon.Storage,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                         segments = listOf(
                             RingSegment(downShare, downColor),
                             RingSegment(1f - downShare, upColor)
