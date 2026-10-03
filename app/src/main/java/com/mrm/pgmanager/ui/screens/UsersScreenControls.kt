@@ -129,7 +129,13 @@ internal fun StatGlassCard(icon: AppIcon, label: String, value: String, accent: 
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), shape)
             .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Mid)
     ) {
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+        // فاز ۹ (رفعِ رگرسیونِ فاز ۷.۴): این‌جا قبلاً `fillMaxSize()` + `SpaceBetween`
+        // بود. تا وقتی کارت ارتفاعِ *قطعی* داشت (`height(72.dp)`) مشکلی نبود، ولی با
+        // `heightIn(min = 72.dp)` کارت سقفِ ارتفاعِ والد را می‌گرفت؛ در سربرگِ
+        // جمع‌شوندهٔ صفحهٔ کاربران والد فضای زیادی پیشنهاد می‌دهد، پس کارت تا ته صفحه
+        // کش می‌آمد و عدد — به‌خاطرِ SpaceBetween — زیرِ نوارِ ناوبری گم می‌شد.
+        // حالا ارتفاع را *محتوا* تعیین می‌کند و کفِ ۷۲dp سرِ جایش است.
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                 val isGold = accent == theme.accentPrimary
                 val iconBg = if (isGold) { if (theme.isDark) theme.accentPrimary.copy(0.15f) else theme.accentPrimary.copy(alpha = 0.12f) } else accent.copy(0.10f)
