@@ -252,18 +252,6 @@ internal fun StatsCardsRow(
     }
 }
 
-/**
- * سبکِ متنِ فشرده برای دکمه‌های دوسطریِ فیلتر/مرتب‌سازی.
- * فاصلهٔ اضافیِ بالا و پایینِ فونت حذف می‌شود تا دو سطر روی هم نیفتند.
- */
-internal val CompactLabelStyle = TextStyle(
-    platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
-    lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
-        alignment = androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
-        trim = androidx.compose.ui.text.style.LineHeightStyle.Trim.Both
-    )
-)
-
 @Composable
 internal fun FilterAndControlBar(
     currentFilter: UserFilter,
@@ -284,36 +272,31 @@ internal fun FilterAndControlBar(
     val theme = LocalThemeState.current
     var showFilterSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
+    // همان نگاشتِ برچسبِ مرتب‌سازی که قبلاً داخلِ دکمه بود؛ حالا در contentDescription.
+    val sortLabel = when (currentSort) {
+        UserSort.NAME -> stringResource(R.string.name)
+        UserSort.USAGE -> stringResource(R.string.usage_sort)
+        UserSort.EXPIRY -> stringResource(R.string.expiry)
+        UserSort.CREATED -> stringResource(R.string.created)
+        UserSort.LAST_ONLINE -> stringResource(R.string.us_sort_last_online)
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
-        // Filter dropdown button like PasarGuard panel
-        Box(Modifier.padding(vertical = 1.dp).weight(1f).heightIn(min = 38.dp).clip(DsRadius.Sm).clickable { showFilterSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Filter, tint = theme.mutedColor, size = 13.dp)
-                    // برچسبِ ثابت «فیلتر» + مقدارِ فعلی زیرِ آن.
-                    // lineHeight و includeFontPadding صریح تعیین شده تا دو سطر از کادر بیرون نزند.
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(stringResource(R.string.filter), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(filterLabel(currentFilter, expiringWindowDays), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    }
-                }
-                Text("▾", fontSize = 11.sp, color = theme.mutedColor)
-            }
-        }
-        // Sort dropdown - with icon
-        Box(Modifier.padding(vertical = 1.dp).weight(1f).heightIn(min = 38.dp).clip(DsRadius.Sm).clickable { showSortSheet = true }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).pressScale(0.97f).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.CenterStart) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                    RoundedAppIcon(AppIcon.Sort, tint = theme.mutedColor, size = 13.dp)
-                    // برچسبِ ثابت «مرتب‌سازی» + مقدارِ فعلی
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        Text(stringResource(R.string.sort), fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.mutedColor, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(when(currentSort){ UserSort.NAME->stringResource(R.string.name); UserSort.USAGE->stringResource(R.string.usage_sort); UserSort.EXPIRY->stringResource(R.string.expiry); UserSort.CREATED->stringResource(R.string.created); UserSort.LAST_ONLINE->stringResource(R.string.us_sort_last_online)}, fontSize = 11.sp, lineHeight = 13.sp, style = CompactLabelStyle, color = theme.inkColor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    }
-                }
-                Text("▾", fontSize = 11.sp, color = theme.mutedColor)
-            }
-        }
+        // فیلتر و مرتب‌سازی فقط آیکون‌اند (درخواستِ کاربر): برچسبِ دوسطری در عرضِ کم
+        // بریده می‌شد («Filte»، «مرتبس…»). اطلاعات حذف نشده:
+        //   • مقدارِ فعلی در contentDescription می‌ماند (TalkBack آن را می‌خواند)،
+        //   • و «روی پیش‌فرض نبودن» با رنگِ لهجه دیده می‌شود — همان زبانِ بصریِ دکمهٔ گروه.
+        BarIconButton(
+            icon = AppIcon.Filter,
+            contentDescription = stringResource(R.string.filter) + ": " + filterLabel(currentFilter, expiringWindowDays),
+            active = currentFilter != UserFilter.ALL,
+            onClick = { showFilterSheet = true }
+        )
+        BarIconButton(
+            icon = AppIcon.Sort,
+            contentDescription = stringResource(R.string.sort) + ": " + sortLabel,
+            active = currentSort != UserSort.CREATED,
+            onClick = { showSortSheet = true }
+        )
         // فیلترِ گروه — پنل خودش اعمالش می‌کند (`?group=`)
         if (groups.isNotEmpty()) {
             var groupMenu by remember { mutableStateOf(false) }
@@ -352,6 +335,9 @@ internal fun FilterAndControlBar(
                 }
             }
         }
+        // با آیکون‌شدنِ فیلتر/مرتب‌سازی، فضای آزاد را به این فاصله‌دهنده می‌دهیم تا
+        // کنترلِ نما مثلِ قبل به لبهٔ مقابلِ نوار بچسبد.
+        Spacer(Modifier.weight(1f))
         // View mode compact
         Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(DsSpacing.Xxs)) {
             ViewModeIcon(AppIcon.GridView, stringResource(R.string.us_view_grid), viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
@@ -435,6 +421,34 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = DsRadius.Sm
     Box(modifier = Modifier.padding(vertical = 8.dp).clip(shape).clickable(onClick = onClick).primarySurface(theme, selected, shape, idle = Color.Transparent).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm)) {
         Text(label, color = if (selected) theme.onPrimary else theme.mutedColor, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+    }
+}
+
+/**
+ * دکمهٔ آیکون‌محورِ نوارِ فیلتر/مرتب‌سازی.
+ *
+ * چرا متن ندارد: در عرضِ کم، برچسبِ «فیلتر/مرتب‌سازی» + مقدارِ زیرش بریده می‌شد
+ * («Filte»، «مرتبس…») و کاربرْ متنِ نصفه می‌دید. پس:
+ *   • `contentDescription` = «برچسب: مقدارِ فعلی» → با TalkBack کامل خوانده می‌شود؛
+ *   • `active` (ناهم‌پیش‌فرض) با رنگِ لهجه و پس‌زمینهٔ ملایم نشان داده می‌شود.
+ * لمس: Compose حوزهٔ لمسِ ۳۸dp را خودکار تا ۴۸dp گسترش می‌دهد (فاز ۷/۸).
+ */
+@Composable
+private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Box(
+        Modifier
+            .padding(vertical = 1.dp)
+            .heightIn(min = 38.dp)
+            .widthIn(min = 42.dp)
+            .clip(DsRadius.Sm)
+            .clickable(onClick = onClick)
+            .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, if (active) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
+            .pressScale(0.97f),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (active) theme.accentPrimary else theme.mutedColor, size = 18.dp)
     }
 }
 

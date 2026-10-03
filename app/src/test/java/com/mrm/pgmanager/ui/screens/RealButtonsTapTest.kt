@@ -1,11 +1,13 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.UserFilter
@@ -44,20 +46,47 @@ class RealButtonsTapTest {
         )
     }
 
-    @Test fun filterButton_opensFilterSheet() {
-        setBar()
-        rule.onAllNodesWithText(str(R.string.filter)).assertCountEquals(1)   // فقط برچسبِ دکمه
-        rule.onNodeWithText(str(R.string.filter)).performClick()
+    // دکمه‌های فیلتر/مرتب‌سازی دیگر متن ندارند (درخواستِ کاربر: برچسبِ دوسطری بریده
+    // می‌شد). پس هدفِ لمس و «قراردادِ اطلاع‌رسانی» را از contentDescription
+    // («برچسب: مقدارِ فعلی») می‌گیریم — همان چیزی که TalkBack هم می‌خواند.
+    @Test fun filterButton_isIconOnly_withFullDescription() {
+        setBar()   // currentFilter = ALL
+        val desc = str(R.string.filter) + ": " + str(R.string.all)
+        rule.onAllNodesWithText(str(R.string.filter)).assertCountEquals(0)   // هیچ متنِ برچسبی نمانده
+        rule.onNodeWithContentDescription(desc).assertExists()
+        rule.onNodeWithContentDescription(desc).performClick()
         rule.waitForIdle()
-        rule.onAllNodesWithText(str(R.string.filter)).assertCountEquals(2)   // + عنوانِ شیت
+        rule.onAllNodesWithText(str(R.string.filter)).assertCountEquals(1)   // فقط عنوانِ شیت
     }
 
-    @Test fun sortButton_opensSortSheet() {
-        setBar()
-        rule.onAllNodesWithText(str(R.string.sort)).assertCountEquals(1)
-        rule.onNodeWithText(str(R.string.sort)).performClick()
+    @Test fun sortButton_isIconOnly_withFullDescription() {
+        setBar()   // currentSort = NAME
+        val desc = str(R.string.sort) + ": " + str(R.string.name)
+        rule.onAllNodesWithText(str(R.string.sort)).assertCountEquals(0)
+        rule.onNodeWithContentDescription(desc).assertExists()
+        rule.onNodeWithContentDescription(desc).performClick()
         rule.waitForIdle()
-        rule.onAllNodesWithText(str(R.string.sort)).assertCountEquals(2)
+        rule.onAllNodesWithText(str(R.string.sort)).assertCountEquals(1)
+    }
+
+    /** مقدارِ فیلترِ فعلی باید در شرحِ آیکون دیده شود — وگرنه با آیکون‌شدن، اطلاعات گم می‌شود. */
+    @Test fun filterIcon_descriptionFollowsCurrentValue() {
+        rule.setContent {
+            FilterAndControlBar(
+                currentFilter = UserFilter.ONLINE, onFilterChange = {},
+                currentSort = UserSort.LAST_ONLINE, onSortChange = {},
+                viewMode = ViewMode.COMPACT_LIST, onViewModeChange = {}
+            )
+        }
+        rule.onNodeWithContentDescription(str(R.string.filter) + ": " + str(R.string.online)).assertExists()
+        rule.onNodeWithContentDescription(str(R.string.sort) + ": " + str(R.string.us_sort_last_online)).assertExists()
+    }
+
+    /** دکمه‌های آیکون‌محور باید کفِ لمسِ خودشان را داشته باشند (کفِ ۳۸dp + گسترشِ خودکارِ Compose). */
+    @Test fun iconButtons_keepMinimumHeight() {
+        setBar()
+        val desc = str(R.string.filter) + ": " + str(R.string.all)
+        rule.onNodeWithContentDescription(desc).assertHeightIsAtLeast(38.dp)
     }
 
     @Test fun groupButton_opensGroupMenu() {
