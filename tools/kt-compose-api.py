@@ -119,6 +119,57 @@ def check(path: Path, index: set):
     return problems, checked
 
 
+
+
+# ── پاسِ دوم: «importِ جاافتاده» ──────────────────────────────────────────────
+#
+# این خطا با پاسِ اول گرفته نمی‌شود: فراخوانیِ `rule.onNodeWithTag("x")` بدونِ
+# `import androidx.compose.ui.test.onNodeWithTag` هیچ ارجاعِ *ناموجودی* ندارد، ولی
+# کامپایل را می‌شکند (همین اتفاق یک چرخهٔ CI را سوزاند).
+#
+# قاعدهٔ ایمن: اگر نامی در نمایهٔ بستهٔ تست وجود دارد (یعنی تابع/افزونهٔ سطح‌بالا است)
+# و در فایل صدا زده شده ولی importش نیست → خطا. نام‌هایی مثل `fetchSemanticsNode` یا
+# `waitForIdle` *متدِ عضو*اند و در نمایه نیستند، پس خودبه‌خود درست رد می‌شوند.
+
+RE_CALL = re.compile(r"[\s.(]([A-Za-z_]\w*)\s*\(")
+
+# فقط «افزونه‌های تعاملیِ» بستهٔ تست، از خودِ نمایه استخراج می‌شوند (نه فهرستِ دستی).
+# چرا محدود؟ نام‌هایی مثل `width`/`size`/`height` هم در `androidx.compose.ui.test`
+# وجود دارند (به‌عنوانِ اعضای `SemanticsNode`) و اگر همه را بسنجیم، مثبتِ کاذب می‌سازیم.
+HELPER_PREFIXES = ("onNode", "onAllNodes", "assert", "perform", "print", "capture")
+# این سه نام در نمایه هستند ولی هم‌نامِ JUnit/stdlib هم می‌شوند؛ سنجیدنشان امن نیست.
+HELPER_EXCLUDE = {"assert", "assertAll", "assertAny"}
+
+
+def ui_test_helpers(index: set) -> set:
+    names = set()
+    for sym in index:
+        if not sym.startswith("androidx.compose.ui.test."):
+            continue
+        name = sym[len("androidx.compose.ui.test."):]
+        if "." in name or name in HELPER_EXCLUDE:
+            continue
+        if name.startswith(HELPER_PREFIXES):
+            names.add(name)
+    return names
+
+
+def missing_imports(path: Path, index: set) -> list:
+    """هر تابعِ تعاملیِ بستهٔ تست که صدا زده شده ولی importش نیست.
+
+    این خطا هیچ ارجاعِ *ناموجودی* ندارد (پس پاسِ اول نمی‌گیردش) ولی کامپایل را
+    می‌شکند — دقیقاً همان چیزی که یک چرخهٔ CI را سوزاند (`rule.onNodeWithTag(...)`
+    بدونِ import). کامنت‌ها/رشته‌ها اول حذف می‌شوند تا متنِ توضیحی مثبتِ کاذب نسازد.
+    """
+    text = strip_code(path.read_text(encoding="utf-8"))
+    if "import androidx.compose.ui.test.*" in text:
+        return []
+    imported = set(re.findall(r"^\s*import\s+(androidx\.compose\.ui\.test\.[A-Za-z0-9_.]+)", text, re.M))
+    local = set(re.findall(r"\bfun\s+(?:<[^>]+>\s+)?(\w+)\s*\(", text))
+    called = set(RE_CALL.findall(text)) & ui_test_helpers(index)
+    return sorted(n for n in called if n not in local and f"androidx.compose.ui.test.{n}" not in imported)
+
+
 if __name__ == "__main__":
     index = index_symbols()
     targets = [Path(p) for p in sys.argv[1:]]
@@ -134,6 +185,18 @@ if __name__ == "__main__":
             print(f"❌ {rel}")
             for line, sym, kind in problems:
                 print(f"     خط {line} ({kind}): {sym} — در نسخهٔ پروژه وجود ندارد")
+    # پاسِ دوم فقط برای فایل‌های تست (کدِ اصلی از قبل سبز است و این قاعده در آنجا
+    # ممکن است روی نام‌های هم‌نامِ کتابخانه‌های دیگر حساس شود).
+    for f in files:
+        if "/src/test/" not in str(f):
+            continue
+        missing = missing_imports(f, index)
+        if missing:
+            bad += 1
+            rel = f.relative_to(ROOT) if str(f).startswith(str(ROOT)) else f
+            print(f"❌ {rel}")
+            for name in missing:
+                print(f"     importِ جاافتاده: androidx.compose.ui.test.{name}")
     if bad == 0:
         print(f"✅ همهٔ {total_checked} ارجاعِ Compose در {len(files)} فایل در نسخهٔ پروژه موجود است.")
     else:
