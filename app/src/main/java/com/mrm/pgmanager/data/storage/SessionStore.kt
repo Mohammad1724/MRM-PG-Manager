@@ -450,7 +450,7 @@ class SessionStore(context: Context) {
     fun readUiPrefs() = com.mrm.pgmanager.data.model.UiPrefs(
         hapticsEnabled = prefs.getBoolean("ui_haptics", true),
         reduceMotion = prefs.getBoolean("ui_reduce_motion", false),
-        secureScreen = prefs.getBoolean("ui_secure_screen", true)
+        secureScreen = prefs.getBoolean("ui_secure_screen", false)
     )
     fun saveUiPrefs(p: com.mrm.pgmanager.data.model.UiPrefs) = prefs.edit()
         .putBoolean("ui_haptics", p.hapticsEnabled)

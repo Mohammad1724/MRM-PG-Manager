@@ -195,12 +195,16 @@ fun MRMApp() {
     // ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷): هپتیک، کاهش حرکت، FLAG_SECURE.
     var uiPrefs by remember { mutableStateOf(store.readUiPrefs()) }
 
-    // حریمِ خصوصیِ صفحه: با روشن‌بودنِ این تنظیم، محتوای اپ در Recents و در
-    // اسکرین‌شات/ضبطِ صفحه دیده نمی‌شود (توکنِ پنل و لینک‌های اشتراک این‌جا هستند).
+    // حریمِ خصوصیِ صفحه (فاز ۷، بازبینیِ فاز ۸): پیش‌فرض **خاموش** است تا کاربر
+    // بتواند عکس‌گرفتن/ضبطِ صفحه کند (همین جلوی گزارشِ باگ‌دادن را گرفته بود).
+    // محافظتِ واقعی حالا فقط جایی است که راز نشان داده می‌شود: هر سطحی با
+    // `SecureContent` شمارندهٔ ScreenSecurity را بالا می‌برد و همان لحظه پوشش می‌گیرد.
     // کلیدِ افکت شاملِ `activity` است تا با بازیابیِ اپ هم دوباره اعمال شود.
-    DisposableEffect(activity, uiPrefs.secureScreen) {
+    val secureScreenNow = uiPrefs.secureScreen ||
+        com.mrm.pgmanager.ui.designsystem.ScreenSecurity.holds > 0
+    DisposableEffect(activity, secureScreenNow) {
         val window = activity?.window
-        if (window != null && uiPrefs.secureScreen) {
+        if (window != null && secureScreenNow) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         } else {
             window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)

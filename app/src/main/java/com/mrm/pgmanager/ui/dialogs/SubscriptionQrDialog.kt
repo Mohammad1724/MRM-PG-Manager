@@ -152,38 +152,44 @@ fun SubscriptionQrDialog(user: PanelUser, onDismiss: () -> Unit) {
         dragHandle = { Box(Modifier.fillMaxWidth().padding(top = DsSpacing.Mid, bottom = DsSpacing.Sm), contentAlignment = Alignment.Center) { Box(Modifier.width(36.dp).height(4.dp).clip(DsRadius.Full).background(theme.borderColor)) } }
     ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().paneTitle("QR ${user.username}").navigationBarsPadding().padding(DsSpacing.Xxl)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
-                    MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
-                    // فاز ۷.۵ — لینکِ اشتراک یک «کلید» است، نه یک آدرسِ ساده؛
-                    // کاربر باید همین‌جا (نه در صفحهٔ راهنما) بداند که سهمی است.
-                    Text(
-                        stringResource(R.string.set_link_copy_warning),
-                        fontSize = 11.sp, color = theme.tertiaryColor,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(DsSpacing.Mid), contentAlignment = Alignment.Center) {
-                        if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                        else Text(stringResource(R.string.qr_error), fontSize = 12.sp)
+            // این ورقه عمداً لینکِ اشتراک (توکن) را نشان می‌دهد؛ تا وقتی باز است،
+            // پنجره‌اش از عکس‌برداری/ضبط محافظت می‌شود. نکته: FLAG_SECURE روی پنجرهٔ
+            // Activity شاملِ پنجرهٔ ورقه نمی‌شود، پس محافظت اینجا و روی همین پنجره گذاشته
+            // می‌شود (بازبینیِ فاز ۸؛ پیش‌تر این سطح در عمل محافظت‌نشده بود).
+            com.mrm.pgmanager.ui.designsystem.SecureContent {
+                Box(Modifier.fillMaxWidth().paneTitle("QR ${user.username}").navigationBarsPadding().padding(DsSpacing.Xxl)) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
+                        MrmText("QR ${user.username}", fontWeight = FontWeight.Bold, color = theme.inkColor, isTechnical = true)
+                        // فاز ۷.۵ — لینکِ اشتراک یک «کلید» است، نه یک آدرسِ ساده؛
+                        // کاربر باید همین‌جا (نه در صفحهٔ راهنما) بداند که سهمی است.
+                        Text(
+                            stringResource(R.string.set_link_copy_warning),
+                            fontSize = 11.sp, color = theme.tertiaryColor,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Box(Modifier.size(220.dp).clip(DsRadius.Xxl).background(Color.White).padding(DsSpacing.Mid), contentAlignment = Alignment.Center) {
+                            if (qrBitmap != null) Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                            else Text(stringResource(R.string.qr_error), fontSize = 12.sp)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), modifier = Modifier.fillMaxWidth()) {
+                            PGSecondaryButton(stringResource(R.string.qr_copy), onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
+                                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.qr_copied))
+                            }, modifier = Modifier.weight(1f))
+                            PGSecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
+                        }
+                        // گزینهٔ اصلی: کارتِ کامل با نام، حجم، اعتبار و برند
+                        PGPrimaryButton(
+                            stringResource(R.string.qr_send_card),
+                            icon = null,
+                            onClick = ::shareCard,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy,
+                            loading = busy
+                        )
+                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.qr_close), color = theme.mutedColor) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), modifier = Modifier.fillMaxWidth()) {
-                        PGSecondaryButton(stringResource(R.string.qr_copy), onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Sub", user.subUrl))
-                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.qr_copied))
-                        }, modifier = Modifier.weight(1f))
-                        PGSecondaryButton(stringResource(R.string.qr_only), onClick = ::shareQr, modifier = Modifier.weight(1f))
-                    }
-                    // گزینهٔ اصلی: کارتِ کامل با نام، حجم، اعتبار و برند
-                    PGPrimaryButton(
-                        stringResource(R.string.qr_send_card),
-                        icon = null,
-                        onClick = ::shareCard,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy,
-                        loading = busy
-                    )
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.qr_close), color = theme.mutedColor) }
                 }
             }
         }

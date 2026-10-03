@@ -19,5 +19,5 @@ package com.mrm.pgmanager.data.model
 data class UiPrefs(
     val hapticsEnabled: Boolean = true,
     val reduceMotion: Boolean = false,
-    val secureScreen: Boolean = true
+    val secureScreen: Boolean = false
 )
