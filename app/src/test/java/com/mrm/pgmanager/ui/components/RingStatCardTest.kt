@@ -92,6 +92,7 @@ class RingStatCardTest {
         rule.setContent {
             density = LocalDensity.current.density
             Column(Modifier.width(308.dp)) {
+                // ردیفِ واقعی با هلپر
                 PGRingStatRow(spacing = 8.dp) {
                     PGRingStatCard(
                         label = "CPU Usage", value = "9.3%", icon = AppIcon.Gauge,
@@ -104,15 +105,40 @@ class RingStatCardTest {
                         fraction = .32f, percent = 32, sub = "of 1.87 GB\n1.27 GB free"
                     )
                 }
+                // مرجع: همان دو کارت، بی هلپر و بی fillMaxHeight → «ارتفاعِ طبیعیِ محتوا».
+                Column(Modifier.width(150.dp)) {
+                    PGRingStatCard(
+                        label = "CPU Usage", value = "9.3%", icon = AppIcon.Gauge,
+                        modifier = Modifier.testTag("nat_cpu"),
+                        fraction = .09f, percent = 9, sub = "1 cores"
+                    )
+                }
+                Column(Modifier.width(150.dp)) {
+                    PGRingStatCard(
+                        label = "RAM Usage", value = "614.95 MB", icon = AppIcon.Memory,
+                        modifier = Modifier.testTag("nat_ram"),
+                        fraction = .32f, percent = 32, sub = "of 1.87 GB\n1.27 GB free"
+                    )
+                }
             }
         }
         rule.waitForIdle()
-        val hCpu = rule.onNodeWithTag("card_cpu").fetchSemanticsNode().boundsInRoot.height
-        val hRam = rule.onNodeWithTag("card_ram").fetchSemanticsNode().boundsInRoot.height
-        assertEquals("کارت‌های هم‌ردیف باید هم‌قد باشند (CPU=${hCpu / density}dp، RAM=${hRam / density}dp)", hCpu, hRam, 0.5f)
-        // کفِ ۸۸dp برای متن + سقفِ ۱۵۰dp: اگر کسی کارت را کشیده باشد، این می‌شکند.
-        assertTrue("کارتِ بلندتر از حدِ محتوا شده: ${hRam / density}dp", hRam <= 150f * density)
-        assertTrue("کارت از کفِ ۸۸dp کوچک‌تر است: ${hRam / density}dp", hRam >= 88f * density - 1f)
+        fun h(tag: String) = rule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.height
+        val cpu = h("card_cpu"); val ram = h("card_ram")
+        val natMax = maxOf(h("nat_cpu"), h("nat_ram"))
+
+        // ۱) هم‌ردیف‌ها هم‌قد.
+        assertEquals(
+            "کارت‌های هم‌ردیف باید هم‌قد باشند (CPU=${cpu / density}dp، RAM=${ram / density}dp)",
+            cpu, ram, 0.5f
+        )
+        // ۲) قدِ ردیف = بلندترین *محتوای طبیعی*، نه بیشتر (اگر کسی کارت را بکشد، می‌شکند).
+        assertTrue(
+            "ردیف از بلندترین محتوای طبیعی بزرگ‌تر شده: ردیف=${ram / density}dp، طبیعی=${natMax / density}dp",
+            ram <= natMax + 1f
+        )
+        // ۳) و کفِ طراحی (۸۸dp) حفظ شده باشد.
+        assertTrue("کارت از کفِ ۸۸dp کوچک‌تر است: ${ram / density}dp", ram >= 88f * density - 1f)
     }
 
     /** بی [PGRingStatRow] (یعنی همان اشتباهِ قبلی) ارتفاع‌ها *باید* فرق کند — سندِ علتِ باگ. */

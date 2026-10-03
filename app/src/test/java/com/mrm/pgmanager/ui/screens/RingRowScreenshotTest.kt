@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.components.AppIcon
@@ -38,6 +41,17 @@ class RingRowScreenshotTest {
 
     private val bg = Color(0xFFF8F9FB)
 
+    // تراکم را از داخلِ کامپوزیشن می‌گیریم (نه از rule.density) تا به API تست وابسته نباشیم.
+    private var density = 1f
+
+    /** ارتفاعِ کارت‌های همان ردیف را هم در txt ثبت می‌کنیم — شاهدِ عددیِ هم‌قدی. */
+    private fun recordHeights(): String = try {
+        fun h(tag: String) = rule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.height
+        "cpu=${h("shot_cpu") / density}dp ram=${h("shot_ram") / density}dp\n"
+    } catch (t: Throwable) {
+        "heights: ${t.message}\n"
+    }
+
     private fun shot(name: String) {
         val out = File("build/test-screens").apply { mkdirs() }
         try {
@@ -48,7 +62,7 @@ class RingRowScreenshotTest {
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             view.draw(Canvas(bmp))
             File(out, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            File(out, "$name.txt").writeText("size=${w}x$h mode=ring-rows\n")
+            File(out, "$name.txt").writeText("size=${w}x$h mode=ring-rows\n" + recordHeights())
         } catch (t: Throwable) {
             File(out, "error.txt").appendText("[$name]\n" + t.stackTraceToString())
         }
@@ -56,6 +70,7 @@ class RingRowScreenshotTest {
 
     @Test fun renderMetricRows() {
         rule.setContent {
+            density = LocalDensity.current.density
             Column(
                 Modifier.width(360.dp).background(bg).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -64,12 +79,12 @@ class RingRowScreenshotTest {
                 PGRingStatRow {
                     PGRingStatCard(
                         label = "CPU Usage", value = "9.3%", icon = AppIcon.Gauge,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = Modifier.weight(1f).fillMaxHeight().testTag("shot_cpu"),
                         fraction = 0.093f, percent = 9, sub = "1 cores"
                     )
                     PGRingStatCard(
                         label = "RAM Usage", value = "614.95 MB", icon = AppIcon.Memory,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = Modifier.weight(1f).fillMaxHeight().testTag("shot_ram"),
                         fraction = 0.32f, percent = 32, sub = "of 1.87 GB\n1.27 GB free"
                     )
                 }
