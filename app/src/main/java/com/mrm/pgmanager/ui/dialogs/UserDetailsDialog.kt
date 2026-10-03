@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -566,11 +567,30 @@ internal fun OnlineIpsCard(
     ips: List<OnlineIp>?,
     loading: Boolean,
     nodeNames: Map<Int, String>,
-    onCheck: () -> Unit
+    onCheck: () -> Unit,
+    initiallyExpanded: Boolean = false
 ) {
     val theme = LocalThemeState.current
+    // درخواستِ کاربر: این بخش‌ها منوی کشویی باشند — پیش‌فرض بسته، با خلاصهٔ یک‌خطی
+    // در هدر تا در حالتِ بسته هم بدانی چه خبر است.
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    val summary = when {
+        ips == null -> stringResource(R.string.ud_online_ips_unknown)
+        ips.isEmpty() -> stringResource(R.string.ud_online_ips_empty)
+        else -> stringResource(
+            R.string.ud_ips_summary, ips.size,
+            formatCompactCount(ips.sumOf { it.connections.toLong() })
+        )
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-        SectionLabel(stringResource(R.string.ud_online_ips))
+        CollapsibleSectionHeader(
+            title = stringResource(R.string.ud_online_ips),
+            summary = summary,
+            expanded = expanded,
+            onToggle = { expanded = !expanded },
+            testTag = "ips_header"
+        )
+        AnimatedVisibility(visible = expanded, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
@@ -620,6 +640,55 @@ internal fun OnlineIpsCard(
             }
             if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 11.sp, color = theme.mutedColor)
         }
+        }
+    }
+}
+
+/**
+ * هدرِ کشوییِ بخش‌ها: برچسب + خلاصهٔ یک‌خطی (در حالتِ بسته) + فلش.
+ *
+ * عمداً همان زبانِ بصریِ بخشِ «More details» همین شیت است (`▴/▾` + AnimatedVisibility)
+ * تا کاربر دو الگوی متفاوت نبیند. کلِ هدر لمس‌پذیر است و با `heightIn(min = 36.dp)`
+ * به کفِ لمس نزدیک می‌ماند (Compose خودش تا ۴۸dp گسترش می‌دهد).
+ */
+@Composable
+private fun CollapsibleSectionHeader(
+    title: String,
+    summary: String?,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    testTag: String
+) {
+    val theme = LocalThemeState.current
+    val expandLabel = stringResource(R.string.cd_expand)
+    val collapseLabel = stringResource(R.string.cd_collapse)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 36.dp)
+            .clip(DsRadius.Sm)
+            .clickable(onClick = onToggle)
+            .pressScale(0.98f)
+            // شرح = «عنوان، باز/بستنِ بخش». اکشنِ لمس را خودِ clickable می‌سازد
+            // (نمی‌خواهیم با onClickِ دستی، سمنتیکِ دکمه را خنثی کنیم).
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$title, " + if (expanded) collapseLabel else expandLabel
+            }
+            .testTag(testTag),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+    ) {
+        SectionLabel(title)
+        if (!expanded && summary != null) {
+            Text(
+                summary, fontSize = 11.sp, color = theme.mutedColor,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        Text(if (expanded) "▴" else "▾", fontSize = 11.sp, color = theme.mutedColor)
     }
 }
 
@@ -631,10 +700,27 @@ internal fun OnlineIpsCard(
  * (≈۲۴dp هر ردیف) و از [SUB_FETCH_ROWS] ردیف بیشتر نشان داده نمی‌شود.
  */
 @Composable
-internal fun SubscriptionFetchesCard(list: SubUpdateList) {
+internal fun SubscriptionFetchesCard(list: SubUpdateList, initiallyExpanded: Boolean = false) {
     val theme = LocalThemeState.current
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
+    val latest = list.updates.firstOrNull()?.createdAt
+    val summary = if (list.count == 0) {
+        stringResource(R.string.ud_sub_updates_empty)
+    } else {
+        stringResource(
+            R.string.ud_fetches_summary, list.count,
+            latest?.let { lastSeenShort(it, false).ifBlank { JalaliCalendar.isoToShamsi(it) } } ?: "—"
+        )
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-        SectionLabel(stringResource(R.string.ud_sub_updates))
+        CollapsibleSectionHeader(
+            title = stringResource(R.string.ud_sub_updates),
+            summary = summary,
+            expanded = expanded,
+            onToggle = { expanded = !expanded },
+            testTag = "fetches_header"
+        )
+        AnimatedVisibility(visible = expanded, enter = DsTransition.expandEnter, exit = DsTransition.expandExit) {
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
@@ -676,6 +762,7 @@ internal fun SubscriptionFetchesCard(list: SubUpdateList) {
             if (list.updates.size > SUB_FETCH_ROWS) {
                 Text(stringResource(R.string.ud_more_items, list.updates.size - SUB_FETCH_ROWS), fontSize = 11.sp, color = theme.mutedColor)
             }
+        }
         }
     }
 }

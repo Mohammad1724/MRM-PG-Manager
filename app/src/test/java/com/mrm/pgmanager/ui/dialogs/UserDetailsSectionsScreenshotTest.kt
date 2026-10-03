@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.unit.dp
@@ -76,8 +78,13 @@ class UserDetailsSectionsScreenshotTest {
                     Modifier.width(360.dp).background(bg).padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OnlineIpsCard(ips = ips, loading = false, nodeNames = mapOf(3 to "Finland Node", 7 to "DE-Node"), onCheck = {})
-                    Box(Modifier.testTag("fetch_card")) { SubscriptionFetchesCard(fetches) }
+                    // هر دو با initiallyExpanded=true رندر می‌شوند تا «محتوای باز» را ببینیم؛
+                    // حالتِ بسته در تستِ بعدی و در PNG جدا سنجیده می‌شود.
+                    OnlineIpsCard(
+                        ips = ips, loading = false, nodeNames = mapOf(3 to "Finland Node", 7 to "DE-Node"),
+                        onCheck = {}, initiallyExpanded = true
+                    )
+                    Box(Modifier.testTag("fetch_card")) { SubscriptionFetchesCard(fetches, initiallyExpanded = true) }
                 }
             }
             rule.waitForIdle()
@@ -127,5 +134,74 @@ class UserDetailsSectionsScreenshotTest {
         for (h in heights) {
             assertTrue("ردیفِ تاریخچه ${h}dp ارتفاع گرفت (سقفِ ۲۶dp — یعنی دوباره دوخطی شده)", h <= 26f)
         }
+    }
+
+    /**
+     * درخواستِ کاربر: این دو بخش باید «منوی کشویی» باشند — پیش‌فرض بسته.
+     * ادعا: ① با ورود، هیچ ردیفی دیده نمی‌شود و کلِ هر بخش فقط هدرِ ~۳۶dp است،
+     * ② با لمسِ هدر، ردیف‌ها باز می‌شوند، ③ لمسِ دوباره می‌بندد.
+     */
+    @Test fun sections_areCollapsedByDefault_andToggle() {
+        rule.setContent {
+            density = LocalDensity.current.density
+            Column(
+                Modifier.width(360.dp).background(bg).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(Modifier.testTag("ips_section")) {
+                    OnlineIpsCard(ips = ips, loading = false, nodeNames = emptyMap(), onCheck = {})
+                }
+                Box(Modifier.testTag("fetches_section")) { SubscriptionFetchesCard(fetches) }
+            }
+        }
+        rule.waitForIdle()
+
+        // ① بسته: نه ردیفِ IP، نه ردیفِ تاریخچه
+        rule.onAllNodesWithTag("sub_fetch_row", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithText("89.199.110.216").assertCountEquals(0)
+
+        // ② باز کردنِ تاریخچه با لمسِ هدر
+        rule.onNodeWithTag("fetches_header", useUnmergedTree = true).performClick()
+        rule.mainClock.advanceTimeBy(600)   // عبور از گذارِ expand
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("sub_fetch_row", useUnmergedTree = true).assertCountEquals(SUB_FETCH_ROWS)
+
+        // ③ و دوباره بستن
+        rule.onNodeWithTag("fetches_header", useUnmergedTree = true).performClick()
+        rule.mainClock.advanceTimeBy(600)   // عبور از گذارِ exit
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("sub_fetch_row", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    /** ارتفاعِ بخشِ بسته باید نزدیکِ هدر باشد (≈۳۶dp)، نه صدها dp. */
+    @Test fun collapsedSections_areCompact() {
+        var collapsedDp = -1f
+        rule.setContent {
+            density = LocalDensity.current.density
+            Column(Modifier.width(360.dp)) {
+                Box(Modifier.testTag("ips_section")) {
+                    OnlineIpsCard(ips = ips, loading = false, nodeNames = emptyMap(), onCheck = {})
+                }
+            }
+        }
+        rule.waitForIdle()
+        collapsedDp = rule.onNodeWithTag("ips_section").fetchSemanticsNode().boundsInRoot.height / density
+        assertTrue("بخشِ بستهٔ IPها ${collapsedDp}dp ارتفاع گرفت (سقفِ ۴۲dp)", collapsedDp <= 42f)
+    }
+
+    /** خلاصهٔ حالتِ بسته باید در درختِ دسترس‌پذیری باشد تا با اسکرین‌ریدر هم بدانی چه خبر است. */
+    @Test fun collapsedHeader_exposesSummaryToAccessibility() {
+        rule.setContent { Column(Modifier.width(360.dp)) { SubscriptionFetchesCard(fetches) } }
+        rule.waitForIdle()
+        // درختِ *مرج* لازم است: هدر گره‌های فرزند را در خودش ادغام می‌کند و متنِ خلاصه
+        // فقط آنجا دیده می‌شود.
+        val node = rule.onNodeWithTag("fetches_header").fetchSemanticsNode()
+        // هدر با mergeDescendants گره‌های فرزند را در خودش ادغام می‌کند؛ متن‌ها را از
+        // SemanticsProperties.Text می‌خوانیم (نه toString، که به پیاده‌سازی وابسته است).
+        val texts = mutableListOf<androidx.compose.ui.text.AnnotatedString>()
+        node.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.let { texts += it }
+        val joined = texts.joinToString(" ") { it.text }
+        assertTrue("متنِ هدر خالی است", joined.isNotBlank())
+        assertTrue("شمارشِ «۵ بار» در خلاصهٔ هدر نیست: «$joined»", joined.contains("5"))
     }
 }
