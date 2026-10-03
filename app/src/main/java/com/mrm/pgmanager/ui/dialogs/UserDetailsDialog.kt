@@ -613,7 +613,9 @@ internal fun OnlineIpsCard(
                         fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
+                    // عددِ خامِ پنل می‌تواند میلیاردی باشد («1791007477 conn.») و نامِ نود را
+                    // له کند؛ همان خطِ خلاصه، فشرده می‌شود.
+                    Text(stringResource(R.string.ud_connections, formatCompactCount(entry.connections.toLong())), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
                 }
             }
             if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 11.sp, color = theme.mutedColor)

@@ -968,7 +968,7 @@
     <string name="ud_online_ips_empty">در حال حاضر اتصال فعالی ندارد</string>
     <string name="ud_online_ips_count">%1$d آی‌پی · %2$s اتصال</string>
     <string name="ud_online_ips_count_one">%1$d آی‌پی · %2$s اتصال</string>
-    <string name="ud_connections">%1$d اتصال</string>
+    <string name="ud_connections">%1$s اتصال</string>
     <string name="ud_check">بررسی</string>
     <string name="ud_checking">در حال بررسی…</string>
     <string name="ud_more_items">+%1$d مورد دیگر</string>
