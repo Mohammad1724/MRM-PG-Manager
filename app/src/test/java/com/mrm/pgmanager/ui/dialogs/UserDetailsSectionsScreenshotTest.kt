@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.data.model.OnlineIp
 import com.mrm.pgmanager.data.model.SubUpdate
@@ -193,15 +194,8 @@ class UserDetailsSectionsScreenshotTest {
     @Test fun collapsedHeader_exposesSummaryToAccessibility() {
         rule.setContent { Column(Modifier.width(360.dp)) { SubscriptionFetchesCard(fetches) } }
         rule.waitForIdle()
-        // درختِ *مرج* لازم است: هدر گره‌های فرزند را در خودش ادغام می‌کند و متنِ خلاصه
-        // فقط آنجا دیده می‌شود.
-        val node = rule.onNodeWithTag("fetches_header").fetchSemanticsNode()
-        // هدر با mergeDescendants گره‌های فرزند را در خودش ادغام می‌کند؛ متن‌ها را از
-        // SemanticsProperties.Text می‌خوانیم (نه toString، که به پیاده‌سازی وابسته است).
-        val texts = mutableListOf<androidx.compose.ui.text.AnnotatedString>()
-        node.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.let { texts += it }
-        val joined = texts.joinToString(" ") { it.text }
-        assertTrue("متنِ هدر خالی است", joined.isNotBlank())
-        assertTrue("شمارشِ «۵ بار» در خلاصهٔ هدر نیست: «$joined»", joined.contains("5"))
+        // درختِ *مرج*: متنِ خلاصهٔ فرزند در گرهِ هدر ادغام می‌شود و با API تست
+        // (`assertTextContains`) خوانده می‌شود — نه با دست‌زدن به SemanticsConfiguration.
+        rule.onNodeWithTag("fetches_header").assertTextContains("5", substring = true)
     }
 }
