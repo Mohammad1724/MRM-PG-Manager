@@ -32,10 +32,13 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.dialogs.paneTitle
 import com.mrm.pgmanager.data.api.PanelApi
+import androidx.compose.ui.platform.testTag
 import com.mrm.pgmanager.data.model.*
+import androidx.compose.foundation.layout.Spacer
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.*
 import com.mrm.pgmanager.ui.theme.*
+import com.mrm.pgmanager.utils.formatCompactCount
 import com.mrm.pgmanager.utils.*
 import kotlinx.coroutines.launch
 
@@ -437,56 +440,16 @@ fun UserDetailsDialog(
 
                     // ── IPهای آنلاین (فقط با مجوزِ nodes.stats)
                     if (session != null && canNodeStats) {
-                        val ips = onlineIps
-                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                            SectionLabel(stringResource(R.string.ud_online_ips))
-                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                    Text(
-                                        when {
-                                            ips == null -> stringResource(R.string.ud_online_ips_unknown)
-                                            ips.isEmpty() -> stringResource(R.string.ud_online_ips_empty)
-                                            else -> stringResource(R.string.ud_online_ips_count, ips.size, ips.sumOf { it.connections })
-                                        },
-                                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
-                                    )
-                                    Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Full).clickable(enabled = !onlineIpsLoading) { loadOnlineIps() }.background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) {
-                                        Text(stringResource(if (onlineIpsLoading) R.string.ud_checking else R.string.ud_check), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentTextColor)
-                                    }
-                                }
-                                ips?.take(6)?.forEach { entry ->
-                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                        MrmText(entry.ip, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
-                                        MrmText(nodeNames[entry.nodeId] ?: stringResource(R.string.st_node_unknown, entry.nodeId), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
-                                        Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
-                                    }
-                                }
-                                if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 11.sp, color = theme.mutedColor)
-                            }
-                        }
+                        OnlineIpsCard(
+                            ips = onlineIps,
+                            loading = onlineIpsLoading,
+                            nodeNames = nodeNames,
+                            onCheck = { loadOnlineIps() }
+                        )
                     }
 
                     // ── تاریخچهٔ گرفتنِ اشتراک
-                    subUpdates?.let { list ->
-                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                            SectionLabel(stringResource(R.string.ud_sub_updates))
-                            Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                Text(
-                                    if (list.count == 0) stringResource(R.string.ud_sub_updates_empty) else stringResource(R.string.ud_sub_updates_count, list.count),
-                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
-                                )
-                                list.updates.forEach { u ->
-                                    Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                                            MrmText(u.client.ifBlank { "—" }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                                            u.ip?.let { MrmText(it, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true) }
-                                        }
-                                        MrmText(lastSeenShort(u.createdAt, false).ifBlank { JalaliCalendar.isoToShamsi(u.createdAt) }, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    subUpdates?.let { list -> SubscriptionFetchesCard(list) }
 
                     currentUser.nextPlan?.let { np ->
                         Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.accentPrimary.copy(0.06f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.15f)), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
@@ -580,6 +543,136 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
                     modifier = Modifier.weight(1f),
                     icon = AppIcon.Edit
                 )
+            }
+        }
+    }
+}
+
+/** چند ردیفِ آخرِ «گرفتنِ اشتراک» نشان داده می‌شود؛ بقیه با یک خطِ «+N» جمع می‌شود. */
+internal const val SUB_FETCH_ROWS = 4
+
+/**
+ * کارتِ «IPهای آنلاین» — از تنهٔ [UserDetailsDialog] جدا شد تا مستقل رندر و تست شود.
+ *
+ * سه تغذیهٔ چگالی نسبت به نسخهٔ قبلی:
+ *  ۱) خطِ خلاصه عددِ خامِ اتصال‌ها را می‌نوشت (پنل شمارشِ تجمعی می‌دهد؛ گزارشِ کاربر
+ *     «1791007477 connections» بود) → حالا فشرده: «1.79B».
+ *  ۲) دکمهٔ «بررسی» از کفِ ۴۰dp به ۳۲dp آمد.
+ *  ۳) ردیفِ هر IP به‌جای پخش‌کردنِ فاصله با `weight` روی خودِ آی‌پی، آی‌پی + نامِ نود +
+ *     تعداد را کنارِ هم می‌چیند و فقط نامِ نود کشسان است.
+ */
+@Composable
+internal fun OnlineIpsCard(
+    ips: List<OnlineIp>?,
+    loading: Boolean,
+    nodeNames: Map<Int, String>,
+    onCheck: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+        SectionLabel(stringResource(R.string.ud_online_ips))
+        Column(
+            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                .padding(DsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                val totalConn = ips?.sumOf { it.connections.toLong() } ?: 0L
+                Text(
+                    when {
+                        ips == null -> stringResource(R.string.ud_online_ips_unknown)
+                        ips.isEmpty() -> stringResource(R.string.ud_online_ips_empty)
+                        ips.size == 1 -> stringResource(R.string.ud_online_ips_count_one, ips.size, formatCompactCount(totalConn))
+                        else -> stringResource(R.string.ud_online_ips_count, ips.size, formatCompactCount(totalConn))
+                    },
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f)
+                )
+                Box(
+                    Modifier.heightIn(min = 32.dp).clip(DsRadius.Full).clickable(enabled = !loading) { onCheck() }
+                        .background(theme.accentPrimary.copy(0.10f)).pressScale(0.95f)
+                        .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        stringResource(if (loading) R.string.ud_checking else R.string.ud_check),
+                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentTextColor
+                    )
+                }
+            }
+            ips?.take(6)?.forEach { entry ->
+                Row(
+                    Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                        .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                ) {
+                    MrmText(entry.ip, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
+                    MrmText(
+                        nodeNames[entry.nodeId] ?: stringResource(R.string.st_node_unknown, entry.nodeId),
+                        fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(stringResource(R.string.ud_connections, entry.connections), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1)
+                }
+            }
+            if (ips != null && ips.size > 6) Text(stringResource(R.string.ud_more_items, ips.size - 6), fontSize = 11.sp, color = theme.mutedColor)
+        }
+    }
+}
+
+/**
+ * کارتِ «تاریخچهٔ گرفتنِ اشتراک».
+ *
+ * قبلاً هر ردیف **دو خط** بود (نامِ کلاینت بالا، آی‌پی زیرش) → هر ردیف ~۳۸dp و پنج ردیف
+ * شیت را پر می‌کرد. حالا یک خط است: «کلاینت · آی‌پی … زمان» با حاشیهٔ عمودیِ ۵dp
+ * (≈۲۴dp هر ردیف) و از [SUB_FETCH_ROWS] ردیف بیشتر نشان داده نمی‌شود.
+ */
+@Composable
+internal fun SubscriptionFetchesCard(list: SubUpdateList) {
+    val theme = LocalThemeState.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+        SectionLabel(stringResource(R.string.ud_sub_updates))
+        Column(
+            Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                .padding(DsSpacing.Md),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+        ) {
+            Text(
+                if (list.count == 0) stringResource(R.string.ud_sub_updates_empty)
+                else stringResource(R.string.ud_sub_updates_count, list.count),
+                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+            )
+            list.updates.take(SUB_FETCH_ROWS).forEach { u ->
+                Row(
+                    Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor)
+                        .padding(horizontal = DsSpacing.Md, vertical = 5.dp)
+                        .testTag("sub_fetch_row"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                ) {
+                    MrmText(
+                        u.client.ifBlank { "—" }, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    u.ip?.let { ip ->
+                        MrmText(
+                            ip, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis, isTechnical = true,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    MrmText(
+                        lastSeenShort(u.createdAt, false).ifBlank { JalaliCalendar.isoToShamsi(u.createdAt) },
+                        fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true
+                    )
+                }
+            }
+            if (list.updates.size > SUB_FETCH_ROWS) {
+                Text(stringResource(R.string.ud_more_items, list.updates.size - SUB_FETCH_ROWS), fontSize = 11.sp, color = theme.mutedColor)
             }
         }
     }

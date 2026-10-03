@@ -25,6 +25,22 @@ private val bytesFormat = object : ThreadLocal<java.text.DecimalFormat>() {
     override fun initialValue() = java.text.DecimalFormat("#.##", java.text.DecimalFormatSymbols.getInstance(java.util.Locale.US))
 }
 
+/**
+ * شمارشِ بزرگ را فشرده می‌کند: `1791007477` → «1.79B».
+ *
+ * در شیتِ جزئیاتِ کاربر، خطِ خلاصهٔ «IPهای آنلاین» عددِ خامِ اتصال‌ها را می‌نوشت و
+ * عددهای میلیاردی (که پنل در شمارشِ تجمعی می‌دهد) خط را پر می‌کرد. فشرده‌سازی همان
+ * الگوی `formatBytes` است: دو رقمِ اعشار، بدونِ صفرِ اضافی، با اعدادِ لاتین.
+ */
+fun formatCompactCount(value: Long): String {
+    if (value < 1_000L) return value.toString()
+    val units = arrayOf("K", "M", "B", "T")
+    var v = value.toDouble()
+    var index = 0
+    while (v >= 1_000.0 && index < units.size - 1) { v /= 1_000.0; index++ }
+    return "${bytesFormat.get()!!.format(v)}${units[index - 1]}"
+}
+
 fun formatBytes(value: Long): String {
     if (value <= 0L) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")

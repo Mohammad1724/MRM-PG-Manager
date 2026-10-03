@@ -966,7 +966,9 @@
     <string name="ud_online_ips">Online IPs</string>
     <string name="ud_online_ips_unknown">Not checked yet</string>
     <string name="ud_online_ips_empty">No active connection right now</string>
-    <string name="ud_online_ips_count">%1$d IPs · %2$d connections</string>
+    <string name="ud_online_ips_count">%1$d IPs · %2$s connections</string>
+    <!-- مفرد جدا نوشته می‌شود چون خروجیِ قبلی «1 IPs» بود؛ شمارشِ اتصال‌ها فشرده است (1.79B) -->
+    <string name="ud_online_ips_count_one">%1$d IP · %2$s connections</string>
     <string name="ud_connections">%1$d conn.</string>
     <string name="ud_check">Check</string>
     <string name="ud_checking">Checking…</string>

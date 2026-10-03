@@ -59,4 +59,29 @@ class FormatTest {
             Locale.setDefault(original)
         }
     }
+
+    /**
+     * قفلِ رگرسیونِ گزارشِ کاربر: خطِ خلاصهٔ «IPهای آنلاین» عددِ خامِ اتصال‌ها را
+     * می‌نوشت («1 IPs · 1791007477 connections») و خط را پر می‌کرد.
+     */
+    @Test fun `formatCompactCount compresses big counters`() {
+        assertEquals("999", formatCompactCount(999))
+        assertEquals("1K", formatCompactCount(1_000))
+        assertEquals("1.5K", formatCompactCount(1_500))
+        assertEquals("1.08K", formatCompactCount(1_080))
+        assertEquals("12.3K", formatCompactCount(12_300))
+        assertEquals("2M", formatCompactCount(2_000_000))
+        assertEquals("1.79B", formatCompactCount(1_791_007_477))
+    }
+
+    @Test fun `formatCompactCount is locale independent`() {
+        val original = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)   // جداکنندهٔ اعشار «,» — خروجی نباید عوض شود
+            assertEquals("1.79B", formatCompactCount(1_791_007_477))
+            assertEquals("1.5K", formatCompactCount(1_500))
+        } finally {
+            Locale.setDefault(original)
+        }
+    }
 }
