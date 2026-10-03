@@ -284,8 +284,13 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
     val bg = if (selected) theme.accentPrimary else if (isDark) Color(0xFF383842) else Color.White
     val borderCol = if (selected) theme.accentPrimary else if (isDark) Color(0xFF8E8C98) else Color(0xFFB8BBC2)
     Box(
+        // کادرِ لمس/چیدمان: قبلاً `padding(11.dp)` بود → ۴۰dp ظرف برای یک مربعِ ۱۸dp.
+        // آن ۴۰dp در ردیفِ کاربران *بلندترین* فرزند بود و ارتفاعِ ردیف را به ۶۴dp
+        // می‌رساند (۴۰ محتوا + ۲۴ حاشیهٔ کارت) و ۲۲dp هم عرض می‌خورد.
+        // حالا ۶dp → ظرفِ ۳۰dp؛ ظاهرِ مربع همان ۱۸dp و ناحیهٔ لمس را Compose
+        // خودکار تا ۴۸dp گسترش می‌دهد (قفلِ HitAreaTest).
         modifier = modifier
-            .padding(11.dp)
+            .padding(6.dp)
             .size(18.dp)
             .clip(DsRadius.Xs)
             .clickable { com.mrm.pgmanager.utils.Haptics.tick(context); onToggle() }

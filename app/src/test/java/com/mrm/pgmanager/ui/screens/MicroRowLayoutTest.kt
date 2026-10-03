@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.screens
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -48,7 +49,7 @@ class MicroRowLayoutTest {
 
     private fun render() = rule.setContent {
         density = androidx.compose.ui.platform.LocalDensity.current.density
-        Box(Modifier.width(360.dp)) { LuxuryMicroRow(worst, onClick = {}) }
+        Box(Modifier.width(360.dp).testTag("row_box")) { LuxuryMicroRow(worst, onClick = {}) }
     }
 
     // ردیف clickable است و زیرمجموعه‌ها را merge می‌کند؛ تگ‌ها فقط در درخت unmerged دیده می‌شوند.
@@ -79,6 +80,41 @@ class MicroRowLayoutTest {
         val qr = boundsByDesc(str(R.string.us_show_qr))
         val span = (qr.right - copy.left) / density
         assertTrue("گروهِ دکمه‌ها ${span}dp عرض گرفت (سقفِ ۶۰dp)", span <= 60f)
+    }
+
+    /**
+     * گزارشِ کاربر: «این قسمت‌ها (ستونِ چک‌باکس + نام) فضای خالیِ زیاد دارند و فضا
+     * زیاد اشغال می‌کنند».
+     *
+     * ریشه: `CheckboxIcon` ظرفِ `padding(11.dp) + size(18.dp)` داشت → ۴۰dp برای یک
+     * مربعِ ۱۸dp. آن ۴۰dp بلندترین فرزندِ ردیف بود و ارتفاع را به ۶۴dp می‌برد
+     * (۴۰ + ۲۴ حاشیهٔ کارت) و ۲۲dp هم عرض می‌خورد.
+     */
+    @Test fun checkboxFootprint_isCompact_nowRowsAreShorter() {
+        render()
+        val box = rule.onNodeWithContentDescription(str(R.string.cd_select)).fetchSemanticsNode().boundsInRoot
+        val wDp = box.width / density; val hDp = box.height / density
+        assertTrue("ظرفِ چک‌باکس ${wDp}dp عرض گرفت (سقفِ ۳۰dp، قبلاً ۴۰dp)", wDp <= 30.5f)
+        assertTrue("ظرفِ چک‌باکس ${hDp}dp ارتفاع گرفت (سقفِ ۳۰dp، قبلاً ۴۰dp)", hDp <= 30.5f)
+
+        // ۱) ردیف نباید از «بلندترین قطعه + ۲۴dp حاشیهٔ کارت» بلندتر باشد
+        //    (اگر کسی دوباره جعبهٔ بزرگی داخلِ ردیف بگذارد، این می‌شکند).
+        val nameH = bounds("micro_name").height / density
+        val rowH = bounds("row_box").height / density
+        val tallest = maxOf(hDp, nameH) + 24f
+        assertTrue(
+            "ارتفاعِ ردیف ${rowH}dp از «بلندترین قطعه (${maxOf(hDp, nameH)}dp) + حاشیه» بیشتر است",
+            rowH <= tallest + 1.5f
+        )
+        // ۲) و در عمل باید محسوس کوتاه‌تر از ۶۴dp قبلی باشد.
+        assertTrue("ارتفاعِ ردیف ${rowH}dp است (سقفِ ۵۸dp، قبلاً ۶۴dp)", rowH <= 58f)
+    }
+
+    /** با آزادشدنِ ۱۰dp، ستونِ نام باید زودتر شروع شود (قبلاً ۵۸dp از لبهٔ کارت). */
+    @Test fun nameColumn_startsEarlier_afterCheckboxSlimming() {
+        render()
+        val nameLeftDp = (bounds("micro_name").left - bounds("row_box").left) / density
+        assertTrue("ستونِ نام از ${nameLeftDp}dp شروع شد (باید ≤ ۵۰dp باشد)", nameLeftDp <= 50f)
     }
 
     @Test fun usageBar_isNotSqueezed_andWiderThanName() {
