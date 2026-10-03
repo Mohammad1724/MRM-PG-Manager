@@ -126,7 +126,8 @@ class UserDetailsSectionsScreenshotTest {
     @Test fun fetchRows_areCapped_atFourRows() {
         rule.setContent {
             density = LocalDensity.current.density
-            Column(Modifier.width(360.dp)) { SubscriptionFetchesCard(fetches) }
+            // حالا پیش‌فرض بسته است؛ این تست «محتوای باز» را می‌سنجد، پس صریحاً باز می‌کنیم.
+            Column(Modifier.width(360.dp)) { SubscriptionFetchesCard(fetches, initiallyExpanded = true) }
         }
         rule.waitForIdle()
         rule.onAllNodesWithTag("sub_fetch_row", useUnmergedTree = true).assertCountEquals(SUB_FETCH_ROWS)
