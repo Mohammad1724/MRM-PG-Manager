@@ -44,7 +44,10 @@ class MicroRowLayoutTest {
         createdAt = null
     )
 
+    private var density = 1f
+
     private fun render() = rule.setContent {
+        density = androidx.compose.ui.platform.LocalDensity.current.density
         Box(Modifier.width(360.dp)) { LuxuryMicroRow(worst, onClick = {}) }
     }
 
@@ -52,13 +55,30 @@ class MicroRowLayoutTest {
     private fun node(tag: String) = rule.onNodeWithTag(tag, useUnmergedTree = true)
     private fun bounds(tag: String) = node(tag).fetchSemanticsNode().boundsInRoot
 
+    /** کادرِ عنصر از روی شرحِ آن (دکمه‌ها تگِ خودشان را ندارند). */
+    private fun boundsByDesc(desc: String) =
+        rule.onNodeWithContentDescription(desc).fetchSemanticsNode().boundsInRoot
+
     @Test fun actionButtons_areCompact() {
         render()
         for (id in listOf(R.string.us_copy, R.string.us_show_qr)) {
             rule.onNodeWithContentDescription(str(id))
                 .assertWidthIsEqualTo(MICRO_ACTION_SIZE).assertHeightIsEqualTo(MICRO_ACTION_SIZE)
         }
-        assertTrue("دکمه‌ها باید از ۴۰dp قدیمی کوچک‌تر باشند", MICRO_ACTION_SIZE < 40.dp)
+        // گزارشِ کاربر: «دکمه‌های کپی و QR فضای زیادی اشغال می‌کنند».
+        // ۲۶dp یعنی دو دکمه + فاصله = ۵۸dp از عرضِ ۳۶۰dp (قبلاً ۷۰dp).
+        assertTrue("دکمه‌ها باید از ۳۲dp قبلی کوچک‌تر باشند", MICRO_ACTION_SIZE <= 26.dp)
+        assertTrue("دکمه‌ها نباید از ۲۴dp کوچک‌تر شوند", MICRO_ACTION_SIZE >= 24.dp)
+        assertTrue("دکمه‌های ردیفِ compact هم باید سبک شوند", COMPACT_ACTION_SIZE <= 30.dp)
+    }
+
+    /** مجموعِ عرضِ دو دکمه + فاصله نباید از ۶۰dp بگذرد (قبلاً ۷۰dp بود). */
+    @Test fun actionCluster_fitsBudget() {
+        render()
+        val copy = boundsByDesc(str(R.string.us_copy))
+        val qr = boundsByDesc(str(R.string.us_show_qr))
+        val span = (qr.right - copy.left) / density
+        assertTrue("گروهِ دکمه‌ها ${span}dp عرض گرفت (سقفِ ۶۰dp)", span <= 60f)
     }
 
     @Test fun usageBar_isNotSqueezed_andWiderThanName() {

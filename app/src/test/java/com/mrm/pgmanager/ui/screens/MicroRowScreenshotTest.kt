@@ -71,7 +71,11 @@ class MicroRowScreenshotTest {
             var nonWhite = 0
             val px = IntArray(w * h); bmp.getPixels(px, 0, w, 0, 0, w, h)
             for (c in px) if (c != -1 && c != 0) nonWhite++
-            File(out, "info.txt").writeText("size=${w}x$h nonWhitePixels=$nonWhite")
+            // شاهدِ عددیِ چگالی: اندازهٔ دکمه‌های کپی/QR.
+            File(out, "info.txt").writeText(
+                "size=${w}x$h nonWhitePixels=$nonWhite\n" +
+                "action_size=${MICRO_ACTION_SIZE.value}dp  compact_action=${COMPACT_ACTION_SIZE.value}dp\n"
+            )
             File(out, "micro_rows.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } catch (t: Throwable) {
             File(out, "error.txt").writeText(t.stackTraceToString())

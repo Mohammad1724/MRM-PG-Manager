@@ -311,7 +311,8 @@ internal fun IconCardAction(icon: AppIcon, modifier: Modifier = Modifier, conten
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
+        // ۱۳dp — هم‌اندازهٔ [IconRowAction] تا هر سه نما یک زبانِ آیکونی داشته باشند.
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 13.dp)
     }
 }
 
@@ -325,7 +326,8 @@ internal fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, content
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
+        // ۱۳dp هم‌خانوادهٔ آیکون‌های کارت‌های آماری است و در کادرِ ۲۶dp تناسب دارد.
+        RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 13.dp)
     }
 }
 
@@ -376,8 +378,8 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
-                IconCardAction(AppIcon.Copy, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
-                IconCardAction(AppIcon.Qr, Modifier.size(40.dp), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
+                IconCardAction(AppIcon.Copy, Modifier.size(COMPACT_ACTION_SIZE), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
+                IconCardAction(AppIcon.Qr, Modifier.size(COMPACT_ACTION_SIZE), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
@@ -401,11 +403,16 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
 /**
  * هندسهٔ ردیفِ micro (گوشیِ ۳۶۰dp): ستونِ مصرف عرضِ ثابتِ کافی دارد تا «used/limit + روزِ مانده» هیچ‌وقت
  * بریده نشود (در رندرِ واقعی دیدیم با weight هر دو ستون «…» می‌خوردند)؛ فقط نام انعطاف‌پذیر است.
- * دکمه‌ها ۳۲dp — ۲۴dp خیلی کوچک بود و ۴۰dp (فاز ۲٫۱) نوارِ مصرف را له می‌کرد.
- * حوزهٔ لمس را خودِ Compose تا ۴۸dp گسترش می‌دهد.
+ * دکمه‌ها ۲۶dp — ۳۲dp (فاز ۲٫۱ به بعد) از نظرِ کاربر «فضای زیادی اشغال می‌کرد»:
+ * دو کادرِ ۳۲dp + فاصله یعنی ۷۰dp از عرضِ ردیف، و کادرها هم‌قدِ ۸۰٪ ارتفاعِ محتوا
+ * بودند. ۲۶dp همان آیکون را نگه می‌دارد و ۱۲dp عرض آزاد می‌کند.
+ * ارتفاعِ ردیف را این دکمه‌ها تعیین نمی‌کنند (ستونِ متن ۴۰dp است) — عمداً فقط
+ * *وزنِ بصری* و عرض کم شد، نه چگالیِ متن.
+ * حوزهٔ لمس را خودِ Compose تا ۴۸dp گسترش می‌دهد (تستِ HitArea).
  */
 internal val MICRO_USAGE_WIDTH = 116.dp
-internal val MICRO_ACTION_SIZE = 32.dp
+internal val MICRO_ACTION_SIZE = 26.dp
+internal val COMPACT_ACTION_SIZE = 30.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
