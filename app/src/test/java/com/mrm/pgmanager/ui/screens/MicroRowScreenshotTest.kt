@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -11,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.data.model.PanelUser
 import org.junit.Rule
@@ -34,6 +37,12 @@ import java.time.temporal.ChronoUnit
 class MicroRowScreenshotTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
+    /** تراکمِ واقعیِ رندرِ xhdpi (۲.۰) — از داخلِ کامپوزیشن خوانده می‌شود. */
+    private var density = 1f
+
+    /** بلندترین ارتفاعِ ردیف (dp) از آخرین رندرِ موفق؛ برای ادعای بیرون از try. */
+    private var rowHeightDp = -1f
+
     private val gb = 1024L * 1024 * 1024
     private fun u(id: Long, name: String, status: String, used: Double, limit: Long, days: Long?) = PanelUser(
         id = id, username = name, status = status,
@@ -56,8 +65,9 @@ class MicroRowScreenshotTest {
                 u(8, "AliReza-Roosta", "active", 21.61, 50, 4)
             )
             rule.setContent {
+                density = androidx.compose.ui.platform.LocalDensity.current.density
                 Column(Modifier.width(360.dp).background(Color(0xFFF8F9FB)).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    users.forEach { LuxuryMicroRow(it, onClick = {}) }
+                    users.forEachIndexed { i, u -> Box(Modifier.testTag("row_$i")) { LuxuryMicroRow(u, onClick = {}) } }
                 }
             }
             rule.waitForIdle()
@@ -71,14 +81,29 @@ class MicroRowScreenshotTest {
             var nonWhite = 0
             val px = IntArray(w * h); bmp.getPixels(px, 0, w, 0, 0, w, h)
             for (c in px) if (c != -1 && c != 0) nonWhite++
-            // شاهدِ عددیِ چگالی: اندازهٔ دکمه‌های کپی/QR.
+            // شاهدِ عددی: اندازهٔ دکمه‌ها + ارتفاعِ ردیف‌ها (xhdpi = شرایطِ رندرِ گوشی).
+            val heights = users.indices.map { i ->
+                val b = rule.onNodeWithTag("row_$i").fetchSemanticsNode().boundsInRoot
+                b.height / density
+            }
             File(out, "info.txt").writeText(
                 "size=${w}x$h nonWhitePixels=$nonWhite\n" +
-                "action_size=${MICRO_ACTION_SIZE.value}dp  compact_action=${COMPACT_ACTION_SIZE.value}dp\n"
+                "action_size=${MICRO_ACTION_SIZE.value}dp  compact_action=${COMPACT_ACTION_SIZE.value}dp\n" +
+                "row_heights_dp=" + heights.joinToString(",") { "%.1f".format(it) } + "\n"
             )
+            rowHeightDp = heights.maxOrNull() ?: -1f
             File(out, "micro_rows.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         } catch (t: Throwable) {
+            // خطای *رندر* نباید CI را ببندد (این هارنس «چشم» است) — در error.txt می‌نشیند.
             File(out, "error.txt").writeText(t.stackTraceToString())
+        }
+        // اما افتِ هندسه یک رگرسیونِ واقعی است و *باید* CI را ببندد؛ پس ادعا بیرون از
+        // catch است تا قربانیِ سیاستِ «خطای رندر = غیرِ مرگبار» نشود.
+        if (rowHeightDp > 0f) {
+            org.junit.Assert.assertTrue(
+                "ارتفاعِ ردیف‌های micro ${rowHeightDp}dp شد — سقفِ ۵۶dp (قبلاً ۶۴dp بود؛ ریشه: ظرفِ چک‌باکس)",
+                rowHeightDp <= 56f
+            )
         }
     }
 }
