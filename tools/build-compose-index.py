@@ -55,6 +55,10 @@ ARTIFACTS = [
     # `rememberSaveable` هم در runtime-saveable.
     ("androidx.compose.material", "material-icons-core-android", BOM),
     ("androidx.compose.runtime", "runtime-saveable-android", BOM),
+    # APIهای تست (createComposeRule/onNodeWithTag/assertIsDisplayed/…). بدونِ این‌ها
+    # بررسیِ فایل‌های تست ممکن نبود و یک import نادرست در تست، یک چرخهٔ CI را سوزاند.
+    ("androidx.compose.ui", "ui-test-android", BOM),
+    ("androidx.compose.ui", "ui-test-junit4-android", BOM),
 ]
 
 

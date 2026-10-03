@@ -20,7 +20,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-JAVA = ROOT / "app/src/main/java"
+# هم کدِ اصلی، هم تست‌ها: یک import نادرست در فایلِ تست هم CI را می‌سوزاند و دقیقاً
+# همین اتفاق افتاد (`androidx.compose.ui.test.fetchSemanticsNode` که متدِ عضو است،
+# نه تابعِ سطح‌بالا). نمایهٔ ui-test هم به همین دلیل اضافه شد.
+SRC_DIRS = (ROOT / "app/src/main/java", ROOT / "app/src/test/java")
 INDEX = ROOT / "tools/compose-api-index.txt"
 
 RE_IMPORT = re.compile(r"^\s*import\s+(androidx\.compose\.[A-Za-z0-9_.$]+)\s*$", re.M)
@@ -119,7 +122,7 @@ def check(path: Path, index: set):
 if __name__ == "__main__":
     index = index_symbols()
     targets = [Path(p) for p in sys.argv[1:]]
-    files = targets or sorted(JAVA.rglob("*.kt"))
+    files = targets or sorted(f for d in SRC_DIRS for f in d.rglob("*.kt"))
     bad = 0
     total_checked = 0
     for f in files:
