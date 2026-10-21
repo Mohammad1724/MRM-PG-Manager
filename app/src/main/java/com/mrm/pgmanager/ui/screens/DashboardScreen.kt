@@ -55,6 +55,7 @@ import com.mrm.pgmanager.utils.NotificationHelper
 import com.mrm.pgmanager.utils.NotificationIds
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 
@@ -627,7 +628,7 @@ internal fun trafficTrendPercent(points: List<TrafficPoint>): Int? {
     val olderAvg = buckets.take(mid).average()
     if (olderAvg <= 0.0) return null
     val newerAvg = buckets.drop(mid).average()
-    return kotlin.math.roundToInt((newerAvg - olderAvg) / olderAvg * 100.0)
+    return ((newerAvg - olderAvg) / olderAvg * 100.0).roundToInt()
 }
 
 private fun formatDebtorAmountFull(amount: Long): String = when {
