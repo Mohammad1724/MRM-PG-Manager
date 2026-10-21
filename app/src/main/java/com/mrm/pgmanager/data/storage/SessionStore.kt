@@ -278,6 +278,25 @@ class SessionStore(context: Context) {
 
     fun saveNodeStates(states: Map<Int, Boolean>) = prefs.edit().putString("node_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
 
+    /**
+     * تاریخ آخرین تمدید هر کاربر، به‌صورت ISO (yyyy-MM-dd).
+     *
+     * پنل فیلد «تاریخ تمدید» ندارد و created_at با تمدید عوض نمی‌شود؛ پس هنگام
+     * تمدید از داخل اپ همین‌جا ثبتش می‌کنیم تا فاکتور شروعِ دوره‌ی جدید را نشان
+     * دهد نه روز ساخت حساب را. کلید با baseUrl ترکیب می‌شود تا idهای تکراریِ
+     * پنل‌های مختلف با هم قاطی نشوند. داده‌ی گذراست و در پشتیبان سریالایز نمی‌شود.
+     */
+    fun readRenewalDate(baseUrl: String, userId: Long): String? = runCatching {
+        val obj = org.json.JSONObject(prefs.getString("renewal_dates", "{}") ?: "{}")
+        obj.optString("$baseUrl|$userId").takeIf { it.isNotBlank() }
+    }.getOrNull()
+
+    fun saveRenewalDate(baseUrl: String, userId: Long, isoDate: String) {
+        val obj = org.json.JSONObject(prefs.getString("renewal_dates", "{}") ?: "{}")
+        obj.put("$baseUrl|$userId", isoDate)
+        prefs.edit().putString("renewal_dates", obj.toString()).apply()
+    }
+
     // === کش آفلاین: آخرین داده‌های موفق دریافتی (کل لیستِ لودشده، بدون محدودیت ۴۰۰تایی) ===
     fun saveUsersCache(users: List<PanelUser>) {
         val arr = org.json.JSONArray()

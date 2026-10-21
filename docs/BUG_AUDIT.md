@@ -115,7 +115,7 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 
 ## Remaining TODO (not yet fixed, needs decision)
 
-- **#8 PdfInvoiceGenerator duration fallback** — still open by design. When `createdAt` is missing the invoice counts the service period from *today*, which understates an older user's real billing period. This needs a product decision (label as "Remaining" vs hide duration vs require createdAt), not a code-only fix.
+- **#8 PdfInvoiceGenerator duration fallback** — **RESOLVED 2026-10-21 (Round 8)**. The invoice start date now resolves through a single pure chain — recorded renewal date → `createdAt` → today — shared by both the dialog and the PDF generator (`computeInvoicePeriod`). The "today" fallback only survives for users that have neither a renewal record nor a creation timestamp, where no better date exists.
 
 ## Round 2026-10-21 — deep re-audit findings and fixes
 
@@ -414,6 +414,37 @@ all 66 notification keys already exist in both locales.
 - F8: receiver `goAsync` relies on the system deadline; EncryptedSharedPreferences I/O is fast and no explicit timeout was added.
 - `MonitoringWorker` cannot use `AdminAccess` (its process may have no in-memory RBAC state); it keeps the `runCatching` swallow for a possible 403 while the UI engine is now permission-gated.
 
+## Round 2026-10-21 (8) — Invoice subscription start date after renewal
+
+User-reported bug: after renewing a user, the invoice "Starts" row still showed the
+account's original creation date, and "Duration" spanned creation→expiry instead of
+the newly purchased period (e.g. a renewed account showed "4 months 17 days" for a
+56-day renewal). Approved scope: local renewal-date tracking, all three in-app
+expiry-change paths record it, no backup inclusion, pure helper with JVM tests.
+
+### Root cause
+- The app's own renewal flows set `expire = today + N days`, so the new billing period starts on the renewal day, but `InvoiceDialog` and `PdfInvoiceGenerator` both derived the start from `user.createdAt`. Marzban's user model has no renewal-date field and `created_at` never changes on renewal, so the panel cannot provide this date; it has to be recorded locally.
+
+### INV1. New pure period calculator
+- `utils/InvoicePeriod.kt`: `computeInvoicePeriod(createdAtIso, expireIso, renewalIso, today)` returns start/end/duration with start priority **renewal → created_at → today**; unlimited expiry yields null end and zero duration (UI renders "unlimited"). Both invoice engines now call it, deleting the duplicated inline date math.
+- Pure JVM `InvoicePeriodTest` (7 cases): renewed user uses renewal date with exact purchased duration, fresh user falls back to created_at, both-missing falls back to today, null/`"0"` expiry is unlimited, negative spans clamp to zero, full ISO timestamps reduce to the local calendar day.
+
+### INV2. Local renewal registry
+- `SessionStore.readRenewalDate/saveRenewalDate` keep a JSON map (`renewal_dates`) keyed `baseUrl|userId` → ISO date, following the existing node-states JSON pattern. Keyed with the panel URL so identical user ids across panels never collide. Per the approved decision it is treated as transient state and is not serialized into backups (restores simply fall back to `createdAt`).
+
+### INV3. Recording on every in-app expiry change
+- Both dedicated renewal flows (`ResetExpiryDurationDialog` confirm and the user-details quick action, both `expire = today + N`) record `today` only **after** `modifyUser` succeeds, so a failed API call never poisons the date.
+- The full editor records today too when it actually sends a new expiry (`iso != null`); "keep current expiry" saves write nothing.
+- Not recorded: `bulkAddDays` (extends the existing period rather than restarting it) and panel/web-side renewals (no data available) — both fall back to `createdAt`, i.e. the previous behavior.
+
+### INV4. Invoice engines consume the registry
+- `InvoiceDialog` receives `baseUrl`, reads the recorded date via `remember(user.id, baseUrl)`, and passes it to `PdfInvoiceGenerator.generate(renewalIso = …)`; preview card, text invoice and PDF therefore show identical dates/durations. Unused `LocalDate`/`ChronoUnit`/`DateLogic` imports removed from both engines.
+- Also closes the long-open audit item #8: the misleading "today" fallback is now the last resort of an explicit, tested chain instead of the only option when `createdAt` is missing.
+
+### Known limitation
+- Renewals performed outside this app (panel web UI, another device/install) are not in the local registry; those invoices keep using `createdAt`. No server-side field exists to close this gap on Marzban.
+- No new strings: the existing "Starts"/`inv_start` label keeps its meaning (start of the billed period).
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
@@ -455,3 +486,10 @@ all 66 notification keys already exist in both locales.
 - [ ] Panel unreachable with app foreground then background worker failure -> one panel-offline notification (ID 5104), mute disables notifyPanelOffline; success clears the latch (F5)
 - [ ] Switch accounts while panel A is offline -> no suppressed/missing panel-offline alert for account B (latch reset on baseUrl change) (F5/D4)
 - [ ] Unit: NotificationIdsTest green in CI (constants, per-kind uniqueness, node hash collisions, debtor parity) (F2-F5)
+- [ ] Renew an existing user for 30 days then open the invoice -> Starts = renewal day (not original createdAt), Duration = 30 days, Ends = renewal+30; identical in sheet, preview card, text invoice and PDF (INV1/INV4)
+- [ ] Brand-new user, no renewal -> invoice Starts falls back to createdAt exactly like before (INV1)
+- [ ] Renewal API call fails (airplane mode) -> no renewal date recorded; invoice keeps the previous start; error snack shown (INV3)
+- [ ] Edit user with "keep current expiry" -> renewal record untouched; edit with an explicit new expiry -> today recorded as renewal (INV3)
+- [ ] Same user id on two different panels -> renewal records do not cross-contaminate (baseUrl-scoped key) (INV2)
+- [ ] Unlimited-expiry user invoice -> duration renders the unlimited label, no negative day counts (INV1)
+- [ ] Unit: InvoicePeriodTest green in CI (renewal priority, createdAt fallback, today fallback, unlimited, clamp, timestamp parsing) (INV1)

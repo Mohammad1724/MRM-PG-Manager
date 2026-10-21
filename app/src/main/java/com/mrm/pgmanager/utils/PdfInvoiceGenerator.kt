@@ -17,8 +17,6 @@ import com.mrm.pgmanager.data.model.PanelUser
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 object PdfInvoiceGenerator {
@@ -44,6 +42,7 @@ object PdfInvoiceGenerator {
     fun generate(
         context: Context,
         user: PanelUser,
+        renewalIso: String? = null,
         debtorInfo: DebtorInfo? = null,
         currency: String = context.getString(R.string.inv_currency),
         currentPrice: Long? = null,
@@ -181,34 +180,15 @@ object PdfInvoiceGenerator {
         // ==== محاسبات اطلاعات ====
         // تاریخ پایان
         val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { context.getString(R.string.inv_unlimited) }
-        val endDate: LocalDate? = DateLogic.expiryDate(user.expire)
 
-        // تاریخ شروع: از created_at واقعی کاربر، نه امروز!
-        // اگر created_at موجود نباشد، از امروز منهای مدت باقی‌مانده حساب نمی‌کنیم، بلکه امروز را به عنوان fallback می‌گذاریم
-        // اما مدت کل باید از شروع تا پایان باشد، نه فقط باقی‌مانده
-        val startDate: LocalDate? = DateLogic.expiryDate(user.createdAt)
-
-        val effectiveStartDate = startDate ?: run {
-            // اگر createdAt نداریم، شروع را از روی مدت باقی‌مانده تخمین نزن، فقط امروز را بگذار
-            // اما اگر endDate داریم، مدت را از امروز تا پایان حساب نکن، بلکه اگر createdAt نیست،
-            // شروع = امروز و مدت = باقی‌مانده است (برای کاربر تازه ساخته شده منطقی است)
-            // برای کاربر قدیمی که createdAt ندارد، حداقل شروع را امروز نگذار که گمراه کننده است - از 30 روز قبل تخمین بزن؟
-            // بهترین: اگر createdAt نداریم، شروع را امروز بگذار ولی مدت را از امروز تا پایان حساب کن
-            LocalDate.now()
-        }
-
-        val durationDays = if (endDate != null) {
-            val s = startDate ?: effectiveStartDate
-            ChronoUnit.DAYS.between(s, endDate).coerceAtLeast(0L)
-        } else 0L
-
-        val startJalali = if (startDate != null) {
-            JalaliCalendar.isoToShamsi(startDate.toString()).ifBlank { "-" }
-        } else {
-            // اگر createdAt نداریم، سعی کن از روی مدت باقی‌مانده، شروع واقعی را حدس بزنی؟
-            // برای فاکتور، بهتر است تاریخ ساخت واقعی را نشان دهیم، اگر نداریم امروز را نشان بده ولی با برچسب «شروع دوره»
-            JalaliCalendar.isoToShamsi(effectiveStartDate.toString()).ifBlank { "-" }
-        }
+        // شروع دوره: تمدیدِ ثبت‌شده ← created_at ← امروز (تابع مشترک با دیالوگ فاکتور).
+        val period = computeInvoicePeriod(
+            createdAtIso = user.createdAt,
+            expireIso = user.expire,
+            renewalIso = renewalIso
+        )
+        val durationDays = period.durationDays
+        val startJalali = JalaliCalendar.isoToShamsi(period.start.toString()).ifBlank { "-" }
         val durationText = when {
             durationDays <= 0L -> context.getString(R.string.inv_unlimited)
             durationDays == 1L -> context.getString(R.string.inv_one_day)
