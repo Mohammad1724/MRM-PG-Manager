@@ -873,6 +873,8 @@
     <string name="err_retry">Retry</string>
     <string name="chart_empty_refresh">Refresh</string>
     <string name="chart_empty_range">Change range</string>
+    <string name="chart_range_selector">Chart range, currently %1$s</string>
+    <string name="db_open_statistics">Open detailed statistics</string>
     <string name="err_technical">Technical details</string>
     <string name="err_technical_hint">Long-press to see technical details</string>
     <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->

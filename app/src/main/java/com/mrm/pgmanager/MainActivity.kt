@@ -511,7 +511,7 @@ fun MRMApp() {
                             com.mrm.pgmanager.ui.components.LocalPageActive provides (pagerState.settledPage == page)
                         ) {
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true })
+                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
                             TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })

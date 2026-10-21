@@ -190,6 +190,56 @@ Focused re-audit of `LoginScreen.kt`, the `login`/`loginWithApiKey`/`baseUrl` pa
 ### Deliberately not changed
 - The biometric info card stays (static guidance; the actual lock is configured post-login) and no saved-account picker was added to the login screen — both were considered and not selected this round.
 
+## Round 2026-10-21 (3) — Dashboard deep audit
+
+Focused re-audit of `DashboardScreen.kt` plus the stats/traffic/admins/nodes endpoints, `PanelCache` and `NotificationHelper`. All fixes user-approved; two new strings added in both fa/en (parity kept).
+
+### D1. Trending indicator compared two single noisy buckets and produced absurd percentages
+- Traffic points are per-bucket usage, not cumulative. The old code compared only the first vs last bucket: the last bucket is the in-progress partial period (systematic false "down"), and `coerceAtLeast(1.0)` on a zero first bucket produced percentages in the millions.
+- **Fix**: pure, unit-tested `trafficTrendPercent()` drops the in-progress last bucket and compares the averages of two halves; returns null ("بدون روند") with fewer than 4 points or a zero baseline. Covered by `DashboardTrendTest` (7 cases).
+
+### D2. Duplicate identical traffic request on every screen entry
+- `load()` and `LaunchedEffect(chartRange)` both called `trafficUsage` with identical parameters concurrently.
+- **Fix**: single `fetchTraffic(range)` entry point with an in-flight range guard; stale-range responses never overwrite the selected range's state, and each range writes its own cache key.
+
+### D3. Transient failure permanently hid the admins section
+- `onFailure { admins = emptyList() }` conflated 403 (intentional hide) with transient network errors, replacing a good list with an empty one.
+- **Fix**: only `FORBIDDEN` empties the section; other failures keep the previously loaded list.
+
+### D4. Alert flags and node states survived account switches
+- `lastNodeStates` and five health-alert flags were plain `remember`, so after switching accounts, node states from account A were compared against account B — immediately posting false node online/offline notifications (the `isNotEmpty()` guard passed with A's data). `offlineAt` had the same cross-account leak.
+- **Fix**: all keyed with `remember(session)`.
+
+### D5. Traffic cache key ignored the selected range
+- One `traffic:<base>` key for all six ranges; switching ranges overwrote the cache and re-entry could briefly render another range's points.
+- **Fix**: `PanelCache.trafficKey(base, range)`; legacy key kept via default parameter. Covered by `PanelCacheTest`.
+
+### D6. Three guaranteed-failing requests after session expiry
+- After `onSessionExpired()`, `load()` continued to traffic/admins/nodes, all returning 401.
+- **Fix**: early return on the expired flag.
+
+### D7. Notification delivery exception poisoned the stats success path
+- `NotificationHelper.post()` had no guard; a `notify()` failure (OEM restriction, dead service) propagated through `evaluateHealth` into the load `runCatching`, turning a successful stats fetch into a displayed failure (and potentially a false offline notification).
+- **Fix**: delivery wrapped in `runCatching` at the single shared choke point (protects workers too).
+
+### D8. Pull-to-refresh spinner could stick forever
+- `manualRefreshing` was reset without `finally`.
+- **Fix**: extracted `refreshManually()` with try/finally, used by both the pull gesture and the header button.
+
+### D9. Node notification ID bands could collide on large panels
+- Offline `4100+id` vs online `4200+id` collide when two node ids differ by 100, one notification replacing the other.
+- **Fix**: online band moved to `4300+id`.
+
+### Improvements (user-approved)
+- **I1**: chart range selector now exposes an accessible description (`chart_range_selector`, new fa+en string) instead of TalkBack reading only "▾".
+- **I2**: the four system ring cards (CPU/RAM/disk/traffic) are tappable and deep-link to the Statistics tab via a new `onOpenStatistics` callback wired in `MainActivity`; description `db_open_statistics` (new fa+en string).
+- **I3**: the centered spinner on first load is replaced by a skeleton column matching the real card layout (reuses `SkeletonCard`).
+
+### Tests added
+- `DashboardTrendTest` — pure trend math (flat, rising, falling, zero baseline, partial last bucket, split behavior).
+- `PanelCacheTest` — range-specific traffic keys and isolation between ranges.
+- `DashboardScreenTest` (Robolectric + MockWebServer dispatcher) — ring-card tap opens statistics, range selector a11y description, empty traffic shows "no trend".
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited

@@ -160,7 +160,11 @@ object NotificationHelper {
             )
         }
 
-        NotificationManagerCompat.from(context).notify(id, builder.build())
+        // D7: تحویل اعلان روی برخی دستگاه‌ها (محدودیت OEM، کانال خراب، سرویس مرده)
+        // می‌تواند استثنا بدهد. اینجا تنها نقطهٔ مشترکِ همهٔ مسیرهای اعلان است؛
+        // شکستِ تحویل نباید به منطقِ فراخوان (مثلاً مسیر موفقیت بارگذاری داشبورد یا
+        // Workerها) سرایت کند و یک خطای اعلان را شکلِ خطای شبکه جلوه دهد.
+        runCatching { NotificationManagerCompat.from(context).notify(id, builder.build()) }
     }
 
     /** پاک کردن کلیدهای دیپ‌لینک از intent (پردازش یک‌بار پس از باز کردن). */

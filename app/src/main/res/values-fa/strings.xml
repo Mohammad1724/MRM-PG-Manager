@@ -873,6 +873,8 @@
     <string name="err_retry">تلاش دوباره</string>
     <string name="chart_empty_refresh">دریافت دوباره</string>
     <string name="chart_empty_range">تغییر بازه</string>
+    <string name="chart_range_selector">بازه نمودار، فعلاً %1$s</string>
+    <string name="db_open_statistics">مشاهده آمار تفصیلی</string>
     <string name="err_technical">جزئیات فنی</string>
     <string name="err_technical_hint">برای دیدنِ جزئیات فنی، پیام را نگه دارید</string>
     <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
