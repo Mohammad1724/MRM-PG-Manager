@@ -638,8 +638,11 @@ internal fun BackupSection(
                     "application/octet-stream",
                     name
                 ) ?: throw Exception(cantCreate)
-                cr.openOutputStream(docUri)?.use { os ->
-                    com.mrm.pgmanager.utils.BackupManager.createBackup(context, os, backupPassword, appVersion)
+                // اگر جریان خروجی null شود نباید «موفق» گزارش شود: وگرنه یک سند
+                // ۰ بایتی باقی می‌ماند و کاربر خیال می‌کند پشتیبان گرفته شده است.
+                val os = cr.openOutputStream(docUri) ?: throw Exception(cantCreate)
+                os.use { out ->
+                    com.mrm.pgmanager.utils.BackupManager.createBackup(context, out, backupPassword, appVersion)
                 }
                 com.mrm.pgmanager.utils.BackupManager.pruneBackups(context, dirUri, backupKeep)
                 store.saveBackupEnabled(backupEnabled)

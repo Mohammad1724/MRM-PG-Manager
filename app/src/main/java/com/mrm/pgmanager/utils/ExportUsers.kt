@@ -6,7 +6,10 @@ import com.mrm.pgmanager.data.model.PanelUser
 fun usersToCsv(users: List<PanelUser>): String = buildString {
     append('\uFEFF')
     appendLine("username,status,used_bytes,limit_bytes,used_gb,limit_gb,expire,created_at,note")
-    fun esc(s: String) = "\"" + s.replace("\"", "\"\"") + "\""
+    // BUG_AUDIT #9: خط جدید داخل فیلد (مثلاً note) در CSV داخل کوتیشن از نظر RFC
+    // مجاز است، اما اکسل/شیتس ردیف را می‌شکنند؛ با فاصله جایگزین می‌شود.
+    fun esc(s: String) = "\"" + s.replace("\"", "\"\"")
+        .replace("\r\n", " ").replace("\n", " ").replace("\r", " ") + "\""
     users.forEach { u ->
         append(esc(u.username)); append(',')
         append(u.status); append(',')

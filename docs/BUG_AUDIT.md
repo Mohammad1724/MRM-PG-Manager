@@ -49,11 +49,11 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 
 ## Medium Severity
 
-### 7. userCountMetric uses maxOf instead of sum
-- **File**: `data/api/PanelApi.kt:200` `totals[time] = maxOf(totals[time] ?: 0L, v)`
-- **Root cause**: For trafficUsage sum is used, but for count metric max is used. If panel returns per-node counts, sum is needed for total online. If panel returns aggregated total per key, max avoids double counting. Behavior ambiguous, may underreport online chart on multi-node setups.
-- **Recommendation**: Verify panel's `/api/users/counts/{metric}` response shape. If stats keys are node_ids, should sum. If keys are shards of same aggregated value, max is correct. Add comment and consider making it sum with dedup, or keep max but document.
-- **Current**: Left as max with comment, flagged for further verification against PasarGuard panel source (app/routers/users.py counts endpoint).
+### 7. userCountMetric uses maxOf instead of sum — RESOLVED 2026-10-21 (not a bug)
+- **File**: `data/api/PanelApi.kt` `totals[time] = maxOf(totals[time] ?: 0L, v)`
+- **Verification**: Checked against PasarGuard panel v5.4.1 source (`crud/user.py:get_user_count_metric_stats`). Without `group_by_node`/`node_id` the response contains exactly one aggregated key (`"-1"`) per time bucket, so `maxOf` and `sum` are equivalent in the real response shape. The app never sends group_by_node.
+- **Future risk**: If grouped responses are ever consumed, neither max nor sum is correct for distinct users across nodes; the top-level `count_during_period` field must be used instead. This is now documented inline at the call site and locked by `PanelApiContractTest` (`minus-one key` / `total fallback` tests).
+- **Current**: Kept as maxOf on purpose; ambiguity closed.
 
 ### 8. PdfInvoiceGenerator duration fallback misleading
 - **File**: `utils/PdfInvoiceGenerator.kt:150-180`
@@ -61,16 +61,14 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 - **Fix recommendation**: If createdAt null, show start as unknown or show remaining as duration with label "Remaining", or don't show duration. Current fallback shows today as start, which is wrong for old users.
 - **Impact**: Medium - financial document inaccuracy.
 
-### 9. Export CSV newline handling
-- **File**: `utils/ExportUsers.kt:8` `esc` only escapes quotes, not newlines
-- **Root cause**: Note field may contain newline, CSV with newline inside quoted field is valid but Excel may break, and our `appendLine` will create extra lines.
-- **Fix recommendation**: Replace newline with space in esc: `s.replace("\"", "\"\"").replace("\n"," ").replace("\r"," ")`
+### 9. Export CSV newline handling — FIXED 2026-10-21
+- **File**: `utils/ExportUsers.kt` `esc`
+- **Root cause**: Note field may contain newline; CSV with newline inside a quoted field is RFC-valid but Excel/Sheets split the row and imports break.
+- **Fix**: `esc` now also replaces `\r\n`/`\n`/`\r` with spaces. JSON export keeps raw newlines (org.json escapes them). Covered by `ExportUsersTest`.
 
-### 10. SessionStore users cache always offline
-- **File**: `data/storage/SessionStore.kt:180` `isOnline = false` on restore
-- **Root cause**: Offline cache restores all users as offline, losing last online state. `onlineAt` preserved, but `isOnline` false, so `lastSeenText` will show "X minutes ago" even if user was online at cache time.
-- **Impact**: Low-medium, offline banner shown, but online indicators lost.
-- **Recommendation**: Store isOnline flag in cache JSON as well, or compute isOnline from onlineAt timestamp at restore time (if within 5 min, mark online).
+### 10. SessionStore users cache always offline — FIXED in a later round
+- **File**: `data/storage/SessionStore.kt` `readUsersCache`
+- **Resolution**: `isOnline` is reconstructed from `onlineAt` against the panel's 2-minute window, using the cache timestamp (not current time) as baseline — users online at cache time stay online on restore.
 
 ### 11. MonitoringWorker deviceHasInternet uses VALIDATED capability
 - **File**: `work/MonitoringWorker.kt:20-28`
@@ -89,10 +87,10 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 
 ## Low / Info
 
-### 14. JalaliCalendar faNum unused, lastSeenShort not localized
-- **File**: `utils/JalaliCalendar.kt:130-140`
-- **Root cause**: `faNum` converts to Persian digits but `lastSeenShort` returns English short format even in Persian locale ("4h" not "۴h"). Inconsistent with `lastSeenText` which does Persian.
-- **Fix**: Make short also Persian when locale fa.
+### 14. JalaliCalendar lastSeenShort not localized — FIXED 2026-10-21
+- **File**: `utils/JalaliCalendar.kt` `lastSeenShort`
+- **Root cause**: Under the fa locale the compact label still returned Latin digits with English suffixes ("4m"/"4h"), inconsistent with `lastSeenText`.
+- **Fix**: fa branch now returns Persian digits with Persian units (دقیقه/ساعت/روز/هفته/ماه/سال); en keeps the compact `4m` form. Covered by new tests in `JalaliCalendarTest`.
 
 ### 15. SubscriptionCard cache pruning only 1 hour
 - **File**: `utils/SubscriptionCard.kt:180` deletes files older than 1 hour
@@ -104,10 +102,9 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 - **Root cause**: Panel may allow "Test" vs "test" as different? Usually panel treats names case-insensitively? Overly strict prevents creation that panel would allow, but safer.
 - **Impact**: Low.
 
-### 17. Template summary shows integer GB via division, loses fractional
-- **File**: `ui/screens/TemplatesScreen.kt:330` `${it / BYTES_PER_GB} GB`
-- **Root cause**: If dataLimit is 1.5 GB (1610612736 bytes), integer division shows 1 GB.
-- **Fix**: Use formatBytes or `%.1f` GB.
+### 17. Template summary shows integer GB via division, loses fractional — FIXED in a later round
+- **File**: `ui/screens/TemplatesScreen.kt`
+- **Resolution**: A `formatGb` helper now renders `bytes / BYTES_PER_GB.toDouble()` via `%.2f` with trailing zeros trimmed (e.g. 1.5 GB), replacing the integer division everywhere in the screen.
 
 ## Summary of Fixes Applied in this Audit
 
@@ -118,12 +115,42 @@ hwidLimit = normalizePersianDigits(hwid).trim().toIntOrNull()
 
 ## Remaining TODO (not yet fixed, needs decision)
 
-- PdfInvoiceGenerator duration fallback
-- Export CSV newline
-- userCountMetric max vs sum verification against real panel
-- SessionStore cache isOnline flag
-- JalaliCalendar short localization
-- Template summary fractional GB
+- **#8 PdfInvoiceGenerator duration fallback** — still open by design. When `createdAt` is missing the invoice counts the service period from *today*, which understates an older user's real billing period. This needs a product decision (label as "Remaining" vs hide duration vs require createdAt), not a code-only fix.
+
+## Round 2026-10-21 — deep re-audit findings and fixes
+
+Manual re-audit of the whole codebase against panel v5.4.1 source. All changes keep the existing architecture and pass the nine repo validators.
+
+### A. Action errors replaced the whole users screen with a full-screen error state (B4)
+- **File**: `ui/screens/UsersUiState.kt` `runAction.onFailure`
+- A failed single-user action (reset traffic, renew, toggle, …) wrote the page-level `error` field; `UsersScreen` then swapped the entire list for `MrmErrorState`. The snackbar/rollback path already reports the failure, so the screen-level assignment was removed — list state, selection and scroll position now survive action failures.
+
+### B. One transient network failure permanently closed pagination
+- **File**: `ui/screens/UsersUiState.kt` `loadMore.onFailure`
+- `endReached = true` was set on any failure (timeout, 429, momentary disconnect), so the list could never load further pages until a full refresh. Removed; `endReached` is now derived only from real panel responses, and retry on scroll works after transient errors.
+
+### C. TLS fallback client allowed cleartext token exchange
+- **File**: `data/api/PanelApi.kt` `clientTls12`
+- The last-resort login client listed `ConnectionSpec.CLEARTEXT`, which could let the admin token travel in plaintext. Replaced with `MODERN_TLS + COMPATIBLE_TLS` (TLS 1.3/1.2 only); no functional loss for self-hosted HTTPS panels.
+
+### D. Widget refresh could outlive the goAsync() budget
+- **File**: `widget/PanelWidgetProvider.kt`
+- The manual refresh coroutine had no time cap while OkHttp timeouts (15–20 s) exceed the ~10 s BroadcastReceiver budget. Wrapped the stats call in `withTimeoutOrNull(9_000)`; on timeout the previous cache stays and the offline badge is shown.
+
+### E. PDF invoice could clip content on tall invoices and leaked the document on write failure
+- **File**: `utils/PdfInvoiceGenerator.kt`
+- Page height was a fixed 720 pt; five price rows plus notes pushed the thank-you/date lines outside the page. Height is now pre-computed from the actual content (min 720). `PdfDocument` and the logo bitmap are also released in a `finally` when file writing throws.
+
+### F. Backup could report success while leaving a 0-byte file
+- **File**: `ui/screens/SettingsSectionsAdvanced.kt` manual backup
+- A null SAF output stream was silently ignored, then success was shown. Now throws the same "cannot create" error as the worker path.
+
+### G. Subscription card leaked the decoded logo bitmap
+- **File**: `utils/SubscriptionCard.kt`
+- The optional logo was decoded per card generation and never recycled (native memory leak on repeated sharing). Recycled immediately after drawing.
+
+### H. Legacy BUG_AUDIT items closed
+- #7 verified against panel source (not a bug; documented + contract tests), #9 CSV newlines fixed (+`ExportUsersTest`), #14 `lastSeenShort` fully localized (+tests); #10 and #17 confirmed already fixed in earlier rounds.
 
 ## Testing Checklist
 

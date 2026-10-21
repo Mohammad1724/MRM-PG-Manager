@@ -25,6 +25,7 @@ object PdfInvoiceGenerator {
 
     private const val PAGE_WIDTH = 595
     private const val MARGIN = 50f
+    private const val LOGO_SIZE = 90f
 
     private val darkColor = Color.rgb(0x20, 0x21, 0x24)
     private val grayColor = Color.rgb(0x74, 0x75, 0x7B)
@@ -64,8 +65,30 @@ object PdfInvoiceGenerator {
         val remaining = if (paid > 0L) (total - paid).coerceAtLeast(0L) else total
         val isPaid = isFullyPaid && total > 0L
 
-        // محاسبه ارتفاع صفحه پویا
-        val pageHeight = 720
+        // محاسبهٔ ارتفاع صفحه به‌صورت پویا، پیش از ساخت سند: با پنج ردیفِ مبلغ
+        // به‌همراهِ یادداشت، ارتفاع ثابتِ ۷۲۰ کفاف نمی‌داد و متن‌های پایانی
+        // (تشکر/تاریخ) بیرونِ صفحه بریده می‌شدند. همان متغیرهای پایین‌تر اینجا
+        // پیش‌محاسبه می‌شوند تا صفحه دقیقاً به اندازهٔ محتوا (و هرگز کمتر از ۷۲۰) باشد.
+        var estimatedPriceRows = 0
+        if (cp > 0L) estimatedPriceRows++
+        if (pd > 0L) estimatedPriceRows++
+        if (total > 0L) estimatedPriceRows++
+        if (paid > 0L) estimatedPriceRows++
+        if (paid > 0L && remaining > 0L) estimatedPriceRows++
+        val estimatedPriceBoxH = when {
+            estimatedPriceRows <= 2 -> 100f
+            estimatedPriceRows <= 4 -> 150f
+            else -> 180f
+        }
+        val noteBlockH = if (notes.isNotBlank()) 60f + 18f else 0f
+        var contentEnd = MARGIN + LOGO_SIZE + 14f
+        if (sellerName.isNotBlank()) contentEnd += 24f
+        contentEnd += 28f + 22f              // عنوان + نوار طلایی
+        contentEnd += 170f + 18f             // کارت مشخصات
+        contentEnd += estimatedPriceBoxH + 12f
+        contentEnd += noteBlockH
+        contentEnd += 20f + 26f              // خط تشکر + تاریخ صدور
+        val pageHeight = maxOf(720, kotlin.math.ceil(contentEnd + MARGIN).toInt())
         val document = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, pageHeight, 1).create()
         val page = document.startPage(pageInfo)
@@ -123,7 +146,7 @@ object PdfInvoiceGenerator {
             }.getOrNull()
         } else null
 
-        val logoSize = 90f
+        val logoSize = LOGO_SIZE
         val cx = PAGE_WIDTH / 2f
         if (logoBitmap != null) {
             val dst = RectF(cx - logoSize/2, y, cx + logoSize/2, y + logoSize)
@@ -230,17 +253,8 @@ object PdfInvoiceGenerator {
         y += infoBoxH + 18f
 
         // ==== کارت مبالغ ====
-        var priceRows = 0
-        if (cp > 0L) priceRows++
-        if (pd > 0L) priceRows++
-        if (total > 0L) priceRows++
-        if (paid > 0L) priceRows++
-        if (paid > 0L && remaining > 0L) priceRows++
-        val priceBoxH = when {
-            priceRows <= 2 -> 100f
-            priceRows <= 4 -> 150f
-            else -> 180f
-        }
+        // ارتفاع کارت بالای فانکشن پیش‌محاسبه شده (برای ارتفاع پویای صفحه).
+        val priceBoxH = estimatedPriceBoxH
         val priceRect = RectF(MARGIN + 10f, y, PAGE_WIDTH - MARGIN - 10f, y + priceBoxH)
         fillPaint.color = lightGray
         canvas.drawRoundRect(priceRect, 16f, 16f, fillPaint)
@@ -331,10 +345,14 @@ object PdfInvoiceGenerator {
         drawFaCentered(canvas, context.getString(R.string.inv_issued_on, invoiceDateJalali), smallPaint, y)
 
         document.finishPage(page)
-        FileOutputStream(file).use { document.writeTo(it) }
-        document.close()
-
-        logoBitmap?.recycle()
+        // اگر نوشتن روی فایل شکست بخورد، سند/بیت‌مپ همچنان باید آزاد شوند؛
+        // قبلاً در مسیر استثنا PdfDocument باز می‌ماند و لوگو recycle نمی‌شد.
+        try {
+            FileOutputStream(file).use { document.writeTo(it) }
+        } finally {
+            document.close()
+            logoBitmap?.recycle()
+        }
         return file
     }
 

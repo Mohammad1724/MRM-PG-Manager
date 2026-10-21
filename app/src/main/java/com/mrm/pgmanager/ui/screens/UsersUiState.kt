@@ -268,7 +268,13 @@ internal class UsersUiState(
                 users = users + page.users.filterNot { seen.contains(it.id) }
                 totalMatches = page.total
                 endReached = page.users.isEmpty() || users.size >= page.total
-            }.onFailure { endReached = true }
+            }.onFailure {
+                // خطای گذرا (تایم‌اوت/قطعِ لحظه‌ای/۴۲۹) نباید صفحه‌بندی را برای
+                // همیشه ببندد: قبلاً اینجا endReached = true ست می‌شد و پس از یک
+                // خطای تنها، کاربر دیگر هیچ‌وقت صفحهٔ بعد را نمی‌گرفت مگر با رفرش
+                // دستی. حالا فقط همین تلاش شکست می‌خورد؛ با اسکرولِ دوباره به تهِ
+                // فهرست (یا رفرش) دوباره تلاش می‌شود. endReached فقط با پاسخِ واقعیِ پنل عوض می‌شود.
+            }
             loadingMore = false
         }
     }
@@ -475,7 +481,11 @@ internal class UsersUiState(
                 // بود، لیست به واقعیتِ سرور برگردد (نه به حدسِ ما).
                 rollback?.invoke()
                 val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
-                error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+                // عمداً `error` (state خطای سطحِ صفحه) را دست نمی‌زنیم: آن state
+                // فقط برای شکستِ بارگذاریِ خودِ فهرست است. خطای یک اکشن (مثلاً
+                // ناموفق‌بودنِ غیرفعال‌سازی) از طریق اسنک گزارش می‌شود؛ در غیر این
+                // صورت فهرستِ سالمِ روی صفحه با یک صفحهٔ خطای تمام‌صفحه عوض می‌شد
+                // و کاربر context کاری‌اش را از دست می‌داد (یافتهٔ B4 ممیزی UX).
                 if (kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
                     com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()

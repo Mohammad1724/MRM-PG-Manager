@@ -118,6 +118,9 @@ object SubscriptionCard {
             val dst = RectF(cx - size / 2, y, cx + size / 2, y + size)
             c.drawBitmap(logo, null, dst, Paint().apply { isAntiAlias = true; isFilterBitmap = true })
             y += LOGO_BLOCK
+            // بیت‌مپِ لوگو فقط همین‌جا استفاده می‌شود؛ بدون recycle حافظهٔ native
+            // روی هر ساخت کارت نشت می‌کرد (مخصوصاً با اشتراک‌گذاری پشت‌سرهم).
+            logo.recycle()
         }
 
         // ── نامِ برند

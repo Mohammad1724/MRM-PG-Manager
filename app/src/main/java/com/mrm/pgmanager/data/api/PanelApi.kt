@@ -60,7 +60,11 @@ object PanelApi {
      */
     private val clientTls12: OkHttpClient by lazy {
         client.newBuilder()
-            .connectionSpecs(listOf(okhttp3.ConnectionSpec.CLEARTEXT, okhttp3.ConnectionSpec.COMPATIBLE_TLS))
+            // فقط TLS؛ CLEARTEXT عمداً نیست: این کلاینت فقط برای آخرین تلاشِ ورودِ
+            // https به‌کار می‌رود و مبادلهٔ توکن روی متنِ ساده هرگز نباید ممکن باشد.
+            // MODERN_TLS (TLS 1.3+) و COMPATIBLE_TLS (TLS 1.2 با رمزهای قدیمی‌تر)
+            // با هم هندشیکِ سازگار با پنل‌های self-hosted را پوشش می‌دهند.
+            .connectionSpecs(listOf(okhttp3.ConnectionSpec.MODERN_TLS, okhttp3.ConnectionSpec.COMPATIBLE_TLS))
             .build()
     }
 
@@ -431,6 +435,12 @@ object PanelApi {
                     val time = p.optString("period_start")
                     // پنل بسته به متریک ممکن است count یا total را برگرداند.
                     val v = if (p.has("count")) p.optLong("count") else p.optLong("total")
+                    // راستی‌آزمایی با سورسِ پنل v5.4.1 (`crud/user.py:get_user_count_metric_stats`):
+                    // بدونِ group_by_node/node_id پاسخ فقط یک کلیدِ تجمیعی (`-1`) دارد،
+                    // پس در عمل یک مقدار در هر بازهٔ زمانی هست و maxOf با sum برابر است.
+                    // اگر روزی group_by_node اضافه شد، شمارشِ کاربرانِ متمایز در چند نود
+                    // نه با max درست می‌شود نه با sum (هم‌پوشانی دارد)؛ باید سراغ فیلدِ
+                    // بالاسطحیِ `count_during_period` رفت. maxOf عمداً برای شکلِ فعلی نگه داشته شد.
                     totals[time] = maxOf(totals[time] ?: 0L, v)
                 }
             }

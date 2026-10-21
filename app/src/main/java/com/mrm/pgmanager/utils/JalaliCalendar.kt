@@ -173,19 +173,28 @@ fun lastSeenText(onlineAt: String?, isOnline: Boolean): String {
     }
 }
 
-/** فرمتِ کوتاهِ «آخرین آنلاین»: آنلاین / 4m / 4h / 4d / 4w / 3mo / 1y */
+/**
+ * فرمتِ کوتاهِ «آخرین آنلاین»:
+ * انگلیسی: Online / 4m / 4h / 4d / 4w / 3mo / 1y
+ * فارسی: آنلاین / ۴ دقیقه / ۴ ساعت / ۴ روز / ۴ هفته / ۳ ماه / ۱ سال
+ * (قبلاً در حالتِ فارسی هم پسوندِ لاتین و ارقامِ لاتین برمی‌گشت — BUG_AUDIT #14)
+ */
 fun lastSeenShort(onlineAt: String?, isOnline: Boolean): String {
     val isFa = java.util.Locale.getDefault().language == "fa"
     if (isOnline) return if (isFa) "آنلاین" else "Online"
     val millis = parseOnlineMillis(onlineAt) ?: return ""
     val diffMin = (System.currentTimeMillis() - millis) / 60000L
     if (diffMin <= 0L) return if (isFa) "آنلاین" else "Online"
-    return when {
-        diffMin < 60L -> "${diffMin}m"
-        diffMin < 1440L -> "${diffMin / 60L}h"
-        diffMin < 10080L -> "${diffMin / 1440L}d"
-        diffMin < 43200L -> "${diffMin / 10080L}w"
-        diffMin < 525600L -> "${diffMin / 43200L}mo"
-        else -> "${diffMin / 525600L}y"
+    val value: Long
+    val unit: String
+    when {
+        diffMin < 60L -> { value = diffMin; unit = if (isFa) "دقیقه" else "m" }
+        diffMin < 1440L -> { value = diffMin / 60L; unit = if (isFa) "ساعت" else "h" }
+        diffMin < 10080L -> { value = diffMin / 1440L; unit = if (isFa) "روز" else "d" }
+        diffMin < 43200L -> { value = diffMin / 10080L; unit = if (isFa) "هفته" else "w" }
+        diffMin < 525600L -> { value = diffMin / 43200L; unit = if (isFa) "ماه" else "mo" }
+        else -> { value = diffMin / 525600L; unit = if (isFa) "سال" else "y" }
     }
+    // فارسی با فاصله و ارقامِ فارسی؛ لاتین چسبیده به واحد مثلِ قبل (4m).
+    return if (isFa) "${faNum(value)} $unit" else "$value$unit"
 }
