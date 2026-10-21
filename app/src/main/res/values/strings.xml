@@ -820,6 +820,9 @@
     <string name="wg_no_debt">No debt</string>
     <string name="wg_cores">%1$d cores</string>
     <string name="wg_updated">Updated %1$s</string>
+    <string name="wg_rel_now">just now</string>
+    <string name="wg_rel_minutes">%1$d min ago</string>
+    <string name="wg_rel_hours">%1$d h ago</string>
     <string name="wg_no_data">No data</string>
     <string name="wg_open_once">Open the app once</string>
     <string name="wg_active">Active: %1$d</string>

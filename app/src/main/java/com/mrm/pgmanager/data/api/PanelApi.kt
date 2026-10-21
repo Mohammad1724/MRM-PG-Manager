@@ -476,32 +476,37 @@ object PanelApi {
         }
     }
 
-    /** فهرست نودها برای فیلترِ نمودارها. */
+    /**
+     * فهرست نودها برای فیلترِ نمودارها — `GET /api/nodes` (مجوز `nodes.read`).
+     *
+     * ۴۰۳ عمداً به «لیست خالی» تبدیل می‌شود (نقش بدونِ مجوز، نودی برای دیدن ندارد)؛
+     * ولی خطای گذرای شبکه باید پرتاب شود تا فراخوان لیستِ کش‌شده‌اش را نگه دارد و
+     * صفحه «این پنل نودی ندارد»ِ دروغ نشان ندهد (هم‌راستا با رفع D3 داشبورد).
+     */
     suspend fun nodes(session: Session): List<PanelNode> = withContext(Dispatchers.IO) {
-        runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<PanelNode>()
-                val body = res.body?.string() ?: "{}"
-                val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
-                    ?: runCatching { org.json.JSONArray(body) }.getOrNull()
-                    ?: return@runCatching emptyList<PanelNode>()
-                List(arr.length()) { i ->
-                    val n = arr.getJSONObject(i)
-                    PanelNode(
-                        id = n.optInt("id"),
-                        name = n.optString("name", "Node #${n.optInt("id")}"),
-                        address = n.optString("address", ""),
-                        status = n.optString("status", ""),
-                        message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
-                        xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
-                        nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
-                        uplink = n.optLong("uplink", 0L),
-                        downlink = n.optLong("downlink", 0L)
-                    )
-                }
+        val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
+        client.newCall(req).execute().use { res ->
+            if (res.code == 403) return@withContext emptyList()
+            if (!res.isSuccessful) error("Nodes request failed: ${res.code} ${errorDetail(res.body?.string())}".trim())
+            val body = res.body?.string() ?: "{}"
+            val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
+                ?: runCatching { org.json.JSONArray(body) }.getOrNull()
+                ?: return@withContext emptyList<PanelNode>()
+            List(arr.length()) { i ->
+                val n = arr.getJSONObject(i)
+                PanelNode(
+                    id = n.optInt("id"),
+                    name = n.optString("name", "Node #${n.optInt("id")}"),
+                    address = n.optString("address", ""),
+                    status = n.optString("status", ""),
+                    message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
+                    xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
+                    nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
+                    uplink = n.optLong("uplink", 0L),
+                    downlink = n.optLong("downlink", 0L)
+                )
             }
-        }.getOrDefault(emptyList())
+        }
     }
 
     /**

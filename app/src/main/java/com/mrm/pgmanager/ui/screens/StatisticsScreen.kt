@@ -85,6 +85,10 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
     // هیچ‌جا روی صفحه دیده نمی‌شد.
     var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
+    // اولین پاسخِ realtime هنوز نیامده: تا آن موقع به‌جای برچسبِ خطا، اسپینر خنثی.
+    var nodeStatsLoaded by remember(session) { mutableStateOf(false) }
+    // خطای واکشی فهرست نودها (جدا از خطای system stats) تا خطای گذرا «نودی وجود ندارد» نگوییم.
+    var nodesError by remember(session) { mutableStateOf<String?>(null) }
     var reconnecting by remember { mutableStateOf<Int?>(null) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     // خطای بارگذاریِ اولیه — قبلاً کاملاً بلعیده می‌شد و صفحهٔ خالی بی‌توضیح می‌ماند.
@@ -108,16 +112,18 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
             .onSuccess { countPoints = it; PanelCache.put(countKey, it) }
-        runCatching { PanelApi.nodes(session) }.onSuccess { nodes = it; PanelCache.put(nodesKey, it) }
-        runCatching { PanelApi.nodeRealtimeStats(session) }.onSuccess { nodeStats = it }
+        // N7: خطای گذرا لیست کش‌شده را پاک نمی‌کند؛ فقط ۴۰۳ (درون خود PanelApi) لیست خالی می‌دهد.
+        runCatching { PanelApi.nodes(session) }
+            .onSuccess { nodes = it; nodesError = null; PanelCache.put(nodesKey, it) }
+            .onFailure { if (nodes.isEmpty()) nodesError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
+        // N6: realtime_stats هم نیازمند nodes.stats است؛ بدون مجوز درخواست ۴۰۳ تضمینی نزن.
+        if (canNodeStats) {
+            runCatching { PanelApi.nodeRealtimeStats(session) }.onSuccess { nodeStats = it }
+            nodeStatsLoaded = true
+        }
         if (canNodeStats) runCatching { PanelApi.nodeUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { nodeUsage = it; PanelCache.put(nodeUsageKey, it) }
         loading = false
-    }
-
-    LaunchedEffect(session) {
-        if (nodes.isEmpty()) runCatching { PanelApi.nodes(session) }
-            .onSuccess { nodes = it; PanelCache.put(nodesKey, it) }
     }
     // با تغییرِ هر فیلتر، داده دوباره از پنل گرفته می‌شود. ولی صرفِ برگشتن به
     // این تب فیلتری عوض نمی‌کند، پس اگر داده تازه است درخواستی نمی‌رود.
@@ -164,7 +170,13 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
             }
 
             if (loading && stats == null) {
-                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
+                // اسکلت هم‌شکلِ کارت‌های واقعی (همان مؤلفه‌ی صفحه‌ی کاربران/داشبورد) تا
+                // جای فرم‌ها رزرو شود و پرشِ چیدمان هنگام رسیدن داده رخ ندهد.
+                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                    SkeletonCard()
+                    SkeletonCard()
+                    SkeletonCard()
+                }
             }
             if (!loading && stats == null && loadError != null) {
                 MrmErrorState(onRetry = { scope.launch { load() } }, message = loadError)
@@ -176,7 +188,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
                 val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
-                val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
+                // ترافیک صفر: هر دو سهم صفر (نه آپلودِ ۱۰۰٪) — حلقه فقط شیار پس‌زمینه را نشان می‌دهد.
+                val (downShare, upShare) = trafficShares(s.incomingBandwidth, s.outgoingBandwidth)
                 val (downColor, upColor) = accentPair()
 
                 // ── System
@@ -223,7 +236,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             segments = listOf(
                                 RingSegment(downShare, downColor),
-                                RingSegment(1f - downShare, upColor)
+                                RingSegment(upShare, upColor)
                             ),
                             ringColor = theme.accentPrimary,
                             centerIcon = AppIcon.Storage,
@@ -248,8 +261,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                             value = formatBytes(s.outgoingBandwidth),
                             icon = AppIcon.Upload,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
-                            fraction = 1f - downShare,
-                            percent = ((1f - downShare) * 100).toInt(),
+                            fraction = upShare,
+                            percent = (upShare * 100).toInt(),
                             ringColor = upColor,
                             minHeight = 76.dp,
                             ringSize = 44.dp
@@ -277,7 +290,12 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         Text(stringResource(R.string.st_nodes_health), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     }
                     if (nodes.isEmpty()) {
-                        Text(stringResource(R.string.st_node_none), fontSize = 11.sp, color = theme.mutedColor)
+                        // N7: فهرست خالیِ خطازده با «نودی وجود ندارد» فرق دارد.
+                        Text(
+                            nodesError ?: stringResource(R.string.st_node_none),
+                            fontSize = 11.sp,
+                            color = if (nodesError != null) DsSemantic.Danger else theme.mutedColor
+                        )
                     }
                     nodes.forEach { n ->
                         val live = nodeStats[n.id]
@@ -306,19 +324,28 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(statusColor))
                                 MrmText(n.name, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
                                 Text(statusText, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor, maxLines = 1)
-                                if (n.status == "error" || n.status == "connecting") {
+                                // N1: پنل برای reconnect مجوز nodes.reconnect می‌خواهد؛ دکمه فقط برای نقشِ مجاز.
+                                val canReconnect = AdminAccess.can("nodes", "reconnect")
+                                if ((n.status == "error" || n.status == "connecting") && canReconnect) {
                                     Box(
                                         Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable {
                                                 reconnecting = n.id
                                                 scope.launch {
+                                                    // خطا خاموش نمی‌ماند: پیام انسانی + reload فقط در موفقیت.
                                                     runCatching { PanelApi.reconnectNode(session, n.id) }
-                                                    load(true)
+                                                        .onSuccess { load(true) }
+                                                        .onFailure {
+                                                            com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                                                                com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                                                                detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
+                                                            )
+                                                        }
                                                     reconnecting = null
                                                 }
                                             }.background(theme.cardSurfaceColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
                                             .pressScale(0.94f)
-                                            
+
                                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
                                     ) {
                                         Text(
@@ -343,8 +370,19 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     stringResource(R.string.st_node_speed, formatBytes(live.incomingSpeed), formatBytes(live.outgoingSpeed)),
                                     fontSize = 11.sp, color = theme.tertiaryColor, maxLines = 1, isTechnical = true
                                 )
-                            } else {
-                                Text(
+                            } else when {
+                                // بدون مجوز nodes.stats: برچسب «آمار زنده ندارد» دروغ است؛ فقط پیام خود نود.
+                                !canNodeStats -> n.message?.let {
+                                    Text(it.take(90), fontSize = 11.sp, color = theme.mutedColor, maxLines = 2)
+                                }
+                                // اولین پاسخ realtime هنوز در راه است؛ اسپینر خنثی به‌جای برچسب خطا.
+                                !nodeStatsLoaded -> CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 1.6.dp,
+                                    color = theme.mutedColor
+                                )
+                                // پاسخ آمد ولی این نود در نقشه نبود: واقعاً آمار زنده ندارد.
+                                else -> Text(
                                     n.message?.take(90) ?: stringResource(R.string.st_node_unreachable),
                                     fontSize = 11.sp, color = theme.mutedColor, maxLines = 2
                                 )

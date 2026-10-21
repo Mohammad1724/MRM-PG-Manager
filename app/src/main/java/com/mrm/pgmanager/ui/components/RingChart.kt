@@ -92,6 +92,20 @@ fun accentPair(): Pair<Color, Color> {
 }
 
 /**
+ * سهمِ دانلود و آپلود از کلِ ترافیک (۰..۱).
+ *
+ * وقتی هیچ ترافیکی رد نشده، هر دو سهم **صفر**ند (نه آپلودِ ۱۰۰٪): حلقه فقط
+ * شیارِ پس‌زمینه را نشان می‌دهد چون درصدی برای نمایش وجود ندارد. خالص است تا
+ * در تستِ JVM بدون چارچوب UI سنجیده شود.
+ */
+fun trafficShares(incoming: Long, outgoing: Long): Pair<Float, Float> {
+    val total = incoming + outgoing
+    if (total <= 0L) return 0f to 0f
+    val down = incoming.toFloat() / total
+    return down to (1f - down)
+}
+
+/**
  * حلقهٔ چندتکه با یک شیارِ خالی در پس‌زمینه.
  *
  * هر تکه جداگانه انیمیت می‌شود؛ برای همین وقتی داشبورد رفرش می‌شود حلقه

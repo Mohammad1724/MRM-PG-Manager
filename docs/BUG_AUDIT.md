@@ -327,6 +327,53 @@ Full read-through of the settings feature: `SettingsScreen`, `SettingsSectionsAd
 - Backup password stays in encrypted prefs; the plaintext-backup warning already explains the token exposure.
 - Restored accounts do not hot-swap the running session (the current token stays valid); `PanelCache.clear()` removes stale visuals and the restored active account applies on next launch.
 
+## Round 2026-10-21 (6) — Statistics/Nodes screen deep audit
+
+Scope approved by the user: N1–N4, N6, N7 plus widget localization (W1) and the
+initial-loading skeleton (I-stat). N5 (targeted refetch instead of reloading all
+six requests on every filter change) was explicitly deferred as regression-prone.
+Panel facts were re-verified against `PasarGuard/panel` `app/routers/node.py`
+(v5.4.1): reconnect requires `nodes.reconnect`; realtime stats and node usage
+require `nodes.stats`; the node list requires `nodes.read`.
+
+### N1. Reconnect button shown to roles without `nodes.reconnect`, and its failures were silent
+- The button rendered for every `error`/`connecting` node although `POST /api/node/{id}/reconnect` is gated by `nodes.reconnect`; a tap by an unauthorized role always 403'd, the error was swallowed by `runCatching`, and `load(true)` ran unconditionally — even after failure.
+- **Fix**: the button is now gated with `AdminAccess.can("nodes", "reconnect")`; failures surface `AppFeedback.error(...)` with a friendly message plus technical detail, and the full reload only runs `onSuccess`. The `reconnecting` per-node state is preserved. No new strings.
+
+### N2. Two concurrent `GET /api/nodes` requests on first entry
+- A standalone `LaunchedEffect(session)` fetched the node list while `load()` fetched the same endpoint again on entry.
+- **Fix**: the standalone effect was removed; `load()` is the single path and writes both the node cache and dependent stats together.
+
+### N3. "No live data" label shown while the first realtime response was still in flight
+- `live == null` rendered `st_node_unreachable` immediately on initial load, before any `realtime_stats` response had arrived.
+- **Fix**: a `nodeStatsLoaded` flag distinguishes "not answered yet" (small neutral spinner) from "answered but this node's key is absent/null" (the unreachable label). The node's own `message` still takes precedence when present.
+
+### N4. Zero-traffic ring rendered as 100% upload
+- `downShare` defaulted to 0 when total traffic was 0, so the second segment `1f - downShare` filled the whole ring and the upload card showed 100%.
+- **Fix**: new pure top-level helper `trafficShares(incoming, outgoing): Pair<Float, Float>` in `RingChart.kt` returns `(0f, 0f)` when total ≤ 0 and proportional shares otherwise; both ring segments and both stat cards now consume it. Covered by a pure JVM test (`TrafficSharesTest`: zero, download-only, upload-only, 75/25 split, shares-sum-to-one).
+
+### N6. Guaranteed 403 realtime-stats request for roles lacking `nodes.stats`
+- `nodeRealtimeStats()` was called unconditionally although the endpoint requires `nodes.stats`.
+- **Fix**: the call is gated by `canNodeStats`; without permission the map stays empty and the row shows the node's own `message` (or nothing) instead of a misleading "no live data" label. `nodeUsage` already had this gate.
+- **Follow-up (not changed, needs a separate decision)**: `DashboardScreen` (and the background `MonitoringWorker`) call `nodeOnlineStates()`, which hits the same permission-gated endpoint; failures there are already swallowed by `runCatching`, so the impact is only a wasted 403 per refresh — documented here rather than silently expanding the closed dashboard round.
+
+### N7. Transient node-list failures looked like "this panel has no nodes"
+- `PanelApi.nodes()` wrapped everything in `runCatching` and returned `emptyList()` for *any* failure, so a network hiccup rendered `st_node_none`.
+- **Fix**: `nodes()` now mirrors the dashboard D3 pattern — HTTP 403 maps to an empty list (a role without `nodes.read` genuinely sees none), while every other failure throws. The screen keeps its cached list on failure and only shows an error line (separate `nodesError` state, danger color) when it has no list to show; the "no nodes" string is reserved for a genuinely empty successful response.
+
+### W1. English hard-coded relative time inside the Persian widget layout
+- `PanelWidgetProvider.formatRelativeTime` built `"now"` / `"Nm ago"` / `"Nh ago"` literals even inside the localized `wg_updated` template.
+- **Fix**: three new strings added to both locales in lockstep — `wg_rel_now`, `wg_rel_minutes` (`%1$d`), `wg_rel_hours` (`%1$d`). The daily `MM/dd HH:mm` fallback and the Latin uptime formatter are untouched.
+
+### I-stat. Centered spinner on first load caused layout jump
+- The initial-load branch showed one `CircularProgressIndicator` in a 160 dp box, which was replaced by the full card stack on arrival.
+- **Fix**: it now renders three `SkeletonCard`s (the existing internal shimmer component, same package; honors reduce-motion) matching the real card rhythm, reserving the layout and removing the jump. No strings added.
+
+### Deliberately not changed
+- N5: every filter change intentionally reruns the full `load()`; splitting requests per filter needs its own regression pass and was excluded by the user.
+- Dashboard/worker `nodeOnlineStates` permission gate (see N6 follow-up).
+- `formatUptime` Latin digits and the 9-second `goAsync` widget budget — both audited healthy.
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
@@ -349,3 +396,13 @@ Full read-through of the settings feature: `SettingsScreen`, `SettingsSectionsAd
 - [ ] Corrupt JSON file selected for restore inspection -> "invalid/corrupt" error, not "encrypted file" (S8)
 - [ ] Kill the backup worker's output stream (mock) -> zero-byte doc removed, last-backup state not marked success, work retries (S2)
 - [ ] Fail a manual backup after document creation -> partial/empty file is removed from the SAF folder (S9)
+- [ ] Role without nodes.reconnect -> no reconnect button on error/connecting nodes; authorized role sees it, failure shows error snack and no reload, success reloads (N1)
+- [ ] Cold open of Statistics -> exactly one GET /api/nodes, no duplicate request (N2)
+- [ ] Slow network on first entry -> node rows show a small spinner, never st_node_unreachable before the first realtime response; unreachable label appears only after a response lacking that node (N3)
+- [ ] Fresh panel with zero traffic -> traffic ring shows only the background track and upload card shows 0%, not 100% (N4)
+- [ ] Role without nodes.stats -> no realtime_stats/usage requests fire; rows show the node's own message rather than "no live data" (N6)
+- [ ] Airplane-mode refresh with an empty node list -> danger-colored error line, not st_node_none; with a cached list -> cached list stays (N7)
+- [ ] 403 on GET /api/nodes -> empty list and st_node_none, no error line (N7)
+- [ ] Widget in Persian locale -> "همین حالا" / "N دقیقه پیش" / "N ساعت پیش"; English locale -> "just now" / "N min ago" / "N h ago"; older than 24 h still MM/dd HH:mm (W1)
+- [ ] First entry -> three shimmer skeleton cards instead of a centered spinner, no layout jump when data lands (I-stat)
+- [ ] Unit: TrafficSharesTest green in CI (zero, download-only, upload-only, 75/25, sum-to-one) (N4)

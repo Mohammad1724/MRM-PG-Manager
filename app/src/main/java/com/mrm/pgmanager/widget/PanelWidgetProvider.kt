@@ -400,9 +400,9 @@ class PanelWidgetProvider : AppWidgetProvider() {
             }
             val mins = diff / 60000
             val rel = when {
-                mins < 1 -> "now"
-                mins < 60 -> "${mins}m ago"
-                mins < 1440 -> "${mins / 60}h ago"
+                mins < 1 -> context.getString(R.string.wg_rel_now)
+                mins < 60 -> context.getString(R.string.wg_rel_minutes, mins.toInt())
+                mins < 1440 -> context.getString(R.string.wg_rel_hours, (mins / 60).toInt())
                 else -> SimpleDateFormat("MM/dd HH:mm", Locale.US).format(Date(ts))
             }
             return context.getString(R.string.wg_updated, rel)
