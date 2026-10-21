@@ -21,6 +21,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillNode
+import androidx.compose.ui.autofill.AutofillType
+import androidx.compose.ui.platform.LocalAutofill
+import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,7 +44,6 @@ import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -244,13 +249,13 @@ fun LoginScreen(
                 PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it; urlError = null }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, keyboardType = KeyboardType.Uri, imeAction = androidx.compose.ui.text.input.ImeAction.Next, testTag = "login_url", error = urlError)
                 if (useApiKey) {
                     // C1: کلید API برای مدیر رمز عبور یک «رمز» است → contentType=Password.
-                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim(); keyError = null }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = androidx.compose.ui.autofill.ContentType.Password, testTag = "login_api_key", error = keyError)
+                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim(); keyError = null }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = FieldAutofill.Password, testTag = "login_api_key", error = keyError)
                     Text(stringResource(R.string.login_api_key_desc), fontSize = 11.sp, color = theme.mutedColor)
                 } else {
                     // C1: نام کاربری و رمز با contentType معرفی می‌شوند تا Google Password
                     // Manager/مدیرهای رمز دیگر بتوانند پیشنهاد پرکردن بدهند.
-                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { username = ""; apiKey = input.trim(); useApiKey = true } else { username = input }; userError = null }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next, autofillType = androidx.compose.ui.autofill.ContentType.Username, testTag = "login_username", error = userError)
-                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { password = ""; apiKey = input.trim(); useApiKey = true } else { password = input }; passError = null }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = androidx.compose.ui.autofill.ContentType.Password, testTag = "login_password", error = passError)
+                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { username = ""; apiKey = input.trim(); useApiKey = true } else { username = input }; userError = null }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next, autofillType = FieldAutofill.Username, testTag = "login_username", error = userError)
+                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { password = ""; apiKey = input.trim(); useApiKey = true } else { password = input }; passError = null }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = FieldAutofill.Password, testTag = "login_password", error = passError)
                 }
 
                 if (loading) {
@@ -403,6 +408,15 @@ private fun LanguageToggle(
     }
 }
 
+/**
+ * C1: نوع فیلد برای Autofill/مدیر رمز عبور.
+ *
+ * لایه‌ی نازک روی [AutofillType] آزمایشی Compose است تا API آزمایشی فقط داخل
+ * [PGField] مصرف شود و call siteها opt-in نخواهند. (در Compose UI 1.7.x مسیر
+ * جدیدِ semantics.contentType هنوز internal است و قابل استفاده نیست.)
+ */
+private enum class FieldAutofill { Username, Password }
+
 @Composable
 private fun PGField(
     label: String,
@@ -418,7 +432,7 @@ private fun PGField(
     /** B2: نوع کیبورد غیررمزی (مثلاً Uri برای آدرس پنل). */
     keyboardType: KeyboardType = KeyboardType.Text,
     /** C1: نوع محتوا برای Autofill/مدیر رمز عبور. null یعنی بدون پیشنهاد. */
-    autofillType: androidx.compose.ui.autofill.ContentType? = null,
+    autofillType: FieldAutofill? = null,
     /** تگ پایدار برای تست‌های رفتاری (روی خود فیلد متنی). */
     testTag: String? = null,
     error: String? = null
@@ -426,6 +440,24 @@ private fun PGField(
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    // C1: گره‌ی Autofill عمومیِ Compose 1.7 — با focus/click از چارچوب Autofill
+    // اندروید (و مدیرهای رمز عبور) درخواست پیشنهاد پرکردن می‌کنیم. onFill همیشه
+    // تازه‌ترین onValueChange را صدا می‌زند تا گره، لامبدای منقضی نگه ندارد.
+    val currentOnFill by rememberUpdatedState(onValueChange)
+    val autofillModifier = if (autofillType != null) {
+        val platformType = when (autofillType) {
+            FieldAutofill.Username -> AutofillType.Username
+            FieldAutofill.Password -> AutofillType.Password
+        }
+        val autofill: Autofill? = LocalAutofill.current
+        val autofillNode = remember(platformType) {
+            AutofillNode(autofillTypes = listOf(platformType), onFill = { currentOnFill(it) })
+        }
+        LocalAutofillTree.current += autofillNode
+        Modifier
+            .onFocusChanged { if (it.isFocused) autofill?.requestAutofillForNode(autofillNode) }
+            .clickable { autofill?.requestAutofillForNode(autofillNode) }
+    } else Modifier
     // یک استایلِ مشترک برای متنِ واقعی و متنِ راهنما.
     //
     // ⚠️ چرا مهم است: `Text(placeholder, fontSize = 13.sp)` فقط اندازهٔ فونت را
@@ -455,14 +487,12 @@ private fun PGField(
                     ),
                     textStyle = fieldStyle,
                     cursorBrush = SolidColor(theme.accentPrimary),
-                    // C1: گرهٔ semantics با contentType تا چارچوب Autofill اندروید و
-                    // مدیرهای رمز عبور فیلد را بشناسند (نام کاربری/رمز).
+                    // C1: اتصال گره‌ی Autofill به فیلد (جایگزین semantics.contentType
+                    // که در Compose 1.7 هنوز internal است).
                     modifier = Modifier
                         .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
                         .weight(1f)
-                        .semantics {
-                            if (autofillType != null) contentType = autofillType
-                        },
+                        .then(autofillModifier),
                     // متنِ راهنما و متنِ ورودی روی هم و هر دو وسط‌چینِ عمودی؛
                     // قبلاً بدونِ Box کنارِ هم رها شده بودند و هم‌تراز نبودند.
                     decorationBox = { inner ->
