@@ -609,6 +609,18 @@ class PanelApiContractTest {
         assertEquals(0, server.requestCount)
     }
 
+    /**
+     * L3: تلاش‌های fallback فقط مخصوص SSLException اند؛ یک ورود موفق با کلید API
+     * نباید هیچ درخواست تکراری بسوزاند (سه کلاینت در helper فقط هنگام خطای TLS فعال می‌شوند).
+     */
+    @Test fun `loginWithApiKey uses a single request when the first attempt succeeds`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"id":3,"username":"reseller","role":{"name":"Reseller","is_owner":false,"permissions":{}}}"""))
+        PanelApi.loginWithApiKey(server.url("/").toString(), "pg_key_123e4567-e89b-42d3-a456-426614174000")
+
+        assertEquals(1, server.requestCount)
+        assertEquals("/api/admin", server.takeRequest().path)
+    }
+
     @Test fun `loginWithApiKey maps a rejected key to a 401 login failure`() {
         server.enqueue(MockResponse().setResponseCode(401).setBody("""{"detail":"Not authenticated"}"""))
         val error = runCatching { runBlocking { PanelApi.loginWithApiKey(server.url("/").toString(), "pg_key_bad") } }.exceptionOrNull()

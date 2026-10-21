@@ -212,6 +212,34 @@ object PanelApi {
     }
 
     /**
+     * `GET /api/admin` با همان الگوی تلاشِ TLS که [login] دارد: کلاینت پیش‌فرض،
+     * یک بار تکرار پس از ۴۰۰ms و در پایان کلاینت TLS 1.2. فقط `SSLException` تکرار
+     * می‌شود؛ ۴۰۱ (که اینترسپتور آن را به [SessionExpiredException] تبدیل می‌کند)
+     * فوراً بالا می‌رود چون تکرارش بی‌معناست.
+     *
+     * چرا لازم است: ورود با کلید API قبلاً فقط یک تلاش با کلاینت پیش‌فرض داشت،
+     * پس روی پنل‌های self-hosted ای که هندشیک TLS 1.3 نیمه‌کاره می‌ماند، ورود
+     * رمزی موفق می‌شد ولی ورود با کلید شکست می‌خورد (عدم تقارن L3 ممیزی لاگین).
+     */
+    private fun fetchAdminWithTlsFallback(session: Session): AdminSelf {
+        var lastTlsError: Throwable? = null
+        val attempts = listOf(client to 0L, client to 400L, clientTls12 to 0L)
+        for ((httpClient, delayMs) in attempts) {
+            if (delayMs > 0) Thread.sleep(delayMs)
+            try {
+                val request = requestBuilder(session, "${session.baseUrl}/api/admin").get().build()
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) error("Admin fetch failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+                    return parseAdminSelf(JSONObject(response.body?.string() ?: error("Empty admin response")))
+                }
+            } catch (e: javax.net.ssl.SSLException) {
+                lastTlsError = e
+            }
+        }
+        throw lastTlsError ?: IllegalStateException("Admin fetch failed")
+    }
+
+    /**
      * ورود با کلید API پنل (`pg_key_<uuid4>`؛ Settings → API Keys).
      *
      * پنل endpoint جداگانه‌ای برای اعتبارسنجیِ کلید ندارد؛ `GET /api/admin` را با
@@ -224,7 +252,7 @@ object PanelApi {
         val base = baseUrl(address)
         val probe = Session(base, key, "")
         val admin = try {
-            currentAdmin(probe)
+            fetchAdminWithTlsFallback(probe)
         } catch (e: SessionExpiredException) {
             error("Login failed: 401 invalid API key")
         }

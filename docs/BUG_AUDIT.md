@@ -152,6 +152,44 @@ Manual re-audit of the whole codebase against panel v5.4.1 source. All changes k
 ### H. Legacy BUG_AUDIT items closed
 - #7 verified against panel source (not a bug; documented + contract tests), #9 CSV newlines fixed (+`ExportUsersTest`), #14 `lastSeenShort` fully localized (+tests); #10 and #17 confirmed already fixed in earlier rounds.
 
+## Round 2026-10-21 (2) — Login screen deep audit
+
+Focused re-audit of `LoginScreen.kt`, the `login`/`loginWithApiKey`/`baseUrl` paths in `PanelApi.kt`, session restore and diagnostics. All items below were user-approved before implementation; no string resources changed (fa/en parity untouched).
+
+### L1. Revoked API key showed a *format* error instead of an *invalid key* error
+- **File**: `ui/screens/LoginScreen.kt` failure mapping
+- A well-formed key rejected with 401 produces `Login failed: 401 invalid API key`. The `contains("Invalid API key")` branch ran before `isUnauthorized`, so users saw "Enter a valid API key (starts with pg_key_)" even though the format was fine. The correct `login_err_api_key` message was effectively dead.
+- **Fix**: `isUnauthorized` is now evaluated first; the format branch only covers the defensive `require()` path. Locked by `LoginScreenTest.rejectedWellFormedApiKey_showsInvalidKeyMessage_notFormatError`.
+
+### L2. Loopback http passed UI validation but was rejected by the network layer
+- **File**: `ui/screens/LoginScreen.kt` local validation
+- `http://localhost`/`http://127.0.0.1` were exempt in the UI while the manifest (`usesCleartextTraffic=false`) and `baseUrl()` reject all cleartext — users passed local validation, watched the loading spinner, then got the https error anyway.
+- **Fix**: all http is rejected locally with the actionable https field error. The only remaining loopback opening is behind the existing test-only `allowCleartextLoopbackForTests` flag (false in release), so Robolectric/MockWebServer tests can still exercise the full flow.
+
+### L3. API-key login lacked the TLS fallback that password login has
+- **File**: `data/api/PanelApi.kt`
+- Password login tries default client → retry → TLS 1.2 client; `loginWithApiKey` probed `/api/admin` only once with the default client, so on self-hosted panels with flaky TLS 1.3 handshakes password login could succeed while key login failed.
+- **Fix**: extracted `fetchAdminWithTlsFallback()` mirroring the login() attempt pattern (only `SSLException` retried; 401 still fails immediately). Contract test asserts a successful key login uses exactly one request.
+
+### L4. Username was sent untrimmed
+- **File**: `ui/screens/LoginScreen.kt` submit
+- Leading/trailing whitespace from paste/autofill caused a misleading 401. Now trimmed before send; password is intentionally left untouched (spaces are legal in passwords).
+
+### B1–B3. Small UX improvements
+- **B1**: IME **Done** on the password/API-key field now submits the form (previously only hid the keyboard); submit logic extracted into a shared `submitLogin` lambda used by both button and keyboard.
+- **B2**: panel address field uses `KeyboardType.Uri` (`/` and `.com` keys reachable).
+- **B3**: address and username use `rememberSaveable` so they survive rotation/process death; password and API key stay in-memory only.
+
+### C1. Autofill / password-manager support
+- `PGField` gained an `autofillType`; username exposes `ContentType.Username`, password and API key expose `ContentType.Password` via semantics, so Google Password Manager and other autofill services can offer to fill credentials. Locked by `LoginScreenTest.credentialFields_exposeAutofillContentType`.
+
+### Tests added
+- `ui/screens/LoginScreenTest.kt` (Robolectric Compose): empty-submit inline errors, IME Done submission, loopback http local rejection, autofill semantics, and the end-to-end 401 API-key mapping through a MockWebServer.
+- `PanelApiContractTest`: single-request guarantee for successful API-key login (no wasted retries).
+
+### Deliberately not changed
+- The biometric info card stays (static guidance; the actual lock is configured post-login) and no saved-account picker was added to the login screen — both were considered and not selected this round.
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
