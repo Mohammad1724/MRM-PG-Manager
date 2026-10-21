@@ -240,6 +240,45 @@ Focused re-audit of `DashboardScreen.kt` plus the stats/traffic/admins/nodes end
 - `PanelCacheTest` — range-specific traffic keys and isolation between ranges.
 - `DashboardScreenTest` (Robolectric + MockWebServer dispatcher) — ring-card tap opens statistics, range selector a11y description, empty traffic shows "no trend".
 
+## Round 2026-10-21 (4) — Users screen deep audit
+
+Full read-through of the users feature: `UsersUiState`, `UsersScreen`, `UsersScreenControls`, `UsersListItems`, `UsersScreenDialogs`, `UserEditorDialog`, `UserDetailsDialog`, `BulkCreateUsersDialog`, `BulkApplyTemplateDialog`, `ConfirmActionDialog`, `ResetExpiryDurationDialog`, `QuickActionSheet`, `SubscriptionQrDialog`, `InvoiceDialog`, `CommonComponents.BulkActionsBar`, the users/groups/bulk endpoints in `PanelApi`, and the parallel debtor path in `MonitoringWorker`. All fixes user-approved (U1–U6 + I1). One new string added in both fa/en (parity kept).
+
+### U1. Success feedback shown before the server responded (two call sites)
+- In `UsersScreenDialogs`, the expired-users cleanup confirm and the bulk group add/remove picker launched `runAction(notification = null) { … }` and then called `AppFeedback.success(...)` immediately. The action runs async, so on failure the user saw "done" followed by an error.
+- **Fix**: both now pass `successMessage` into `runAction`, which shows the snack only in the `onSuccess` path (and still runs the existing silent refresh). No new strings; the same `us_cleanup_done` / `us_bulk_group_added|removed` messages are used.
+
+### U2. Group-name cache not invalidated after bulk group membership changes
+- `PanelApi.bulkGroupMembership` (`/api/groups/bulk/add|remove`) skipped `invalidateGroupNames`, unlike create/modify/delete group. The group badge on user cards could stay stale/missing for the full 60 s cache TTL, and the silent refresh re-read the same stale map.
+- **Fix**: invalidate the per-panel name cache after a successful bulk membership call.
+
+### U3. Debtor auto-disable effect fired blind offline and never patched the row
+- The `LaunchedEffect(ui.users, …)` at the end of `UsersScreen` calls `PanelApi.setDisabled` directly with no connectivity guard (unlike `runAction`): offline, every list change fired one doomed request per overdue debtor. On success it also never updated the row, so the card stayed "active" until the next silent refresh.
+- **Fix**: early return when `NetworkStatus.isOnline` is false (the effect re-runs on the next list change/refresh after reconnect); on success the row is now patched locally to `disabled`. Debtors outside the loaded 60-row page remain covered by `MonitoringWorker`'s 15-minute individual fetch — unchanged.
+
+### U4. Offline fallback in `loadAll` reset the online counter to zero
+- When a local filter (debtor / near-limit) was active and the network failed but a cached list existed, `onlineCount` was hard-set to 0 even though the cached users may include online ones. The paged `loadPage` path did not do this.
+- **Fix**: count online users from the cached list, matching the success path.
+
+### U5. Numeric bulk days/data dialog reused the search bar
+- The bulk amount dialog rendered `GlassSearchBar`, which carries a magnifier icon, a hardcoded "Search" hint, and a text keyboard inside a field that accepts signed numbers / decimals.
+- **Fix**: swapped to the existing `CompactGlassField` with the correct `us_bulk_amount_days|gb` hint. The keyboard stays `Text` deliberately so the leading minus (documented "minus to take away") and the data decimal remain typeable. The filtering rules were extracted verbatim into the pure `UsersUiState.sanitizeBulkAmount(raw, kind)` — no behavior change, now JVM-testable.
+
+### U6. CI gate `kt-compose-api` was red: committed Compose symbol index was incomplete
+- Four standard Compose 1.7.x symbols were missing from `tools/compose-api-index.txt` (`assertExists`, `assertDoesNotExist`, `onNode`, `androidx.compose.ui.semantics.SemanticsMatcher`), failing the gate on `LoginScreenTest` and `DashboardScreenTest`. The index generator needs AAR downloads (unavailable offline), so the four entries were added manually in sorted position with this audit entry as rationale.
+- Adding the missing symbols exposed a genuine latent compile error: `RealButtonsTapTest` called `assertExists()` without importing it — import added.
+- **Gate now green**: 1352 Compose references across 101 files.
+
+### Improvement (user-approved)
+- **I1**: in server-paginated mode, "select all" only selects the loaded rows (≤ PAGE_SIZE). Tapping it when `totalMatches` exceeds the loaded count now shows an info snack explaining exactly how many were selected vs how many match (`us_select_all_limited`, new fa+en string).
+
+### Tests added
+- `UsersBulkAmountTest` — pure JUnit cases for `sanitizeBulkAmount`: Latin/Persian/Arabic digits, leading-minus preservation, inner-minus stripping, decimal dot only for the data kind, letter/space stripping, empty input.
+
+### Deliberately not changed
+- String-`hashCode` notification IDs: this is the app-wide convention (UiState, worker, `runAction`); bands used elsewhere are small numeric constants and practical collision is negligible. The two debtor auto-disable paths use different ID prefixes but share the persisted `autoDisabled` flag, so double notifications are effectively prevented. Documented as theoretical risk only.
+- The auto-disable effect's `ui.users` restart key: restarts are cheap thanks to the existing per-debtor guards; reworking the key was judged riskier than the benefit.
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
@@ -249,3 +288,9 @@ Focused re-audit of `DashboardScreen.kt` plus the stats/traffic/admins/nodes end
 - [ ] Panel with >200 groups (mock) -> groups() returns all via pagination
 - [ ] User online_at = "2024-01-15 10:30:00" without Z, within 5 min -> isOnline true
 - [ ] Users page with group filter -> attachGroupNames works even when >200 groups
+- [ ] Bulk add/remove group -> success snack appears only after the server confirms; group badge updates without waiting 60 s (U1/U2)
+- [ ] Expired cleanup confirm -> snack fires only on success; airplane-mode failure shows the error snack, not "deleted" (U1)
+- [ ] Airplane mode with overdue debtors on the users list -> no disable requests fire; after reconnect the row flips to disabled immediately (U3)
+- [ ] Local filter (debtor/near-limit) offline with cached list -> online stat card shows cached online count, not 0 (U4)
+- [ ] Bulk add days/data dialog -> field shows the days/GB hint (not "Search"), no magnifier, accepts minus and Persian digits (U5)
+- [ ] Paginated list with totalMatches > loaded -> select-all shows the limited-selection info snack once (I1)

@@ -761,6 +761,9 @@ object PanelApi {
             requestBuilder(session, "${session.baseUrl}/api/groups/bulk/$path")
                 .post(body.toString().toRequestBody(jsonType)).build()
         )
+        // عضویتِ گروهی هم نگاشت id→name روی کاربرها را عوض می‌کند؛ وگرنه بجِ گروه
+        // روی کارت‌ها تا انقضای ۶۰ثانیه‌ای کش کهنه می‌ماند (همان رفتارِ CRUD گروه).
+        invalidateGroupNames(session)
     }
 
     /** واکشی تکی یک کاربر (با subscription_url) — برای دریافت لینک اشتراک فقط در صورت نیاز. */

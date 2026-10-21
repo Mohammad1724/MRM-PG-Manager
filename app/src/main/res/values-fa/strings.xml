@@ -945,6 +945,7 @@
     <string name="us_bulk_group_removed">گروه از %1$d کاربر برداشته شد</string>
     <string name="us_loading_more">در حال گرفتن ادامه…</string>
     <string name="us_showing_count">%1$d از %2$d</string>
+    <string name="us_select_all_limited">فقط %1$d کاربرِ بارگذاری‌شده انتخاب شد — در مجموع %2$d کاربر مطابقت دارد. برای انتخابِ بیشتر اسکرول کنید و دوباره «انتخاب همه» بزنید.</string>
     <string name="st_nodes_health">سلامت نودها</string>
     <string name="st_node_connected">متصل</string>
     <string name="st_node_connecting">در حال اتصال</string>

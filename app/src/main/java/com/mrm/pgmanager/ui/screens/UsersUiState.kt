@@ -328,7 +328,9 @@ internal class UsersUiState(
                     val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
                     if (cache != null) {
                         users = cache.first
-                        onlineCount = 0
+                        // شمارش از روی همان فهرستِ کش‌شده (مثل مسیر موفقیت)؛ صفرگذاشتن،
+                        // کارتِ «آنلاین» را در فیلترهای محلیِ آفلاین بی‌دلیل خالی می‌کرد.
+                        onlineCount = cache.first.count { it.isOnline }
                         offlineAt = cache.second
                         error = null
                     } else if (!silent) {
@@ -556,6 +558,21 @@ internal class UsersUiState(
     }
 
     companion object {
+        /**
+         * پاک‌سازیِ ورودیِ عددیِ دیالوگِ «افزودن/کاستنِ روز یا حجمِ گروهی».
+         *
+         * قواعد عیناً همان رفتارِ قبلیِ درون‌خطی است (بدون تغییرِ معنایی):
+         *  - ارقام فارسی/عربی به لاتین نرمال می‌شوند؛
+         *  - فقط رقم، یک «منفیِ ابتدایی» (یعنی کم‌کردن) و — در حالتِ حجم — نقطهٔ اعشار می‌ماند.
+         * خالص است تا هم در UI و هم در تستِ JVM بدونِ اندروید سنجیده شود.
+         */
+        fun sanitizeBulkAmount(raw: String, kind: String): String {
+            val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+            return normalized.filterIndexed { i, c ->
+                c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data")
+            }
+        }
+
         /**
          * فیلتر + مرتب‌سازیِ سمتِ گوشی — فقط برای فیلترهایی که پنل اعمال نمی‌کند.
          * در حالتِ سمتِ سرور، پنل قبلاً فیلتر و مرتب کرده؛ دوباره‌کاری در گوشی فقط

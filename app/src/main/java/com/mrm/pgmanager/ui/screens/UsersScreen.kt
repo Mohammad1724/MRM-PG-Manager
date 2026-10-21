@@ -576,7 +576,21 @@ fun UsersScreen(
                     BulkActionsBar(
                         selectedCount = ui.selectedUserIds.size,
                         onClear = { ui.selectedUserIds = emptySet() },
-                        onSelectAll = { ui.selectedUserIds = processedUsers.map { it.id }.toSet() },
+                        onSelectAll = {
+                            ui.selectedUserIds = processedUsers.map { it.id }.toSet()
+                            // با صفحه‌بندیِ سمتِ سرور فقط ردیف‌های بارگذاری‌شده قابلِ
+                            // انتخاب‌اند؛ اگر کلِ مطابق‌ها بیشتر بود ادمین باید بداند
+                            // «انتخاب همه» همه‌ی نتیجه‌ها را پوشش نداده است.
+                            if (serverMode && ui.totalMatches > processedUsers.size) {
+                                com.mrm.pgmanager.ui.feedback.AppFeedback.info(
+                                    context.getString(
+                                        R.string.us_select_all_limited,
+                                        processedUsers.size,
+                                        ui.totalMatches
+                                    )
+                                )
+                            }
+                        },
                         onExport = { ui.exportChooserOpen = true },
                         onDelete = { val ids = ui.selectedUserIds.toSet(); ui.selectedUserIds = emptySet(); ui.pendingBulk = PendingBulk(title = context.getString(R.string.us_bulk_delete_title, ids.size), message = context.getString(R.string.us_bulk_delete_msg), confirmLabel = context.getString(R.string.us_delete), danger = true, confirmWord = if (ids.size >= 5) context.getString(R.string.us_confirm_delete_word) else null, action = {
                             // حذف برگشت‌پذیر نیست، ولی «پیش‌نمایشِ فوری» یعنی ردیف بلافاصله
@@ -620,6 +634,11 @@ fun UsersScreen(
     LaunchedEffect(ui.users, monitoringSettings.debtorAutoDisableEnabled, monitoringSettings.debtorAutoDisableAfterHours) {
         if (!monitoringSettings.debtorAutoDisableEnabled) return@LaunchedEffect
         if (ui.users.isEmpty()) return@LaunchedEffect
+        // بدونِ شبکه هیچ درخواستی نزن: این افکت با هر تغییرِ لیست ری‌استارت می‌شود و
+        // در آفلاین برای هر بدهکارِ معوق یک درخواستِ محکوم‌به‌شکست می‌فرستاد
+        // (هم‌راستا با گاردِ آفلاینِ `runAction`). با برگشتنِ اتصال، تغییرِ بعدیِ
+        // لیست یا رفرشِ دوره‌ای افکت را دوباره اجرا می‌کند.
+        if (!com.mrm.pgmanager.utils.NetworkStatus.isOnline(context)) return@LaunchedEffect
         ui.debtorsForCurrentPanel.forEach { d ->
             if (!d.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)) return@forEach
             if (d.autoDisabled) return@forEach
@@ -634,6 +653,8 @@ fun UsersScreen(
                 val updated = d.copy(autoDisabled = true)
                 store.setDebtor(updated)
                 ui.reloadDebtors()
+                // ردیف همین لحظه «غیرفعال» شود؛ منتظرِ رفرشِ بی‌صدا نمی‌مانیم.
+                ui.patchRows(setOf(pu.id)) { it.copy(status = "disabled") }
                 if (monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtorOverdue) {
                     NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, context.getString(R.string.us_n_auto_disable), context.getString(R.string.us_n_auto_disable_body, d.username, monitoringSettings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
                 }

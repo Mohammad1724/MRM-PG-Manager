@@ -265,11 +265,20 @@ internal fun UsersScreenDialogs(
                         fontSize = 11.sp, color = theme.mutedColor
                     )
                 }
-                GlassSearchBar(query = ui.bulkAmountText, onQueryChange = { text ->
-                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن». + نرمال‌سازی فارسی
-                    val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
-                    ui.bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
-                })
+                // فیلدِ عددیِ اختصاصی (نه نوارِ جست‌وجو): بدونِ آیکون ذره‌بین و
+                // هینتِ «جست‌وجو». کیبورد متنی می‌ماند تا منفیِ ابتدایی (کم‌کردن)
+                // و نقطهٔ اعشارِ حجم قابلِ تایپ باشند — همان قواعدِ قبلی، فقط
+                // به تابعِ خالصِ [UsersUiState.sanitizeBulkAmount] منتقل شد.
+                com.mrm.pgmanager.ui.dialogs.CompactGlassField(
+                    value = ui.bulkAmountText,
+                    onValueChange = { text ->
+                        ui.bulkAmountText = UsersUiState.sanitizeBulkAmount(text, kind)
+                    },
+                    placeholder = stringResource(
+                        if (kind == "days") R.string.us_bulk_amount_days else R.string.us_bulk_amount_gb
+                    ),
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkAmountKind = null }, modifier = Modifier.weight(1f))
                     PGPrimaryButton(
@@ -335,8 +344,11 @@ internal fun UsersScreenDialogs(
             onConfirm = {
                 val count = names.size
                 ui.cleanupNames = null
-                ui.runAction(notification = null) { PanelApi.deleteCleanupCandidates(session) }
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_cleanup_done, count))
+                // successMessage فقط بعد از پاسخ موفقِ سرور نشان داده می‌شود؛ قبلاً
+                // اسنکِ «حذف شد» بلافاصله (و در خطا، قبل از پیام خطا) دیده می‌شد.
+                ui.runAction(successMessage = context.getString(R.string.us_cleanup_done, count)) {
+                    PanelApi.deleteCleanupCandidates(session)
+                }
             }
         )
     }
@@ -372,13 +384,14 @@ internal fun UsersScreenDialogs(
                                 ui.bulkGroupPicker = false
                                 ui.selectedUserIds = emptySet()
                                 val add = ui.bulkGroupAdd
+                                // پیامِ نتیجه بعد از پاسخِ واقعیِ پنل می‌آید (successMessage)،
+                                // نه پیش از آن — وگرنه در خطا دو پیامِ متناقض پشت سر هم دیده می‌شد.
                                 ui.runAction(
-                                    notification = null
-                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
-                                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(
+                                    successMessage = context.getString(
                                         if (add) R.string.us_bulk_group_added else R.string.us_bulk_group_removed,
                                         ids.size
-                                    ))
+                                    )
+                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
                             }
                             .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
                         contentAlignment = Alignment.CenterStart
