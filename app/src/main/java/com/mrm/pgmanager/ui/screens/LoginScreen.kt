@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillNode
 import androidx.compose.ui.autofill.AutofillType
@@ -417,6 +418,7 @@ private fun LanguageToggle(
  */
 private enum class FieldAutofill { Username, Password }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun PGField(
     label: String,

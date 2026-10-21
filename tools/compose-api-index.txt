@@ -53205,6 +53205,7 @@ androidx.compose.ui.ZIndexNode
 androidx.compose.ui.ZIndexNode.measure.1
 androidx.compose.ui.access
 androidx.compose.ui.areObjectsOfSameType
+androidx.compose.ui.ExperimentalComposeUiApi
 androidx.compose.ui.autofill.AndroidAutofill
 androidx.compose.ui.autofill.AndroidAutofillType_androidKt
 androidx.compose.ui.autofill.AndroidAutofillTypes
