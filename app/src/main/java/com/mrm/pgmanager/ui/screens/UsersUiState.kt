@@ -268,7 +268,13 @@ internal class UsersUiState(
                 users = users + page.users.filterNot { seen.contains(it.id) }
                 totalMatches = page.total
                 endReached = page.users.isEmpty() || users.size >= page.total
-            }.onFailure { endReached = true }
+            }.onFailure {
+                // خطای گذرا (تایم‌اوت/قطعِ لحظه‌ای/۴۲۹) نباید صفحه‌بندی را برای
+                // همیشه ببندد: قبلاً اینجا endReached = true ست می‌شد و پس از یک
+                // خطای تنها، کاربر دیگر هیچ‌وقت صفحهٔ بعد را نمی‌گرفت مگر با رفرش
+                // دستی. حالا فقط همین تلاش شکست می‌خورد؛ با اسکرولِ دوباره به تهِ
+                // فهرست (یا رفرش) دوباره تلاش می‌شود. endReached فقط با پاسخِ واقعیِ پنل عوض می‌شود.
+            }
             loadingMore = false
         }
     }
@@ -301,15 +307,18 @@ internal class UsersUiState(
                         val previous = lastUserStates[u.id] ?: return@forEach
                         val current = nextStates[u.id] ?: return@forEach
                         if (previous == current) return@forEach
-                        fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text, targetUsername = u.username)
-                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
-                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
+                        // F2: kind همان کلید MUTE_TARGETS است تا اعلان پیش‌زمینه هم
+                        // دکمه‌ی بی‌صداکردن داشته باشد و IDاش با ورکر یکی بماند.
+                        fun notify(kind: String, title: String, text: String) = NotificationHelper.post(context, com.mrm.pgmanager.utils.NotificationIds.userEvent(kind, u.id), NotificationHelper.CHANNEL_EVENTS, title, text, targetUsername = u.username, kind = kind)
+                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify("limited", context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
+                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify("expired", context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
                         val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                         val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
-                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
+                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify("near_limit", context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
                         val nearExpiry = current.substringAfterLast("|").toBoolean()
                         val wasNearExpiry = previous.substringAfterLast("|").toBoolean()
-                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
+                        // قبلاً "near_expire" بود و با طرحِ "near_expiry" ورکر دو اعلان می‌ساخت.
+                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify("near_expiry", context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
                     }
                 }
                 lastUserStates = nextStates
@@ -322,7 +331,9 @@ internal class UsersUiState(
                     val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
                     if (cache != null) {
                         users = cache.first
-                        onlineCount = 0
+                        // شمارش از روی همان فهرستِ کش‌شده (مثل مسیر موفقیت)؛ صفرگذاشتن،
+                        // کارتِ «آنلاین» را در فیلترهای محلیِ آفلاین بی‌دلیل خالی می‌کرد.
+                        onlineCount = cache.first.count { it.isOnline }
                         offlineAt = cache.second
                         error = null
                     } else if (!silent) {
@@ -475,7 +486,11 @@ internal class UsersUiState(
                 // بود، لیست به واقعیتِ سرور برگردد (نه به حدسِ ما).
                 rollback?.invoke()
                 val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
-                error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+                // عمداً `error` (state خطای سطحِ صفحه) را دست نمی‌زنیم: آن state
+                // فقط برای شکستِ بارگذاریِ خودِ فهرست است. خطای یک اکشن (مثلاً
+                // ناموفق‌بودنِ غیرفعال‌سازی) از طریق اسنک گزارش می‌شود؛ در غیر این
+                // صورت فهرستِ سالمِ روی صفحه با یک صفحهٔ خطای تمام‌صفحه عوض می‌شد
+                // و کاربر context کاری‌اش را از دست می‌داد (یافتهٔ B4 ممیزی UX).
                 if (kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
                     com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
@@ -518,7 +533,7 @@ internal class UsersUiState(
                 }
                 notification?.let { (title, message) ->
                     val settings = store.readMonitoringSettings()
-                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_ACTIONS, title, message)
+                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, com.mrm.pgmanager.utils.NotificationIds.userAction(title, message), NotificationHelper.CHANNEL_ACTIONS, title, message)
                 }
                 // فاز ۶.۲ — رفرشِ بی‌صدا و بدونِ برگشت به بالا: ردیف‌ها همین حالا
                 // به‌روز شده‌اند؛ این فقط هم‌ترازیِ نهایی با پنل است.
@@ -546,6 +561,21 @@ internal class UsersUiState(
     }
 
     companion object {
+        /**
+         * پاک‌سازیِ ورودیِ عددیِ دیالوگِ «افزودن/کاستنِ روز یا حجمِ گروهی».
+         *
+         * قواعد عیناً همان رفتارِ قبلیِ درون‌خطی است (بدون تغییرِ معنایی):
+         *  - ارقام فارسی/عربی به لاتین نرمال می‌شوند؛
+         *  - فقط رقم، یک «منفیِ ابتدایی» (یعنی کم‌کردن) و — در حالتِ حجم — نقطهٔ اعشار می‌ماند.
+         * خالص است تا هم در UI و هم در تستِ JVM بدونِ اندروید سنجیده شود.
+         */
+        fun sanitizeBulkAmount(raw: String, kind: String): String {
+            val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+            return normalized.filterIndexed { i, c ->
+                c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data")
+            }
+        }
+
         /**
          * فیلتر + مرتب‌سازیِ سمتِ گوشی — فقط برای فیلترهایی که پنل اعمال نمی‌کند.
          * در حالتِ سمتِ سرور، پنل قبلاً فیلتر و مرتب کرده؛ دوباره‌کاری در گوشی فقط

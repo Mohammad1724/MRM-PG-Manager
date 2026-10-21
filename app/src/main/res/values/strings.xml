@@ -628,6 +628,8 @@
     <string name="us_n_bulk_enable_body">%1$d users enabled</string>
     <string name="us_n_auto_disable">Debtor disabled automatically</string>
     <string name="us_n_auto_disable_body">%1$s was disabled after %2$d hours of debt (%3$s %4$s)</string>
+    <string name="us_n_debtor">Debtor marked</string>
+    <string name="us_n_debtor_body">%1$s was marked as a debtor (%2$s %3$s)</string>
     <!-- فاکتور — مشترک بین دیالوگ و خروجیِ PDF -->
     <string name="inv_currency">Toman</string>
     <string name="inv_title">Subscription invoice</string>
@@ -818,6 +820,9 @@
     <string name="wg_no_debt">No debt</string>
     <string name="wg_cores">%1$d cores</string>
     <string name="wg_updated">Updated %1$s</string>
+    <string name="wg_rel_now">just now</string>
+    <string name="wg_rel_minutes">%1$d min ago</string>
+    <string name="wg_rel_hours">%1$d h ago</string>
     <string name="wg_no_data">No data</string>
     <string name="wg_open_once">Open the app once</string>
     <string name="wg_active">Active: %1$d</string>
@@ -873,6 +878,8 @@
     <string name="err_retry">Retry</string>
     <string name="chart_empty_refresh">Refresh</string>
     <string name="chart_empty_range">Change range</string>
+    <string name="chart_range_selector">Chart range, currently %1$s</string>
+    <string name="db_open_statistics">Open detailed statistics</string>
     <string name="err_technical">Technical details</string>
     <string name="err_technical_hint">Long-press to see technical details</string>
     <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
@@ -943,6 +950,7 @@
     <string name="us_bulk_group_removed">Group removed from %1$d users</string>
     <string name="us_loading_more">Loading more…</string>
     <string name="us_showing_count">%1$d of %2$d</string>
+    <string name="us_select_all_limited">Only the %1$d loaded users were selected — %2$d match in total. Scroll to load more, then select again.</string>
     <string name="st_nodes_health">Node health</string>
     <string name="st_node_connected">Connected</string>
     <string name="st_node_connecting">Connecting</string>

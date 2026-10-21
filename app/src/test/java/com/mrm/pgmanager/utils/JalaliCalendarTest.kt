@@ -68,4 +68,23 @@ class JalaliCalendarTest {
         val expected = JalaliCalendar.gregorianToJalali(local.year, local.monthValue, local.dayOfMonth).toString()
         assertEquals(expected, JalaliCalendar.isoToShamsi(ts))
     }
+
+    // ── lastSeenShort — BUG_AUDIT #14 (فارسیِ کامل در حالت fa) ──
+
+    @Test fun `lastSeenShort is fully Persian under the fa locale`() {
+        Locale.setDefault(Locale("fa"))
+        val fiveMinAgo = java.time.Instant.now().minusSeconds(5 * 60 + 5).toString()
+        val threeHoursAgo = java.time.Instant.now().minusSeconds(3 * 3600 + 5).toString()
+        assertEquals("آنلاین", lastSeenShort(fiveMinAgo, true))
+        assertEquals("۵ دقیقه", lastSeenShort(fiveMinAgo, false))
+        assertEquals("۳ ساعت", lastSeenShort(threeHoursAgo, false))
+    }
+
+    @Test fun `lastSeenShort keeps compact latin form under the en locale`() {
+        Locale.setDefault(Locale.ENGLISH)
+        val fiveMinAgo = java.time.Instant.now().minusSeconds(5 * 60 + 5).toString()
+        val twoDaysAgo = java.time.Instant.now().minusSeconds(2 * 86400 + 5).toString()
+        assertEquals("5m", lastSeenShort(fiveMinAgo, false))
+        assertEquals("2d", lastSeenShort(twoDaysAgo, false))
+    }
 }

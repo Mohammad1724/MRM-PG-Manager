@@ -60,7 +60,11 @@ object PanelApi {
      */
     private val clientTls12: OkHttpClient by lazy {
         client.newBuilder()
-            .connectionSpecs(listOf(okhttp3.ConnectionSpec.CLEARTEXT, okhttp3.ConnectionSpec.COMPATIBLE_TLS))
+            // فقط TLS؛ CLEARTEXT عمداً نیست: این کلاینت فقط برای آخرین تلاشِ ورودِ
+            // https به‌کار می‌رود و مبادلهٔ توکن روی متنِ ساده هرگز نباید ممکن باشد.
+            // MODERN_TLS (TLS 1.3+) و COMPATIBLE_TLS (TLS 1.2 با رمزهای قدیمی‌تر)
+            // با هم هندشیکِ سازگار با پنل‌های self-hosted را پوشش می‌دهند.
+            .connectionSpecs(listOf(okhttp3.ConnectionSpec.MODERN_TLS, okhttp3.ConnectionSpec.COMPATIBLE_TLS))
             .build()
     }
 
@@ -208,6 +212,34 @@ object PanelApi {
     }
 
     /**
+     * `GET /api/admin` با همان الگوی تلاشِ TLS که [login] دارد: کلاینت پیش‌فرض،
+     * یک بار تکرار پس از ۴۰۰ms و در پایان کلاینت TLS 1.2. فقط `SSLException` تکرار
+     * می‌شود؛ ۴۰۱ (که اینترسپتور آن را به [SessionExpiredException] تبدیل می‌کند)
+     * فوراً بالا می‌رود چون تکرارش بی‌معناست.
+     *
+     * چرا لازم است: ورود با کلید API قبلاً فقط یک تلاش با کلاینت پیش‌فرض داشت،
+     * پس روی پنل‌های self-hosted ای که هندشیک TLS 1.3 نیمه‌کاره می‌ماند، ورود
+     * رمزی موفق می‌شد ولی ورود با کلید شکست می‌خورد (عدم تقارن L3 ممیزی لاگین).
+     */
+    private fun fetchAdminWithTlsFallback(session: Session): AdminSelf {
+        var lastTlsError: Throwable? = null
+        val attempts = listOf(client to 0L, client to 400L, clientTls12 to 0L)
+        for ((httpClient, delayMs) in attempts) {
+            if (delayMs > 0) Thread.sleep(delayMs)
+            try {
+                val request = requestBuilder(session, "${session.baseUrl}/api/admin").get().build()
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) error("Admin fetch failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+                    return parseAdminSelf(JSONObject(response.body?.string() ?: error("Empty admin response")))
+                }
+            } catch (e: javax.net.ssl.SSLException) {
+                lastTlsError = e
+            }
+        }
+        throw lastTlsError ?: IllegalStateException("Admin fetch failed")
+    }
+
+    /**
      * ورود با کلید API پنل (`pg_key_<uuid4>`؛ Settings → API Keys).
      *
      * پنل endpoint جداگانه‌ای برای اعتبارسنجیِ کلید ندارد؛ `GET /api/admin` را با
@@ -220,7 +252,7 @@ object PanelApi {
         val base = baseUrl(address)
         val probe = Session(base, key, "")
         val admin = try {
-            currentAdmin(probe)
+            fetchAdminWithTlsFallback(probe)
         } catch (e: SessionExpiredException) {
             error("Login failed: 401 invalid API key")
         }
@@ -431,6 +463,12 @@ object PanelApi {
                     val time = p.optString("period_start")
                     // پنل بسته به متریک ممکن است count یا total را برگرداند.
                     val v = if (p.has("count")) p.optLong("count") else p.optLong("total")
+                    // راستی‌آزمایی با سورسِ پنل v5.4.1 (`crud/user.py:get_user_count_metric_stats`):
+                    // بدونِ group_by_node/node_id پاسخ فقط یک کلیدِ تجمیعی (`-1`) دارد،
+                    // پس در عمل یک مقدار در هر بازهٔ زمانی هست و maxOf با sum برابر است.
+                    // اگر روزی group_by_node اضافه شد، شمارشِ کاربرانِ متمایز در چند نود
+                    // نه با max درست می‌شود نه با sum (هم‌پوشانی دارد)؛ باید سراغ فیلدِ
+                    // بالاسطحیِ `count_during_period` رفت. maxOf عمداً برای شکلِ فعلی نگه داشته شد.
                     totals[time] = maxOf(totals[time] ?: 0L, v)
                 }
             }
@@ -438,32 +476,37 @@ object PanelApi {
         }
     }
 
-    /** فهرست نودها برای فیلترِ نمودارها. */
+    /**
+     * فهرست نودها برای فیلترِ نمودارها — `GET /api/nodes` (مجوز `nodes.read`).
+     *
+     * ۴۰۳ عمداً به «لیست خالی» تبدیل می‌شود (نقش بدونِ مجوز، نودی برای دیدن ندارد)؛
+     * ولی خطای گذرای شبکه باید پرتاب شود تا فراخوان لیستِ کش‌شده‌اش را نگه دارد و
+     * صفحه «این پنل نودی ندارد»ِ دروغ نشان ندهد (هم‌راستا با رفع D3 داشبورد).
+     */
     suspend fun nodes(session: Session): List<PanelNode> = withContext(Dispatchers.IO) {
-        runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<PanelNode>()
-                val body = res.body?.string() ?: "{}"
-                val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
-                    ?: runCatching { org.json.JSONArray(body) }.getOrNull()
-                    ?: return@runCatching emptyList<PanelNode>()
-                List(arr.length()) { i ->
-                    val n = arr.getJSONObject(i)
-                    PanelNode(
-                        id = n.optInt("id"),
-                        name = n.optString("name", "Node #${n.optInt("id")}"),
-                        address = n.optString("address", ""),
-                        status = n.optString("status", ""),
-                        message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
-                        xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
-                        nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
-                        uplink = n.optLong("uplink", 0L),
-                        downlink = n.optLong("downlink", 0L)
-                    )
-                }
+        val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
+        client.newCall(req).execute().use { res ->
+            if (res.code == 403) return@withContext emptyList()
+            if (!res.isSuccessful) error("Nodes request failed: ${res.code} ${errorDetail(res.body?.string())}".trim())
+            val body = res.body?.string() ?: "{}"
+            val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
+                ?: runCatching { org.json.JSONArray(body) }.getOrNull()
+                ?: return@withContext emptyList<PanelNode>()
+            List(arr.length()) { i ->
+                val n = arr.getJSONObject(i)
+                PanelNode(
+                    id = n.optInt("id"),
+                    name = n.optString("name", "Node #${n.optInt("id")}"),
+                    address = n.optString("address", ""),
+                    status = n.optString("status", ""),
+                    message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
+                    xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
+                    nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
+                    uplink = n.optLong("uplink", 0L),
+                    downlink = n.optLong("downlink", 0L)
+                )
             }
-        }.getOrDefault(emptyList())
+        }
     }
 
     /**
@@ -723,6 +766,9 @@ object PanelApi {
             requestBuilder(session, "${session.baseUrl}/api/groups/bulk/$path")
                 .post(body.toString().toRequestBody(jsonType)).build()
         )
+        // عضویتِ گروهی هم نگاشت id→name روی کاربرها را عوض می‌کند؛ وگرنه بجِ گروه
+        // روی کارت‌ها تا انقضای ۶۰ثانیه‌ای کش کهنه می‌ماند (همان رفتارِ CRUD گروه).
+        invalidateGroupNames(session)
     }
 
     /** واکشی تکی یک کاربر (با subscription_url) — برای دریافت لینک اشتراک فقط در صورت نیاز. */

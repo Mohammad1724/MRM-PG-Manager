@@ -50,6 +50,10 @@ class PanelWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_REFRESH = "com.mrm.pgmanager.widget.ACTION_REFRESH"
         private const val OFFLINE_THRESHOLD_MS = 30 * 60 * 1000L // 30 دقیقه
+        // سقفِ امن برای goAsync(): سیستم عملاً حدود ۱۰ ثانیه به BroadcastReceiver
+        // مهلت می‌دهد. OkHttp تایم‌اوت‌های ۱۵/۲۰ ثانیه‌ای و تا ۳ تلاش دارد؛ بدونِ
+        // این سقف، روی شبکهٔ کند کارِ پس‌زمینه کشته می‌شد و گاهی ANR ثبت می‌کرد.
+        private const val REFRESH_TIMEOUT_MS = 9_000L
 
         fun updateAll(context: Context) {
             runCatching {
@@ -396,9 +400,9 @@ class PanelWidgetProvider : AppWidgetProvider() {
             }
             val mins = diff / 60000
             val rel = when {
-                mins < 1 -> "now"
-                mins < 60 -> "${mins}m ago"
-                mins < 1440 -> "${mins / 60}h ago"
+                mins < 1 -> context.getString(R.string.wg_rel_now)
+                mins < 60 -> context.getString(R.string.wg_rel_minutes, mins.toInt())
+                mins < 1440 -> context.getString(R.string.wg_rel_hours, (mins / 60).toInt())
                 else -> SimpleDateFormat("MM/dd HH:mm", Locale.US).format(Date(ts))
             }
             return context.getString(R.string.wg_updated, rel)
@@ -447,9 +451,14 @@ class PanelWidgetProvider : AppWidgetProvider() {
                     val store = SessionStore(context)
                     val sess = store.read()
                     if (sess != null) {
-                        runCatching { PanelApi.systemStats(sess) }
-                            .onSuccess { stats -> store.saveStatsCache(stats) }
-                            .onFailure { /* keep old cache, badge will show offline */ }
+                        // سقفِ زمانی: اگر پنل دیر جواب داد، کشِ قبلی می‌ماند و
+                        // badge آفلاین نشان داده می‌شود؛ کارِ گیرنده از بودجهٔ مجاز رد نمی‌شود.
+                        val stats = runCatching {
+                            kotlinx.coroutines.withTimeoutOrNull(REFRESH_TIMEOUT_MS) {
+                                PanelApi.systemStats(sess)
+                            }
+                        }.getOrNull()
+                        if (stats != null) store.saveStatsCache(stats)
                     }
                 } finally {
                     updateAll(context)

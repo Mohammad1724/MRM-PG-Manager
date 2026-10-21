@@ -251,10 +251,14 @@ object BackupManager {
 
     fun inspect(context: Context, input: InputStream, password: String = ""): BackupInfo {
         val bytes = input.use { it.readBytes() }
+        // آیا محتوا اصلاً شبیه JSON است؟ اگر بله ولی ساختار پشتیبان نباشد، خطای
+        // واقعی (خراب/نامعتبر) باید برسد، نه برچسبِ گمراه‌کننده‌ی «فایل رمزدار».
+        var looksLikeJson = false
         return try {
             // Try JSON parse first; if fails treat as encrypted
             val s = String(bytes, Charsets.UTF_8)
             val isJson = try { JSONObject(s); true } catch (_: Exception) { s.trimStart().startsWith("{") }
+            looksLikeJson = isJson
             if (isJson) {
                 parseBackupInfo(context, JSONObject(s))
             } else {
@@ -263,7 +267,7 @@ object BackupManager {
                 parseBackupInfo(context, JSONObject(String(dec, Charsets.UTF_8)))
             }
         } catch (e: Exception) {
-            if (password.isBlank() && bytes.size > SALT_LEN + IV_LEN) {
+            if (password.isBlank() && !looksLikeJson && bytes.size > SALT_LEN + IV_LEN) {
                 throw IllegalArgumentException(context.getString(R.string.bk_encrypted_long), e)
             }
             throw e

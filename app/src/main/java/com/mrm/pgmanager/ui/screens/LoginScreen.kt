@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +38,7 @@ import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -55,8 +57,10 @@ fun LoginScreen(
     sessionExpired: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf(prefill?.baseUrl.orEmpty()) }
-    var username by remember { mutableStateOf(prefill?.username.orEmpty()) }
+    // آدرس و نام کاربری راز نیستند و با چرخش صفحه/مرگ پردازش باید بمانند (B3)؛
+    // رمز و کلید API عمداً فقط remember هستند تا در Bundle ذخیره نشوند.
+    var url by rememberSaveable { mutableStateOf(prefill?.baseUrl.orEmpty()) }
+    var username by rememberSaveable { mutableStateOf(prefill?.username.orEmpty()) }
     var password by remember { mutableStateOf("") }
     // ورود با کلید API (`pg_key_…`): برای کسانی که نمی‌خواهند هر ۲۴ ساعت دوباره رمز بزنند.
     var useApiKey by rememberSaveable { mutableStateOf(prefill?.isApiKey == true) }
@@ -103,7 +107,6 @@ fun LoginScreen(
     // باید همان کارِ دکمهٔ «بازگشت» را بکند، نه اینکه اپ را ببندد.
     if (onBack != null) androidx.activity.compose.BackHandler { onBack() }
 
-    val focusManager = LocalFocusManager.current
     Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = DsSpacing.Lg, bottom = DsSpacing.Xxxl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
             // نوار بالا: فقط سوییچِ زبان. دکمهٔ تنظیمات حذف شد چون تنظیماتِ کامل
@@ -151,13 +154,103 @@ fun LoginScreen(
                     ModeTab(useApiKey, stringResource(R.string.login_mode_api_key)) { useApiKey = true }
                 }
 
-                PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it; urlError = null }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, imeAction = androidx.compose.ui.text.input.ImeAction.Next, error = urlError)
+                // منطقِ ورود اینجا تعریف می‌شود چون فیلدهای فرم (کلید Done) و دکمه هر دو به آن نیاز دارند (B1).
+                val submitLogin: () -> Unit = submit@{
+                    if (loading) return@submit
+                    // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
+                    error = null; errorDetail = null; showDetail = false; diagReport = null
+                    urlError = null; userError = null; passError = null; keyError = null
+                    var blocked = false
+                    val trimmedUrl = url.trim()
+                    val prepared = if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) trimmedUrl else "https://$trimmedUrl"
+                        val uri = runCatching { java.net.URI(prepared) }.getOrNull()
+                        val host = uri?.host
+                        val loopback = host == "localhost" || host == "127.0.0.1"
+                        val isHttp = uri?.scheme.equals("http", ignoreCase = true)
+                        when {
+                            trimmedUrl.isEmpty() -> { urlError = errUrl; blocked = true }
+                            uri == null || host.isNullOrBlank() -> { urlError = errUrl; blocked = true }
+                            // L2: در تولید همه‌ی http رد می‌شود (usesCleartextTraffic=false و
+                            // لایه شبکه هم رد می‌کند). استثنا فقط پشت فلگ تست است تا تست‌های
+                            // رفتاری بتوانند جریان کامل را با MockWebServer لوکال برانند.
+                            isHttp && !(PanelApi.allowCleartextLoopbackForTests && loopback) -> {
+                                urlError = errHttps; blocked = true
+                            }
+                        }
+                    if (useApiKey) {
+                        val key = apiKey.trim()
+                        when {
+                            key.isEmpty() -> { keyError = errRequired; blocked = true }
+                            !key.startsWith(Session.API_KEY_PREFIX) || key.length <= Session.API_KEY_PREFIX.length -> { keyError = errApiKeyFormat; blocked = true }
+                        }
+                    } else {
+                        if (username.isBlank()) { userError = errRequired; blocked = true }
+                        if (password.isBlank()) { passError = errRequired; blocked = true }
+                    }
+                    if (blocked) return@submit
+                    // مرحلهٔ ۲ — اتصال: فقط خطاهای شبکه/سرور در بنر سراسری؛ بقیه زیر فیلدِ مربوط.
+                    loading = true
+                    scope.launch {
+                        runCatching {
+                            // L4: نام کاربری پیش از ارسال trim می‌شود (فاصلهٔ paste/اتوفیل
+                            // باعث ۴۰۱ گمراه‌کننده می‌شد)؛ رمز دست نمی‌خورد چون فاصله در رمز قانونی است.
+                            if (useApiKey) PanelApi.loginWithApiKey(url, apiKey)
+                            else PanelApi.login(url, username.trim(), password)
+                        }.onSuccess(onLoggedIn).onFailure { e ->
+                            // زنجیرهٔ علت را هم نگه می‌داریم: پیامِ اصلیِ OkHttp
+                            // («Read error…») بدونِ cause («Trust anchor…» یا
+                            // «Connection reset») کاربر را به نتیجه نمی‌رساند.
+                            errorDetail = buildString {
+                                append(e.message ?: e::class.java.simpleName)
+                                var cause = e.cause
+                                var depth = 0
+                                while (cause != null && depth < 3) {
+                                    append("\n← ").append(cause.message ?: cause::class.java.simpleName)
+                                    cause = cause.cause
+                                    depth++
+                                }
+                            }
+                            val mapper = com.mrm.pgmanager.utils.ApiErrorMapper
+                            val detail = mapper.panelDetail(e)
+                            when {
+                                e.message?.contains("Credentials required", true) == true -> passError = errCredentials
+                                // L1: ۴۰۱ باید قبل از تطبیق متن «Invalid API key» بررسی شود؛
+                                // وگرنه کلیدِ سالم از نظر فرمت اما باطل/غیرفعال، پیامِ خطای
+                                // فرمت می‌گرفت در حالی که پیام درست «نامعتبر/غیرفعال/منقضی» است.
+                                PanelApi.isUnauthorized(e) -> if (useApiKey) keyError = errApiKey else passError = errAuth
+                                // عملاً فقط مسیر دفاعی require() داخلی؛ UI پیش از این کلید
+                                // بدفرم را به‌صورت محلی رد می‌کند و هیچ درخواستی نمی‌فرستد.
+                                e.message?.contains("Invalid API key", true) == true -> keyError = errApiKeyFormat
+                                e.message?.contains("Invalid URL", true) == true || e.message?.contains("Panel address is required", true) == true -> urlError = errUrl
+                                e.message?.contains("Cleartext http", true) == true -> urlError = errHttps
+                                // پنل برای ادمینِ **غیرفعال** صریحاً ۴۰۳ با متنِ
+                                // «your account has been disabled» می‌دهد؛ پیامِ
+                                // عمومیِ «دسترسی ندارید» کاربر را به مسیرِ غلط می‌فرستاد.
+                                detail?.contains("disabled", true) == true -> error = errDisabled
+                                mapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN -> error =
+                                    detail?.let { context.getString(R.string.login_err_panel_said, it) } ?: errForbidden
+                                e is java.net.UnknownHostException -> error = errHost
+                                e is java.net.SocketTimeoutException -> error = errTimeout
+                                e.message?.contains("404", true) == true -> error = errNotFound
+                                // متنِ خام فقط در لاگ می‌ماند؛ کاربر پیامِ دسته‌بندی‌شده می‌بیند.
+                                else -> error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+                            }
+                        }
+                        loading = false
+                    }
+                }
+
+                // B2: فیلد آدرس کیبورد URI می‌گیرد (کلیدهای / و .com در دسترس باشد).
+                PGField(label = stringResource(R.string.panel_address), value = url, onValueChange = { url = it; urlError = null }, placeholder = stringResource(R.string.panel_hint), icon = AppIcon.Link, keyboardType = KeyboardType.Uri, imeAction = androidx.compose.ui.text.input.ImeAction.Next, testTag = "login_url", error = urlError)
                 if (useApiKey) {
-                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim(); keyError = null }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() }, error = keyError)
+                    // C1: کلید API برای مدیر رمز عبور یک «رمز» است → contentType=Password.
+                    PGField(label = stringResource(R.string.login_api_key), value = apiKey, onValueChange = { apiKey = it.trim(); keyError = null }, placeholder = stringResource(R.string.login_api_key_hint), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = androidx.compose.ui.autofill.ContentType.Password, testTag = "login_api_key", error = keyError)
                     Text(stringResource(R.string.login_api_key_desc), fontSize = 11.sp, color = theme.mutedColor)
                 } else {
-                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { username = ""; apiKey = input.trim(); useApiKey = true } else { username = input }; userError = null }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next, error = userError)
-                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { password = ""; apiKey = input.trim(); useApiKey = true } else { password = input }; passError = null }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onNext = { focusManager.clearFocus() }, error = passError)
+                    // C1: نام کاربری و رمز با contentType معرفی می‌شوند تا Google Password
+                    // Manager/مدیرهای رمز دیگر بتوانند پیشنهاد پرکردن بدهند.
+                    PGField(label = stringResource(R.string.username), value = username, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { username = ""; apiKey = input.trim(); useApiKey = true } else { username = input }; userError = null }, placeholder = stringResource(R.string.username), icon = AppIcon.User, imeAction = androidx.compose.ui.text.input.ImeAction.Next, autofillType = androidx.compose.ui.autofill.ContentType.Username, testTag = "login_username", error = userError)
+                    PGField(label = stringResource(R.string.password), value = password, onValueChange = { input -> if (input.trim().startsWith(Session.API_KEY_PREFIX)) { password = ""; apiKey = input.trim(); useApiKey = true } else { password = input }; passError = null }, placeholder = stringResource(R.string.password), icon = AppIcon.Lock, isPassword = true, imeAction = androidx.compose.ui.text.input.ImeAction.Done, onSubmit = submitLogin, autofillType = androidx.compose.ui.autofill.ContentType.Password, testTag = "login_password", error = passError)
                 }
 
                 if (loading) {
@@ -240,77 +333,7 @@ fun LoginScreen(
                 // دکمهٔ ورود — کپسولِ شیشه‌ایِ اصلی؛ اسپینر داخلِ سکهٔ آیکون می‌چرخد.
                 PGPrimaryButton(
                     text = stringResource(R.string.sign_in),
-                    onClick = {
-                        if (loading) return@PGPrimaryButton
-                        // مرحلهٔ ۱ — اعتبارسنجی محلی: خطا بلافاصله زیر همان فیلد، بدونِ اتصال.
-                        error = null; errorDetail = null; showDetail = false; diagReport = null
-                        urlError = null; userError = null; passError = null; keyError = null
-                        var blocked = false
-                        val trimmedUrl = url.trim()
-                        val prepared = if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) trimmedUrl else "https://$trimmedUrl"
-                        val uri = runCatching { java.net.URI(prepared) }.getOrNull()
-                        val host = uri?.host
-                        val loopback = host == "localhost" || host == "127.0.0.1"
-                        val isHttp = uri?.scheme.equals("http", ignoreCase = true)
-                        when {
-                            trimmedUrl.isEmpty() -> { urlError = errUrl; blocked = true }
-                            uri == null || host.isNullOrBlank() -> { urlError = errUrl; blocked = true }
-                            isHttp && !loopback -> { urlError = errHttps; blocked = true }
-                        }
-                        if (useApiKey) {
-                            val key = apiKey.trim()
-                            when {
-                                key.isEmpty() -> { keyError = errRequired; blocked = true }
-                                !key.startsWith(Session.API_KEY_PREFIX) || key.length <= Session.API_KEY_PREFIX.length -> { keyError = errApiKeyFormat; blocked = true }
-                            }
-                        } else {
-                            if (username.isBlank()) { userError = errRequired; blocked = true }
-                            if (password.isBlank()) { passError = errRequired; blocked = true }
-                        }
-                        if (blocked) return@PGPrimaryButton
-                        // مرحلهٔ ۲ — اتصال: فقط خطاهای شبکه/سرور در بنر سراسری؛ بقیه زیر فیلدِ مربوط.
-                        loading = true
-                        scope.launch {
-                            runCatching {
-                                if (useApiKey) PanelApi.loginWithApiKey(url, apiKey) else PanelApi.login(url, username, password)
-                            }.onSuccess(onLoggedIn).onFailure { e ->
-                                // زنجیرهٔ علت را هم نگه می‌داریم: پیامِ اصلیِ OkHttp
-                                // («Read error…») بدونِ cause («Trust anchor…» یا
-                                // «Connection reset») کاربر را به نتیجه نمی‌رساند.
-                                errorDetail = buildString {
-                                    append(e.message ?: e::class.java.simpleName)
-                                    var cause = e.cause
-                                    var depth = 0
-                                    while (cause != null && depth < 3) {
-                                        append("\n← ").append(cause.message ?: cause::class.java.simpleName)
-                                        cause = cause.cause
-                                        depth++
-                                    }
-                                }
-                                val mapper = com.mrm.pgmanager.utils.ApiErrorMapper
-                                val detail = mapper.panelDetail(e)
-                                when {
-                                    e.message?.contains("Credentials required", true) == true -> passError = errCredentials
-                                    e.message?.contains("Invalid API key", true) == true -> keyError = errApiKeyFormat
-                                    e.message?.contains("Invalid URL", true) == true || e.message?.contains("Panel address is required", true) == true -> urlError = errUrl
-                                    e.message?.contains("Cleartext http", true) == true -> urlError = errHttps
-                                    PanelApi.isUnauthorized(e) -> if (useApiKey) keyError = errApiKey else passError = errAuth
-                                    // پنل برای ادمینِ **غیرفعال** صریحاً ۴۰۳ با متنِ
-                                    // «your account has been disabled» می‌دهد؛ پیامِ
-                                    // عمومیِ «دسترسی ندارید» کاربر را به مسیرِ غلط می‌فرستاد.
-                                    detail?.contains("disabled", true) == true -> error = errDisabled
-                                    mapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN -> error =
-                                        detail?.let { context.getString(R.string.login_err_panel_said, it) } ?: errForbidden
-                                    e is java.net.UnknownHostException -> error = errHost
-                                    e is java.net.SocketTimeoutException -> error = errTimeout
-                                    e.message?.contains("404", true) == true -> error = errNotFound
-                                    // متنِ خام فقط در لاگ می‌ماند؛ کاربر پیامِ دسته‌بندی‌شده می‌بیند.
-                                    else -> error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
-                                }
-                            }
-                            loading = false
-                        }
-                    },
+                    onClick = submitLogin,
                     modifier = Modifier.fillMaxWidth(),
                     loading = loading,
                     icon = AppIcon.Lock,
@@ -381,7 +404,25 @@ private fun LanguageToggle(
 }
 
 @Composable
-private fun PGField(label: String, value: String, onValueChange: (String)->Unit, placeholder: String, icon: AppIcon, isPassword: Boolean = false, imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next, onNext: (() -> Unit)? = null, error: String? = null) {
+private fun PGField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    icon: AppIcon,
+    isPassword: Boolean = false,
+    imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Next,
+    onNext: (() -> Unit)? = null,
+    /** B1: اگر داده شود، کلید Done به‌جای بستن کیبورد فرم را submit می‌کند. */
+    onSubmit: (() -> Unit)? = null,
+    /** B2: نوع کیبورد غیررمزی (مثلاً Uri برای آدرس پنل). */
+    keyboardType: KeyboardType = KeyboardType.Text,
+    /** C1: نوع محتوا برای Autofill/مدیر رمز عبور. null یعنی بدون پیشنهاد. */
+    autofillType: androidx.compose.ui.autofill.ContentType? = null,
+    /** تگ پایدار برای تست‌های رفتاری (روی خود فیلد متنی). */
+    testTag: String? = null,
+    error: String? = null
+) {
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
@@ -406,11 +447,22 @@ private fun PGField(label: String, value: String, onValueChange: (String)->Unit,
                 androidx.compose.foundation.text.BasicTextField(
                     value = value, onValueChange = onValueChange, singleLine = true,
                     visualTransformation = if (isPassword && !visible) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text, imeAction = imeAction),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onNext = { if (onNext != null) onNext() else focusManager.moveFocus(FocusDirection.Down) }, onDone = { focusManager.clearFocus() }),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType, imeAction = imeAction),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onNext = { if (onNext != null) onNext() else focusManager.moveFocus(FocusDirection.Down) },
+                        // B1: Done در فیلدِ نهایی فرم را submit می‌کند؛ اگر onSubmit نبود مثل قبل کیبورد بسته شود.
+                        onDone = { if (onSubmit != null) onSubmit() else focusManager.clearFocus() }
+                    ),
                     textStyle = fieldStyle,
                     cursorBrush = SolidColor(theme.accentPrimary),
-                    modifier = Modifier.weight(1f),
+                    // C1: گرهٔ semantics با contentType تا چارچوب Autofill اندروید و
+                    // مدیرهای رمز عبور فیلد را بشناسند (نام کاربری/رمز).
+                    modifier = Modifier
+                        .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+                        .weight(1f)
+                        .semantics {
+                            if (autofillType != null) contentType = autofillType
+                        },
                     // متنِ راهنما و متنِ ورودی روی هم و هر دو وسط‌چینِ عمودی؛
                     // قبلاً بدونِ Box کنارِ هم رها شده بودند و هم‌تراز نبودند.
                     decorationBox = { inner ->

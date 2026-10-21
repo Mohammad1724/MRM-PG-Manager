@@ -1,0 +1,55 @@
+package com.mrm.pgmanager.data.cache
+
+import com.mrm.pgmanager.data.model.TrafficPoint
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+/**
+ * قراردادهای کلید کش — D5: ترافیک بازه‌های مختلف نباید روی هم بنویسند.
+ */
+class PanelCacheTest {
+
+    @After fun clear() = PanelCache.clear()
+
+    @Test fun `range-less traffic key keeps the legacy shape`() {
+        assertEquals("traffic:https://panel.example", PanelCache.trafficKey("https://panel.example"))
+    }
+
+    @Test fun `each range gets its own traffic key`() {
+        val base = "https://panel.example"
+        val key7d = PanelCache.trafficKey(base, "LAST_7D")
+        val key1h = PanelCache.trafficKey(base, "LAST_1H")
+
+        assertNotEquals(key7d, key1h)
+        assertNotEquals(PanelCache.trafficKey(base), key7d)
+    }
+
+    @Test fun `cached points for one range do not overwrite another range`() {
+        val base = "https://panel.example"
+        val week = listOf(TrafficPoint("2026-10-14T00:00:00Z", 100))
+        val hour = listOf(TrafficPoint("2026-10-21T10:00:00Z", 5))
+
+        PanelCache.put(PanelCache.trafficKey(base, "LAST_7D"), week)
+        PanelCache.put(PanelCache.trafficKey(base, "LAST_1H"), hour)
+
+        assertEquals(week, PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(base, "LAST_7D")))
+        assertEquals(hour, PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(base, "LAST_1H")))
+    }
+
+    @Test fun `blank range falls back to the shared key`() {
+        PanelCache.put(PanelCache.trafficKey("b", ""), listOf(TrafficPoint("t", 1)))
+        assertEquals(
+            listOf(TrafficPoint("t", 1)),
+            PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey("b"))
+        )
+    }
+
+    @Test fun `clear wipes every range for the account`() {
+        PanelCache.put(PanelCache.trafficKey("b", "LAST_7D"), listOf(TrafficPoint("t", 1)))
+        PanelCache.clear()
+        assertNull(PanelCache.get<Any>(PanelCache.trafficKey("b", "LAST_7D")))
+    }
+}

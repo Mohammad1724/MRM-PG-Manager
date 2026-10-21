@@ -58,7 +58,13 @@ object PanelCache {
 
     // ── کلیدها؛ همه به آدرسِ پنل وصل‌اند تا با عوض‌شدنِ حساب قاطی نشوند.
     fun statsKey(baseUrl: String) = "stats:$baseUrl"
-    fun trafficKey(baseUrl: String) = "traffic:$baseUrl"
+    /**
+     * کلیدِ کشِ ترافیکِ داشبورد. بازهٔ انتخابی هم وارد کلید می‌شود (D5): قبلاً هر شش
+     * بازه روی یک کلید می‌نوشتند و با عوض‌کردنِ بازه، کشِ بازهٔ قبلی بازنویسی و
+     * هنگامِ ورودِ مجدد نقاطِ بازهٔ دیگری لحظه‌ای نمایش داده می‌شد.
+     */
+    fun trafficKey(baseUrl: String, range: String? = null) =
+        if (range.isNullOrBlank()) "traffic:$baseUrl" else "traffic:$baseUrl:$range"
     fun statsTrafficKey(baseUrl: String) = "stats.traffic:$baseUrl"
     fun statsCountKey(baseUrl: String) = "stats.count:$baseUrl"
     fun statsNodeUsageKey(baseUrl: String) = "stats.nodeusage:$baseUrl"

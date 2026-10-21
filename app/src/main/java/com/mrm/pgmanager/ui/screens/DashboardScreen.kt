@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -53,6 +52,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.NotificationHelper
+import com.mrm.pgmanager.utils.NotificationIds
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
 import kotlinx.coroutines.launch
@@ -60,20 +60,31 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExpired: () -> Unit, onOpenSettings: () -> Unit = {}) {
+fun DashboardScreen(
+    session: Session,
+    settings: MonitoringSettings,
+    onSessionExpired: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    /** I2: تپ روی کارت‌های حلقه‌ای معیارهای سیستم به تب آمار می‌رود. */
+    onOpenStatistics: () -> Unit = {}
+) {
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    var cpuAlerted by remember { mutableStateOf(false) }
-    var ramAlerted by remember { mutableStateOf(false) }
-    var diskAlerted by remember { mutableStateOf(false) }
-    var panelOfflineAlerted by remember { mutableStateOf(false) }
-    var capacityAlerted by remember { mutableStateOf(false) }
-    var lastNodeStates by remember { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
+    // D4: همهٔ این فلگ‌ها به حساب وصل‌اند؛ با سوییچ حساب باید صفر شوند وگرنه
+    // وضعیت نودهای حساب قبلی برای حساب جدید نوتیف کاذب می‌سازد.
+    var cpuAlerted by remember(session) { mutableStateOf(false) }
+    var ramAlerted by remember(session) { mutableStateOf(false) }
+    var diskAlerted by remember(session) { mutableStateOf(false) }
+    var capacityAlerted by remember(session) { mutableStateOf(false) }
+    // D4: baseline نود در حافظه‌ی مخصوص هر حساب می‌ماند (اولین لود هر حساب بی‌صداست)
+    // و هم‌زمان روی SessionStore نوشته می‌شود تا ورکرِ پس‌زمینه همان baseline را ببیند.
+    var lastNodeStates by remember(session) { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
-    var offlineAt by remember { mutableStateOf<Long?>(null) }
+    // D4: مهر زمانِ آفلاین هم متعلق به همین حساب است؛ با سوییچ نباید بنر حساب قبلی بماند.
+    var offlineAt by remember(session) { mutableStateOf<Long?>(null) }
     var lastWidgetUpdateAt by remember { mutableStateOf(0L) }
     var inForeground by remember { mutableStateOf(true) }
     val lifecycle = (androidx.compose.ui.platform.LocalContext.current as? LifecycleOwner)?.lifecycle
@@ -86,17 +97,20 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
     // مقدارِ اولیه از حافظهٔ برنامه می‌آید: با برگشتن به این تب، صفحه فوراً با
     // آخرین دادهٔ دیده‌شده ساخته می‌شود به‌جای اینکه خالی بیاید و بعد پر شود.
     val statsKey = PanelCache.statsKey(session.baseUrl)
-    val trafficKey = PanelCache.trafficKey(session.baseUrl)
     var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trafficPoints by remember(session) {
-        mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
+        // بازهٔ پیش‌فرضِ اولیه LAST_7D است؛ کشِ همان بازه مقدار اولیه می‌شود.
+        mutableStateOf(PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session.baseUrl, StatsRange.LAST_7D.name)) ?: emptyList())
     }
     // بازهٔ نمودارِ مصرف — قبلاً دو «منو»ی تزئینی بود که کلیک هم نمی‌شدند.
     var chartRange by remember { mutableStateOf(StatsRange.LAST_7D) }
     var chartMenuOpen by remember { mutableStateOf(false) }
+    // D2: بازه‌ای که همین حالا برایش درخواست ترافیک در پرواز است؛ از دو درخواست
+    // یکسانِ هم‌زمان (لود صفحه + افکت تغییر بازه) جلوگیری می‌کند.
+    var trafficRangeInFlight by remember(session) { mutableStateOf<StatsRange?>(null) }
     // فهرستِ ادمین‌ها: فقط برای حسابی که مجوزِ خواندنش را دارد. اگر پنل ۴۰۳ داد،
     // بخش کلاً پنهان می‌شود به‌جای اینکه خطا نشان بدهیم.
     var admins by remember(session) { mutableStateOf<List<PanelAdmin>?>(null) }
@@ -109,45 +123,89 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         debtorCurrency = all.firstOrNull()?.currency ?: settings.debtorCurrency
     }
     LaunchedEffect(Unit) { refreshDebtors() }
+
+    // D4: latch مشترکِ قطع پنل با سوییچ حساب ریست شود تا هشدارِ حساب قبلی،
+    // هشدارِ حساب جدید را سرکوب نکند (معادل remember(session) قبلی برای فلگ ماندگار).
+    LaunchedEffect(session.baseUrl) { store.saveAlertFlag("panel_offline", false) }
+
+    // D2: تنها مسیر درخواست ترافیک. اگر همان بازه در پرواز است، صدا زدنِ دوباره
+    // (از load و از افکت تغییر بازه) ریکوئست تکراری نمی‌سازد. نتیجه فقط وقتی به
+    // state می‌نشیند که بازه هنوز همان باشد؛ کش مخصوص همان بازه همیشه نوشته می‌شود.
+    fun fetchTraffic(range: StatsRange) {
+        if (trafficRangeInFlight == range) return
+        trafficRangeInFlight = range
+        scope.launch {
+            try {
+                runCatching { PanelApi.trafficUsage(session, range) }.onSuccess { pts ->
+                    PanelCache.put(PanelCache.trafficKey(session.baseUrl, range.name), pts)
+                    if (range == chartRange) trafficPoints = pts
+                }
+            } finally {
+                trafficRangeInFlight = null
+            }
+        }
+    }
     fun evaluateHealth(s: SystemStats) {
-        if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
+        if (!settings.notificationsEnabled) return
         fun alert(id: Int, title: String, message: String, kind: String? = null) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message, targetTab = NotificationHelper.DEST_STATISTICS, kind = kind)
-        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
-        val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
-        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
-        val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
-        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk), "system_health"); diskAlerted = true } else diskAlerted = false
+        // F1: ظرفیت آنلاین سوییچِ مستقل دارد؛ early-return قبلی روی notifySystemHealth
+        // باعث می‌شد با خاموش‌بودن هشدار سلامت، هشدار ظرفیت هم هرگز نرسد.
+        if (settings.notifySystemHealth) {
+            if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(NotificationIds.CPU, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
+            val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
+            if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(NotificationIds.RAM, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
+            val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
+            if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(NotificationIds.DISK, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk), "system_health"); diskAlerted = true } else diskAlerted = false
+        }
+        // IDهای یکسان با ورکر (NotificationIds): انتشار هم‌زمان دو موتور جایگزین می‌شود، نه انباشته.
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
-            if (!capacityAlerted) alert(3105, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit), "capacity"); capacityAlerted = true
+            if (!capacityAlerted) alert(NotificationIds.CAPACITY, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit), "capacity"); capacityAlerted = true
         } else capacityAlerted = false
     }
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         error = null
-        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
+        var expired = false
+        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; store.saveAlertFlag("panel_offline", false); offlineAt = null
             PanelCache.put(statsKey, it)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
             refreshDebtors()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
         }.onFailure { e ->
-            if (PanelApi.isUnauthorized(e)) { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired)); onSessionExpired() }
-            else {
-                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); panelOfflineAlerted = true }
+            if (PanelApi.isUnauthorized(e)) {
+                com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
+                onSessionExpired()
+                expired = true
+            } else {
+                // F5: latch مشترکِ ورکر و ID یکتا (5104) تا دو موتور یک اعلان بسازند.
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) { NotificationHelper.post(context, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); store.saveAlertFlag("panel_offline", true) }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
                 else error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             }
         }
-        runCatching { PanelApi.trafficUsage(session, chartRange) }.onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
-        // ۴۰۳ یعنی این ادمین اجازهٔ دیدنِ بقیه را ندارد؛ لیستِ خالی = بخش پنهان.
-        runCatching { PanelApi.admins(session) }.onSuccess { admins = it }.onFailure { admins = emptyList() }
-        runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+        // D6: با نشست منقضی، سه درخواست بعدی قطعاً ۴۰۱ می‌گیرند؛ ادامه نده.
+        if (expired) { loading = false; return }
+        // D2: از مسیر واحدِ واجد گاردِ تکرار می‌رود.
+        fetchTraffic(chartRange)
+        // D3: فقط ۴۰۳ (نبودِ مجوز) بخش را پنهان می‌کند؛ خطای گذرای شبکه لیستِ قبلی را نگه می‌دارد.
+        runCatching { PanelApi.admins(session) }
+            .onSuccess { admins = it }
+            .onFailure { e ->
+                if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) admins = emptyList()
+            }
+        // N6-followup: realtime_stats نیازمند nodes.stats است؛ بدون مجوز درخواست ۴۰۳ نزن.
+        if (com.mrm.pgmanager.data.AdminAccess.can("nodes", "stats")) runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
-                val prev = lastNodeStates[id]; if (prev == true && !online) NotificationHelper.post(context, 4100+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
-                if (prev == false && online) NotificationHelper.post(context, 4200+id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
+                val prev = lastNodeStates[id]
+                // F3: IDهای هش‌محورِ مشترک با ورکر (NotificationIds) — بدون برخورد باندی روی idهای بزرگ.
+                if (prev == true && !online) NotificationHelper.post(context, NotificationIds.nodeOffline(id), NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
+                if (prev == false && online) NotificationHelper.post(context, NotificationIds.nodeOnline(id), NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
             }
             lastNodeStates = states
+            // write-through روی baseline مشترک تا تیک بعدیِ ورکر گذارِ دیده‌شده را دوباره هشدار ندهد.
+            store.saveNodeStates(states)
         }
         loading = false
     }
@@ -171,14 +229,30 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
         wasInactive = false
         if (stats != null && !PanelCache.isFresh(statsKey)) load(silent = true)
     }
-    // عوض‌شدنِ بازه فقط نمودار را تازه می‌کند، نه کلِ صفحه را.
+    // عوض‌شدنِ بازه فقط نمودار را تازه می‌کند، نه کلِ صفحه را. اول کشِ همان بازه
+    // نشان داده می‌شود تا نمودار بلافاصله خالی نشود، بعد درخواست تازه از مسیرِ
+    // واحدِ واجد گاردِ تکرار (D2/D5).
     LaunchedEffect(chartRange) {
-        runCatching { PanelApi.trafficUsage(session, chartRange) }
-            .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
+        PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session.baseUrl, chartRange.name))
+            ?.let { trafficPoints = it }
+        fetchTraffic(chartRange)
+    }
+
+    // D8: اسپینر pull-to-refresh حتی با استثنای پیش‌بینی‌نشده هم باید ریست شود.
+    fun refreshManually() {
+        if (manualRefreshing) return
+        manualRefreshing = true
+        scope.launch {
+            try {
+                load()
+            } finally {
+                manualRefreshing = false
+            }
+        }
     }
 
     val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } }, state = pullState, modifier = Modifier.fillMaxSize(),
+    PullToRefreshBox(isRefreshing = manualRefreshing, onRefresh = { refreshManually() }, state = pullState, modifier = Modifier.fillMaxSize(),
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = manualRefreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentPrimary) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -188,13 +262,30 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 title = stringResource(R.string.dashboard),
                 subtitle = stringResource(R.string.dashboard_subtitle),
                 refreshing = manualRefreshing,
-                onRefresh = { scope.launch { manualRefreshing = true; load(); manualRefreshing = false } },
+                onRefresh = { refreshManually() },
                 onOpenSettings = onOpenSettings,
                 settingsLabel = settingsLabel,
                 refreshLabel = refreshLabel
             )
 
-            if (loading && stats == null) Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = theme.accentPrimary) }
+            // I3: به‌جای اسپینر مرکزی، اسکلتی با همان ریختِ صفحه (دو کارت کاربر،
+            // یک کارت تمام‌عرض و دو ردیف حلقه) تا چیدمان قبل از داده پرش نکند.
+            if (loading && stats == null) Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    SkeletonCard(Modifier.weight(1f).height(86.dp))
+                    SkeletonCard(Modifier.weight(1f).height(86.dp))
+                }
+                SkeletonCard(Modifier.fillMaxWidth().height(72.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    SkeletonCard(Modifier.weight(1f).height(104.dp))
+                    SkeletonCard(Modifier.weight(1f).height(104.dp))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.CardGap)) {
+                    SkeletonCard(Modifier.weight(1f).height(104.dp))
+                    SkeletonCard(Modifier.weight(1f).height(104.dp))
+                }
+                SkeletonCard(Modifier.fillMaxWidth().height(64.dp))
+            }
             if (error != null && stats == null) {
                 MrmErrorState(onRetry = { scope.launch { load() } }, message = error)
             } else error?.let { Text(it, color = com.mrm.pgmanager.ui.theme.GlassRed, fontSize = 11.sp) }
@@ -263,13 +354,21 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                 val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
+                // I2: تپ روی هر کارت حلقه‌ای به تب آمار می‌رود؛ شرحِ اقدام برای TalkBack.
+                val openStatsLabel = stringResource(R.string.db_open_statistics)
+                val statsCardModifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(DsRadius.Lg)
+                    .clickable(onClick = onOpenStatistics)
+                    .semantics { contentDescription = openStatsLabel }
 
                 PGRingStatRow(spacing = DsSpacing.CardGap) {
                     PGRingStatCard(
                         label = stringResource(R.string.cpu_usage),
                         value = "${formatPercent(s.cpuUsage)}%",
                         icon = AppIcon.Gauge,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = statsCardModifier,
                         fraction = cpuFraction,
                         percent = cpuFraction.times(100).toInt(),
                         sub = stringResource(R.string.cpu_cores_fmt, s.cpuCores)
@@ -278,7 +377,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         label = stringResource(R.string.ram_usage),
                         value = formatBytes(s.memUsed),
                         icon = AppIcon.Memory,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = statsCardModifier,
                         fraction = memFraction,
                         percent = memFraction.times(100).toInt(),
                         sub = stringResource(R.string.of_total_fmt, formatBytes(s.memTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.memTotal - s.memUsed).coerceAtLeast(0L)))
@@ -289,7 +388,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         label = stringResource(R.string.disk_usage),
                         value = formatBytes(s.diskUsed),
                         icon = AppIcon.Storage,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = statsCardModifier,
                         fraction = diskFraction,
                         percent = diskFraction.times(100).toInt(),
                         sub = stringResource(R.string.of_total_fmt, formatBytes(s.diskTotal)) + "\n" + stringResource(R.string.free_fmt, formatBytes((s.diskTotal - s.diskUsed).coerceAtLeast(0L)))
@@ -301,7 +400,7 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         label = stringResource(R.string.total_traffic),
                         value = formatBytes(totalTraffic),
                         icon = AppIcon.Storage,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        modifier = statsCardModifier,
                         segments = listOf(
                             RingSegment(downShare, downColor),
                             RingSegment(1f - downShare, upColor)
@@ -376,11 +475,13 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         // که هیچ‌کدام کلیک نمی‌شدند — شکلِ منوی پنل کپی شده بود
                         // بدونِ رفتارش. حالا واقعاً نمودار را عوض می‌کند.
                         Box {
+                            // I1: بدون شرح، TalkBack فقط «▾» می‌خواند؛ حالا نقش و بازهٔ فعلی اعلام می‌شود.
+                            val rangeSelectorDescription = stringResource(R.string.chart_range_selector, chartRange.label)
                             Row(
                                 Modifier.padding(vertical = 8.dp).clip(RoundedCornerShape(6.dp)).clickable { chartMenuOpen = true }.background(theme.searchBgColor)
                                     .border(BorderStroke(0.5.dp, theme.borderColor), RoundedCornerShape(6.dp))
                                     .pressScale(0.95f)
-                                    
+                                    .semantics { contentDescription = rangeSelectorDescription }
                                     .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
@@ -414,13 +515,20 @@ fun DashboardScreen(session: Session, settings: MonitoringSettings, onSessionExp
                         )
                         run {
                             val totalPeriod = trafficPoints.sumOf { it.totalTraffic }
-                            val trendingText = if (trafficPoints.size >= 2) {
-                                val first = trafficPoints.first().totalTraffic.toDouble().coerceAtLeast(1.0)
-                                val last = trafficPoints.last().totalTraffic.toDouble()
-                                val diff = ((last - first) / first * 100).toInt()
-                                if (diff >= 0) stringResource(R.string.trending_up, diff) else stringResource(R.string.trending_down, -diff)
-                            } else stringResource(R.string.no_trend)
-                            val trendingColor = if (trafficPoints.size >= 2 && trafficPoints.last().totalTraffic >= trafficPoints.first().totalTraffic) DsSemantic.Success else DsSemantic.Danger
+                            // D1: مقایسهٔ سطل اول/آخر حذف شد (سطل آخر ناقص است و
+                            // coerceAtLeast(1) درصد پوچ می‌ساخت)؛ میانگین دو نیمه با
+                            // تابع خالصِ تست‌پذیر مقایسه می‌شود.
+                            val trend = trafficTrendPercent(trafficPoints)
+                            val trendingText = when {
+                                trend == null -> stringResource(R.string.no_trend)
+                                trend >= 0 -> stringResource(R.string.trending_up, trend)
+                                else -> stringResource(R.string.trending_down, -trend)
+                            }
+                            val trendingColor = when {
+                                trend == null -> theme.mutedColor
+                                trend >= 0 -> DsSemantic.Success
+                                else -> DsSemantic.Danger
+                            }
                             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                                 Text(trendingText, fontSize = 11.sp, color = trendingColor, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.usage_during_period, formatBytes(totalPeriod)) + "\n" + stringResource(R.string.total_traffic_desc), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
@@ -499,6 +607,28 @@ private data class UserBreakdownRow(
 /** درصدِ یک بخش از کل، با یک رقمِ اعشار — «۸۹.۰%». اگر کل صفر باشد، «—». */
 private fun percentOf(part: Int, total: Int): String =
     if (total <= 0) "—" else String.format(java.util.Locale.US, "%.1f%%", part * 100.0 / total)
+
+/**
+ * درصدِ روندِ مصرف بین دو نیمهٔ سری زمانی (D1).
+ *
+ * مثبت یعنی نیمهٔ دوم به‌طور میانگین پرمصرف‌تر است. null یعنی روند معناداری
+ * وجود ندارد: داده کمتر از ۴ نقطه، یا میانگین نیمهٔ اول صفر (محاسبهٔ درصد بی‌معنا).
+ *
+ * چرا مقایسهٔ سطل اول/آخر غلط بود: نقاط، مصرفِ هر بازه‌اند (نه تجمعی) و سطلِ آخر
+ * معمولاً بازهٔ در حال تجمیع و ناقص است؛ ضمناً با سطل اول صفر، تقسیم بر عددِ
+ * اجباریِ ۱ درصدِ نجومی می‌ساخت. میانگین دو نیمه در برابر نویز تک‌سطل مقاوم است.
+ */
+internal fun trafficTrendPercent(points: List<TrafficPoint>): Int? {
+    if (points.size < 4) return null
+    // سطلِ آخرِ ناقص کنار گذاشته می‌شود.
+    val buckets = points.dropLast(1).map { it.totalTraffic }
+    if (buckets.size < 3) return null
+    val mid = buckets.size / 2
+    val olderAvg = buckets.take(mid).average()
+    if (olderAvg <= 0.0) return null
+    val newerAvg = buckets.drop(mid).average()
+    return kotlin.math.roundToInt((newerAvg - olderAvg) / olderAvg * 100.0)
+}
 
 private fun formatDebtorAmountFull(amount: Long): String = when {
     amount == 0L -> "0"

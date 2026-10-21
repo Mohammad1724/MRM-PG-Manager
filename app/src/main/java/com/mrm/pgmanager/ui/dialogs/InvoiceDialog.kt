@@ -43,22 +43,21 @@ import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
-import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.JalaliCalendar
+import com.mrm.pgmanager.utils.computeInvoicePeriod
 import com.mrm.pgmanager.utils.PdfInvoiceGenerator
 import com.mrm.pgmanager.utils.formatBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import java.util.*
 
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun InvoiceDialog(
     user: PanelUser,
+    baseUrl: String,
     debtorInfo: DebtorInfo? = null,
     currency: String = stringResource(R.string.inv_currency),
     onDismiss: () -> Unit
@@ -96,22 +95,17 @@ fun InvoiceDialog(
     val unlimitedLabel = stringResource(R.string.inv_unlimited)
     val endJalali = JalaliCalendar.isoToShamsi(user.expire ?: "").ifBlank { unlimitedLabel }
 
-    // یک پارسرِ مشترک (Z / offset / naive=UTC) به‌جای نسخهٔ تکراریِ محلی.
-    val endDate: LocalDate? = DateLogic.expiryDate(user.expire)
-    val startDate: LocalDate? = DateLogic.expiryDate(user.createdAt)
+    // تاریخ تمدیدِ ثبت‌شده محلی: پنل فیلد تمدید ندارد و created_at با تمدید عوض
+    // نمی‌شود؛ بدون این مقدار فاکتورِ کاربرِ تمدیدشده همچنان روز ساخت حساب را نشان می‌داد.
+    val renewalIso = remember(user.id, baseUrl) { store.readRenewalDate(baseUrl, user.id) }
+    val period = computeInvoicePeriod(
+        createdAtIso = user.createdAt,
+        expireIso = user.expire,
+        renewalIso = renewalIso
+    )
+    val durationDays = period.durationDays
 
-    val effectiveStartDate = startDate ?: LocalDate.now()
-
-    val durationDays = if (endDate != null) {
-        val s = startDate ?: effectiveStartDate
-        ChronoUnit.DAYS.between(s, endDate).coerceAtLeast(0L)
-    } else 0L
-
-    val startJalali = if (startDate != null) {
-        JalaliCalendar.isoToShamsi(startDate.toString()).ifBlank { "-" }
-    } else {
-        JalaliCalendar.isoToShamsi(effectiveStartDate.toString()).ifBlank { "-" }
-    }
+    val startJalali = JalaliCalendar.isoToShamsi(period.start.toString()).ifBlank { "-" }
 
     val durationText = when {
         durationDays <= 0L -> stringResource(R.string.inv_unlimited)
@@ -454,6 +448,7 @@ fun InvoiceDialog(
                                         PdfInvoiceGenerator.generate(
                                             context = context,
                                             user = user,
+                                            renewalIso = renewalIso,
                                             debtorInfo = debtorInfo,
                                             currency = currency,
                                             currentPrice = currentPrice.takeIf { currentPrice > 0L || totalBilled > 0L },

@@ -265,11 +265,20 @@ internal fun UsersScreenDialogs(
                         fontSize = 11.sp, color = theme.mutedColor
                     )
                 }
-                GlassSearchBar(query = ui.bulkAmountText, onQueryChange = { text ->
-                    // فقط عدد و یک منفیِ ابتدایی؛ منفی یعنی «کم کن». + نرمال‌سازی فارسی
-                    val normalized = com.mrm.pgmanager.utils.normalizePersianDigits(text)
-                    ui.bulkAmountText = normalized.filterIndexed { i, c -> c.isDigit() || (c == '-' && i == 0) || (c == '.' && kind == "data") }
-                })
+                // فیلدِ عددیِ اختصاصی (نه نوارِ جست‌وجو): بدونِ آیکون ذره‌بین و
+                // هینتِ «جست‌وجو». کیبورد متنی می‌ماند تا منفیِ ابتدایی (کم‌کردن)
+                // و نقطهٔ اعشارِ حجم قابلِ تایپ باشند — همان قواعدِ قبلی، فقط
+                // به تابعِ خالصِ [UsersUiState.sanitizeBulkAmount] منتقل شد.
+                com.mrm.pgmanager.ui.dialogs.CompactGlassField(
+                    value = ui.bulkAmountText,
+                    onValueChange = { text ->
+                        ui.bulkAmountText = UsersUiState.sanitizeBulkAmount(text, kind)
+                    },
+                    placeholder = stringResource(
+                        if (kind == "days") R.string.us_bulk_amount_days else R.string.us_bulk_amount_gb
+                    ),
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     PGSecondaryButton(stringResource(R.string.us_cancel), onClick = { ui.bulkAmountKind = null }, modifier = Modifier.weight(1f))
                     PGPrimaryButton(
@@ -335,8 +344,11 @@ internal fun UsersScreenDialogs(
             onConfirm = {
                 val count = names.size
                 ui.cleanupNames = null
-                ui.runAction(notification = null) { PanelApi.deleteCleanupCandidates(session) }
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_cleanup_done, count))
+                // successMessage فقط بعد از پاسخ موفقِ سرور نشان داده می‌شود؛ قبلاً
+                // اسنکِ «حذف شد» بلافاصله (و در خطا، قبل از پیام خطا) دیده می‌شد.
+                ui.runAction(successMessage = context.getString(R.string.us_cleanup_done, count)) {
+                    PanelApi.deleteCleanupCandidates(session)
+                }
             }
         )
     }
@@ -372,13 +384,14 @@ internal fun UsersScreenDialogs(
                                 ui.bulkGroupPicker = false
                                 ui.selectedUserIds = emptySet()
                                 val add = ui.bulkGroupAdd
+                                // پیامِ نتیجه بعد از پاسخِ واقعیِ پنل می‌آید (successMessage)،
+                                // نه پیش از آن — وگرنه در خطا دو پیامِ متناقض پشت سر هم دیده می‌شد.
                                 ui.runAction(
-                                    notification = null
-                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
-                                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(
+                                    successMessage = context.getString(
                                         if (add) R.string.us_bulk_group_added else R.string.us_bulk_group_removed,
                                         ids.size
-                                    ))
+                                    )
+                                ) { PanelApi.bulkGroupMembership(session, setOf(g.id), ids, add) }
                             }
                             .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
                         contentAlignment = Alignment.CenterStart
@@ -479,7 +492,7 @@ internal fun UsersScreenDialogs(
             user = user,
             onDismiss = { ui.selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                ui.selectedUser = null; ui.runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
+                ui.selectedUser = null; ui.runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds); if (iso != null) store.saveRenewalDate(session.baseUrl, user.id, LocalDate.now().toString()) }
             },
             onToggle = {
                 ui.selectedUser = null
@@ -502,8 +515,10 @@ internal fun UsersScreenDialogs(
             },
             onResetExpiry = { days ->
                 ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
-                    val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
+                    val renewedOn = LocalDate.now()
+                    val newExpire = renewedOn.plusDays(days.toLong()).toString()
                     PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+                    store.saveRenewalDate(session.baseUrl, user.id, renewedOn.toString())
                 }
             },
             onApplyTemplate = { templateId, note ->
@@ -589,6 +604,7 @@ internal fun UsersScreenDialogs(
     ui.invoiceDialogUser?.let { u ->
         InvoiceDialog(
             user = u,
+            baseUrl = session.baseUrl,
             debtorInfo = ui.debtorByUsername[u.username],
             currency = monitoringSettings.debtorCurrency.ifBlank { defaultCurrency },
             onDismiss = { ui.invoiceDialogUser = null }
@@ -615,7 +631,21 @@ internal fun UsersScreenDialogs(
                 store.setDebtor(info)
                 ui.reloadDebtors()
                 ui.debtorDialogUser = null
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated))
+                val isNewDebtor = existing == null
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (isNewDebtor) R.string.us_debt_added else R.string.us_debt_updated))
+                // اعلانِ «ثبت بدهکار» فقط برای ثبتِ جدید و وقتی کلیدش روشن است
+                // (ویرایشِ بدهی اعلان ندارد). متنِ راهنمای تنظیمات همین وعده را می‌دهد.
+                if (isNewDebtor && monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtor) {
+                    NotificationHelper.post(
+                        context,
+                        com.mrm.pgmanager.utils.NotificationIds.debtorRegistered(info.username),
+                        NotificationHelper.CHANNEL_EVENTS,
+                        context.getString(R.string.us_n_debtor),
+                        context.getString(R.string.us_n_debtor_body, info.username, info.amount.toString(), info.currency),
+                        targetUsername = info.username,
+                        kind = "debtor_registered"
+                    )
+                }
                 if (monitoringSettings.debtorAutoDisableEnabled) {
                     val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
                     if (over && u.status != "disabled") {
@@ -655,8 +685,10 @@ internal fun UsersScreenDialogs(
             onConfirm = { days ->
                 val targetUser = u; ui.resetExpiryTarget = null
                 ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
-                    val newExpire = LocalDate.now().plusDays(days.toLong()).toString()
+                    val renewedOn = LocalDate.now()
+                    val newExpire = renewedOn.plusDays(days.toLong()).toString()
                     PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
+                    store.saveRenewalDate(session.baseUrl, targetUser.id, renewedOn.toString())
                 }
             }
         )

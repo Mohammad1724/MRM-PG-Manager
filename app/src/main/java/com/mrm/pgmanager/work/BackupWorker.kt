@@ -51,8 +51,15 @@ class BackupWorker(context: Context, params: WorkerParameters) : CoroutineWorker
 
             val password = store.readBackupPassword()
             val version = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: ""
-            cr.openOutputStream(newDocUri)?.use { os ->
-                BackupManager.createBackup(ctx, os, password, version)
+            // اگر جریان خروجی null شد نباید «موفق» ثبت شود: سندِ صفر بایتی حذف و
+            // تلاش به‌وقتِ دیگری موکول می‌شود (مسیر دستیِ UI هم همین گارد را دارد).
+            val os = cr.openOutputStream(newDocUri)
+            if (os == null) {
+                runCatching { cr.delete(newDocUri, null, null) }
+                return@withContext Result.retry()
+            }
+            os.use { stream ->
+                BackupManager.createBackup(ctx, stream, password, version)
             }
 
             // Prune old backups

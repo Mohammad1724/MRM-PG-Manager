@@ -106,7 +106,9 @@ fun SettingsScreen(
     store: SessionStore? = null,
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {},
-    onBulkCreate: () -> Unit = {}
+    onBulkCreate: () -> Unit = {},
+    /** پس از بازیابیِ موفقِ پشتیبان، stateهای درون‌حافظه‌ای از روی prefs تازه شوند. */
+    onDataRestored: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
@@ -259,7 +261,8 @@ fun SettingsScreen(
                         monitoringSettings = monitoringSettings,
                         onMonitoringChange = onMonitoringChange,
                         onBulkCreate = onBulkCreate,
-                        appVersion = appVersion
+                        appVersion = appVersion,
+                        onDataRestored = onDataRestored
                     )
                 }
             }
@@ -288,7 +291,8 @@ private fun AdvancedSection(
     monitoringSettings: MonitoringSettings,
     onMonitoringChange: (MonitoringSettings) -> Unit,
     onBulkCreate: () -> Unit,
-    appVersion: String
+    appVersion: String,
+    onDataRestored: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     var openGroup by rememberSaveable { mutableStateOf(0) }
@@ -340,7 +344,12 @@ private fun AdvancedSection(
     }
 
     restoreUri?.let { uri ->
-        RestoreBackupDialog(uri = uri, scope = scope, onDismiss = { restoreUri = null })
+        RestoreBackupDialog(
+            uri = uri,
+            scope = scope,
+            onDismiss = { restoreUri = null },
+            onRestored = onDataRestored
+        )
     }
 }
 

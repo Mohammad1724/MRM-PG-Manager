@@ -55853,6 +55853,7 @@ androidx.compose.ui.semantics.SemanticsActions
 androidx.compose.ui.semantics.SemanticsConfiguration
 androidx.compose.ui.semantics.SemanticsConfigurationKt
 androidx.compose.ui.semantics.SemanticsConfigurationKt.getOrNull.1
+androidx.compose.ui.semantics.SemanticsMatcher
 androidx.compose.ui.semantics.SemanticsModifier
 androidx.compose.ui.semantics.SemanticsModifier.DefaultImpls
 androidx.compose.ui.semantics.SemanticsModifierKt
@@ -56491,6 +56492,8 @@ androidx.compose.ui.test.assertAny
 androidx.compose.ui.test.assertContentDescriptionContains
 androidx.compose.ui.test.assertContentDescriptionEquals
 androidx.compose.ui.test.assertCountEquals
+androidx.compose.ui.test.assertDoesNotExist
+androidx.compose.ui.test.assertExists
 androidx.compose.ui.test.assertHasClickAction
 androidx.compose.ui.test.assertHasNoClickAction
 androidx.compose.ui.test.assertHeightIsAtLeast
@@ -56745,6 +56748,7 @@ androidx.compose.ui.test.onChildAt
 androidx.compose.ui.test.onChildren
 androidx.compose.ui.test.onFirst
 androidx.compose.ui.test.onLast
+androidx.compose.ui.test.onNode
 androidx.compose.ui.test.onNodeWithContentDescription
 androidx.compose.ui.test.onNodeWithTag
 androidx.compose.ui.test.onNodeWithText

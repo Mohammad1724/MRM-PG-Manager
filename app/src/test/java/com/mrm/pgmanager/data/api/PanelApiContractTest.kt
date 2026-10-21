@@ -458,6 +458,26 @@ class PanelApiContractTest {
         assertEquals(66L, points.single().totalTraffic)
     }
 
+    /**
+     * راستی‌آزمایی‌شده با سورس پنل v5.4.1 (`crud/user.py:get_user_count_metric_stats`):
+     * بدون group_by_node/node_id پاسخ فقط یک کلید تجمیعیِ `-1` دارد. این تست آن شکل
+     * واقعی را قفل می‌کند — نتیجه باید بدون جمع/تکرار اشتباه، عین عددِ پنل باشد.
+     */
+    @Test fun `userCountMetric parses the panel single aggregated minus-one key`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"metric":"online","stats":{"-1":[{"period_start":"2026-08-10T00:00:00Z","count":12},{"period_start":"2026-08-10T00:01:00Z","count":15}]}}"""))
+        val points = PanelApi.userCountMetric(session, CountMetric.ONLINE, StatsRange.LAST_1H)
+
+        assertEquals(listOf(12L, 15L), points.map { it.totalTraffic })
+    }
+
+    /** پنل‌های قدیمی‌تر به‌جای count فیلد total را برمی‌گردانند؛ هر دو باید خوانده شوند. */
+    @Test fun `userCountMetric falls back to total when count is absent`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"stats":{"-1":[{"period_start":"2026-08-10T00:00:00Z","total":7}]}}"""))
+        val points = PanelApi.userCountMetric(session, CountMetric.LIMITED, StatsRange.LAST_24H)
+
+        assertEquals(7L, points.single().totalTraffic)
+    }
+
     // ── bulk create ──────────────────────────────────────────
 
     @Test fun `bulk create with sequence strategy sends username and start_number`() = runBlocking {
@@ -587,6 +607,18 @@ class PanelApiContractTest {
         val error = runCatching { runBlocking { PanelApi.loginWithApiKey(server.url("/").toString(), "not-a-key") } }.exceptionOrNull()
         assertTrue(error!!.message!!.contains("Invalid API key"))
         assertEquals(0, server.requestCount)
+    }
+
+    /**
+     * L3: تلاش‌های fallback فقط مخصوص SSLException اند؛ یک ورود موفق با کلید API
+     * نباید هیچ درخواست تکراری بسوزاند (سه کلاینت در helper فقط هنگام خطای TLS فعال می‌شوند).
+     */
+    @Test fun `loginWithApiKey uses a single request when the first attempt succeeds`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"id":3,"username":"reseller","role":{"name":"Reseller","is_owner":false,"permissions":{}}}"""))
+        PanelApi.loginWithApiKey(server.url("/").toString(), "pg_key_123e4567-e89b-42d3-a456-426614174000")
+
+        assertEquals(1, server.requestCount)
+        assertEquals("/api/admin", server.takeRequest().path)
     }
 
     @Test fun `loginWithApiKey maps a rejected key to a 401 login failure`() {
