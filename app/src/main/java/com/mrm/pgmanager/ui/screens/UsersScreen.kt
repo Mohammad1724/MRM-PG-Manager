@@ -656,7 +656,7 @@ fun UsersScreen(
                 // ردیف همین لحظه «غیرفعال» شود؛ منتظرِ رفرشِ بی‌صدا نمی‌مانیم.
                 ui.patchRows(setOf(pu.id)) { it.copy(status = "disabled") }
                 if (monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtorOverdue) {
-                    NotificationHelper.post(context, ("debtor_overdue_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, context.getString(R.string.us_n_auto_disable), context.getString(R.string.us_n_auto_disable_body, d.username, monitoringSettings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
+                    NotificationHelper.post(context, com.mrm.pgmanager.utils.NotificationIds.debtorOverdue(d.username), NotificationHelper.CHANNEL_EVENTS, context.getString(R.string.us_n_auto_disable), context.getString(R.string.us_n_auto_disable_body, d.username, monitoringSettings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
                 }
             }
         }

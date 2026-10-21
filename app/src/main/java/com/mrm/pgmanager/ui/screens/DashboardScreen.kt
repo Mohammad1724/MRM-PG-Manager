@@ -52,6 +52,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.NotificationHelper
+import com.mrm.pgmanager.utils.NotificationIds
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
 import kotlinx.coroutines.launch
@@ -77,8 +78,9 @@ fun DashboardScreen(
     var cpuAlerted by remember(session) { mutableStateOf(false) }
     var ramAlerted by remember(session) { mutableStateOf(false) }
     var diskAlerted by remember(session) { mutableStateOf(false) }
-    var panelOfflineAlerted by remember(session) { mutableStateOf(false) }
     var capacityAlerted by remember(session) { mutableStateOf(false) }
+    // D4: baseline نود در حافظه‌ی مخصوص هر حساب می‌ماند (اولین لود هر حساب بی‌صداست)
+    // و هم‌زمان روی SessionStore نوشته می‌شود تا ورکرِ پس‌زمینه همان baseline را ببیند.
     var lastNodeStates by remember(session) { mutableStateOf<Map<Int, Boolean>>(emptyMap()) }
     val store = remember { com.mrm.pgmanager.data.storage.SessionStore(context) }
     // D4: مهر زمانِ آفلاین هم متعلق به همین حساب است؛ با سوییچ نباید بنر حساب قبلی بماند.
@@ -122,6 +124,10 @@ fun DashboardScreen(
     }
     LaunchedEffect(Unit) { refreshDebtors() }
 
+    // D4: latch مشترکِ قطع پنل با سوییچ حساب ریست شود تا هشدارِ حساب قبلی،
+    // هشدارِ حساب جدید را سرکوب نکند (معادل remember(session) قبلی برای فلگ ماندگار).
+    LaunchedEffect(session.baseUrl) { store.saveAlertFlag("panel_offline", false) }
+
     // D2: تنها مسیر درخواست ترافیک. اگر همان بازه در پرواز است، صدا زدنِ دوباره
     // (از load و از افکت تغییر بازه) ریکوئست تکراری نمی‌سازد. نتیجه فقط وقتی به
     // state می‌نشیند که بازه هنوز همان باشد؛ کش مخصوص همان بازه همیشه نوشته می‌شود.
@@ -140,22 +146,27 @@ fun DashboardScreen(
         }
     }
     fun evaluateHealth(s: SystemStats) {
-        if (!settings.notificationsEnabled || !settings.notifySystemHealth) return
+        if (!settings.notificationsEnabled) return
         fun alert(id: Int, title: String, message: String, kind: String? = null) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_SYSTEM, title, message, targetTab = NotificationHelper.DEST_STATISTICS, kind = kind)
-        if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(3101, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
-        val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
-        if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(3102, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
-        val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
-        if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(3103, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk), "system_health"); diskAlerted = true } else diskAlerted = false
+        // F1: ظرفیت آنلاین سوییچِ مستقل دارد؛ early-return قبلی روی notifySystemHealth
+        // باعث می‌شد با خاموش‌بودن هشدار سلامت، هشدار ظرفیت هم هرگز نرسد.
+        if (settings.notifySystemHealth) {
+            if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(NotificationIds.CPU, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
+            val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
+            if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(NotificationIds.RAM, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
+            val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
+            if (disk >= settings.diskThreshold) { if (!diskAlerted) alert(NotificationIds.DISK, context.getString(R.string.mw_disk), context.getString(R.string.mw_disk_body, disk), "system_health"); diskAlerted = true } else diskAlerted = false
+        }
+        // IDهای یکسان با ورکر (NotificationIds): انتشار هم‌زمان دو موتور جایگزین می‌شود، نه انباشته.
         if (settings.notifyCapacity && s.onlineUsers >= settings.capacityOnlineLimit) {
-            if (!capacityAlerted) alert(3105, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit), "capacity"); capacityAlerted = true
+            if (!capacityAlerted) alert(NotificationIds.CAPACITY, context.getString(R.string.mw_capacity), context.getString(R.string.mw_capacity_body, s.onlineUsers, settings.capacityOnlineLimit), "capacity"); capacityAlerted = true
         } else capacityAlerted = false
     }
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         error = null
         var expired = false
-        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; panelOfflineAlerted = false; offlineAt = null
+        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; store.saveAlertFlag("panel_offline", false); offlineAt = null
             PanelCache.put(statsKey, it)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
             refreshDebtors()
@@ -167,7 +178,8 @@ fun DashboardScreen(
                 onSessionExpired()
                 expired = true
             } else {
-                if (settings.notificationsEnabled && settings.notifyPanelOffline && !panelOfflineAlerted) { NotificationHelper.post(context, 3104, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); panelOfflineAlerted = true }
+                // F5: latch مشترکِ ورکر و ID یکتا (5104) تا دو موتور یک اعلان بسازند.
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) { NotificationHelper.post(context, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); store.saveAlertFlag("panel_offline", true) }
                 val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
                 else error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
@@ -183,15 +195,17 @@ fun DashboardScreen(
             .onFailure { e ->
                 if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) admins = emptyList()
             }
-        runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+        // N6-followup: realtime_stats نیازمند nodes.stats است؛ بدون مجوز درخواست ۴۰۳ نزن.
+        if (com.mrm.pgmanager.data.AdminAccess.can("nodes", "stats")) runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val prev = lastNodeStates[id]
-                // D9: باندِ آنلاین به ۴۳۰۰ منتقل شد تا با باندِ آفلاینِ ۴۱۰۰
-                // روی نودهای با id بزرگ (اختلاف ۱۰۰) تداخل ID نکند.
-                if (prev == true && !online) NotificationHelper.post(context, 4100 + id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
-                if (prev == false && online) NotificationHelper.post(context, 4300 + id, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
+                // F3: IDهای هش‌محورِ مشترک با ورکر (NotificationIds) — بدون برخورد باندی روی idهای بزرگ.
+                if (prev == true && !online) NotificationHelper.post(context, NotificationIds.nodeOffline(id), NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_offline), context.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
+                if (prev == false && online) NotificationHelper.post(context, NotificationIds.nodeOnline(id), NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_node_online), context.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
             }
             lastNodeStates = states
+            // write-through روی baseline مشترک تا تیک بعدیِ ورکر گذارِ دیده‌شده را دوباره هشدار ندهد.
+            store.saveNodeStates(states)
         }
         loading = false
     }

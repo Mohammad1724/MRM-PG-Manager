@@ -8,6 +8,7 @@ import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.utils.DateLogic
 import com.mrm.pgmanager.utils.NotificationHelper
+import com.mrm.pgmanager.utils.NotificationIds
 
 class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -64,7 +65,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             if (oldStates.isNotEmpty()) users.forEach { user ->
                 val old = oldStates[user.id] ?: return@forEach; val now = newStates[user.id] ?: return@forEach
                 if (old == now) return@forEach
-                fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, (kind + user.id).hashCode(), NotificationHelper.CHANNEL_EVENTS, title, body, targetUsername = user.username, kind = kind)
+                fun notify(kind: String, title: String, body: String) = NotificationHelper.post(applicationContext, NotificationIds.userEvent(kind, user.id), NotificationHelper.CHANNEL_EVENTS, title, body, targetUsername = user.username, kind = kind)
                 if (settings.notifyLimited && user.status == "limited" && !old.startsWith("limited")) notify("limited", applicationContext.getString(R.string.us_n_limited), applicationContext.getString(R.string.us_n_limited_body, user.username))
                 if (settings.notifyExpired && user.status == "expired" && !old.startsWith("expired")) notify("expired", applicationContext.getString(R.string.us_n_expired), applicationContext.getString(R.string.us_n_expired_body, user.username))
                 val oldUsage = old.split("|").getOrNull(1)?.toIntOrNull() ?: 0; val usage = if (user.dataLimit > 0L) ((user.usedTraffic * 100L) / user.dataLimit).toInt() else 0
@@ -80,8 +81,8 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 val oldNodes = store.readNodeStates()
                 if (settings.notifyNodeOffline && oldNodes.isNotEmpty()) states.forEach { (id, online) ->
                     val prev = oldNodes[id]
-                    if (prev == true && !online) NotificationHelper.post(applicationContext, 6100 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_offline), applicationContext.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
-                    if (prev == false && online) NotificationHelper.post(applicationContext, 6200 + id, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_online), applicationContext.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
+                    if (prev == true && !online) NotificationHelper.post(applicationContext, NotificationIds.nodeOffline(id), NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_offline), applicationContext.getString(R.string.mw_node_offline_body, id), targetTab = NotificationHelper.DEST_STATISTICS, kind = "node_offline")
+                    if (prev == false && online) NotificationHelper.post(applicationContext, NotificationIds.nodeOnline(id), NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_node_online), applicationContext.getString(R.string.mw_node_online_body, id), targetTab = NotificationHelper.DEST_STATISTICS)
                 }
                 store.saveNodeStates(states)
             }
@@ -108,7 +109,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     runCatching { PanelApi.setDisabled(session, pu, true) }.onSuccess {
                         store.setDebtor(d.copy(autoDisabled = true))
                         if (settings.notificationsEnabled && settings.notifyDebtorOverdue) {
-                            NotificationHelper.post(applicationContext, ("debtor_"+d.username).hashCode(), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
+                            NotificationHelper.post(applicationContext, NotificationIds.debtorOverdue(d.username), NotificationHelper.CHANNEL_EVENTS, applicationContext.getString(R.string.us_n_auto_disable), applicationContext.getString(R.string.us_n_auto_disable_body, d.username, settings.debtorAutoDisableAfterHours, d.amount.toString(), d.currency), targetUsername = d.username, kind = "debtor_overdue")
                         }
                     }
                 }
@@ -116,20 +117,24 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
 
             // هشدار سلامت سیستم با latch: تا وقتی شرط برقرار است فقط یک‌بار هشدار می‌دهیم؛
             // با برطرف‌شدن شرط، latch آزاد می‌شود تا هشدار بعدی دوباره صادر شود.
-            if (settings.notificationsEnabled && settings.notifySystemHealth) {
-                fun healthAlert(key: String, id: Int, title: String, body: String, condition: Boolean) {
-                    if (condition && !store.readAlertFlag(key)) {
-                        NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body, targetTab = NotificationHelper.DEST_STATISTICS, kind = if (key == "capacity") "capacity" else "system_health")
-                    }
-                    store.saveAlertFlag(key, condition)
+            // F1: ظرفیت آنلاین سوییچِ مستقل است و نباید پشت گیتِ notifySystemHealth زندانی باشد.
+            fun healthAlert(key: String, id: Int, title: String, body: String, condition: Boolean) {
+                if (condition && !store.readAlertFlag(key)) {
+                    NotificationHelper.post(applicationContext, id, NotificationHelper.CHANNEL_SYSTEM, title, body, targetTab = NotificationHelper.DEST_STATISTICS, kind = if (key == "capacity") "capacity" else "system_health")
                 }
+                store.saveAlertFlag(key, condition)
+            }
+            if (settings.notificationsEnabled && settings.notifySystemHealth) {
                 val ram = if (stats.memTotal > 0L) (stats.memUsed * 100 / stats.memTotal).toInt() else 0
                 val disk = if (stats.diskTotal > 0L) (stats.diskUsed * 100 / stats.diskTotal).toInt() else 0
-                healthAlert("cpu", 5101, applicationContext.getString(R.string.mw_cpu), applicationContext.getString(R.string.mw_cpu_body, "%.1f".format(stats.cpuUsage)), stats.cpuUsage >= settings.cpuThreshold)
-                healthAlert("ram", 5102, applicationContext.getString(R.string.mw_ram), applicationContext.getString(R.string.mw_ram_body, ram), ram >= settings.ramThreshold)
-                healthAlert("disk", 5103, applicationContext.getString(R.string.mw_disk), applicationContext.getString(R.string.mw_disk_body, disk), disk >= settings.diskThreshold)
-                // هشدار ظرفیت آنلاین: ترکیب با کلید خودِ ظرفیت؛ با غیرفعال‌کردن گزینه latch هم خودکار ریست می‌شود.
-                healthAlert("capacity", 5106, applicationContext.getString(R.string.mw_capacity), applicationContext.getString(R.string.mw_capacity_body, stats.onlineUsers, settings.capacityOnlineLimit), settings.notifyCapacity && stats.onlineUsers >= settings.capacityOnlineLimit)
+                healthAlert("cpu", NotificationIds.CPU, applicationContext.getString(R.string.mw_cpu), applicationContext.getString(R.string.mw_cpu_body, "%.1f".format(stats.cpuUsage)), stats.cpuUsage >= settings.cpuThreshold)
+                healthAlert("ram", NotificationIds.RAM, applicationContext.getString(R.string.mw_ram), applicationContext.getString(R.string.mw_ram_body, ram), ram >= settings.ramThreshold)
+                healthAlert("disk", NotificationIds.DISK, applicationContext.getString(R.string.mw_disk), applicationContext.getString(R.string.mw_disk_body, disk), disk >= settings.diskThreshold)
+            }
+            // هشدار ظرفیت آنلاین: بلوک مستقل با کلید و latch خودش؛ با خاموش‌کردن سوییچ،
+            // condition=false می‌شود و latch هم خودکار ریست می‌گردد.
+            if (settings.notificationsEnabled && settings.notifyCapacity) {
+                healthAlert("capacity", NotificationIds.CAPACITY, applicationContext.getString(R.string.mw_capacity), applicationContext.getString(R.string.mw_capacity_body, stats.onlineUsers, settings.capacityOnlineLimit), stats.onlineUsers >= settings.capacityOnlineLimit)
             }
             Result.success()
         }.getOrElse { e ->
@@ -139,7 +144,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 // مستقیم صفحهٔ ورودِ پیش‌پرشده را ببیند و بررسی‌های بعدی بیهوده ۴۰۱ نخورند.
                 PanelApi.isUnauthorized(e) -> {
                     if (settings.notificationsEnabled && !store.readAlertFlag("auth_expired")) {
-                        NotificationHelper.post(applicationContext, 5105, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_session), applicationContext.getString(R.string.mw_session_body))
+                        NotificationHelper.post(applicationContext, NotificationIds.SESSION_EXPIRED, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_session), applicationContext.getString(R.string.mw_session_body))
                         store.saveAlertFlag("auth_expired", true)
                     }
                     store.expireActive()
@@ -161,7 +166,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         val host = runCatching { java.net.URI(session.baseUrl).host }.getOrNull()
                             ?.takeIf { it.isNotBlank() } ?: session.baseUrl
                         NotificationHelper.post(
-                            applicationContext, 5104, NotificationHelper.CHANNEL_SYSTEM,
+                            applicationContext, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM,
                             applicationContext.getString(R.string.mw_unreachable),
                             applicationContext.getString(R.string.mw_unreachable_body, host),
                             kind = "panel_offline"

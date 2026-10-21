@@ -635,7 +635,7 @@ internal fun UsersScreenDialogs(
                 if (isNewDebtor && monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtor) {
                     NotificationHelper.post(
                         context,
-                        ("debtor_added_" + info.username).hashCode(),
+                        com.mrm.pgmanager.utils.NotificationIds.debtorRegistered(info.username),
                         NotificationHelper.CHANNEL_EVENTS,
                         context.getString(R.string.us_n_debtor),
                         context.getString(R.string.us_n_debtor_body, info.username, info.amount.toString(), info.currency),

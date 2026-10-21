@@ -307,15 +307,18 @@ internal class UsersUiState(
                         val previous = lastUserStates[u.id] ?: return@forEach
                         val current = nextStates[u.id] ?: return@forEach
                         if (previous == current) return@forEach
-                        fun notify(id: Int, title: String, text: String) = NotificationHelper.post(context, id, NotificationHelper.CHANNEL_EVENTS, title, text, targetUsername = u.username)
-                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify(("limited" + u.id).hashCode(), context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
-                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify(("expired" + u.id).hashCode(), context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
+                        // F2: kind همان کلید MUTE_TARGETS است تا اعلان پیش‌زمینه هم
+                        // دکمه‌ی بی‌صداکردن داشته باشد و IDاش با ورکر یکی بماند.
+                        fun notify(kind: String, title: String, text: String) = NotificationHelper.post(context, com.mrm.pgmanager.utils.NotificationIds.userEvent(kind, u.id), NotificationHelper.CHANNEL_EVENTS, title, text, targetUsername = u.username, kind = kind)
+                        if (settings.notifyLimited && u.status == "limited" && !previous.startsWith("limited")) notify("limited", context.getString(R.string.us_n_limited), context.getString(R.string.us_n_limited_body, u.username))
+                        if (settings.notifyExpired && u.status == "expired" && !previous.startsWith("expired")) notify("expired", context.getString(R.string.us_n_expired), context.getString(R.string.us_n_expired_body, u.username))
                         val usage = if (u.dataLimit > 0L) ((u.usedTraffic * 100L) / u.dataLimit).toInt() else 0
                         val oldUsage = previous.split("|").getOrNull(1)?.toIntOrNull() ?: 0
-                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify(("near_limit" + u.id).hashCode(), context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
+                        if (settings.notifyNearLimit && usage >= settings.nearLimitPercent && oldUsage < settings.nearLimitPercent) notify("near_limit", context.getString(R.string.us_n_near_limit), context.getString(R.string.us_n_near_limit_body, u.username, usage))
                         val nearExpiry = current.substringAfterLast("|").toBoolean()
                         val wasNearExpiry = previous.substringAfterLast("|").toBoolean()
-                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify(("near_expire" + u.id).hashCode(), context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
+                        // قبلاً "near_expire" بود و با طرحِ "near_expiry" ورکر دو اعلان می‌ساخت.
+                        if (settings.notifyNearExpiry && nearExpiry && !wasNearExpiry) notify("near_expiry", context.getString(R.string.us_n_near_expiry), context.getString(R.string.us_n_near_expiry_body, u.username))
                     }
                 }
                 lastUserStates = nextStates
@@ -530,7 +533,7 @@ internal class UsersUiState(
                 }
                 notification?.let { (title, message) ->
                     val settings = store.readMonitoringSettings()
-                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, (title + message).hashCode(), NotificationHelper.CHANNEL_ACTIONS, title, message)
+                    if (settings.notificationsEnabled && settings.notifyUserActions) NotificationHelper.post(context, com.mrm.pgmanager.utils.NotificationIds.userAction(title, message), NotificationHelper.CHANNEL_ACTIONS, title, message)
                 }
                 // فاز ۶.۲ — رفرشِ بی‌صدا و بدونِ برگشت به بالا: ردیف‌ها همین حالا
                 // به‌روز شده‌اند؛ این فقط هم‌ترازیِ نهایی با پنل است.

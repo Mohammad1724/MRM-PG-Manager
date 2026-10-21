@@ -374,6 +374,46 @@ require `nodes.stats`; the node list requires `nodes.read`.
 - Dashboard/worker `nodeOnlineStates` permission gate (see N6 follow-up).
 - `formatUptime` Latin digits and the 9-second `goAsync` widget budget — both audited healthy.
 
+## Round 2026-10-21 (7) — Notifications subsystem deep audit
+
+Scope approved by the user: F1–F5 all fixed; cross-engine dedup via unified IDs
+**and** a shared `SessionStore` baseline; a new pure `NotificationIds` object with
+a JVM test; the mute Toast kept (F6, no in-app feedback channel exists from a
+background receiver). F7 (cancel worker on logout) and F8 (explicit goAsync
+deadline) were not selected and remain unchanged. No new strings were needed —
+all 66 notification keys already exist in both locales.
+
+### New shared component: `NotificationIds`
+- Pure (no Android dependency) object in `utils/NotificationIds.kt`, the single source of truth for every notification ID: fixed health/lifecycle constants (5101–5106), hash-typed node IDs (`node_offline_<id>` / `node_online_<id>`), per-user event IDs, user-action IDs, and debtor IDs.
+- Node IDs abandon numeric bands entirely: the D9 band scheme (4100/4300, then 6100/6200) could still collide when node ids were spaced by the band gap; typed hashes have no such failure mode regardless of id magnitude.
+- Covered by `NotificationIdsTest` (pure JVM): constant stability, shared string-scheme parity, per-kind/per-user uniqueness, node collision cases including large spaced ids, debtor parity, deterministic action IDs.
+
+### F1. Capacity alert was silently gated by the system-health switch
+- Both engines evaluated the online-capacity alert inside the `notifySystemHealth` branch, although Settings exposes `notifyCapacity` as an independent switch with its own stepper. Turning health off killed capacity alerts too.
+- **Fix**: the capacity check now runs in its own `notificationsEnabled && notifyCapacity` block in both `MonitoringWorker` and `DashboardScreen.evaluateHealth`, keeping its own latch/flag (`capacity`).
+
+### F2. Foreground user alerts lacked the mute action and used a mismatched near-expiry ID
+- `UsersUiState.notify()` posted without `kind`, so foreground-originated alerts had no mute action while identical worker-originated alerts did; its near-expiry key was `"near_expire"` vs the worker's `"near_expiry"`, producing two shade entries for one event.
+- **Fix**: every foreground call passes the matching `MUTE_TARGETS` kind and all IDs come from `NotificationIds.userEvent(kind, userId)`; the key is now `near_expiry` everywhere.
+
+### F3. Node online/offline could notify twice (dashboard vs worker)
+- Two baselines (in-memory `lastNodeStates` vs persisted `node_states`) and disjoint ID bands meant a transition observed while the app was open could alert from both engines.
+- **Fix (full unification)**: both engines now use `NotificationIds.nodeOffline/nodeOnline`; the dashboard keeps its D4 per-session silent-first-load memory but writes every fetched state through to `SessionStore.saveNodeStates`, so the next worker tick reads the same baseline and cannot re-alert. The dashboard call is additionally gated by `AdminAccess.can("nodes","stats")`, closing the N6 follow-up documented in Round (6).
+
+### F4. Overdue-debtor auto-disable used two different notification IDs
+- Foreground sweep used `debtor_overdue_<name>`, the worker `debtor_<name>`; a near-simultaneous race could post two notifications.
+- **Fix**: both call `NotificationIds.debtorOverdue(username)`; the new-debtor event also centralizes on `NotificationIds.debtorRegistered`. The shared `autoDisabled` flag already prevented double actions.
+
+### F5. Panel-offline and system-health alerts could duplicate across engines
+- Dashboard used IDs 3101–3105 and an in-memory panel-offline latch; the worker uses 5101–5106 and a persisted latch. Same event, two shade entries.
+- **Fix**: all IDs converge on `NotificationIds` constants (same channel + same ID means the second post replaces, never stacks). The panel-offline latch is now the shared persisted `alert_panel_offline` flag (dashboard resets it on successful fetch and on account switch via a `LaunchedEffect(session.baseUrl)`, preserving the D4 cross-account guarantee). Health latches stay per-session in memory: unified IDs already collapse duplicates, and keeping them out of the global prefs avoids cross-account latch contamination.
+
+### Deliberately not changed
+- F6: `NotificationActionReceiver` Toast — from a background receiver there is no composition/AppFeedback host; behavior and wording stay as-is.
+- F7: periodic work still no-ops after logout (`read() ?: success`); cancellation on logout was not approved.
+- F8: receiver `goAsync` relies on the system deadline; EncryptedSharedPreferences I/O is fast and no explicit timeout was added.
+- `MonitoringWorker` cannot use `AdminAccess` (its process may have no in-memory RBAC state); it keeps the `runCatching` swallow for a possible 403 while the UI engine is now permission-gated.
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
@@ -406,3 +446,12 @@ require `nodes.stats`; the node list requires `nodes.read`.
 - [ ] Widget in Persian locale -> "همین حالا" / "N دقیقه پیش" / "N ساعت پیش"; English locale -> "just now" / "N min ago" / "N h ago"; older than 24 h still MM/dd HH:mm (W1)
 - [ ] First entry -> three shimmer skeleton cards instead of a centered spinner, no layout jump when data lands (I-stat)
 - [ ] Unit: TrafficSharesTest green in CI (zero, download-only, upload-only, 75/25, sum-to-one) (N4)
+- [ ] System health OFF + capacity ON, cross the online-user limit -> capacity notification still arrives on both foreground refresh and worker tick (F1)
+- [ ] Foreground-triggered limited/expired/near-limit/near-expiry notification -> shows the Mute action like worker ones; muting flips the matching Settings switch (F2)
+- [ ] Near-expiry transition while app is open -> exactly one notification in the shade, never two ("near_expire" vs "near_expiry" regression) (F2)
+- [ ] Node goes offline while dashboard is open and a worker tick overlaps -> single notification; subsequent worker tick does not re-alert (shared node_states baseline) (F3)
+- [ ] Role without nodes.stats on dashboard -> no realtime_stats request is fired from the dashboard (F3/N6)
+- [ ] Overdue debtor auto-disabled from foreground sweep while worker is due -> one notification with one ID; both code paths use NotificationIds.debtorOverdue (F4)
+- [ ] Panel unreachable with app foreground then background worker failure -> one panel-offline notification (ID 5104), mute disables notifyPanelOffline; success clears the latch (F5)
+- [ ] Switch accounts while panel A is offline -> no suppressed/missing panel-offline alert for account B (latch reset on baseUrl change) (F5/D4)
+- [ ] Unit: NotificationIdsTest green in CI (constants, per-kind uniqueness, node hash collisions, debtor parity) (F2-F5)
