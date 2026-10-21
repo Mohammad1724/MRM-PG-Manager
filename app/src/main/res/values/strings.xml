@@ -628,6 +628,8 @@
     <string name="us_n_bulk_enable_body">%1$d users enabled</string>
     <string name="us_n_auto_disable">Debtor disabled automatically</string>
     <string name="us_n_auto_disable_body">%1$s was disabled after %2$d hours of debt (%3$s %4$s)</string>
+    <string name="us_n_debtor">Debtor marked</string>
+    <string name="us_n_debtor_body">%1$s was marked as a debtor (%2$s %3$s)</string>
     <!-- فاکتور — مشترک بین دیالوگ و خروجیِ PDF -->
     <string name="inv_currency">Toman</string>
     <string name="inv_title">Subscription invoice</string>

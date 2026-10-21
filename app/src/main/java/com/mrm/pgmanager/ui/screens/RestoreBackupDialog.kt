@@ -45,7 +45,13 @@ import kotlinx.coroutines.withContext
 internal fun RestoreBackupDialog(
     uri: android.net.Uri,
     scope: CoroutineScope,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /**
+     * پس از بازیابیِ موفق صدا زده می‌شود تا stateهای درون‌حافظه‌ایِ میزبان
+     * (تم/تنظیمات/قفل/…) بلافاصله از روی prefs تازه شوند و کاربر مجبور به
+     * ری‌استارتِ دستیِ اپ نباشد.
+     */
+    onRestored: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -223,6 +229,7 @@ internal fun RestoreBackupDialog(
                                             preview = null
                                             restoring = false
                                             com.mrm.pgmanager.ui.feedback.AppFeedback.success(okToast)
+                                            onRestored()
                                         }
                                     }.onFailure { e ->
                                         withContext(Dispatchers.Main) {

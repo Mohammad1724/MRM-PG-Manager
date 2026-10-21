@@ -96,9 +96,15 @@ internal fun ConnectionSection(
         SettingsInfoRow(stringResource(R.string.set_conn_admin), session.username)
         SettingsInfoRow(stringResource(R.string.set_conn_auth), stringResource(if (session.isApiKey) R.string.set_conn_auth_api_key else R.string.set_conn_auth_password))
         // نسخهٔ پنل از آخرین پاسخِ موفقِ /api/system (کشِ حافظه یا کشِ آفلاین) — بدونِ درخواستِ اضافه.
+        // remember بدونِ قیدِ شرطی: فراخوانیِ composable داخلِ شاخهٔ elvis ساختار
+        // گروه‌ها را بین recompositionها ناپایدار می‌کرد؛ خوانشِ دیسک یک‌بار و
+        // بدونِ شرط انجام می‌شود و کشِ حافظه در هر recompose ارزان بررسی می‌شود.
+        val diskPanelVersion = remember(session.baseUrl) {
+            store.readStatsCache()?.first?.version.orEmpty()
+        }
         val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session.baseUrl))?.version
             ?.takeIf { it.isNotBlank() }
-            ?: remember(session.baseUrl) { store.readStatsCache()?.first?.version.orEmpty() }
+            ?: diskPanelVersion
         if (panelVersion.isNotBlank()) SettingsInfoRow(stringResource(R.string.set_conn_panel_version), "PasarGuard v$panelVersion")
         com.mrm.pgmanager.data.AdminAccess.current?.let { admin ->
             val role = when {
@@ -389,8 +395,11 @@ internal fun UsersSettingsSection(
         if (monitoringSettings.debtorAutoDisableEnabled) {
             Text(stringResource(R.string.set_usr_debtor_example), fontSize = 11.sp, color = theme.mutedColor)
         }
-        // نمایش تعداد بدهکاران فعلی این پنل
-        val debtorCount = store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
+        // نمایش تعداد بدهکاران فعلی این پنل — readDebtors هر بار JSON پارس می‌کند،
+        // پس داخل remember می‌ماند تا با هر recomposition (تپ استپر/تایپ) تکرار نشود.
+        val debtorCount = remember(store, session?.baseUrl) {
+            store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
+        }
         if (debtorCount > 0) {
             Text(
                 stringResource(R.string.set_usr_debtor_count, debtorCount.toString()),
@@ -455,18 +464,26 @@ internal fun InvoiceSection(store: SessionStore, scope: CoroutineScope) {
             scope.launch(Dispatchers.IO) {
                 val logoFile = File(context.filesDir, "invoice_logo.png")
                 runCatching {
-                    context.contentResolver.openInputStream(it)?.use { input ->
-                        val original = BitmapFactory.decodeStream(input)
-                        if (original != null) {
-                            val size = 400
-                            val scaled = Bitmap.createScaledBitmap(original, size, size, true)
-                            FileOutputStream(logoFile).use { out ->
-                                scaled.compress(Bitmap.CompressFormat.PNG, 90, out)
-                            }
-                            if (original !== scaled) original.recycle()
-                            scaled.recycle()
-                        }
+                    val size = 400
+                    // عبورِ اول فقط ابعاد را می‌خواند (بدون بارگذاری پیکسل‌ها)؛
+                    // عکسِ دوربین می‌تواند ده‌ها مگابایت حافظه بگیرد و کرش OOM بدهد.
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    context.contentResolver.openInputStream(it)?.use { probe ->
+                        BitmapFactory.decodeStream(probe, null, bounds)
                     }
+                    val sample = com.mrm.pgmanager.utils.BitmapUtils.calculateInSampleSize(
+                        bounds.outWidth, bounds.outHeight, size, size
+                    )
+                    // جریانِ اول مصرف شده، پس از URI دوباره باز می‌کنیم.
+                    val original = context.contentResolver.openInputStream(it)?.use { input ->
+                        BitmapFactory.decodeStream(input, null, BitmapFactory.Options().apply { inSampleSize = sample })
+                    } ?: error("logo decode failed")
+                    val scaled = Bitmap.createScaledBitmap(original, size, size, true)
+                    FileOutputStream(logoFile).use { out ->
+                        scaled.compress(Bitmap.CompressFormat.PNG, 90, out)
+                    }
+                    if (original !== scaled) original.recycle()
+                    scaled.recycle()
                 }.onSuccess {
                     withContext(Dispatchers.Main) {
                         store.saveInvoiceLogoPath(logoFile.absolutePath)
@@ -607,9 +624,19 @@ internal fun BackupSection(
         uri?.let {
             val takeFlags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
                 android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            // بعضی providerها مجوزِ ماندگار نمی‌دهند و SecurityException پرتاب می‌کنند؛
+            // بدون این محافظ کلِ اپ می‌بست، در حالی‌که پوشه بدون مجوز ماندگار هم
+            // تا ری‌استارتِ بعدی قابلِ استفاده است.
+            val granted = runCatching {
+                context.contentResolver.takePersistableUriPermission(it, takeFlags)
+            }.isSuccess
             store.saveBackupUri(it.toString())
             backupFolderUri = it.toString()
+            if (!granted) {
+                com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                    String.format(errorTemplate, context.getString(R.string.set_bk_cant_create))
+                )
+            }
         }
     }
 
@@ -626,6 +653,8 @@ internal fun BackupSection(
         }
         backupBusy = true
         scope.launch(Dispatchers.IO) {
+            // اگر نوشتن وسط کار شکست بخورد، سندِ خالی/ناقص در پوشه نماند.
+            var createdDocUri: android.net.Uri? = null
             runCatching {
                 val dirUri = android.net.Uri.parse(targetUri)
                 val cr = context.contentResolver
@@ -638,6 +667,7 @@ internal fun BackupSection(
                     "application/octet-stream",
                     name
                 ) ?: throw Exception(cantCreate)
+                createdDocUri = docUri
                 // اگر جریان خروجی null شود نباید «موفق» گزارش شود: وگرنه یک سند
                 // ۰ بایتی باقی می‌ماند و کاربر خیال می‌کند پشتیبان گرفته شده است.
                 val os = cr.openOutputStream(docUri) ?: throw Exception(cantCreate)
@@ -659,6 +689,8 @@ internal fun BackupSection(
                     com.mrm.pgmanager.ui.feedback.AppFeedback.success(savedMsg)
                 }
             }.onFailure { e ->
+                // سندِ ساخته‌شده را پاک کن تا فایلِ ناقص/صفر بایتی در پوشه نماند.
+                createdDocUri?.let { uri -> runCatching { context.contentResolver.delete(uri, null, null) } }
                 backupLastMsg = String.format(errorTemplate, com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e, com.mrm.pgmanager.utils.ErrorOrigin.LOCAL))
                 store.saveLastBackupSuccess(false)
                 store.saveLastBackupMessage(backupLastMsg)

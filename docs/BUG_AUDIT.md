@@ -279,6 +279,54 @@ Full read-through of the users feature: `UsersUiState`, `UsersScreen`, `UsersScr
 - String-`hashCode` notification IDs: this is the app-wide convention (UiState, worker, `runAction`); bands used elsewhere are small numeric constants and practical collision is negligible. The two debtor auto-disable paths use different ID prefixes but share the persisted `autoDisabled` flag, so double notifications are effectively prevented. Documented as theoretical risk only.
 - The auto-disable effect's `ui.users` restart key: restarts are cheap thanks to the existing per-debtor guards; reworking the key was judged riskier than the benefit.
 
+## Round 2026-10-21 (5) — Settings screen deep audit
+
+Full read-through of the settings feature: `SettingsScreen`, `SettingsSectionsAdvanced` (connection, users, invoice, backup), `RestoreBackupDialog`, `BackupManager`, `BackupWorker`, `MonitoringWorker`, `MonitoringSettings`, shared settings components, and the `MainActivity` wiring. All fixes user-approved (S1–S9 + the S4 product decision: implement the promised debtor notification). Two new strings added in both fa/en (parity kept).
+
+### S1. Invoice logo picker decoded full-resolution images (OOM crash)
+- `InvoiceSection` ran `BitmapFactory.decodeStream(input)` with no sampling, while the preview path and `InvoiceDialog` already decode with `inSampleSize` 4/2. A typical camera photo (e.g. 4000×3000, ~48 MB as ARGB) could exhaust the heap on low-RAM devices.
+- **Fix**: two-pass decode — bounds-only first pass, then sampled decode via the new pure `BitmapUtils.calculateInSampleSize(w, h, 400, 400)` (power-of-two, both dimensions must cover the target). The stream is reopened from the URI for the second pass. Covered by `BitmapUtilsTest` (5 JVM cases).
+
+### S2. BackupWorker reported success when the output stream was null
+- `openOutputStream(newDocUri)?.use { … }` silently skipped writing when null, then proceeded to prune and `saveLastBackupSuccess(true)`, leaving a zero-byte `.mbak` while the UI showed a successful last backup. The manual UI path already guarded this.
+- **Fix**: null stream deletes the empty document and returns `Result.retry()`; success is only recorded after a real write.
+
+### S3. In-app restore did not refresh live app state
+- Theme, monitoring settings, UI prefs and app lock are loaded once into `remember` state in `MainActivity`. A restore overwrote the prefs but the running app kept the old values until a full process restart.
+- **Fix**: new `onRestored`/`onDataRestored` callback chain `RestoreBackupDialog → AdvancedSection → SettingsScreen → MainActivity`; on success the five in-memory states are re-read from the store and `PanelCache.clear()` prevents stale cross-account data. No new strings.
+
+### S4. "Debtor registered" notification switch was dead while the UI promised a notification
+- `MonitoringSettings.notifyDebtor` was persisted, restored from backup and shown as a switch, but no code ever posted on debtor registration — even though `set_debtor_desc` explicitly promises a notification "when a user is marked as a debtor".
+- **Fix (user-approved option A)**: marking a **new** debtor now posts an events-channel notification (`us_n_debtor` / `us_n_debtor_body`, new fa+en strings), gated on `notificationsEnabled && notifyDebtor`. Editing an existing debt deliberately does not re-notify.
+
+### S5. Unguarded persistable URI permission could crash the backup folder picker
+- Some SAF providers throw `SecurityException` from `takePersistableUriPermission`; the uncaught exception closed the app.
+- **Fix**: wrapped in `runCatching`; the folder is still kept (usable until the next restart) and an error snack explains the permission limitation via the existing `set_bk_error` / `set_bk_cant_create` strings.
+
+### S6. Debtor count re-parsed JSON on every recomposition
+- `UsersSettingsSection` called `store.readDebtors()` directly in composition, re-parsing the prefs JSON on every stepper tap/keystroke.
+- **Fix**: moved into `remember(store, baseUrl)`.
+
+### S7. Conditional `remember` inside an elvis expression for the panel version
+- The disk-cache fallback called `remember` only when the memory cache missed — a composable call whose presence changed between recompositions. Functionally tolerated but fragile and non-idiomatic.
+- **Fix**: the disk read is now an unconditional `remember(session.baseUrl)`; the memory cache is still checked cheaply per recomposition.
+
+### S8. Corrupt JSON backups were mislabeled as encrypted
+- `BackupManager.inspect` mapped any failure without a password to `bk_encrypted_long`, including valid-looking JSON that simply wasn't a backup (missing `_meta`/`data`).
+- **Fix**: track whether the content parsed as JSON; the "encrypted" hint is only used for binary/non-JSON payloads, otherwise the real invalid/corrupt error propagates.
+
+### S9. Failed manual backup left an empty/partial document behind
+- `createDocument` runs before the write; a later failure kept the zero-byte file in the chosen folder.
+- **Fix**: the created URI is tracked and deleted in the failure branch (best-effort `runCatching`).
+
+### Tests added
+- `BitmapUtilsTest` — pure `calculateInSampleSize` cases: invalid inputs, already-small images, a 4000×3000 camera photo (expect 4), power-of-two invariant, and a very wide image where the short edge bounds the sample.
+
+### Deliberately not changed
+- Per-keystroke prefs writes (seller name, backup password, username pattern) follow an existing app-wide convention; the values are tiny and encrypted-prefs writes are cheap here.
+- Backup password stays in encrypted prefs; the plaintext-backup warning already explains the token exposure.
+- Restored accounts do not hot-swap the running session (the current token stays valid); `PanelCache.clear()` removes stale visuals and the restored active account applies on next launch.
+
 ## Testing Checklist
 
 - [ ] Create template with Persian digits ۵۰ GB, ۳۰ days -> should parse as 50 and 30, not unlimited
@@ -294,3 +342,10 @@ Full read-through of the users feature: `UsersUiState`, `UsersScreen`, `UsersScr
 - [ ] Local filter (debtor/near-limit) offline with cached list -> online stat card shows cached online count, not 0 (U4)
 - [ ] Bulk add days/data dialog -> field shows the days/GB hint (not "Search"), no magnifier, accepts minus and Persian digits (U5)
 - [ ] Paginated list with totalMatches > loaded -> select-all shows the limited-selection info snack once (I1)
+- [ ] Pick a 12MP+ gallery image as invoice logo -> no crash/OOM, saved logo is 400px (S1)
+- [ ] Simulate SAF permission denial on backup folder -> error snack, app stays open and folder still works until restart (S5)
+- [ ] Mark a new debtor with notifyDebtor on -> events notification posted; editing the same debtor -> no new notification (S4)
+- [ ] Restore a backup inside the app -> theme/monitoring/app-lock/UI prefs update immediately without restart (S3)
+- [ ] Corrupt JSON file selected for restore inspection -> "invalid/corrupt" error, not "encrypted file" (S8)
+- [ ] Kill the backup worker's output stream (mock) -> zero-byte doc removed, last-backup state not marked success, work retries (S2)
+- [ ] Fail a manual backup after document creation -> partial/empty file is removed from the SAF folder (S9)

@@ -576,6 +576,17 @@ fun MRMApp() {
                                 showDashboardSettings = false
                                 selectedTab = TAB_USERS
                                 pendingBulkCreate = true
+                            },
+                            // بازیابیِ پشتیبان مستقیم prefs را عوض می‌کند؛ stateهای
+                            // درون‌حافظه باید همین‌جا تازه شوند وگرنه تا ری‌استارت اپ
+                            // تم/تنظیمات/قفلِ قدیمی دیده می‌شد.
+                            onDataRestored = {
+                                themeState = store.readTheme()
+                                monitoringSettings = store.readMonitoringSettings()
+                                uiPrefs = store.readUiPrefs()
+                                appLockTimeout = store.readAppLockTimeoutSecs()
+                                isAppLockEnabled = store.readAppLock()
+                                com.mrm.pgmanager.data.cache.PanelCache.clear()
                             }
                         )
                     }

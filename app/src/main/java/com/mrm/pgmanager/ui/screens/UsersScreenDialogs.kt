@@ -628,7 +628,21 @@ internal fun UsersScreenDialogs(
                 store.setDebtor(info)
                 ui.reloadDebtors()
                 ui.debtorDialogUser = null
-                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (existing == null) R.string.us_debt_added else R.string.us_debt_updated))
+                val isNewDebtor = existing == null
+                com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(if (isNewDebtor) R.string.us_debt_added else R.string.us_debt_updated))
+                // اعلانِ «ثبت بدهکار» فقط برای ثبتِ جدید و وقتی کلیدش روشن است
+                // (ویرایشِ بدهی اعلان ندارد). متنِ راهنمای تنظیمات همین وعده را می‌دهد.
+                if (isNewDebtor && monitoringSettings.notificationsEnabled && monitoringSettings.notifyDebtor) {
+                    NotificationHelper.post(
+                        context,
+                        ("debtor_added_" + info.username).hashCode(),
+                        NotificationHelper.CHANNEL_EVENTS,
+                        context.getString(R.string.us_n_debtor),
+                        context.getString(R.string.us_n_debtor_body, info.username, info.amount.toString(), info.currency),
+                        targetUsername = info.username,
+                        kind = "debtor_registered"
+                    )
+                }
                 if (monitoringSettings.debtorAutoDisableEnabled) {
                     val over = info.isOverdue(monitoringSettings.debtorAutoDisableAfterHours)
                     if (over && u.status != "disabled") {

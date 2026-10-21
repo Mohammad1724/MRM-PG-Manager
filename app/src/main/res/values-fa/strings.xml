@@ -628,6 +628,8 @@
     <string name="us_n_bulk_enable_body">%1$d کاربر فعال شدند</string>
     <string name="us_n_auto_disable">قطع خودکار بدهکار</string>
     <string name="us_n_auto_disable_body">%1$s پس از %2$d ساعت بدهکاری قطع شد (%3$s %4$s)</string>
+    <string name="us_n_debtor">ثبت بدهکار</string>
+    <string name="us_n_debtor_body">%1$s به‌عنوان بدهکار ثبت شد (%2$s %3$s)</string>
     <!-- فاکتور — مشترک بین دیالوگ و خروجیِ PDF -->
     <string name="inv_currency">تومان</string>
     <string name="inv_title">فاکتور اشتراک</string>
