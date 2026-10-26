@@ -298,7 +298,14 @@ fun PGWrapRow(
         val totalHeight = if (heights.isEmpty()) 0 else y - vGap
         val maxLineWidth = if (widths.isEmpty()) 0 else widths.max()
         val width = if (constraints.hasBoundedWidth) available else maxLineWidth
-        layout(width.coerceAtLeast(constraints.minWidth), totalHeight.coerceAtLeast(constraints.minHeight)) {
+        // `this.` صریح است: این `layout` عضوِ `MeasureScope` است، نه تابعِ هم‌نامِ
+        // `Modifier.layout` که در `androidx.compose.ui.layout` سطحِ بالا تعریف شده
+        // (چهار فایلِ دیگر همان را import می‌کنند و kt-imports.py حق دارد اشتباه را
+        // به‌جایِ importِ لازم، خطا بداند).
+        this.layout(
+            width.coerceAtLeast(constraints.minWidth),
+            totalHeight.coerceAtLeast(constraints.minHeight)
+        ) {
             placeables.forEachIndexed { i, p ->
                 val l = lineOf[i]
                 p.placeRelative(xOf[i], tops[l] + (heights[l] - p.height) / 2)
