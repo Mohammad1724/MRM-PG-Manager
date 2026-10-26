@@ -30,7 +30,9 @@ class ExportUsersTest {
     @Test fun `newline inside note does not create extra csv rows`() {
         val csv = usersToCsv(listOf(user("line1\nline2\r\nline3\rtail")))
         // هدر + یک ردیفِ داده = دو خط؛ بدونِ BUG_AUDIT #9 اینجا ۵ خط می‌شد.
-        assertEquals(2, csv.lines().size)
+        // `usersToCsv` بعد از آخرین ردیف هم newline می‌گذارد (متعارف برای CSV)، پس
+        // `lines()` یک عنصرِ خالیِ آخر دارد و باید trim شود.
+        assertEquals(2, csv.trimEnd('\n', '\r').lines().size)
         assertTrue(csv.contains("line1 line2 line3 tail"))
     }
 
@@ -42,7 +44,7 @@ class ExportUsersTest {
     @Test fun `each user yields exactly one data row`() {
         val csv = usersToCsv(listOf(user("a"), user("b"), user("c")))
         // یک هدر + سه کاربر، هیچ‌کدام note چندخطی ندارند.
-        assertEquals(4, csv.lines().size)
+        assertEquals(4, csv.trimEnd('\n', '\r').lines().size)
     }
 
     @Test fun `json export keeps newline inside note intact`() {

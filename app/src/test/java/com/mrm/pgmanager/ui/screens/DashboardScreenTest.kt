@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.Session
 import okhttp3.mockwebserver.MockResponse
@@ -67,6 +68,12 @@ class DashboardScreenTest {
     }
 
     @Before fun setUp() {
+        // Robolectric `AndroidKeyStore` ندارد و `SessionStore` (که داشبورد برای
+        // خواندنِ تنظیمات می‌سازد) با `KeyStoreException` می‌شکست. اینجا
+        // SharedPreferencesِ ساده جای رمزنگاری‌شده می‌نشیند؛ مسیرِ تولید همان
+        // رمزنگاری‌شده است و در `resetPrefsForTests` برمی‌گردد.
+        SessionStore.resetPrefsForTests()
+        SessionStore.prefsFactory = { ctx -> ctx.getSharedPreferences("mrm_pg_test", android.content.Context.MODE_PRIVATE) }
         server = MockWebServer()
         server.start()
         PanelApi.allowCleartextLoopbackForTests = true
@@ -75,6 +82,7 @@ class DashboardScreenTest {
     }
 
     @After fun tearDown() {
+        SessionStore.resetPrefsForTests()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
         server.shutdown()

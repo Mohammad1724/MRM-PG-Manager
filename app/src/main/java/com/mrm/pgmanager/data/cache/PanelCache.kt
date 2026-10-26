@@ -40,15 +40,33 @@ object PanelCache {
      */
     const val DefaultFreshMs = 20_000L
 
+    /**
+     * ساعتِ کش بر حسبِ میلی‌ثانیه.
+     *
+     * چرا جایگزین‌شدنی است: تست‌های JVM (`PanelCacheTest`) نه Robolectric اجرا
+     * می‌کنند و نه `SystemClock` واقعی دارند، پس `SystemClock.elapsedRealtime()`
+     * با `RuntimeException: Method elapsedRealtime … not mocked` کلِ تست را
+     * می‌شکست. جدا از آن، سنجشِ «کهنه شدن» با ساعتِ واقعی غیرقطعی است؛ تست یک
+     * شمارندهٔ دستی می‌دهد و سن را دقیق می‌سنجد. مقدارِ پیش‌فرض در تولید همان
+     * `elapsedRealtime` است.
+     */
+    @Volatile
+    internal var clock: () -> Long = { SystemClock.elapsedRealtime() }
+
+    /** برگرداندنِ ساعت به حالتِ تولید — پایانِ هر تست. */
+    internal fun resetClockForTests() {
+        clock = { SystemClock.elapsedRealtime() }
+    }
+
     fun put(key: String, value: Any?) {
-        entries[key] = Entry(value, SystemClock.elapsedRealtime())
+        entries[key] = Entry(value, clock())
     }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> get(key: String): T? = entries[key]?.value as? T
 
     /** سنِ دادهٔ ذخیره‌شده بر حسب میلی‌ثانیه، یا null اگر اصلاً ذخیره نشده. */
-    fun ageMs(key: String): Long? = entries[key]?.let { SystemClock.elapsedRealtime() - it.at }
+    fun ageMs(key: String): Long? = entries[key]?.let { clock() - it.at }
 
     fun isFresh(key: String, maxAgeMs: Long = DefaultFreshMs): Boolean =
         (ageMs(key) ?: Long.MAX_VALUE) <= maxAgeMs

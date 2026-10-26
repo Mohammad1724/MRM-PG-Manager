@@ -5,6 +5,9 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -12,7 +15,33 @@ import org.junit.Test
  */
 class PanelCacheTest {
 
-    @After fun clear() = PanelCache.clear()
+    // ساعتِ دستی: `SystemClock.elapsedRealtime` در JVM پیاده‌سازی ندارد و
+    // «کهنه شدن» با ساعتِ واقعی هم غیرقطعی است.
+    private var now = 1_000L
+
+    @Before fun installClock() {
+        now = 1_000L
+        PanelCache.clock = { now }
+    }
+
+    @After fun clear() {
+        PanelCache.clear()
+        PanelCache.resetClockForTests()
+    }
+
+    @Test fun `freshness follows the injected clock`() {
+        val key = PanelCache.statsKey("https://panel.example")
+        PanelCache.put(key, 1)
+        assertEquals(0L, requireNotNull(PanelCache.ageMs(key)))
+        assertTrue(PanelCache.isFresh(key))
+
+        now += PanelCache.DefaultFreshMs - 1
+        assertTrue(PanelCache.isFresh(key))
+
+        now += 2
+        assertFalse(PanelCache.isFresh(key))
+        assertEquals(PanelCache.DefaultFreshMs + 1, requireNotNull(PanelCache.ageMs(key)))
+    }
 
     @Test fun `range-less traffic key keeps the legacy shape`() {
         assertEquals("traffic:https://panel.example", PanelCache.trafficKey("https://panel.example"))

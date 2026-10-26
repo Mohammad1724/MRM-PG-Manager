@@ -10,6 +10,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -88,10 +89,14 @@ class Panel55CompatTest {
         assertEquals(listOf("ali", "sara"), names)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `inactive cleanup without cutoff fails locally instead of asking the panel`() = runBlocking {
+    // `void` باید باشد؛ نسخهٔ `= runBlocking { … }` مقدارِ List برمی‌گرداند و JUnit
+    // کلِ کلاس را رد می‌کرد.
+    @Test fun `inactive cleanup without cutoff fails locally instead of asking the panel`() {
         // پنل برای این هدف ۴۲۲ می‌داد؛ حالا پیش از شبکه روشن می‌شود و هیچ درخواستی نمی‌رود.
-        PanelApi.cleanupCandidates(session, PanelApi.CLEANUP_INACTIVE, null)
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.cleanupCandidates(session, PanelApi.CLEANUP_INACTIVE, null) }
+        }
+        assertEquals(0, server.requestCount)
     }
 
     @Test fun `expired cleanup keeps the old shape`() = runBlocking {
@@ -110,9 +115,11 @@ class Panel55CompatTest {
         assertTrue(req.path!!.contains("expired_before="))
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `unknown cleanup target is rejected locally`() = runBlocking {
-        PanelApi.cleanupCandidates(session, "everything", null)
+    @Test fun `unknown cleanup target is rejected locally`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.cleanupCandidates(session, "everything", null) }
+        }
+        assertEquals(0, server.requestCount)
     }
 
     // ── ۳. users/simple ──────────────────────────────────────────────────

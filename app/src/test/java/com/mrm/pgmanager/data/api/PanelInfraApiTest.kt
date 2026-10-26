@@ -9,6 +9,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -185,9 +186,14 @@ class PanelInfraApiTest {
         assertEquals("/api/hosts/bulk/enable", server.takeRequest().path)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun `bulk toggle without ids never reaches the network`() = runBlocking {
-        PanelApi.setHostsDisabled(session, emptySet(), disabled = true)
+    // تابعِ تست باید `void` باشد: `= runBlocking { ... }` مقدارِ `setHostsDisabled` را
+    // برمی‌گرداند و JUnit کلِ کلاس را رد می‌کرد (InvalidTestClassError) — یعنی حتی
+    // تست‌های سالمِ همین فایل هم اجرا نمی‌شدند.
+    @Test fun `bulk toggle without ids never reaches the network`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.setHostsDisabled(session, emptySet(), disabled = true) }
+        }
+        assertEquals(0, server.requestCount)
     }
 
     // ── کورها ────────────────────────────────────────────────────────────
