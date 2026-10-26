@@ -59,6 +59,9 @@ gh api "repos/<owner>/<repo>/check-runs/$ID/annotations" \
 | صفحه را با `CircularProgressIndicator` روی صحنه **مونتاژ نکنید** | انیمیشنِ بی‌پایان هیچ‌وقت idle نمی‌شود؛ `setContent`/`performClick` تا ۶۰ ثانیه بلوکه می‌شود (`AppNotIdleException`) و چون لوپرِ Main در دستِ تست است، ادامهٔ کوروتینِ شبکه هم جلو نمی‌آید. نتیجه فقط تستِ خودشان نیست: **قفلِ sandbox** تمامِ کلاس‌های Composeِ بعد از آن را سرخ می‌کند. راه‌حل: `PanelCache` را پیشِ `setContent` پر کن تا `loading` از فریمِ اول false باشد (همان کاری که در تولید می‌کند) |
 | از درونِ شرطِ `waitUntil` گرهٔ semantics **نخوان** | `fetchSemanticsNodes()` خودش `runOnIdle` می‌کند؛ داخلِ شرط یعنی `waitForIdle` تودرتو و همان قفل. شرط فقط شمارندهٔ سرور باشد (`waitUntil { server.requestCount >= 1 }`) و متن‌ها بعد از آن بی‌واسطه سنجیده شوند |
 | هیچ اکشنی که `busy`/`saving` روشن می‌کند لمس نشود | همان اسپینرِ بی‌پایان؛ مسیرهای «بساز/ذخیره/چرخش» را در تستِ لایهٔ داده (`*ApiTest`) قفل کن، نه با لمسِ UI |
+| پنجرهٔ `Dialog` در تستِ Compose **باز نشود** | در Robolectric پنجرهٔ دیالوگ هرگز idle گزارش نمی‌شود؛ همین `performClick` روی دکمهٔ بازکردنش را ۶۰ ثانیه می‌خواباند (دو اجرای CI). محتوای دیالوگ را اگر لازم بود جدا کنید و بدونِ `Dialog` رندر کنید — الگوی `UserDetailsSectionsScreenshotTest` |
+| `fetchSemanticsNodes()` را داخلِ شرطِ `waitUntil` صدا نزنید | خودش `runOnIdle` می‌کند؛ داخلِ شرط یعنی `waitForIdle` تودرتو. شرط فقط شمارندهٔ سرور باشد (`waitUntil { server.requestCount >= 1 }`) |
+| `ApiKeysScreen` (و هر صفحهٔ تازهٔ سطح‌سرور) با کشِ تازه درخواست نمی‌فرستد | `LaunchedEffect(session) { if (!PanelCache.isFresh(key)) load() }` — هم رفتاریِ درست است (برگشتن از دیالوگ داده را دوباره از شبکه نمی‌گیرد)، هم تست را از حالتِ in-flight/اسپینر نجات می‌دهد |
 
 ## ۴. سه دریچهٔ تست در کدِ تولید (و چرا)
 
