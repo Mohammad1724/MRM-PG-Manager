@@ -115,11 +115,17 @@ object PanelApi {
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     /**
-     * مقادیرِ مجازِ `target` برای پاک‌سازی — همان `ExpiredUsersQuery.target` پنل.
-     * `inactive` از PasarGuard v5.5 اضافه شده است.
+     * هدفِ «کاربرانِ بی‌فعال» — از PasarGuard **v5.5** به `ExpiredUsersQuery.target`
+     * اضافه شد و برخلافِ بقیه، فیلترِ `expired_before` را **الزامی** می‌کند.
+     *
+     * عمداً **قبل از** [CLEANUP_TARGETS] تعریف شده: در Kotlin ارجاعِ رو‌به‌جلو در
+     * مقداردهیِ اولیهٔ property مجاز نیست («Variable must be initialized») و
+     * همین ترتیب یک بار CI را سرخ کرد.
      */
-    internal val CLEANUP_TARGETS = listOf("expired", "limited", "on_hold", "disabled", CLEANUP_INACTIVE)
     internal const val CLEANUP_INACTIVE = "inactive"
+
+    /** مقادیرِ مجازِ `target` برای پاک‌سازی — همان `ExpiredUsersQuery.target` پنل. */
+    internal val CLEANUP_TARGETS = listOf("expired", "limited", "on_hold", "disabled", CLEANUP_INACTIVE)
 
     /** مقادیرِ مجازِ `on_hold_timeout_action` در پنل (`OnHoldTimeoutAction`، v5.5). */
     internal val ON_HOLD_ACTIONS = listOf(OnHoldAction.ACTIVATE, OnHoldAction.DISABLE, OnHoldAction.DELETE)

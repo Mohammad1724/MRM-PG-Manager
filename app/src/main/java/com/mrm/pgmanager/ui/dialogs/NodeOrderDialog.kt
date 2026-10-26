@@ -105,13 +105,13 @@ fun NodeOrderDialog(
                         val upLabel = stringResource(R.string.st_node_move_up)
                         val downLabel = stringResource(R.string.st_node_move_down)
                         PGIconButton(
-                            icon = { RoundedAppIcon(AppIcon.Prev, contentDescription = upLabel, size = 14.dp) },
+                            icon = { RoundedAppIcon(AppIcon.Prev, contentDescription = upLabel, tint = theme.inkColor, size = 14.dp) },
                             contentDescription = upLabel,
                             enabled = index > 0,
                             onClick = { move(index, index - 1) }
                         )
                         PGIconButton(
-                            icon = { RoundedAppIcon(AppIcon.Next, contentDescription = downLabel, size = 14.dp) },
+                            icon = { RoundedAppIcon(AppIcon.Next, contentDescription = downLabel, tint = theme.inkColor, size = 14.dp) },
                             contentDescription = downLabel,
                             enabled = index < order.lastIndex,
                             onClick = { move(index, index + 1) }
