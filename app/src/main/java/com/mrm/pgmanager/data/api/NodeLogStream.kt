@@ -48,16 +48,20 @@ internal class NodeLogConnection(
     fun nextEvent(): String? {
         if (closed) return null
         val src = source ?: return null
-        return try {
-            while (true) {
-                val line = src.readUtf8Line() ?: return null
-                decoder.feed(line)?.let { return it }
+        while (true) {
+            // `try` فقط دورِ خودِ خواندن است، نه دورِ حلقه: بلوکی که با `close()`
+            // می‌شکند همین `readUtf8Line()` است. okio بعد از بستنِ منبع دو جور
+            // رفتار می‌کند — «canceled» (IOException از خودِ Call) و
+            // `IllegalStateException("closed")` از source — و هیچ‌کدام خطای جریان
+            // نیست اگر خودمان بسته باشیم؛ وگرنه هر خروجِ صفحه یک کرش بود.
+            val line = try {
+                src.readUtf8Line() ?: return null
+            } catch (e: Exception) {
+                if (closed) return null
+                throw e
             }
-        } catch (e: Exception) {
-            // okio بعد از بستنِ منبع دو جور رفتار می‌کند: «canceled» (IOException
-            // از خودِ Call) و `IllegalStateException("closed")` از source. هیچ‌کدام
-            // خطای جریان نیست اگر خودمان بسته باشیم — وگرنه بستنِ صفحه یک کرش بود.
-            if (closed) null else throw e
+            val event = decoder.feed(line)
+            if (event != null) return event
         }
     }
 

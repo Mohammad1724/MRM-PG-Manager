@@ -213,9 +213,11 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
             }
         } catch (e: Exception) {
             // لغوِ عمدی (خروج از صفحه یا تازه‌سازی) خطا نیست: اگر آن را بلعید،
-            // یک بنرِ «جریان قطع شد» روی صفحهٔ تازه می‌نشست. `isActive` همان
-            // لحظه false است، پس فقط بازپرتاب می‌کنیم.
-            if (!isActive) throw e
+            // یک بنرِ «جریان قطع شد» روی صفحهٔ تازه می‌نشست که با دستِ کاربر هم
+            // پاک نمی‌شد. `kotlinx.coroutines.isActive` در این بلوک در دسترس نیست
+            // (block داخلِ `withContext` است)، پس نوعِ خودِ استثنا معیار است —
+            // `CancellationException` در JVM همان `java.util.concurrent` است.
+            if (e is java.util.concurrent.CancellationException) throw e
             // هر خطای خواندنِ جریان (TIMEOUT، TLS، connection reset) همین‌جا تمام
             // می‌شود؛ صفحه نباید به‌خاطرِ یک سوکتِ مرده کرش کند، به‌جایش «ادامهٔ
             // دریافت» پیشنهاد می‌شود.
