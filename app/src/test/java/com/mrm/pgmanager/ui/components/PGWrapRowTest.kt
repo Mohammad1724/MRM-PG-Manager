@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -35,6 +36,7 @@ import org.robolectric.annotation.Config
 class PGWrapRowTest {
     @get:Rule val rule = createComposeRule()
 
+    @Composable
     private fun chip(tag: String, width: Int) =
         Box(Modifier.testTag(tag).size(width.dp, 24.dp))
 
