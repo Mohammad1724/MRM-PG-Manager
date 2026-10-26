@@ -83,6 +83,9 @@ the rules the tests must follow, and the three test seams in production code).
 
 Local build: Android Studio (compileSdk 35, minSdk 26) or `./gradlew assembleDebug`.
 
+Contributing conventions (commit-message language, what must pass before pushing, version bumps):
+`.github/CONTRIBUTING.md` — plus `docs/CI.md` for the test rules CI taught us.
+
 ## Notes
 
 - Use an HTTPS panel address; cleartext HTTP is rejected.
