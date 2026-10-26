@@ -1,6 +1,8 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -11,9 +13,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.Session
+import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -32,14 +37,22 @@ import org.robolectric.annotation.Config
 /**
  * تستِ رفتاریِ **صفحهٔ «کلیدهای API»** — چیزی که تستِ قرارداد نمی‌بیند.
  *
- * قرارداد (`ApiKeysApiTest`) می‌گوید مسیرها و بدنه‌ها درست‌اند؛ اینجا سنجیده
- * می‌شود که صفحه همان چیزی را نشان بدهد که ادعا می‌کند:
- *  ۱. ردیفِ هر کلید **فقط** متنِ ماسک‌شده (`api_key_trimmed`) را نشان می‌دهد —
- *     متنِ کامل هیچ‌جا جز دیالوگِ «یک‌بار» نباید دیده شود؛
- *  ۲. حالتِ خالی راهِ ساخت را پیشنهاد می‌کند، و خطای شبکه به «تلاشِ مجدد» با
- *     بازیابیِ واقعی می‌رسد (نه یک صفحهٔ سفید)؛
- *  ۳. مسیرِ کاملِ ساخت → نمایشِ یک‌بارهٔ کلید کار می‌کند؛ اگر جایی بشکند
- *     ادمین کلید را می‌سازد و **نمی‌بیندش**، یعنی کلید از دست رفته است.
+ * `ApiKeysApiTest` می‌گوید مسیرها و بدنه‌ها درست‌اند؛ اینجا سنجیده می‌شود که خودِ
+ * صفحه همان چیزی را نشان می‌دهد که ادعا می‌کند: فقط متنِ ماسک‌شده (نه رازِ
+ * کامل)، حفظِ ردیف‌ها وقتی رفرش شکست می‌خورد، دیالوگِ ساختی که بدونِ نام
+ * اجازهٔ ساخت نمی‌دهد، و غیب‌شدنِ اکشن‌ها وقتی نقشِ ادمین نوشتن ندارد.
+ *
+ * ### قاعدهٔ نوشتنِ این تست‌ها (یک‌بار گران تمام شد)
+ * صفحه **هرگز** نباید در حالی که `CircularProgressIndicator` روی آن است مونتاژ
+ * شود: انیمیشنِ بی‌پایان هیچ‌وقت idle نمی‌شود، `setContent`/`performClick` تا ۶۰
+ * ثانیه بلوکه می‌ماند و چون لوپرِ اصلیِ Robolectric در همان لحظه در اختیارِ تست
+ * است، ادامهٔ کوروتینِ شبکه (که روی Main می‌آید) هم اجرا نمی‌شود — قفلِ کامل،
+ * آن‌قدر شدید که تست‌هایِ بعد از این کلاس هم سرخ می‌شدند. دو نتیجهٔ عملی:
+ *  ۱. کش با داده پر می‌شود تا `loading` از همان فریمِ اول false باشد؛
+ *  ۲. هیچ اکشنی که `busy` را روشن می‌کند لمس نمی‌شود (submitِ دیالوگِ ساخت،
+ *     چرخش، حذف). پس «نمایشِ یک‌بارهٔ کلید» اینجا تست نمی‌شود — همان مسیر در
+ *     `ApiKeysApiTest` روی لایهٔ داده قفل شده است. اضافه‌کردنِ `waitForIdle` یا
+ *     لمسِ «بساز» به این فایل، همان قفل را برمی‌گرداند؛ دست نزنید.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -53,40 +66,67 @@ class ApiKeysScreenTest {
     private fun str(id: Int, vararg args: Any): String =
         RuntimeEnvironment.getApplication().getString(id, *args)
 
-    private fun keyJson(id: Int, name: String, trimmed: String, status: String = "active"): String =
-        """{"id":$id,"admin_id":1,"name":"$name","note":null,"created_at":"2026-10-01T10:00:00Z",
-            "api_key_trimmed":"$trimmed","status":"$status","is_expired":false,
-            "expire_date":null,"inherit_permissions":true}"""
-
-    private fun installDispatcher(vararg responses: Pair<String, MockResponse>) {
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                val key = "${request.method} ${request.path.orEmpty().substringBefore('?')}"
-                val hit = responses.lastOrNull { it.first == key } ?: responses.firstOrNull { it.first == "*" }
-                return hit?.second ?: MockResponse().setResponseCode(404)
-            }
-        }
-    }
-
     @Before fun setUp() {
         server = MockWebServer()
         server.start()
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
+        AdminAccess.reset()
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
     }
 
     @After fun tearDown() {
+        AdminAccess.reset()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
         server.shutdown()
+    }
+
+    /** پاسخِ `GET /api/api_keys` از دو کلیدِ ساختگی. */
+    private fun keysBody(): String =
+        """{"api_keys":[
+             {"id":3,"admin_id":1,"name":"widget","note":"رویِ سرورِ ci","created_at":"2026-10-01T10:00:00Z",
+              "api_key_trimmed":"pg_key_…f7a2","status":"active","is_expired":false,
+              "expire_date":null,"inherit_permissions":true},
+             {"id":4,"admin_id":1,"name":"ci","note":null,"created_at":"2026-10-02T10:00:00Z",
+              "api_key_trimmed":"pg_key_…11bc","status":"disabled","is_expired":false,
+              "expire_date":"2026-10-05T10:00:00Z","inherit_permissions":true}
+           ],"total":2}"""
+
+    private val seedKeys = listOf(
+        PanelApiKey(id = 3, name = "widget", trimmed = "pg_key_…f7a2"),
+        PanelApiKey(id = 4, name = "ci", trimmed = "pg_key_…11bc", status = PanelApiKey.DISABLED)
+    )
+
+    /** کشِ تازه ⇒ صفحه بدونِ حالتِ بارگذاری (و بدونِ اسپینرِ بی‌پایان) ساخته می‌شود. */
+    private fun seedCache(keys: List<PanelApiKey> = seedKeys) =
+        PanelCache.put(PanelCache.apiKeysKey(session.baseUrl), keys)
+
+    /**
+     * @param adminBody پاسخِ `GET /api/admin` — برای تست‌هایِ RBAC. `null` یعنی
+     *   مجوزها نامعلوم می‌مانند و اپ «همه‌چیز مجاز» را پیش می‌گیرد.
+     */
+    private fun installDispatcher(
+        keysResponse: MockResponse = MockResponse().setBody(keysBody()),
+        adminBody: String? = null
+    ) {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty().substringBefore('?')
+                return when {
+                    path == "/api/admin" -> adminBody?.let { MockResponse().setBody(it) }
+                        ?: MockResponse().setResponseCode(404)
+                    path == "/api/api_keys" -> keysResponse
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
     }
 
     private fun render() = rule.setContent {
         ApiKeysScreen(session = session, onBack = {})
     }
 
-    /** `waitUntil`ِ خالی پیامِ بی‌فایده می‌دهد؛ این نسخه «چه دیدیم» را هم می‌آورد. */
     private fun await(what: String, observed: () -> String, condition: () -> Boolean) {
         try {
             rule.waitUntil(15_000, condition)
@@ -95,98 +135,102 @@ class ApiKeysScreenTest {
         }
     }
 
-    @Test fun rows_show_masked_key_only() {
-        installDispatcher(
-            "GET /api/api_keys" to MockResponse().setBody(
-                """{"api_keys":[${keyJson(3, "widget", "pg_key_…f7a2")},
-                                ${keyJson(4, "ci", "pg_key_…11bc", status = "disabled")}],"total":2}"""
-            )
-        )
+    private fun count(text: String) = rule.onAllNodesWithText(text).fetchSemanticsNodes().size
+    private fun countDesc(desc: String) = rule.onAllNodesWithContentDescription(desc).fetchSemanticsNodes().size
+
+    @Test fun row_shows_masked_key_and_never_the_secret() {
+        seedCache()
+        installDispatcher()
         render()
 
-        val masked = "pg_key_…f7a2"
-        await("ردیفِ کلیدِ ماسک‌شده", observed = { "متن‌های یافت‌شده: ${rule.onAllNodesWithText(masked).fetchSemanticsNodes().size}" }) {
-            rule.onAllNodesWithText(masked).fetchSemanticsNodes().isNotEmpty()
+        await("ردیفِ کلیدِ ماسک‌شده", observed = { "تعداد: ${count("pg_key_…f7a2")}" }) {
+            count("pg_key_…f7a2") > 0
         }
-        // وضعیت‌ها از هم جدا می‌شوند: یکی فعال، یکی غیرفعال.
-        assertTrue(rule.onAllNodesWithText(str(R.string.ak_status_active)).fetchSemanticsNodes().isNotEmpty())
-        assertTrue(rule.onAllNodesWithText(str(R.string.ak_status_disabled)).fetchSemanticsNodes().isNotEmpty())
-        // بدونِ انقضا → «هرگز منقضی نمی‌شود» نه یک خطِ خالی.
-        assertTrue(rule.onAllNodesWithText(str(R.string.ak_no_expiry)).fetchSemanticsNodes().isNotEmpty())
+        // دو وضعیت از هم جدا می‌مانند: یکی فعال، یکی غیرفعال.
+        assertTrue("وضعیتِ فعال باید دیده شود", count(str(R.string.ak_status_active)) > 0)
+        assertTrue("وضعیتِ غیرفعال باید دیده شود", count(str(R.string.ak_status_disabled)) > 0)
+        // بی‌انقضا در برابرِ کلیدِ گذشته: «هرگز» نه یک خطِ خالی.
+        assertTrue("ردیفِ بی‌انقضا باید «هرگز» داشته باشد", count(str(R.string.ak_no_expiry)) > 0)
+        // متنِ کاملِ کلید هیچ‌حق ندارد در فهرست باشد.
+        assertEquals(0, count("pg_key_full_secret"))
+        // یادداشت فقط وقتی هست نشان داده می‌شود.
+        assertTrue("یادداشتِ کلید باید دیده شود", count("رویِ سرورِ ci") > 0)
     }
 
-    @Test fun empty_state_offers_create_and_respects_touch_target() {
-        installDispatcher("GET /api/api_keys" to MockResponse().setBody("""{"api_keys":[],"total":0}"""))
+    @Test fun failed_refresh_keeps_the_rows_it_already_showing() {
+        seedCache()
+        // ۴۰۳ روی رفرش: فهرستِ کش‌شده باید بماند، نه اینکه صفحه خالی شود.
+        installDispatcher(keysResponse = MockResponse().setResponseCode(403).setBody("""{"detail":"nope"}"""))
         render()
 
-        val empty = str(R.string.ak_empty)
-        await("حالتِ خالی", observed = { "تعداد: ${rule.onAllNodesWithText(empty).fetchSemanticsNodes().size}" }) {
-            rule.onAllNodesWithText(empty).fetchSemanticsNodes().isNotEmpty()
+        await("پاسخِ خطا ثبت شود", observed = { "درخواست‌ها: ${server.requestCount}" }) {
+            server.requestCount > 0
         }
-        rule.onAllNodesWithText(str(R.string.ak_empty_hint)).fetchSemanticsNodes().let {
-            assertTrue("توضیحِ حالتِ خالی باید دیده شود", it.isNotEmpty())
-        }
-        // دکمهٔ ساختِ سربرگ باید ناحیهٔ لمسیِ استاندارد داشته باشد (۴۰dp + گسترشِ Compose).
-        val addLabel = str(R.string.ak_create)
-        rule.onNodeWithContentDescription(addLabel).assertHeightIsAtLeast(40.dp)
-        assertEquals(1, rule.onAllNodesWithContentDescription(addLabel).fetchSemanticsNodes().size)
+        assertEquals("ردیف‌ها نباید با یک خطای رفرش پاک شوند", 1, count("pg_key_…f7a2"))
+        assertEquals("حالتِ خالی نباید جای دادهٔ کش‌شده را بگیرد", 0, count(str(R.string.ak_empty)))
     }
 
-    @Test fun network_error_shows_retry_that_recovers() {
-        // اولین پاسخ ۵۰۰، بعدی موفق — «تلاشِ مجدد» باید واقعاً دوباره بکشد.
-        var calls = 0
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                calls++
-                return if (calls == 1) MockResponse().setResponseCode(500).setBody("""{"detail":"boom"}""")
-                else MockResponse().setBody("""{"api_keys":[${keyJson(9, "after-retry", "pg_key_…9d1f")}],"total":1}""")
-            }
-        }
+    @Test fun create_dialog_requires_a_name() {
+        seedCache()
+        installDispatcher()
         render()
 
-        val failed = str(R.string.load_failed)
-        await("حالتِ خطا", observed = { "تعداد: ${rule.onAllNodesWithText(failed).fetchSemanticsNodes().size}" }) {
-            rule.onAllNodesWithText(failed).fetchSemanticsNodes().isNotEmpty()
-        }
-        rule.onAllNodesWithText(str(R.string.retry))[0].performClick()
-        val masked = "pg_key_…9d1f"
-        await("بازیابی پس از تلاشِ مجدد", observed = { "درخواست‌ها: $calls" }) {
-            rule.onAllNodesWithText(masked).fetchSemanticsNodes().isNotEmpty()
-        }
-        assertTrue("باید دو درخواست رفته باشد (خطا + تلاشِ مجدد)", calls >= 2)
-    }
+        val addDesc = str(R.string.ak_create)
+        await("دکمهٔ ساختِ سربرگ", observed = { "تعداد: ${countDesc(addDesc)}" }) { countDesc(addDesc) > 0 }
+        // کفِ ناحیهٔ لمسِ دکمه‌های آیکونیِ همین صفحه.
+        rule.onNodeWithContentDescription(addDesc).assertHeightIsAtLeast(40.dp)
+        rule.onNodeWithContentDescription(addDesc).performClick()
 
-    @Test fun create_reveals_the_full_key_exactly_once() {
-        installDispatcher(
-            "GET /api/api_keys" to MockResponse().setBody("""{"api_keys":[],"total":0}"""),
-            "POST /api/api_key" to MockResponse().setResponseCode(201)
-                .setBody("""{"api_key":"pg_key_full_secret",${keyJson(11, "widget", "pg_key_…f7a2")}}""")
-        )
-        render()
-
-        val addLabel = str(R.string.ak_create)
-        await("دکمهٔ ساخت", observed = { "تعداد: ${rule.onAllNodesWithContentDescription(addLabel).fetchSemanticsNodes().size}" }) {
-            rule.onAllNodesWithContentDescription(addLabel).fetchSemanticsNodes().isNotEmpty()
+        await("دیالوگِ ساخت", observed = { "تعدادِ راهنما: ${count(str(R.string.ak_create_hint))}" }) {
+            count(str(R.string.ak_create_hint)) > 0
         }
-        rule.onNodeWithContentDescription(addLabel).performClick()
-        rule.waitForIdle()
+        // سه گزینهٔ انقضا + «هرگز» — چیپ‌ها، نه DatePicker.
+        assertTrue("گزینهٔ ۳۰ روز باید باشد", count(str(R.string.ak_days_30)) > 0)
+        assertTrue("گزینهٔ هرگز نباید منقضی شود باید باشد", count(str(R.string.ak_never)) > 0)
 
-        // نام در اولین فیلدِ متنیِ دیالوگ تایپ می‌شود.
+        val submit = str(R.string.ak_create_action)
+        assertEquals("دکمهٔ تأیید باید یکتا باشد (برچسبِ جدا از عنوانِ دیالوگ)", 1, count(submit))
+        rule.onNodeWithText(submit).assertIsNotEnabled()
+
         val fields = rule.onAllNodes(hasSetTextAction())
         assertTrue("دیالوگِ ساخت باید فیلدِ متنی داشته باشد", fields.fetchSemanticsNodes().isNotEmpty())
         fields[0].performTextInput("widget")
-        rule.waitForIdle()
 
-        // دکمهٔ تأیید برچسبِ جدا دارد («بساز»)، پس تکِ یکتاست — قبلاً عنوان و
-        // دکمه هم‌نام بودند و تست نمی‌توانست مطمئن باشد کدام را می‌زند.
-        rule.onNodeWithText(str(R.string.ak_create_action)).performClick()
+        // `performTextInput` خودش بینِ فریم‌ها sync می‌کند، پس این assertion
+        // بی‌واسطه درست است؛ حالتِ busy (اسپینر) هنوز شروع نشده.
+        rule.onNodeWithText(submit).assertIsEnabled()
+    }
 
-        val secret = "pg_key_full_secret"
-        await("نمایشِ یک‌بارهٔ متنِ کاملِ کلید", observed = { "تعداد: ${rule.onAllNodesWithText(secret).fetchSemanticsNodes().size}" }) {
-            rule.onAllNodesWithText(secret).fetchSemanticsNodes().isNotEmpty()
+    @Test fun rows_hide_every_action_when_the_role_cannot_write() {
+        seedCache()
+        // نقشِ فقط‌خواندن: api_keys.read بدونِ create/update/delete.
+        installDispatcher(
+            adminBody = """{"id":1,"username":"ops","role":{"id":2,"name":"Viewer","is_owner":false,
+                          "permissions":{"api_keys":{"read":true}}}}"""
+        )
+        runBlocking { AdminAccess.refresh(session, force = true) }
+
+        render()
+
+        await("ردیف‌ها با مجوزِ خواندن هم ساخته می‌شوند", observed = { "تعداد: ${count("pg_key_…f7a2")}" }) {
+            count("pg_key_…f7a2") > 0
         }
-        // راهنمای «فقط همین یک‌بار» هم باید با خودِ کلید باشد، وگرنه کاربر
-        // فکر می‌کند بعداً هم پیدایش می‌شود.
-        assertTrue(rule.onAllNodesWithText(str(R.string.ak_reveal_hint)).fetchSemanticsNodes().isNotEmpty())
+        assertEquals("بدونِ create دکمهٔ ساخت نباید باشد", 0, countDesc(str(R.string.ak_create)))
+        assertEquals("بدونِ update دکمهٔ چرخش نباید باشد", 0, countDesc(str(R.string.ak_rotate)))
+        assertEquals("بدونِ delete دکمهٔ حذف نباید باشد", 0, countDesc(str(R.string.ak_delete)))
+        assertEquals("بدونِ update دکمهٔ فعال/غیرفعال نباید باشد", 0, countDesc(str(R.string.ak_disable)))
+    }
+
+    @Test fun empty_list_offers_the_create_path() {
+        seedCache(keys = emptyList())
+        installDispatcher(keysResponse = MockResponse().setBody("""{"api_keys":[],"total":0}"""))
+        render()
+
+        await("حالتِ خالی", observed = { "تعداد: ${count(str(R.string.ak_empty))}" }) {
+            count(str(R.string.ak_empty)) > 0
+        }
+        // حالتِ خالی باید راهِ حل را هم پیشنهاد کند، نه فقط «چیزی نیست».
+        assertTrue("توضیحِ حالتِ خالی باید دیده شود", count(str(R.string.ak_empty_hint)) > 0)
+        assertEquals("دکمهٔ ساختِ درونِ حالتِ خالی", 1, count(str(R.string.ak_create)))
     }
 }

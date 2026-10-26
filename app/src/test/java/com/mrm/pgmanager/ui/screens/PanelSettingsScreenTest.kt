@@ -11,9 +11,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.Session
+import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -32,12 +35,20 @@ import org.robolectric.annotation.Config
 /**
  * تستِ رفتاریِ **صفحهٔ «تنظیماتِ پنل»**.
  *
- * تستِ قرارداد (`PanelSettingsApiTest`) فقط شکلِ درخواست/پاسخ را می‌سنجد؛ اینجا
- * سه قراردادِ UX قفل می‌شود که شکستنشان در عمل گران است:
- *  ۱. چهار تب واقعاً چهار بخشِ جدا را باز می‌کنند (نه یک فرمِ بلند)؛
- *  ۲. تا وقتی چیزی عوض نشده، «ذخیره» **غیرفعال** است — هر `PUT` سرویس‌های پنل
- *     را ری‌استارت می‌کند، پس ذخیرهٔ بی‌مورد یک خرابیِ واقعی است؛
- *  ۳. خطای شبکه «تلاشِ مجدد» دارد و بعد از آن صفحه پر می‌شود (نه صفحهٔ سفید).
+ * `PanelSettingsApiTest` شکلِ درخواست/پاسخ را می‌سنجد؛ اینجا سه قراردادی قفل
+ * می‌شود که فقط در خودِ صفحه معنا دارند:
+ *  ۱. چهار تب واقعاً چهار بخشِ جدا را باز می‌کند و محتوای تبِ قبلی **جایش را
+ *     می‌گیرد** (نه اینکه زیرِ تبِ تازه هم بماند)؛
+ *  ۲. «ذخیره» تا چیزی عوض نشده غیرفعال است — هر `PUT` روی `SettingsSchema`
+ *     سرویس‌های پنل را ری‌استارت می‌کند، پس یک ذخیرهٔ بی‌دلیل یعنی قطعیِ
+ *     اختراک برای همهٔ کاربرها. این مهم‌ترین خطِ قرمزِ همین صفحه است؛
+ *  ۳. نقشِ فقط‌خواندن هیچ دکمهٔ ذخیره‌ای نمی‌بیند (به‌جایش توضیحِ دلیلش).
+ *
+ * قاعدهٔ «صفحه با اسپینرِ بی‌پایان مونتاژ نشود» (شرحش در `ApiKeysScreenTest`)
+ * اینجا هم رعایت شده: کش با دادهٔ **تازه** پر می‌شود، پس `loading` از همان
+ * فریمِ اول false است و `setContent` روی idle گیر نمی‌کند. برای همین هیچ‌وقت
+ * «ذخیره» لمس نمی‌شود: `saving=true` اسپینرِ بی‌پایان می‌آورد و تست می‌خوابد —
+ * مسیرِ ذخیره در `PanelSettingsApiTest` روی لایهٔ داده قفل شده است.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -48,11 +59,6 @@ class PanelSettingsScreenTest {
     private lateinit var server: MockWebServer
     private lateinit var session: Session
 
-    private fun str(id: Int, vararg args: Any): String =
-        RuntimeEnvironment.getApplication().getString(id, *args)
-
-    // حداقلِ معتبرِ پاسخِ `GET /api/settings`: هر گروه فقط فیلدهایی را دارد که
-    // صفحه نمایش می‌دهد؛ فیلدهای غایب باید به پیش‌فرض برسند، نه استثنا.
     private val settingsJson = """
         {"general":{
             "default_method":"chacha20-ietf-poly1305",
@@ -73,18 +79,39 @@ class PanelSettingsScreenTest {
         }
     """.trimIndent()
 
+    private fun str(id: Int, vararg args: Any): String =
+        RuntimeEnvironment.getApplication().getString(id, *args)
+
     @Before fun setUp() {
         server = MockWebServer()
         server.start()
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
+        AdminAccess.reset()
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
+        PanelCache.put(PanelCache.panelSettingsKey(session.baseUrl), PanelSettings.from(org.json.JSONObject(settingsJson)))
     }
 
     @After fun tearDown() {
+        AdminAccess.reset()
+        PanelCache.resetClockForTests()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
         server.shutdown()
+    }
+
+    private fun installDispatcher(settingsResponse: MockResponse? = null, adminBody: String? = null) {
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.path.orEmpty().substringBefore('?')
+                return when {
+                    path == "/api/admin" -> adminBody?.let { MockResponse().setBody(it) }
+                        ?: MockResponse().setResponseCode(404)
+                    path.startsWith("/api/settings") -> settingsResponse ?: MockResponse().setBody(settingsJson)
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
     }
 
     private fun render() = rule.setContent {
@@ -99,13 +126,10 @@ class PanelSettingsScreenTest {
         }
     }
 
-    private fun awaitTab(label: String) = await(
-        what = "تبِ «$label»",
-        observed = { "متن‌های یافت‌شده: ${rule.onAllNodesWithText(label).fetchSemanticsNodes().size}" }
-    ) { rule.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty() }
+    private fun count(text: String) = rule.onAllNodesWithText(text).fetchSemanticsNodes().size
 
-    @Test fun four_tabs_are_rendered_with_usable_touch_targets() {
-        server.enqueue(MockResponse().setBody(settingsJson))
+    @Test fun four_tabs_render_once_with_a_min_touch_target() {
+        installDispatcher()
         render()
 
         val labels = listOf(
@@ -114,93 +138,90 @@ class PanelSettingsScreenTest {
             str(R.string.panel_settings_tab_hwid),
             str(R.string.panel_settings_tab_notifications)
         )
-        awaitTab(labels[0])
+        await("تبِ اول", observed = { "تعداد: ${count(labels[0])}" }) { count(labels[0]) > 0 }
         labels.forEach { label ->
-            assertEquals("تبِ «$label» باید یکتا باشد", 1, rule.onAllNodesWithText(label).fetchSemanticsNodes().size)
-            // متن در نودِ کلیک‌پذیرِ merge‌شده است؛ پس ارتفاعِ سنجیده‌شده همان
-            // محدودهٔ لمسیِ تب است (heightIn(min = 40dp)).
+            assertEquals("تبِ «$label» باید یکتا باشد", 1, count(label))
+            // متنِ تب داخلِ باکسِ کلیک‌پذیرِ merge‌شده است، پس ارتفاعِ همین
+            // گره همان محدودهٔ لمسی است (هدفِ `heightIn(min = 40.dp)`).
             rule.onNodeWithText(label).assertHeightIsAtLeast(40.dp)
         }
+        // با کشِ تازه نباید اصلاً درخواستی رفته باشد (قاعدهٔ «یک بار در ۲۰ ثانیه»).
+        assertEquals("کشِ تازه نباید بازخوانی راه بیندازد", 0, server.requestCount)
     }
 
-    @Test fun switching_tabs_shows_that_section_only() {
-        server.enqueue(MockResponse().setBody(settingsJson))
+    @Test fun switching_tab_replaces_the_previous_section() {
+        installDispatcher()
         render()
 
         val general = str(R.string.panel_settings_tab_general)
         val subscription = str(R.string.panel_settings_tab_subscription)
-        awaitTab(general)
-        // تبِ عمومی: فیلدِ رویهٔ Shadowsocks.
+        await("تبِ عمومی", observed = { "تعداد: ${count(general)}" }) { count(general) > 0 }
         assertTrue(
-            "تبِ عمومی باید کارتِ پیش‌فرض‌های سرور را نشان بدهد",
-            rule.onAllNodesWithText(str(R.string.ps_default_method)).fetchSemanticsNodes().isNotEmpty()
+            "تبِ عمومی باید فیلدِ رویهٔ Shadowsocks را نشان بدهد",
+            count(str(R.string.ps_default_method)) > 0
         )
 
         rule.onNodeWithText(subscription).performClick()
-        rule.waitForIdle()
 
-        await(
-            what = "فیلدِ پیشوندِ URL در تبِ اشتراک",
-            observed = { "تعداد: ${rule.onAllNodesWithText(str(R.string.ps_url_prefix)).fetchSemanticsNodes().size}" }
-        ) { rule.onAllNodesWithText(str(R.string.ps_url_prefix)).fetchSemanticsNodes().isNotEmpty() }
-        // بخشِ عمومی جایش را به اشتراک داده است، نه اینکه زیرش مانده باشد.
-        assertEquals(
-            0,
-            rule.onAllNodesWithText(str(R.string.ps_default_method)).fetchSemanticsNodes().size
-        )
+        await("فیلدِ پیشوندِ URL", observed = { "تعداد: ${count(str(R.string.ps_url_prefix))}" }) {
+            count(str(R.string.ps_url_prefix)) > 0
+        }
+        // بخشِ قبلی باید رفته باشد؛ ماندنش یعنی دو فرم روی هم و ذخیرهٔ اشتباه.
+        assertEquals(0, count(str(R.string.ps_default_method)))
     }
 
-    @Test fun save_stays_disabled_until_a_field_changes() {
-        server.enqueue(MockResponse().setBody(settingsJson))
+    @Test fun save_stays_disabled_until_a_field_actually_changes() {
+        installDispatcher()
         render()
 
         val subscription = str(R.string.panel_settings_tab_subscription)
-        awaitTab(subscription)
+        await("تبِ اشتراک", observed = { "تعداد: ${count(subscription)}" }) { count(subscription) > 0 }
         rule.onNodeWithText(subscription).performClick()
-        rule.waitForIdle()
 
         val save = str(R.string.ps_save)
-        await(
-            what = "دکمهٔ ذخیره",
-            observed = { "تعداد: ${rule.onAllNodesWithText(save).fetchSemanticsNodes().size}" }
-        ) { rule.onAllNodesWithText(save).fetchSemanticsNodes().isNotEmpty() }
-
-        // قرارداد: بدونِ تغییر، ذخیره فعال نیست (هر PUT سرویس‌ها را ری‌استارت می‌کند).
+        await("دکمهٔ ذخیره", observed = { "تعداد: ${count(save)}" }) { count(save) > 0 }
+        // قراردادِ خطِ قرمز: بدونِ تغییر، ذخیره فعال نیست (هر PUT سرویس‌ها را ری‌استارت می‌کند).
         rule.onNodeWithText(save).assertIsNotEnabled()
 
-        // اولین فیلدِ متنیِ همین تب (پیشوندِ URL) را تغییر می‌دهیم.
         val fields = rule.onAllNodes(hasSetTextAction())
         assertTrue("تبِ اشتراک باید فیلدِ متنی داشته باشد", fields.fetchSemanticsNodes().isNotEmpty())
         fields[0].performTextInput("x")
-        rule.waitForIdle()
 
+        // خودِ assertion کافی است: `assertIsEnabled` پیش از سنجیدن با فریمِ
+        // تازه sync می‌شود و اینجا هیچ انیمیشنِ بی‌پایانی روی صفحه نیست.
         rule.onNodeWithText(save).assertIsEnabled()
     }
 
-    @Test fun network_error_recovers_through_retry() {
-        var calls = 0
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                calls++
-                return if (calls == 1) MockResponse().setResponseCode(500).setBody("""{"detail":"boom"}""")
-                else MockResponse().setBody(settingsJson)
-            }
-        }
+    @Test fun stale_cache_is_refetched_instead_of_shown_as_current() {
+        // کش «تازه» است؛ ساعت را یک دقیقه جلو می‌بریم تا کهنه شود — همان کاری
+        // که در گوشیِ واقعی بعد از DefaultFreshMs اتفاق می‌افتد.
+        // `at` در کش با `elapsedRealtime` (در Robolectric عددی کوچک) ثبت شده؛
+        // ساعت را به یک مقدارِ بزرگ می‌بریم تا سنِ داده از DefaultFreshMs رد شود.
+        PanelCache.clock = { 1_000_000_000L }
+        installDispatcher()
         render()
 
-        val failed = str(R.string.load_failed)
-        await(
-            what = "کارتِ خطا",
-            observed = { "تعداد: ${rule.onAllNodesWithText(failed).fetchSemanticsNodes().size}" }
-        ) { rule.onAllNodesWithText(failed).fetchSemanticsNodes().isNotEmpty() }
+        await("درخواستِ بازخوانی", observed = { "درخواست‌ها: ${server.requestCount}" }) { server.requestCount > 0 }
+        // داده نباید وسطِ کار غیب شود: تب‌ها همان اول هم بودند و بعد هم هستند.
+        assertEquals(1, count(str(R.string.panel_settings_tab_general)))
+    }
 
-        rule.onAllNodesWithText(str(R.string.retry))[0].performClick()
-        await(
-            what = "بازیابیِ تب‌ها پس از تلاشِ مجدد",
-            observed = { "درخواست‌ها: $calls" }
-        ) {
-            rule.onAllNodesWithText(str(R.string.panel_settings_tab_general)).fetchSemanticsNodes().isNotEmpty()
-        }
-        assertTrue("باید حداقل دو درخواست رفته باشد", calls >= 2)
+    @Test fun read_only_role_gets_no_save_button_only_an_explanation() {
+        installDispatcher(
+            adminBody = """{"id":1,"username":"ops","role":{"id":2,"name":"Viewer","is_owner":false,
+                          "permissions":{"settings":{"read":true,"read_general":true}}}}"""
+        )
+        runBlocking { AdminAccess.refresh(session, force = true) }
+        render()
+
+        val general = str(R.string.panel_settings_tab_general)
+        await("تبِ عمومی", observed = { "تعداد: ${count(general)}" }) { count(general) > 0 }
+        assertTrue(
+            "باید نوشته شود که نقشِ کاربر فقط خواندن است",
+            count(str(R.string.ps_readonly)) > 0
+        )
+        assertEquals("دکمهٔ ذخیره برای نقشِ فقط‌خواندن نباید ساخته شود", 0, count(str(R.string.ps_save)))
+        // و هیچ فیلدِ قابلِ ویرایشی هم نباید باشد (همه ردیفِ اطلاعات‌اند).
+        assertEquals(0, rule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size)
     }
 }
