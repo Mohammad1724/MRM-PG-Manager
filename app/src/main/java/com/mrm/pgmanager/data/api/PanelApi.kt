@@ -1684,7 +1684,13 @@ object PanelApi {
         withContext(Dispatchers.IO) {
             val body = runCatching { JSONObject(host.raw) }.getOrElse { JSONObject() }
             changes.forEach { (key, value) ->
-                if (value == null) body.remove(key) else body.put(key, value)
+                // `value == null` کافی نبود: فرم برای «این فیلد را پاک کن» مقدارِ
+                // `JSONObject.NULL` می‌فرستد (چون `Map<String, Any?>` است و برای
+                // رسیدن به کاتلینِ `null` باید کلید را حذف کنند) و نتیجه این بود که
+                // بدنه `"port": null` می‌گرفت — کلید همچنان *هست* و پنل آن را
+                // «صریحاً خالی» می‌فهمد، نه «پیش‌فرضِ inbound». حالا هر دو شکل
+                // یعنی «کلید را بردار».
+                if (value == null || value === JSONObject.NULL) body.remove(key) else body.put(key, value)
             }
             val response = executeJsonForBody(
                 requestBuilder(session, "${session.baseUrl}/api/host/${host.id}")

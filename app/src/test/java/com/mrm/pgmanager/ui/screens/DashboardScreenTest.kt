@@ -133,13 +133,15 @@ class DashboardScreenTest {
 
         // پیش‌فرض LAST_7D با برچسب "7d".
         val expected = str(R.string.chart_range_selector, "7d")
+        // انتخابگر بازه شرحِ دسترس‌پذیری می‌دهد، نه متنِ دیده‌شدنی؛ انتظار روی متن
+        // همیشه timeout می‌داد («گره با متن=0، گره با شرح=1»).
         awaitCondition(
-            what = "انتخابگرِ بازه با متنِ «$expected»",
+            what = "انتخابگرِ بازه با شرحِ «$expected»",
             observed = {
                 "گره با متن=" + rule.onAllNodesWithText(expected).fetchSemanticsNodes().size +
                     "، گره با شرح=" + rule.onAllNodesWithContentDescription(expected).fetchSemanticsNodes().size
             }
-        ) { rule.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty() }
+        ) { rule.onAllNodesWithContentDescription(expected).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription(expected).assertExists()
     }
 
