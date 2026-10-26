@@ -275,22 +275,27 @@ fun PGWrapRow(
         val heights = mutableListOf<Int>()
         val widths = mutableListOf<Int>()
         var line = 0
-        var x = 0
-        placeables.forEachIndexed { i, p ->
-            val step = if (x == 0) p.width else hGap + p.width
-            if (x != 0 && x + step > available) {
+        var lineEnd = 0
+        var lineHasItem = false
+        placeables.forEachIndexed { i, pl ->
+            // `lineEnd` پایانِ *واقعِ* خط است؛ فاصله فقط وقتی حساب می‌شود که عنصری
+            // قبلش نشسته باشد (خطِ تازه از صفر شروع می‌شود، نه با فاصلهٔ شبح‌وار).
+            val xStart = if (lineHasItem) lineEnd + hGap else 0
+            if (lineHasItem && xStart + pl.width > available) {
                 line++
-                x = 0
+                lineHasItem = false
             }
+            val x = if (lineHasItem) lineEnd + hGap else 0
             if (heights.size <= line) {
                 heights.add(0)
                 widths.add(0)
             }
             lineOf[i] = line
             xOf[i] = x
-            heights[line] = maxOf(heights[line], p.height)
-            x += step
-            widths[line] = maxOf(widths[line], x)
+            heights[line] = maxOf(heights[line], pl.height)
+            lineEnd = x + pl.width
+            lineHasItem = true
+            widths[line] = maxOf(widths[line], lineEnd)
         }
         val tops = IntArray(heights.size)
         var y = 0
