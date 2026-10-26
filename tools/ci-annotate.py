@@ -57,9 +57,33 @@ def rel_path(raw: str) -> str:
     return raw
 
 
-def parse_test_results(results_dir: Path, summary: list[str]) -> list[tuple[str, str, str]]:
-    """(file, title, message) برای هر تستِ شکست‌خورده."""
-    found: list[tuple[str, str, str]] = []
+# شکلِ فریمِ JVM: `at pkg.Class.method(File.kt:45)`
+RE_FRAME = re.compile(r"\(([\w$]+\.kt):(\d+)\)")
+
+
+def first_app_frame(body: list[str]) -> tuple[str, int]:
+    """نامِ فایل و شمارهٔ خطِ اولین فریمِ `com.mrm` در stack trace.
+
+    چرا: پیامِ خیلی از شکست‌ها بی‌محتواست (`java.lang.AssertionError`،
+    `ComposeTimeoutException`). بدونِ خط، تنها چیزی که از CI می‌رسد نامِ فایل است
+    و رفعش یک چرخهٔ کاملِ دیگر طول می‌کشد؛ با خط، annotation روی همان خط می‌نشیند.
+    """
+    fallback: tuple[str, int] = ("", 0)
+    for line in body:
+        m = RE_FRAME.search(line)
+        if not m:
+            continue
+        frame = (m.group(1), int(m.group(2)))
+        if "com.mrm" in line:
+            return frame
+        if not fallback[0]:
+            fallback = frame
+    return fallback
+
+
+def parse_test_results(results_dir: Path, summary: list[str]) -> list[tuple[str, int, str, str]]:
+    """(file, line, title, message) برای هر تستِ شکست‌خورده."""
+    found: list[tuple[str, int, str, str]] = []
     if not results_dir.exists():
         return found
     for xml in sorted(results_dir.rglob("TEST-*.xml")):
@@ -83,9 +107,12 @@ def parse_test_results(results_dir: Path, summary: list[str]) -> list[tuple[str,
             body = (failure.text or "").strip().splitlines()
             # پیامِ message اغلب همان یک‌خطِ assert است؛ اگر خالی بود اولین خطِ trace.
             detail = message or (body[0] if body else "no message")
+            frame_name, frame_line = first_app_frame(body)
+            if frame_name:
+                detail = f"{detail} — {frame_name}:{frame_line}"
             title = f"{class_name.rsplit('.', 1)[-1]}.{test_name}"
             summary.append(f"- ❌ `{title}` — {clip(detail, 300)}")
-            found.append((file_hint, title, clip(detail)))
+            found.append((file_hint, frame_line, title, clip(detail)))
     return found
 
 
@@ -96,9 +123,9 @@ KT_PLAIN = re.compile(r"^e: (?P<msg>.+)$")
 GRADLE_FAIL = re.compile(r"^(?:\* What went wrong:)?\s*(?P<msg>Execution failed for task '[^']+'\.?)$")
 
 
-def parse_build_log(log: Path, summary: list[str]) -> list[tuple[str, str, str]]:
-    """(file, title, message) برای خطاهای کامپایل/بیلد."""
-    found: list[tuple[str, str, str]] = []
+def parse_build_log(log: Path, summary: list[str]) -> list[tuple[str, int, str, str]]:
+    """(file, line, title, message) برای خطاهای کامپایل/بیلد."""
+    found: list[tuple[str, int, str, str]] = []
     if not log.exists():
         return found
     seen: set[str] = set()
@@ -112,7 +139,7 @@ def parse_build_log(log: Path, summary: list[str]) -> list[tuple[str, str, str]]
                 continue
             seen.add(title)
             summary.append(f"- ❌ `{path}:{m.group('line')}` — {clip(m.group('msg'), 300)}")
-            found.append((path, title, clip(m.group("msg"))))
+            found.append((path, int(m.group("line")), title, clip(m.group("msg"))))
             continue
         m = KT_PLAIN.match(line)
         if m and "warning:" not in m.group("msg"):
@@ -121,7 +148,7 @@ def parse_build_log(log: Path, summary: list[str]) -> list[tuple[str, str, str]]
                 continue
             seen.add(title)
             summary.append(f"- ❌ Kotlin — {clip(m.group('msg'), 300)}")
-            found.append(("", title, clip(m.group("msg"))))
+            found.append(("", 0, title, clip(m.group("msg"))))
             continue
         m = GRADLE_FAIL.match(line)
         if m:
@@ -130,7 +157,7 @@ def parse_build_log(log: Path, summary: list[str]) -> list[tuple[str, str, str]]
                 continue
             seen.add(title)
             summary.append(f"- ❌ {clip(m.group('msg'), 300)}")
-            found.append(("", title, clip(m.group("msg"))))
+            found.append(("", 0, title, clip(m.group("msg"))))
     return found
 
 
@@ -153,8 +180,11 @@ def main() -> int:
         )
         return 0
 
-    for path, title, message in issues[:MAX_ANNOTATIONS]:
-        where = f"file={path}," if path else ""
+    for path, line, title, message in issues[:MAX_ANNOTATIONS]:
+        if path:
+            where = f"file={path}," + (f"line={line}," if line else "")
+        else:
+            where = ""
         print(f"::error {where}title={escape(title)}::{escape(message)}")
     if len(issues) > MAX_ANNOTATIONS:
         # GitHub برای هر گام تعدادِ محدودی annotation جدا نشان می‌دهد؛ بقیه با یک

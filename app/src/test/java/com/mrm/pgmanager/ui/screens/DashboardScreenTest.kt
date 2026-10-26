@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -88,6 +89,19 @@ class DashboardScreenTest {
         server.shutdown()
     }
 
+    /**
+     * `waitUntil`ِ خالی وقتی شکست می‌خورد فقط «Condition still not satisfied after
+     * 15000 ms» می‌دهد و در CI هیچ عددی نمی‌رسد (یک چرخهٔ کاملِ دیگر برای کشفِ
+     * «چند کارت دیده شد؟»). این نسخه وضعیتِ مشاهده‌شده را هم در پیام می‌آورد.
+     */
+    private fun awaitCondition(what: String, observed: () -> String, condition: () -> Boolean) {
+        try {
+            rule.waitUntil(15_000, condition)
+        } catch (timeout: ComposeTimeoutException) {
+            throw AssertionError("$what پس از ۱۵ ثانیه محقق نشد؛ دیده‌شده: ${observed()}", timeout)
+        }
+    }
+
     private fun render(onOpenStatistics: () -> Unit = {}) = rule.setContent {
         DashboardScreen(
             session = session,
@@ -104,9 +118,10 @@ class DashboardScreenTest {
 
         val label = str(R.string.db_open_statistics)
         // چهار کارت حلقه‌ای (CPU/RAM/دیسک/ترافیک) بعد از لود ظاهر می‌شوند.
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size == 4
-        }
+        awaitCondition(
+            what = "چهار کارتِ حلقه‌ای با شرحِ دسترس‌پذیریِ «$label»",
+            observed = { "کارت‌های دیده‌شده: " + rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size }
+        ) { rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size == 4 }
         rule.onAllNodesWithContentDescription(label)[0].performClick()
         rule.waitForIdle()
         assertEquals(1, opens)
@@ -118,9 +133,13 @@ class DashboardScreenTest {
 
         // پیش‌فرض LAST_7D با برچسب "7d".
         val expected = str(R.string.chart_range_selector, "7d")
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()
-        }
+        awaitCondition(
+            what = "انتخابگرِ بازه با متنِ «$expected»",
+            observed = {
+                "گره با متن=" + rule.onAllNodesWithText(expected).fetchSemanticsNodes().size +
+                    "، گره با شرح=" + rule.onAllNodesWithContentDescription(expected).fetchSemanticsNodes().size
+            }
+        ) { rule.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription(expected).assertExists()
     }
 
@@ -128,9 +147,11 @@ class DashboardScreenTest {
         installDispatcher()
         render()
 
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithText(str(R.string.no_trend)).fetchSemanticsNodes().isNotEmpty()
-        }
+        val noTrend = str(R.string.no_trend)
+        awaitCondition(
+            what = "متنِ «$noTrend»",
+            observed = { "requests=${server.requestCount}" }
+        ) { rule.onAllNodesWithText(noTrend).fetchSemanticsNodes().isNotEmpty() }
         assertTrue(server.requestCount > 0)
     }
 }
