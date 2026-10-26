@@ -210,8 +210,15 @@ fun animatedCount(target: Int): Int {
  * حرکت = محوشدن + ۱۴dp بالا آمدن، همه در graphicsLayer (نه recomposition، نه relayout).
  */
 class ListIntro internal constructor(private val bornAtNanos: Long) {
+    /**
+     * «کاهش انیمیشن» اینجا هم رعایت می‌شود (و نه فقط با مدتِ صفر): ردیف‌ها از
+     * همان اول با آلفای یک و بدونِ `delay` ساخته می‌شوند. دلیلِ `!reduceMotion`
+     * علاوه بر دسترس‌پذیری، قطعی‌بودنِ تست‌های Compose است — تا وقتی یک
+     * `Animatable` روی صفحه جریان دارد، تست هیچ‌وقت به idle نمی‌رسد.
+     */
     fun shouldAnimate(index: Int): Boolean =
-        index in 0 until MAX_ITEMS && (System.nanoTime() - bornAtNanos) / 1_000_000L < WINDOW_MS
+        !MotionPrefs.reduceMotion &&
+            index in 0 until MAX_ITEMS && (System.nanoTime() - bornAtNanos) / 1_000_000L < WINDOW_MS
 
     companion object {
         const val MAX_ITEMS = 10
@@ -245,6 +252,10 @@ fun Modifier.listIntro(intro: ListIntro, index: Int): Modifier {
  *
  * برای دکمه‌های رفرش: قبلاً آیکون با یک اسپینرِ گرد عوض می‌شد و لحظهٔ تعویض
  * پرش داشت. حالا خودِ آیکون می‌چرخد؛ حرکت پیوسته است و جای دکمه ثابت می‌ماند.
+ *
+ * چرخش عملاً «بی‌پایان» است (تا تمام شدنِ `spinning`)، پس در حالتِ «کاهش
+ * انیمیشن» کلاً ساخته نمی‌شود: همان آیکونِ ساکن، بدونِ هیچ انیمیشنی که
+ *Composition را بیدار نگه دارد.
  */
 @Composable
 fun Modifier.spinWhile(spinning: Boolean): Modifier {
@@ -257,7 +268,7 @@ fun Modifier.spinWhile(spinning: Boolean): Modifier {
     // چرخش با یک انیمیشنِ قابلِ لغو پیش می‌رود و در پایان نرم روی صفر می‌ایستد،
     // تا آیکون کج نماند.
     LaunchedEffect(spinning) {
-        if (spinning) {
+        if (spinning && !MotionPrefs.reduceMotion) {
             val start = angle
             val clock = androidx.compose.animation.core.Animatable(start)
             clock.animateTo(

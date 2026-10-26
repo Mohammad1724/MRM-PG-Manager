@@ -16,6 +16,7 @@ import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
+import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -88,12 +89,16 @@ class PanelSettingsScreenTest {
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
         AdminAccess.reset()
+        // «کاهش انیمیشن» روشن: هیچ انیمیشنی (listIntro، pressScale، گذارِ تب)
+        // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
+        MotionPrefs.reduceMotion = true
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
         PanelCache.put(PanelCache.panelSettingsKey(session.baseUrl), PanelSettings.from(org.json.JSONObject(settingsJson)))
     }
 
     @After fun tearDown() {
         AdminAccess.reset()
+        MotionPrefs.reduceMotion = false
         PanelCache.resetClockForTests()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()

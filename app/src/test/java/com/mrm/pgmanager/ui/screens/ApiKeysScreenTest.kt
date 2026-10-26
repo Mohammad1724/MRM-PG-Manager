@@ -13,6 +13,7 @@ import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
+import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -52,7 +53,7 @@ import org.robolectric.annotation.Config
  *    مسیرهای دیالوگ‌دار (ساخت/چرخش/حذف) در لایهٔ داده قفل شده‌اند؛ اگر خواستید
  *    این‌جا هم پوشش دهید، محتوای دیالوگ را از خودِ `Dialog` جدا کنید و همان را
  *    بدونِ پنجره رندر کنید — الگوی `UserDetailsSectionsScreenshotTest`.
- */ */
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
 class ApiKeysScreenTest {
@@ -76,11 +77,15 @@ class ApiKeysScreenTest {
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
         AdminAccess.reset()
+        // «کاهش انیمیشن» روشن: هیچ انیمیشنی (listIntro، pressScale، گذارِ تب)
+        // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
+        MotionPrefs.reduceMotion = true
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
     }
 
     @After fun tearDown() {
         AdminAccess.reset()
+        MotionPrefs.reduceMotion = false
         PanelCache.resetClockForTests()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
