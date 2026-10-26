@@ -65,7 +65,7 @@ gh api "repos/<owner>/<repo>/check-runs/$ID/annotations" \
 | صفحهٔ جریان‌محور (SSE/WebSocket) با جریانِ باز آزموده نمی‌شود | جریان هیچ‌وقت idle نمی‌شود؛ **محتوا** را از صفحه جدا کن و با دادهٔ ثابت رندر کن (`NodeLogsContent` + `NodeLogsContentTest`) و رفتارِ اتصال را در لایهٔ داده قفل کن (`NodeLogsApiTest`) |
 | پنجرهٔ `Dialog` در تستِ Compose **باز نشود** | در Robolectric پنجرهٔ دیالوگ هرگز idle گزارش نمی‌شود؛ همین `performClick` روی دکمهٔ بازکردنش را ۶۰ ثانیه می‌خواباند (دو اجرای CI). محتوای دیالوگ را اگر لازم بود جدا کنید و بدونِ `Dialog` رندر کنید — الگوی `UserDetailsSectionsScreenshotTest` |
 | `ApiKeysScreen` (و هر صفحهٔ تازهٔ سطح‌سرور) با کشِ تازه درخواست نمی‌فرستد | `LaunchedEffect(session) { if (!PanelCache.isFresh(key)) load() }` — هم رفتاریِ درست است (برگشتن از دیالوگ داده را دوباره از شبکه نمی‌گیرد)، هم تست را از حالتِ in-flight/اسپینر نجات می‌دهد |
-
+| جهتِ چیدمان را در تستِ Compose با `CompositionLocalProvider(LocalLayoutDirection provides …)` override **نکنید** | روی میزبانِ Robolectric این کار idle شدن را برای همیشه می‌بندد، و `AppNotIdleException` فقط در همان کلاس نمی‌ماند — به تست‌های **بعدیِ همان JVM** مسری است (در فاز ۸ دقیقاً همین شد و `LoginScreenTest` و `MicroRowLayoutTest`ِ سبز شکستند). رفتارِ RTL را با قرائتِ کد و سنجشِ *ترتیبِ عناصر* در جهتِ پیش‌فرضِ میزبان بسنجید. |
 ## ۴. سه دریچهٔ تست در کدِ تولید (و چرا)
 
 تست‌های JVM نه کی‌استور دارند نه `SystemClock`؛ بدونِ این‌ها هر تستی که صفحه‌ای را
