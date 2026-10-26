@@ -131,7 +131,10 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
         loading = false
     }
 
-    LaunchedEffect(session) { load() }
+    // مثلِ بقیهٔ صفحه‌های سطح‌سرور: با کشِ تازه دوباره کشیده نمی‌شود. برگشتن از
+    // دیالوگِ چرخش/حذف خودش `load()` را صدا می‌زند، پس این گیت هیچ دادهٔ
+    // کهنه‌ای روی صفحه نگه نمی‌دارد.
+    LaunchedEffect(session) { if (!PanelCache.isFresh(cacheKey)) load() }
     LaunchedEffect(toast) {
         if (toast != null) {
             delay(2200)

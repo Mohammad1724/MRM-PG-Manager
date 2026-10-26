@@ -118,12 +118,14 @@ class PanelSettingsScreenTest {
         PanelSettingsScreen(session = session, onBack = {})
     }
 
-    private fun await(what: String, observed: () -> String, condition: () -> Boolean) {
-        try {
-            rule.waitUntil(15_000, condition)
-        } catch (timeout: Throwable) {
-            throw AssertionError("$what محقق نشد؛ دیده‌شده: ${observed()}", timeout)
-        }
+    /**
+     * شرط‌ها فقط شمارندهٔ سرور می‌خوانند؛ `fetchSemanticsNodes()` خودش
+     * `runOnIdle` است و داخلِ `waitUntil` یعنی `waitForIdle` تودرتو (شرحش در
+     * `ApiKeysScreenTest`). با کشِ تازه هیچ درخواستی در راه نیست، پس متن‌ها
+     * بی‌واسطه سنجیده می‌شوند.
+     */
+    private fun awaitRequests(atLeast: Int) {
+        rule.waitUntil(15_000) { server.requestCount >= atLeast }
     }
 
     private fun count(text: String) = rule.onAllNodesWithText(text).fetchSemanticsNodes().size
@@ -132,13 +134,13 @@ class PanelSettingsScreenTest {
         installDispatcher()
         render()
 
+
         val labels = listOf(
             str(R.string.panel_settings_tab_general),
             str(R.string.panel_settings_tab_subscription),
             str(R.string.panel_settings_tab_hwid),
             str(R.string.panel_settings_tab_notifications)
         )
-        await("تبِ اول", observed = { "تعداد: ${count(labels[0])}" }) { count(labels[0]) > 0 }
         labels.forEach { label ->
             assertEquals("تبِ «$label» باید یکتا باشد", 1, count(label))
             // متنِ تب داخلِ باکسِ کلیک‌پذیرِ merge‌شده است، پس ارتفاعِ همین
@@ -155,7 +157,6 @@ class PanelSettingsScreenTest {
 
         val general = str(R.string.panel_settings_tab_general)
         val subscription = str(R.string.panel_settings_tab_subscription)
-        await("تبِ عمومی", observed = { "تعداد: ${count(general)}" }) { count(general) > 0 }
         assertTrue(
             "تبِ عمومی باید فیلدِ رویهٔ Shadowsocks را نشان بدهد",
             count(str(R.string.ps_default_method)) > 0
@@ -163,9 +164,6 @@ class PanelSettingsScreenTest {
 
         rule.onNodeWithText(subscription).performClick()
 
-        await("فیلدِ پیشوندِ URL", observed = { "تعداد: ${count(str(R.string.ps_url_prefix))}" }) {
-            count(str(R.string.ps_url_prefix)) > 0
-        }
         // بخشِ قبلی باید رفته باشد؛ ماندنش یعنی دو فرم روی هم و ذخیرهٔ اشتباه.
         assertEquals(0, count(str(R.string.ps_default_method)))
     }
@@ -175,11 +173,9 @@ class PanelSettingsScreenTest {
         render()
 
         val subscription = str(R.string.panel_settings_tab_subscription)
-        await("تبِ اشتراک", observed = { "تعداد: ${count(subscription)}" }) { count(subscription) > 0 }
         rule.onNodeWithText(subscription).performClick()
 
         val save = str(R.string.ps_save)
-        await("دکمهٔ ذخیره", observed = { "تعداد: ${count(save)}" }) { count(save) > 0 }
         // قراردادِ خطِ قرمز: بدونِ تغییر، ذخیره فعال نیست (هر PUT سرویس‌ها را ری‌استارت می‌کند).
         rule.onNodeWithText(save).assertIsNotEnabled()
 
@@ -201,7 +197,7 @@ class PanelSettingsScreenTest {
         installDispatcher()
         render()
 
-        await("درخواستِ بازخوانی", observed = { "درخواست‌ها: ${server.requestCount}" }) { server.requestCount > 0 }
+        awaitRequests(1)
         // داده نباید وسطِ کار غیب شود: تب‌ها همان اول هم بودند و بعد هم هستند.
         assertEquals(1, count(str(R.string.panel_settings_tab_general)))
     }
@@ -214,8 +210,6 @@ class PanelSettingsScreenTest {
         runBlocking { AdminAccess.refresh(session, force = true) }
         render()
 
-        val general = str(R.string.panel_settings_tab_general)
-        await("تبِ عمومی", observed = { "تعداد: ${count(general)}" }) { count(general) > 0 }
         assertTrue(
             "باید نوشته شود که نقشِ کاربر فقط خواندن است",
             count(str(R.string.ps_readonly)) > 0

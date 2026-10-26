@@ -56,6 +56,9 @@ gh api "repos/<owner>/<repo>/check-runs/$ID/annotations" \
 | روی کانالِ درست انتظار بکشید | `selectRange` شرحِ دسترس‌پذیری می‌دهد نه متن؛ `waitUntil` روی متن همیشه timeout می‌دهد (`گره با متن=0، گره با شرح=1`) |
 | `csv.lines()` خطِ خالیِ آخر را هم می‌شمارد | CSV متعارف با newline تمام می‌شود؛ در شمارش `trimEnd('\n', '\r')` لازم است |
 | انتظارهای `waitUntil` را در `awaitCondition` بپیچید | پیامِ پیش‌فرض «Condition still not satisfied after 15000 ms» است؛ نسخهٔ محلی تعدادِ واقعیِ گره‌ها را می‌گوید |
+| صفحه را با `CircularProgressIndicator` روی صحنه **مونتاژ نکنید** | انیمیشنِ بی‌پایان هیچ‌وقت idle نمی‌شود؛ `setContent`/`performClick` تا ۶۰ ثانیه بلوکه می‌شود (`AppNotIdleException`) و چون لوپرِ Main در دستِ تست است، ادامهٔ کوروتینِ شبکه هم جلو نمی‌آید. نتیجه فقط تستِ خودشان نیست: **قفلِ sandbox** تمامِ کلاس‌های Composeِ بعد از آن را سرخ می‌کند. راه‌حل: `PanelCache` را پیشِ `setContent` پر کن تا `loading` از فریمِ اول false باشد (همان کاری که در تولید می‌کند) |
+| از درونِ شرطِ `waitUntil` گرهٔ semantics **نخوان** | `fetchSemanticsNodes()` خودش `runOnIdle` می‌کند؛ داخلِ شرط یعنی `waitForIdle` تودرتو و همان قفل. شرط فقط شمارندهٔ سرور باشد (`waitUntil { server.requestCount >= 1 }`) و متن‌ها بعد از آن بی‌واسطه سنجیده شوند |
+| هیچ اکشنی که `busy`/`saving` روشن می‌کند لمس نشود | همان اسپینرِ بی‌پایان؛ مسیرهای «بساز/ذخیره/چرخش» را در تستِ لایهٔ داده (`*ApiTest`) قفل کن، نه با لمسِ UI |
 
 ## ۴. سه دریچهٔ تست در کدِ تولید (و چرا)
 
