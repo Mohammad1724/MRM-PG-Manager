@@ -31,6 +31,17 @@ see `docs/PANEL-5.5-COMPAT.md`. Device counts need no gate: they appear only if 
   (Clash / Xray / sing-box / user-agent) — see `docs/PHASE-2-PANEL-INFRA.md`. Edits merge into the
   raw payload, so advanced fields the phone form does not know (transport, mux, fragment, ECH, routing)
   survive a save.
+- **Panel settings** (My panel → Panel settings): four tabs — server defaults (`general`), subscription
+  (`subscription`: URL prefix, update interval, announcement, headers, behaviour, manual-request formats),
+  device limits (`hwid`) and notification channels (`notification_settings`). Each tab is one `PUT`, and a
+  section is merged onto the raw payload so fields the phone form does not know survive a save.
+- **API keys** (My panel → API keys): create with a name/note/expiry (never · 30 · 90 · 365 days), see the
+  full key **once**, rotate it, enable/disable it or delete it. `POST …/revoke` in the panel is a
+  *rotation*, so the app never calls it “revoke”; the secret is never stored.
+- **Operators & roles** (read-only): who can do what on this panel — admins with their role and status flags,
+  and every role's `resource → action → scope` table, which is the answer to “why is that button missing for me?”.
+- **Device (HWID) management** per user: the full list with model/OS and “last used”, forget one or all —
+  gated on `hwids.read` / `hwids.delete`.
 - **Cleanup**: expired users, plus **inactive users** (`target=inactive`, 5.5+) with a “days without
   activity” prompt that maps to the required `expired_before` cutoff.
 - **Bulk actions** on selected users (delete, reset, enable/disable, revoke, add days/data, groups, apply template).
@@ -51,7 +62,8 @@ delete / disabled / reset / revoke_sub / active_next / usage), `/api/users/bulk/
 `/api/users/expired`, `/api/user/{id}/hwids`, `/api/groups`, `/api/user_templates`, `/api/nodes`,
 `/api/nodes/realtime_stats`, `/api/nodes/order`, `/api/users/simple`, `/api/settings/general`, `/api/hosts`, `/api/cores`,
 `/api/client_templates`,
-`/api/inbounds`, `/api/admins`.
+`/api/inbounds`, `/api/admins`, `/api/admin-roles`, `/api/api_key` (+ `/{id}/revoke`), `/api/settings`,
+`/api/user/{id}/hwids`. All panel-settings writes are `PUT /api/settings/<section>` — one section at a time.
 
 "Online" uses the panel's own 2‑minute window (`online_at`), and `online=true` is applied server‑side.
 

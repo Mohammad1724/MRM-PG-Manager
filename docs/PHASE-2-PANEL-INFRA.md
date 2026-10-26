@@ -77,8 +77,8 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 ## ۵. آنچه در فازهای بعد می‌ماند
 
-1. **API Keys** (`/api/api_key`): ساخت/ابطال — نیازمندِ نمایشِ یک‌بارهٔ کلید و مدیریتِ اسکوپ.
-2. **Settings پنل** (`/api/settings/*`): فعلاً فقط `general` خوانده می‌شود.
+1. ~~**API Keys** (`/api/api_key`): ساخت/ابطال~~ → انجام‌شده در فاز ۶ (`docs/PHASE-6-PANEL-OPS.md` §۳).
+2. ~~**Settings پنل** (`/api/settings/*`): فعلاً فقط `general` خوانده می‌شود~~ → در فاز ۵.۱/۶ چهار تبِ `general`/`subscription`/`hwid`/`notification_settings` شد (`docs/PHASE-6-PANEL-OPS.md` §۲).
 3. **Admin Roles** (`/api/admin_role`) و مدیریتِ ادمین‌ها.
 4. **ورود با Passkey** — WebAuthn روی موبایل، کارِ مستقل.
 5. **ساختِ کور** با ادیتورِ JSON (اگر واقعاً لازم شد).
