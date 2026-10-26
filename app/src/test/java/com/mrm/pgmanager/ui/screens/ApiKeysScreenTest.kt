@@ -1,7 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -10,7 +9,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
@@ -178,14 +176,20 @@ class ApiKeysScreenTest {
         assertTrue(count(str(R.string.ak_days_30)) > 0)
         assertTrue(count(str(R.string.ak_days_365)) > 0)
 
+        // دو ورودیِ متنی: نام و یادداشت (شمردنِ بدونِ نوشتن — قاعدهٔ ۳).
+        assertEquals(
+            "دیالوگِ ساخت باید فیلدِ نام و یادداشت داشته باشد",
+            2, rule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size
+        )
+
+        // گاردِ نامِ خالی: پنل `name` را ۱..۱۲۸ کاراکتر می‌خواهد، پس تا نام
+        // نوشته نشود دکمهٔ تأیید باید غیرفعال باشد (نه اینکه ۴۲۲ از سرور گرفت).
         val submit = str(R.string.ak_create_action)
         assertEquals("برچسبِ تأیید جدا از عنوانِ دیالوگ است، پس یکتاست", 1, count(submit))
         rule.onNodeWithText(submit).assertIsNotEnabled()
 
-        val fields = rule.onAllNodes(hasSetTextAction())
-        assertTrue("دیالوگِ ساخت باید فیلدِ متنی داشته باشد", fields.fetchSemanticsNodes().isNotEmpty())
-        fields[0].performTextInput("widget")
-        rule.onNodeWithText(submit).assertIsEnabled()
+        // دیالوگ را می‌بندیم تا پنجره‌اش تا پایانِ کلاس باز نماند.
+        rule.onNodeWithText(str(R.string.cd_close)).performClick()
     }
 
     @Test fun read_only_role_sees_no_row_action_and_no_create_button() {

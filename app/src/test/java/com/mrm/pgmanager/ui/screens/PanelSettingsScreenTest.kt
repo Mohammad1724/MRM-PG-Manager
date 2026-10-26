@@ -8,7 +8,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
@@ -44,7 +43,8 @@ import org.robolectric.annotation.Config
  *     اختراک برای همهٔ کاربرها. این مهم‌ترین خطِ قرمزِ همین صفحه است؛
  *  ۳. نقشِ فقط‌خواندن هیچ دکمهٔ ذخیره‌ای نمی‌بیند (به‌جایش توضیحِ دلیلش).
  *
- * قاعدهٔ «صفحه با اسپینرِ بی‌پایان مونتاژ نشود» (شرحش در `ApiKeysScreenTest`)
+ * قاعدهٔ «صفحه با اسپینرِ بی‌پایان مونتاژ نشود» و «در فیلدِ متنی تایپ نشود»
+ * (شرحِ هر دو در `ApiKeysScreenTest`)
  * اینجا هم رعایت شده: کش با دادهٔ **تازه** پر می‌شود، پس `loading` از همان
  * فریمِ اول false است و `setContent` روی idle گیر نمی‌کند. برای همین هیچ‌وقت
  * «ذخیره» لمس نمی‌شود: `saving=true` اسپینرِ بی‌پایان می‌آورد و تست می‌خوابد —
@@ -134,7 +134,6 @@ class PanelSettingsScreenTest {
         installDispatcher()
         render()
 
-
         val labels = listOf(
             str(R.string.panel_settings_tab_general),
             str(R.string.panel_settings_tab_subscription),
@@ -155,16 +154,18 @@ class PanelSettingsScreenTest {
         installDispatcher()
         render()
 
-        val general = str(R.string.panel_settings_tab_general)
         val subscription = str(R.string.panel_settings_tab_subscription)
         assertTrue(
             "تبِ عمومی باید فیلدِ رویهٔ Shadowsocks را نشان بدهد",
             count(str(R.string.ps_default_method)) > 0
         )
+        assertEquals("تبِ اشتراک نباید از اول باز شده باشد", 0, count(str(R.string.ps_url_prefix)))
 
         rule.onNodeWithText(subscription).performClick()
 
-        // بخشِ قبلی باید رفته باشد؛ ماندنش یعنی دو فرم روی هم و ذخیرهٔ اشتباه.
+        // بخشِ تازه آمده و بخشِ قبلی رفته است؛ ماندنِ قبلی یعنی دو فرم روی هم
+        // و ذخیرهٔ اشتباهِ یک تب دیگر.
+        assertTrue(count(str(R.string.ps_url_prefix)) > 0)
         assertEquals(0, count(str(R.string.ps_default_method)))
     }
 
@@ -172,20 +173,22 @@ class PanelSettingsScreenTest {
         installDispatcher()
         render()
 
-        val subscription = str(R.string.panel_settings_tab_subscription)
-        rule.onNodeWithText(subscription).performClick()
-
+        // همان تبِ اول (عمومی) می‌مانیم: چیپِ رویه‌ها بالای صفحه است و لمسش
+        // قطعی است، برعکسِ کنترل‌های پایینِ فهرست که ممکن است بریده شوند.
         val save = str(R.string.ps_save)
-        // قراردادِ خطِ قرمز: بدونِ تغییر، ذخیره فعال نیست (هر PUT سرویس‌ها را ری‌استارت می‌کند).
+        // قراردادِ خطِ قرمز: بدونِ تغییر، ذخیره فعال نیست — هر `PUT` روی
+        // SettingsSchema سرویس‌های پنل را ری‌استارت می‌کند، پس «ذخیرهٔ بی‌دلیل»
+        // یعنی قطعیِ اختراک برای همه.
         rule.onNodeWithText(save).assertIsNotEnabled()
 
-        val fields = rule.onAllNodes(hasSetTextAction())
-        assertTrue("تبِ اشتراک باید فیلدِ متنی داشته باشد", fields.fetchSemanticsNodes().isNotEmpty())
-        fields[0].performTextInput("x")
+        // «کثیف‌شدنِ» فرم با *چیپ* سنجیده می‌شود نه تایپ: `performTextInput`
+        // فوکوس می‌آورد و مکانکِ چشمک‌زنِ BasicTextField دیگر هیچ‌وقت idle
+        // نمی‌شود (شرحش در `ApiKeysScreenTest`).
+        rule.onNodeWithText("aes-128-gcm").performClick()
 
-        // خودِ assertion کافی است: `assertIsEnabled` پیش از سنجیدن با فریمِ
-        // تازه sync می‌شود و اینجا هیچ انیمیشنِ بی‌پایانی روی صفحه نیست.
         rule.onNodeWithText(save).assertIsEnabled()
+        // «برگرداندن» هم همان لحظه معنا پیدا می‌کند.
+        rule.onNodeWithText(str(R.string.ps_revert)).assertIsEnabled()
     }
 
     @Test fun stale_cache_is_refetched_instead_of_shown_as_current() {
