@@ -121,8 +121,47 @@ data class PanelAdmin(
     val usedTraffic: Long = 0L,
     val dataLimit: Long? = null,
     val status: String = "active",
-    val isOwner: Boolean = false
+    val isOwner: Boolean = false,
+    /** نامِ نقش (`role.name`) — پنل آن را درونِ همان آبجکتِ `role` می‌دهد. */
+    val roleName: String = "",
+    /**
+     * `is_disabled` / `is_limited` فیلدهای محاسبه‌شدهٔ پنل‌اند.
+     *
+     * چرا از `status` تنها کافی نیست: `status` فقط `active | disabled | limited`
+     * است، ولی پنل این دو پرچم را جدا هم می‌فرستد و بعضی نسخه‌ها یکی را
+     * به‌روز نمی‌کنند؛ خواندنِ پرچم‌ها همان چیزی است که خودِ پنل در احرازِ
+     * هویت بررسی می‌کند (ادمینِ `disabled` حتی با رمزِ درست ۴۰۳ می‌گیرد).
+     */
+    val isDisabled: Boolean = false,
+    val isLimited: Boolean = false
 )
+
+/**
+ * یک نقشِ ادمین — `GET /api/admin-roles` (مجوزِ `admin_roles.read`).
+ *
+ * نگاشتِ [permissions] همان `resource → action → scope` است که پنل برای
+ * تصمیم‌گیری استفاده می‌کند ([PermissionScope]): نبودنِ یک action یعنی ممنوع،
+ * `1` یعنی «فقط کاربرانِ خودش» و `2` یعنی «همه». داشتنِ همین جدول در اپ دو
+ * کار می‌کند: ادمین می‌فهمد چرا یک دکمه برای همکارش پنهان است، و می‌شود
+ * نقش‌ها را بدونِ باز کردنِ پنلِ وب مقایسه کرد.
+ */
+data class PanelAdminRole(
+    val id: Int,
+    val name: String,
+    val isOwner: Boolean = false,
+    val createdAt: String? = null,
+    val permissions: Map<String, Map<String, Int>> = emptyMap(),
+    /** `limits.max_users` — سقفِ کاربرانِ این نقش، `null` یعنی بی‌سقف. */
+    val maxUsers: Int? = null,
+    /** `hwid.mode` — `use_global` | `force_on` | `force_off` (نقش‌ها می‌توانند سراسری را رد کنند). */
+    val hwidMode: String? = null
+) {
+    /** شمارِ اکشن‌های مجاز — برای خلاصهٔ ردیف، بدونِ باز کردنِ جزئیات. */
+    val allowedActionCount: Int get() = permissions.values.sumOf { it.size }
+}
+
+/** پاسخِ فهرستِ نقش‌ها؛ `total` کلِ رکوردهای پنل است نه فقط همین صفحه. */
+data class AdminRoleList(val roles: List<PanelAdminRole>, val total: Int)
 
 data class SystemStats(
     val uptimeSeconds: Long = 0L,

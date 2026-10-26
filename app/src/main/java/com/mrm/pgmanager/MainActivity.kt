@@ -60,6 +60,7 @@ import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.PanelInfraScreen
 import com.mrm.pgmanager.ui.screens.PanelScreen
 import com.mrm.pgmanager.ui.screens.PanelSettingsScreen
+import com.mrm.pgmanager.ui.screens.AdminsRolesScreen
 import com.mrm.pgmanager.ui.screens.ApiKeysScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.AppFeedbackHost
@@ -254,6 +255,8 @@ fun MRMApp() {
     var showPanelSettings by rememberSaveable { mutableStateOf(false) }
     // صفحهٔ «کلیدهای API» (فاز ۵.۲) — ساخت/چرخش/غیرفعال‌سازیِ کلیدهای پنل.
     var showApiKeys by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «اپراتورها و نقش‌ها» (فاز ۶.۲) — فقط خواندنی.
+    var showAdminsRoles by rememberSaveable { mutableStateOf(false) }
     // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
     var showAccountSheet by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
@@ -359,13 +362,13 @@ fun MRMApp() {
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
             // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false
+            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
         val onSessionExpired: () -> Unit = {
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false
+            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
@@ -443,6 +446,7 @@ fun MRMApp() {
             androidx.activity.compose.BackHandler {
                 when {
                     // ۰. زیرساختِ پنل روی «پنلِ من» باز است → اول خودش
+                    showAdminsRoles -> showAdminsRoles = false
                     showApiKeys -> showApiKeys = false
                     showPanelSettings -> showPanelSettings = false
                     showPanelInfra -> showPanelInfra = false
@@ -634,6 +638,7 @@ fun MRMApp() {
                             onOpenInfra = { showPanelInfra = true },
                             onOpenPanelSettings = { showPanelSettings = true },
                             onOpenApiKeys = { showApiKeys = true },
+                            onOpenAdmins = { showAdminsRoles = true },
                             onSwitchAccount = switchAccount,
                             onAddAccount = { showPanelScreen = false; addingAccount = true }
                         )
@@ -688,6 +693,22 @@ fun MRMApp() {
                         }
                     }
                 }
+                // اپراتورها و نقش‌ها: صفحهٔ کاملِ رویی، فقط با نشستِ فعال.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showAdminsRoles && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            AdminsRolesScreen(
+                                session = activeSession,
+                                onBack = { showAdminsRoles = false }
+                            )
+                        }
+                    }
+                }
             }
         }
         // ورقهٔ هویت/حساب — مستقیم زیرِ ریشه تا اسنکِ بازخوردِ سراسری رویش بنشیند.
@@ -708,6 +729,7 @@ fun MRMApp() {
                     showPanelInfra = false
                     showPanelSettings = false
                     showApiKeys = false
+                    showAdminsRoles = false
                     store.clear()
                     com.mrm.pgmanager.data.cache.PanelCache.clear()
                     session = null

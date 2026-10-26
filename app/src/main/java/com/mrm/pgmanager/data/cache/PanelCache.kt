@@ -108,6 +108,10 @@ object PanelCache {
 
     /** فهرستِ کلیدهای API — همان قاعدهٔ کشِ کوتاه‌مدتِ داده‌های سطحِ سرور. */
     fun apiKeysKey(baseUrl: String) = "apikeys:$baseUrl"
+
+    /** اپراتورها و نقش‌ها (صفحهٔ «اپراتورها و نقش‌ها») — دو کلیدِ جدا. */
+    fun adminsKey(baseUrl: String) = "admins:$baseUrl"
+    fun adminRolesKey(baseUrl: String) = "adminroles:$baseUrl"
     fun coresKey(baseUrl: String) = "cores:$baseUrl"
     fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
 }

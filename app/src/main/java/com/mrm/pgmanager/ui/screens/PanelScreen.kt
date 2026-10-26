@@ -67,6 +67,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * @param onOpenPanelSettings باز کردنِ «تنظیماتِ پنل» (پیش‌فرض‌های سرور،
  *   اشتراک، محدودیتِ دستگاه و اعلان‌ها).
  * @param onOpenApiKeys باز کردنِ «کلیدهای API» (ورودِ ماندگار برای ورکر/ویجت).
+ * @param onOpenAdmins باز کردنِ «اپراتورها و نقش‌ها» (چه کسی چه مجوزی دارد).
  */
 @Composable
 fun PanelScreen(
@@ -76,6 +77,7 @@ fun PanelScreen(
     onOpenInfra: () -> Unit,
     onOpenPanelSettings: () -> Unit = {},
     onOpenApiKeys: () -> Unit = {},
+    onOpenAdmins: () -> Unit = {},
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {}
 ) {
@@ -165,6 +167,15 @@ fun PanelScreen(
                         title = stringResource(R.string.ak_entry_title),
                         subtitle = stringResource(R.string.ak_entry_desc),
                         onClick = onOpenApiKeys
+                    )
+                }
+                // اپراتورها و نقش‌ها: پاسخِ «چرا این دکمه برای من نیست؟»
+                if (com.mrm.pgmanager.data.AdminAccess.can("admins", "read")) {
+                    PanelEntryCard(
+                        icon = AppIcon.Users,
+                        title = stringResource(R.string.ar_entry_title),
+                        subtitle = stringResource(R.string.ar_entry_desc),
+                        onClick = onOpenAdmins
                     )
                 }
             }

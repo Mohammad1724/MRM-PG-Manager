@@ -7,7 +7,9 @@ import com.mrm.pgmanager.data.model.BulkCreateResult
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.GroupDetail
+import com.mrm.pgmanager.data.model.AdminRoleList
 import com.mrm.pgmanager.data.model.PanelAdmin
+import com.mrm.pgmanager.data.model.PanelAdminRole
 import com.mrm.pgmanager.data.model.NextPlan
 import com.mrm.pgmanager.data.model.NodeRealtime
 import com.mrm.pgmanager.data.model.PanelNode
@@ -312,24 +314,9 @@ object PanelApi {
 
     internal fun parseAdminSelf(a: JSONObject): AdminSelf {
         val role = a.optJSONObject("role")
-        val permissions = mutableMapOf<String, Map<String, Int>>()
-        role?.optJSONObject("permissions")?.let { perms ->
-            perms.keys().forEach { resource ->
-                val actions = perms.optJSONObject(resource) ?: return@forEach
-                val map = mutableMapOf<String, Int>()
-                actions.keys().forEach { action ->
-                    val v = actions.opt(action)
-                    val scope = when (v) {
-                        is Boolean -> if (v) PermissionScope.ALL else PermissionScope.NONE
-                        is JSONObject -> v.optInt("scope", PermissionScope.NONE)
-                        is Number -> v.toInt()
-                        else -> PermissionScope.NONE
-                    }
-                    if (scope > PermissionScope.NONE) map[action] = scope
-                }
-                if (map.isNotEmpty()) permissions[resource] = map
-            }
-        }
+        // همان پارسرِ نقش‌ها: یک نگاشت، یک شکل — تفاوتِ دو پیاده‌سازی اینجا
+        // یعنی «چرا دکمه‌ام پنهان است» با «چرا برای همکارم پنهان است» یکی نباشد.
+        val permissions = parsePermissionMap(role?.optJSONObject("permissions"))
         val access = role?.optJSONObject("access")
         val features = role?.optJSONObject("features")
         val limits = role?.optJSONObject("limits")
@@ -1037,7 +1024,10 @@ object PanelApi {
                         usedTraffic = a.optLong("used_traffic", 0L),
                         dataLimit = if (a.isNull("data_limit")) null else a.optLong("data_limit").takeIf { it > 0L },
                         status = a.optString("status", "active"),
-                        isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false
+                        isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false,
+                        roleName = a.optJSONObject("role")?.optString("name").orEmpty(),
+                        isDisabled = a.optBoolean("is_disabled", false) || a.optString("status") == "disabled",
+                        isLimited = a.optBoolean("is_limited", false) || a.optString("status") == "limited"
                     )
                 }
             }
@@ -1047,6 +1037,67 @@ object PanelApi {
             if (offset > 10_000) break
         }
         all
+    }
+
+    // ═══════════════════ نقش‌های ادمین (فازِ ۶.۲) ═══════════════════
+    //
+    // `GET /api/admin-roles?offset=&limit=` → `{"roles": [...], "total": N}`
+    // (مجوزِ `admin_roles.read`). هر نقش `permissions` را به‌شکلِ
+    // `resource → action → scope` می‌دهد؛ همان نگاشتی که هنگامِ بررسیِ
+    // `AdminAccess.can` استفاده می‌شود. اینجا فقط **خواندنی** است.
+
+    /**
+     * فهرستِ نقش‌ها — یک صفحهٔ ۱۰۰تایی کافی است (نقش‌ها در عمل زیرِ ۲۰ عددند)
+     * ولی `total` برگردانده می‌شود تا UI اگر جا ماند بگوید.
+     */
+    suspend fun adminRoles(session: Session, limit: Int = 100): AdminRoleList = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/admin-roles?offset=0&limit=$limit")
+            .get().build()
+        val body = executeJsonForBody(request)
+        val arr = body.optJSONArray("roles") ?: return@withContext AdminRoleList(emptyList(), 0)
+        val roles = List(arr.length()) { i -> parseAdminRole(arr.getJSONObject(i)) }
+        AdminRoleList(roles, body.optInt("total", roles.size))
+    }
+
+    private fun parseAdminRole(r: JSONObject): PanelAdminRole {
+        val limits = r.optJSONObject("limits")
+        return PanelAdminRole(
+            id = r.optInt("id"),
+            name = r.optString("name"),
+            isOwner = r.optBoolean("is_owner", false),
+            createdAt = optionalString(r, "created_at"),
+            permissions = parsePermissionMap(r.optJSONObject("permissions")),
+            maxUsers = limits?.let { if (it.isNull("max_users")) null else it.optInt("max_users") },
+            hwidMode = r.optJSONObject("hwid")?.let { optionalString(it, "mode") }
+        )
+    }
+
+    /**
+     * نگاشتِ `resource → action → scope` از آبجکتِ `permissions` پنل.
+     *
+     * مقدارِ هر اکشن در پنل سه شکل دارد: `true` (مجازِ کامل)،
+     * `{"scope": N}` (محدود) یا `null`/غایب (ممنوع). اکشن‌های ممنوع **حذف**
+     * می‌شوند تا UI فقط چیزی را نشان بدهد که واقعاً مجاز است و نگاشتِ خالی
+     * (نقشِ بی‌مجوز) هم بی‌دلیل کلید نسازد.
+     */
+    private fun parsePermissionMap(perms: JSONObject?): Map<String, Map<String, Int>> {
+        if (perms == null) return emptyMap()
+        val out = mutableMapOf<String, Map<String, Int>>()
+        perms.keys().forEach { resource ->
+            val actions = perms.optJSONObject(resource) ?: return@forEach
+            val map = mutableMapOf<String, Int>()
+            actions.keys().forEach { action ->
+                val scope = when (val v = actions.opt(action)) {
+                    is Boolean -> if (v) PermissionScope.ALL else PermissionScope.NONE
+                    is JSONObject -> v.optInt("scope", PermissionScope.NONE)
+                    is Number -> v.toInt()
+                    else -> PermissionScope.NONE
+                }
+                if (scope > PermissionScope.NONE) map[action] = scope
+            }
+            if (map.isNotEmpty()) out[resource] = map
+        }
+        return out
     }
 
     /**
