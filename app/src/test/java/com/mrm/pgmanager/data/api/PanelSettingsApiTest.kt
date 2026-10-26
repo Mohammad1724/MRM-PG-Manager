@@ -137,7 +137,7 @@ class PanelSettingsApiTest {
         server.enqueue(MockResponse().setBody(settingsJson()))
         PanelApi.savePanelSubscription(
             session,
-            settings.subscription.copy(profileTitle = "MRM VPN", manualFormats = mapOf("xray" to true))
+            settings.subscription.copy(profileTitle = "MRM VPN", manualFormats = mapOf("xray" to false))
         )
         server.takeRequest()
         val body = JSONObject(server.takeRequest().body.readUtf8()).getJSONObject("subscription")
@@ -150,9 +150,10 @@ class PanelSettingsApiTest {
         assertEquals("BRAND", body.getJSONArray("custom_variables").getJSONObject(0).getString("key"))
         // فرمتِ دستی merge می‌شود، نه اینکه کلِ آبجکت را بازنویسی کند.
         val formats = body.getJSONObject("manual_sub_request")
-        assertEquals(true, formats.getBoolean("xray"))
+        assertEquals(false, formats.getBoolean("xray"))
         assertEquals(true, formats.getBoolean("links"))
-        assertEquals(false, formats.getBoolean("clash"))
+        // کلیدی که فرم نفرستاده به پیش‌فرضِ پنل (`true`) می‌رسد، نه به «حذف‌شده».
+        assertEquals(true, formats.getBoolean("clash"))
     }
 
     @Test fun `hwid save writes null for an unlimited cap`() = runBlocking {

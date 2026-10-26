@@ -223,7 +223,13 @@ data class PanelSubscriptionSection(
         } else {
             JSONObject()
         }
-        manualFormats.forEach { (name, on) -> formats.put(name, on) }
+        // همهٔ هشت کلید همیشه نوشته می‌شوند: `SubFormatEnable` پنل برای هر کلیدِ
+        // نبوده «true» می‌گذارد، پس اگر فرم فقط کلیدهای عوض‌شده را بفرستد، کلیدِ
+        // جاافتاده بی‌صدا روشن می‌شود. مقدارِ نیامده از بدنهٔ قبلی (یا پیش‌فرضِ
+        // خودِ پنل) گرفته می‌شود.
+        FORMAT_KEYS.forEach { key ->
+            formats.put(key, manualFormats[key] ?: formats.optBoolean(key, true))
+        }
         body.put("manual_sub_request", formats)
         return body
     }
