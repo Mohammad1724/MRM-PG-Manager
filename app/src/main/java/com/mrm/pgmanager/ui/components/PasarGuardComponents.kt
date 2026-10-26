@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -258,10 +259,12 @@ fun PGWrapRow(
     verticalGap: Dp = DsSpacing.Xs,
     content: @Composable () -> Unit
 ) {
-    // فاصله‌ها همین‌جا به px تبدیل می‌شوند: داخلِ composable چگالیِ محلی در دسترس است،
-    // ولی لامبدای اندازه‌گیری هیچ Densityای ندارد و `roundToPx()` آن‌جا کامپایل نمی‌شود.
-    val hGap = horizontalGap.roundToPx()
-    val vGap = verticalGap.roundToPx()
+    // فاصله‌ها همین‌جا به px تبدیل می‌شوند: لامبدای اندازه‌گیری هیچ Densityای ندارد؛
+    // `roundToPx()` گیرندهٔ Density می‌خواهد، پس با چگالیِ محلیِ همین composable حساب
+    // می‌شود (LocalDensity را کامل می‌نویسم، همان کاری که UsersScreen.kt:144 می‌کند).
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val hGap = with(density) { horizontalGap.roundToPx() }
+    val vGap = with(density) { verticalGap.roundToPx() }
     Layout(modifier = modifier, content = content) { measurables, constraints ->
         val available = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
         val placeables = measurables.map {
@@ -298,14 +301,10 @@ fun PGWrapRow(
         val totalHeight = if (heights.isEmpty()) 0 else y - vGap
         val maxLineWidth = if (widths.isEmpty()) 0 else widths.max()
         val width = if (constraints.hasBoundedWidth) available else maxLineWidth
-        // `this.` صریح است: این `layout` عضوِ `MeasureScope` است، نه تابعِ هم‌نامِ
-        // `Modifier.layout` که در `androidx.compose.ui.layout` سطحِ بالا تعریف شده
-        // (چهار فایلِ دیگر همان را import می‌کنند و kt-imports.py حق دارد اشتباه را
-        // به‌جایِ importِ لازم، خطا بداند).
-        this.layout(
-            width.coerceAtLeast(constraints.minWidth),
-            totalHeight.coerceAtLeast(constraints.minHeight)
-        ) {
+        // شکلِ بدون‌صفت: همین را UsersScreen.kt:331 هم داخلِ بلوکِ `Modifier.layout`
+        // صدا می‌زند و در 1.7.6 تنها شکلِ حل‌شدنی است (`this.layout(...)` روی نوع
+        // MeasureScope «Overload resolution ambiguity» می‌دهد).
+        layout(width.coerceAtLeast(constraints.minWidth), totalHeight.coerceAtLeast(constraints.minHeight)) {
             placeables.forEachIndexed { i, p ->
                 val l = lineOf[i]
                 p.placeRelative(xOf[i], tops[l] + (heights[l] - p.height) / 2)
