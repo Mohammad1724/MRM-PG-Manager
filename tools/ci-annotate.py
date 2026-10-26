@@ -157,9 +157,13 @@ def main() -> int:
         where = f"file={path}," if path else ""
         print(f"::error {where}title={escape(title)}::{escape(message)}")
     if len(issues) > MAX_ANNOTATIONS:
+        # GitHub برای هر گام تعدادِ محدودی annotation جدا نشان می‌دهد؛ بقیه با یک
+        # annotationِ تجمیعی می‌آید تا هیچ خطایی از دیدِ کسی که فقط API را می‌خواند
+        # پنهان نماند (سناریوی واقعی: خواندنِ نتیجه از محیطی که لاگ را نمی‌بیند).
+        aggregated = "\n".join(summary[:60])
         print(
-            f"::error title={escape('more failures')}::"
-            + escape(f"{len(issues) - MAX_ANNOTATIONS} شکستِ دیگر — خلاصهٔ کامل در Step Summary.")
+            f"::error title={escape('همهٔ شکست‌ها (' + str(len(issues)) + ')')}::"
+            + escape(clip(aggregated, 6000))
         )
 
     step_summary = os.environ.get("GITHUB_STEP_SUMMARY")

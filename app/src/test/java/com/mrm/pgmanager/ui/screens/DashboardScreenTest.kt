@@ -38,7 +38,10 @@ class DashboardScreenTest {
     private lateinit var server: MockWebServer
     private lateinit var session: Session
 
-    private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
+    // نسخهٔ قالبی هم لازم است: `chart_range_selector` یک آرگومانِ `%1$s` دارد و
+    // فراخوانیِ `str(R.string.x, "7d")` با امضای تک‌پارامتری کامپایل نمی‌شد.
+    private fun str(id: Int, vararg args: Any): String =
+        RuntimeEnvironment.getApplication().getString(id, *args)
 
     /**
      * ترتیب درخواست‌ها بین افکت لود و افکت بازه قطعی نیست؛ به‌جای صف FIFO،
