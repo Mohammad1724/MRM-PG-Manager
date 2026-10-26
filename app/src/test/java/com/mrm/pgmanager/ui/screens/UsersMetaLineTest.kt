@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -41,6 +42,9 @@ import org.robolectric.annotation.Config
 class UsersMetaLineTest {
     @get:Rule val rule = createComposeRule()
 
+    /** `boundsInRoot` پیکسلی است؛ برای آستانه‌های dp به آن ضربِ `density` می‌کنیم. */
+    private var density = 1f
+
     /** آخرین دیدارِ عمداً قدیمی، تا اسلاتِ اولِ ردیفِ دوم *متن* باشد نه آیکون. */
     private val seenAt = "2020-01-01T00:00:00"
 
@@ -63,6 +67,7 @@ class UsersMetaLineTest {
     private val seen = user(2, seenAt, false)
 
     private fun render(ltr: Boolean) = rule.setContent {
+        density = LocalDensity.current.density
         CompositionLocalProvider(
             LocalLayoutDirection provides if (ltr) LayoutDirection.Ltr else LayoutDirection.Rtl
         ) {
@@ -94,7 +99,7 @@ class UsersMetaLineTest {
         assertEquals("دو چیپ انتظار می‌رفت", 2, icons.size)
         assertEquals(
             "آیکونِ چیپ در دو ردیف هم‌راستا نیست (${icons[0].left} در برابرِ ${icons[1].left})",
-            icons[0].left.value, icons[1].left.value, 0.5f
+            icons[0].left, icons[1].left, 0.5f
         )
         // قفلِ LTRِ داخلِ چیپ: آیکون چپِ عدد می‌ماند.
         val number = badgeNumbers().first()
@@ -109,7 +114,7 @@ class UsersMetaLineTest {
         // در RTL لبهٔ لنگ سمت راست است (اولِ خط = راست)؛ چیپ به همان لبه می‌چسبد.
         assertEquals(
             "چیپ در فارسی از ردیفی به ردیف دیگر جابه‌جا شده (${texts[0].right} در برابرِ ${texts[1].right})",
-            texts[0].right.value, texts[1].right.value, 0.5f
+            texts[0].right, texts[1].right, 0.5f
         )
         // همان قفلِ LTR در فارسی هم آیکون را چپِ عدد نگه می‌دارد (برعکسِ ترتیبِ طبیعیِ RTL).
         val icon = badgeIcons().first()
@@ -127,13 +132,13 @@ class UsersMetaLineTest {
         val times = lastSeenBounds()
         assertEquals("ردیفِ دوم باید متنِ «آخرین دیدار» داشته باشد", 1, times.size)
         assertTrue(
-            "متنِ آخرین دیدار (${times[0].width}) باید از آیکونِ وای‌فای (${icons[0].width}) پهن‌تر باشد",
-            times[0].width > icons[0].width + 4.dp
+            "متنِ آخرین دیدار (${times[0].width}px) باید دستِ‌کم ۴dp از آیکونِ وای‌فای (${icons[0].width}px) پهن‌تر باشد",
+            times[0].width > icons[0].width + 4f * density
         )
         // در RTL چیپ سمتِ راستِ متن است.
         assertTrue(
             "چیپ روی متن افتاده (چپِ چیپ=${icons[1].left}، راستِ متن=${times[0].right})",
-            icons[1].left >= times[0].right - 0.5.dp
+            icons[1].left >= times[0].right - 0.5f
         )
     }
 
@@ -147,6 +152,6 @@ class UsersMetaLineTest {
         }
         assertEquals("با hwidCount=null نباید چیپی دیده شود", 0, badgeIcons().size)
         val time = lastSeenBounds().firstOrNull()
-        assertTrue("بدونِ چیپ هم باید زمانِ آخرین دیدار رندر شود", time != null && time.height > 0.dp)
+        assertTrue("بدونِ چیپ هم باید زمانِ آخرین دیدار رندر شود", time != null && time.height > 0f)
     }
 }
