@@ -33,6 +33,8 @@ import com.mrm.pgmanager.data.model.ClientTemplate
 import com.mrm.pgmanager.data.model.PanelCore
 import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.model.PanelSettings
+import com.mrm.pgmanager.data.model.PanelApiKey
+import com.mrm.pgmanager.data.model.CreatedApiKey
 import com.mrm.pgmanager.data.model.PanelGeneralSection
 import com.mrm.pgmanager.data.model.PanelSubscriptionSection
 import com.mrm.pgmanager.data.model.PanelHwidSection
@@ -118,6 +120,9 @@ object PanelApi {
         }
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    /** بدنهٔ خالیِ JSON برای POSTهایی که پارامتر ندارند (مثلِ چرخشِ کلیدِ API). */
+    private const val EMPTY_JSON = "{}"
 
     /**
      * هدفِ «کاربرانِ بی‌فعال» — از PasarGuard **v5.5** به `ExpiredUsersQuery.target`
@@ -529,6 +534,8 @@ object PanelApi {
             val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
                 ?: runCatching { org.json.JSONArray(body) }.getOrNull()
                 ?: return@withContext emptyList<PanelNode>()
+            // `sortedBy` پایدار است: نودهای بدونِ `sort_order` (همه `0`) ترتیبِ خودِ
+            // پاسخ را نگه می‌دارند و بقیه همان‌جای پنل می‌نشینند.
             List(arr.length()) { i ->
                 val n = arr.getJSONObject(i)
                 PanelNode(
@@ -539,10 +546,11 @@ object PanelApi {
                     message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
                     xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
                     nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
+                    sortOrder = n.optInt("sort_order", 0),
                     uplink = n.optLong("uplink", 0L),
                     downlink = n.optLong("downlink", 0L)
                 )
-            }
+            }.sortedBy { it.sortOrder }
         }
     }
 
@@ -1861,6 +1869,101 @@ object PanelApi {
             requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId").delete().build()
         )
     }
+
+    // ═══════════════════ کلیدهای API (فازِ ۵.۲) ═══════════════════
+    //
+    // مسیرها (PasarGuard 5.5.1): `GET /api/api_keys`، `POST /api/api_key`،
+    // `POST /api/api_key/{id}/revoke` (چرخش؛ متنِ تازه برمی‌گرداند)،
+    // `PATCH /api/api_key/{id}` (نام/یادداشت/وضعیت) و `DELETE /api/api_key/{id}`.
+    // متنِ کاملِ کلید فقط در پاسخِ ساخت/چرخش می‌آید و اینجا هم جایی ذخیره نمی‌شود.
+
+    /** فهرستِ کلیدهای API — `GET /api/api_keys` (مجوزِ `api_keys.read`). */
+    suspend fun apiKeys(session: Session, limit: Int = 200): List<PanelApiKey> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/api_keys?offset=0&limit=$limit")
+            .get().build()
+        val body = executeJsonForBody(request)
+        val arr = body.optJSONArray("api_keys") ?: return@withContext emptyList()
+        List(arr.length()) { i -> parseApiKey(arr.getJSONObject(i)) }
+    }
+
+    /**
+     * ساختِ کلید — `POST /api/api_key` (مجوزِ `api_keys.create`، پاسخ ۲۰۱).
+     *
+     * `expireDays = null` یعنی «بی‌انقضا» (`expire_date: null`). پنل تاریخِ گذشته را
+     * رد می‌کند و ارقامِ مثبت را می‌پذیرد.
+     */
+    suspend fun createApiKey(
+        session: Session,
+        name: String,
+        note: String = "",
+        expireDays: Long? = null
+    ): CreatedApiKey = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "API key name cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("note", note.trim().ifBlank { JSONObject.NULL })
+            .put("expire_date", expireDays?.let { DateLogic.isoFromNow(it) } ?: JSONObject.NULL)
+        parseCreatedApiKey(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/api_key")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /**
+     * چرخشِ کلید — `POST /api/api_key/{id}/revoke`.
+     *
+     * اسمِ مسیر «revoke» است ولی رفتارش **چرخش** است: همان کلید با متنِ تازه
+     * برمی‌گردد و کلیدِ قبلی بی‌درنگ از کار می‌افتد. برای «غیرفعال‌کردن» از
+     * [setApiKeyDisabled] استفاده کنید.
+     */
+    suspend fun rotateApiKey(session: Session, keyId: Int): CreatedApiKey = withContext(Dispatchers.IO) {
+        parseCreatedApiKey(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId/revoke")
+                    .post(EMPTY_JSON.toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** فعال/غیرفعال‌کردنِ کلید — `PATCH /api/api_key/{id}` با `status`. */
+    suspend fun setApiKeyDisabled(session: Session, keyId: Int, disabled: Boolean): PanelApiKey =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put(
+                "status",
+                if (disabled) PanelApiKey.DISABLED else PanelApiKey.ACTIVE
+            )
+            parseApiKey(
+                executeJsonForBody(
+                    requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId")
+                        .patch(body.toString().toRequestBody(jsonType)).build()
+                )
+            )
+        }
+
+    /** حذفِ کلید — `DELETE /api/api_key/{id}` (پاسخ ۲۰۴). */
+    suspend fun deleteApiKey(session: Session, keyId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId").delete().build()
+        )
+    }
+
+    private fun parseApiKey(o: JSONObject): PanelApiKey = PanelApiKey(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        trimmed = o.optString("api_key_trimmed"),
+        status = o.optString("status", PanelApiKey.ACTIVE),
+        note = optionalString(o, "note"),
+        adminId = o.optInt("admin_id"),
+        createdAt = optionalString(o, "created_at"),
+        expireDate = optionalString(o, "expire_date"),
+        isExpired = o.optBoolean("is_expired", false),
+        inheritPermissions = o.optBoolean("inherit_permissions", true)
+    )
+
+    private fun parseCreatedApiKey(o: JSONObject): CreatedApiKey =
+        CreatedApiKey(key = o.optString("api_key"), item = parseApiKey(o))
 
     // ═══════════════════ تنظیماتِ پنل (فازِ ۵) ═══════════════════
     //

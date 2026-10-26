@@ -68,6 +68,14 @@ object DateLogic {
         return instant.plus(days, ChronoUnit.DAYS).toString()
     }
 
+    /**
+     * ISO-8601 «اکنون + N روز» — برای فیلدِ `expire_date` کلیدِ API.
+     *
+     * پنل `datetime` می‌خواهد و مقدارِ گذشته را با ۴۲۲ رد می‌کند؛ `Instant.toString`
+     * همان `2026-11-25T09:30:00Z` را می‌دهد که `fix_datetime_timezone` پنل می‌پذیرد.
+     */
+    fun isoFromNow(days: Long): String = Instant.now().plus(days, ChronoUnit.DAYS).toString()
+
     fun expireValue(date: String?): Any {
         if (date.isNullOrBlank() || date == "null" || date == "0") return 0
         val target = runCatching { LocalDate.parse(date.take(10)) }.getOrNull() ?: return 0

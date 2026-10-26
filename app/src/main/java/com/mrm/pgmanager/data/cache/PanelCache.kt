@@ -105,6 +105,9 @@ object PanelCache {
      * تازه جای همین می‌نشیند.
      */
     fun panelSettingsKey(baseUrl: String) = "panelsettings:$baseUrl"
+
+    /** فهرستِ کلیدهای API — همان قاعدهٔ کشِ کوتاه‌مدتِ داده‌های سطحِ سرور. */
+    fun apiKeysKey(baseUrl: String) = "apikeys:$baseUrl"
     fun coresKey(baseUrl: String) = "cores:$baseUrl"
     fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
 }

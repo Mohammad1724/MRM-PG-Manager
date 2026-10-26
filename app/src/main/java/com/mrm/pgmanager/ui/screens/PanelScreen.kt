@@ -66,6 +66,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * @param onOpenInfra باز کردنِ «زیرساختِ پنل» (هاست/کور/قالبِ کلاینت).
  * @param onOpenPanelSettings باز کردنِ «تنظیماتِ پنل» (پیش‌فرض‌های سرور،
  *   اشتراک، محدودیتِ دستگاه و اعلان‌ها).
+ * @param onOpenApiKeys باز کردنِ «کلیدهای API» (ورودِ ماندگار برای ورکر/ویجت).
  */
 @Composable
 fun PanelScreen(
@@ -74,6 +75,7 @@ fun PanelScreen(
     onBack: () -> Unit,
     onOpenInfra: () -> Unit,
     onOpenPanelSettings: () -> Unit = {},
+    onOpenApiKeys: () -> Unit = {},
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {}
 ) {
@@ -153,6 +155,16 @@ fun PanelScreen(
                         title = stringResource(R.string.panel_settings_entry_title),
                         subtitle = stringResource(R.string.panel_settings_entry_desc),
                         onClick = onOpenPanelSettings
+                    )
+                }
+                // کلیدهای API: ورودِ ماندگار برای ورکر و ویجت. بدونِ مجوزِ خواندن
+                // فهرست هم ۴۰۳ می‌گیرد، پس کارت پنهان می‌ماند.
+                if (com.mrm.pgmanager.data.AdminAccess.can("api_keys", "read")) {
+                    PanelEntryCard(
+                        icon = AppIcon.Lock,
+                        title = stringResource(R.string.ak_entry_title),
+                        subtitle = stringResource(R.string.ak_entry_desc),
+                        onClick = onOpenApiKeys
                     )
                 }
             }
