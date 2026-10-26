@@ -59,6 +59,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
@@ -149,30 +151,66 @@ internal fun DeviceBadge(count: Int, compact: Boolean = false, iconOnly: Boolean
     val theme = LocalThemeState.current
     // صفر = «دستگاهی ثبت نشده»؛ رنگِ خنثی تا با «چند دستگاه فعال» قاطی نشود.
     val tint = if (count > 0) DsSemantic.Info else theme.mutedColor
+    // جهتِ داخلِ کادر قفلِ LTR است: عددِ دستگاه مثلِ بقیهٔ متن‌های فنی (مصرف، GB)
+    // خوانده می‌شود، وگرنه آیکون در فارسی می‌رود یک طرفِ عدد و در انگلیسی طرفِ دیگر —
+    // همان «یا عقبه یا جلو» که کاربر روی ردیف‌ها دید. *محلِ خودِ کادر* را ردیفِ والد
+    // تعیین می‌کند (پایین ببین: UserMetaLine).
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            Modifier
+                .heightIn(min = if (compact) 18.dp else 24.dp)
+                .clip(DsRadius.Sm)
+                .background(tint.copy(alpha = 0.10f))
+                .border(BorderStroke(DsBorder.Hairline, tint.copy(alpha = 0.22f)), DsRadius.Sm)
+                .padding(horizontal = if (iconOnly) DsSpacing.Xs else DsSpacing.Md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
+        ) {
+            RoundedAppIcon(
+                AppIcon.Device,
+                contentDescription = if (iconOnly) stringResource(R.string.us_devices_fmt, count) else null,
+                tint = tint,
+                size = if (compact) 10.dp else 11.dp
+            )
+            MrmText(
+                text = if (iconOnly) "$count" else stringResource(R.string.us_devices_fmt, count),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = tint,
+                maxLines = 1,
+                isTechnical = true
+            )
+        }
+    }
+}
+/**
+ * خطِ دومِ ردیف‌های کاربر: [چیپِ تعدادِ دستگاه] بعد [آنلاین / آخرین دیدار].
+ *
+ * چرا این ترتیب (و نه «زمان، بعد دستگاه»): اولِ خط در هر دو زبان یک لبۀ **ثابت** است
+ * (در فارسی راست، در انگلیسی چپ)، پس چیپِ دستگاه در هیچ ردیفی جابه‌جا نمی‌شود و
+ * ردیف‌ها ستون‌وار زیرِ هم می‌نشینند. اگر چیپ آخر می‌آمد، پهنای متنِ اول باید ثابت
+ * می‌شد — و «آخرین دیدار» زبان‌به‌زبان فرق دارد (en «5m» ~۱۶dp، fa «۵ دقیقه» ~۵۲dp)،
+ * پس همان جابه‌جایی برمی‌گشت یا یک فاصلۀ مرده لازم می‌شد.
+ *
+ * `hwidCount == null` یعنی پنل عدد نداده (نقشِ بدونِ `hwids.read`)؛ آن‌وقت خط فقط
+ * «آخرین دیدار» است و هیچ لبۀ لنگی خالی نمی‌ماند.
+ */
+@Composable
+internal fun UserMetaLine(
+    user: PanelUser,
+    modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    iconSize: androidx.compose.ui.unit.Dp = 12.dp,
+    badgeCompact: Boolean = false,
+    badgeIconOnly: Boolean = false
+) {
     Row(
-        Modifier
-            .heightIn(min = if (compact) 18.dp else 24.dp)
-            .clip(DsRadius.Sm)
-            .background(tint.copy(alpha = 0.10f))
-            .border(BorderStroke(DsBorder.Hairline, tint.copy(alpha = 0.22f)), DsRadius.Sm)
-            .padding(horizontal = if (iconOnly) DsSpacing.Xs else DsSpacing.Md),
+        modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
     ) {
-        RoundedAppIcon(
-            AppIcon.Device,
-            contentDescription = if (iconOnly) stringResource(R.string.us_devices_fmt, count) else null,
-            tint = tint,
-            size = if (compact) 10.dp else 11.dp
-        )
-        MrmText(
-            text = if (iconOnly) "$count" else stringResource(R.string.us_devices_fmt, count),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = tint,
-            maxLines = 1,
-            isTechnical = true
-        )
+        user.hwidCount?.let { DeviceBadge(it, compact = badgeCompact, iconOnly = badgeIconOnly) }
+        OnlineOrLastSeen(user, fontSize = fontSize, iconSize = iconSize)
     }
 }
 
@@ -417,10 +455,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                         overflow = TextOverflow.Ellipsis,
                         isTechnical = true
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                        OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 13.dp)
-                        user.hwidCount?.let { DeviceBadge(it, compact = true) }
-                    }
+                    UserMetaLine(user, fontSize = 11.sp, iconSize = 13.dp, badgeCompact = true)
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
@@ -482,11 +517,8 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             // عرضِ نام انعطاف‌پذیر است (قبلاً ۹۶dp ثابت = فضای خالیِ بی‌دلیل)؛ ستونِ مصرف عرضِ ثابتِ MICRO_USAGE_WIDTH دارد.
             Column(Modifier.weight(1f).testTag("micro_name"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
-                    OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
-                    // در ردیفِ متراکم فقط آیکون+عدد؛ متنِ «دستگاه» جا ندارد و نام را می‌بُرد.
-                    user.hwidCount?.let { DeviceBadge(it, compact = true, iconOnly = true) }
-                }
+                // در ردیفِ متراکم فقط آیکون+عدد؛ متنِ «دستگاه» جا ندارد و نام را می‌بُرد.
+                UserMetaLine(user, fontSize = 11.sp, iconSize = 11.dp, badgeCompact = true, badgeIconOnly = true)
             }
             UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)
