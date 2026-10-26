@@ -38,6 +38,11 @@ see `docs/PANEL-5.5-COMPAT.md`. Device counts need no gate: they appear only if 
 - **API keys** (My panel → API keys): create with a name/note/expiry (never · 30 · 90 · 365 days), see the
   full key **once**, rotate it, enable/disable it or delete it. `POST …/revoke` in the panel is a
   *rotation*, so the app never calls it “revoke”; the secret is never stored.
+- **Live node logs** (My panel → Node logs, or the “Logs” action on a node row in Statistics): the panel's
+  `GET /api/node/{id}/logs` SSE stream in one screen — node picker limited to connected nodes, severity and
+  time-window chips, search, pause with a queue, tap to expand a line, “copy the visible lines”, and
+  follow-latest scrolling. The socket only lives while the screen is open, and a closed stream is resumed
+  with one tap instead of an endless auto-reconnect loop (`docs/PHASE-7-NODE-LOGS.md`).
 - **Operators & roles** (read-only): who can do what on this panel — admins with their role and status flags,
   and every role's `resource → action → scope` table, which is the answer to “why is that button missing for me?”.
 - **Device (HWID) management** per user: the full list with model/OS and “last used”, forget one or all —
@@ -63,7 +68,7 @@ delete / disabled / reset / revoke_sub / active_next / usage), `/api/users/bulk/
 `/api/nodes/realtime_stats`, `/api/nodes/order`, `/api/users/simple`, `/api/settings/general`, `/api/hosts`, `/api/cores`,
 `/api/client_templates`,
 `/api/inbounds`, `/api/admins`, `/api/admin-roles`, `/api/api_key` (+ `/{id}/revoke`), `/api/settings`,
-`/api/user/{id}/hwids`. All panel-settings writes are `PUT /api/settings/<section>` — one section at a time.
+`/api/user/{id}/hwids`, `/api/node/{id}/logs` (the only streaming endpoint: `text/event-stream`, no retries). All panel-settings writes are `PUT /api/settings/<section>` — one section at a time.
 
 "Online" uses the panel's own 2‑minute window (`online_at`), and `online=true` is applied server‑side.
 

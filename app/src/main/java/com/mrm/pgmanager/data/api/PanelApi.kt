@@ -52,6 +52,7 @@ import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import java.io.IOException
 
 /**
  * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
@@ -122,6 +123,23 @@ object PanelApi {
         }
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    /**
+     * کلاینتِ جریان‌ها (لاگِ زندهٔ نود).
+     *
+     * دو تفاوت با [client]، هر دو از روی همان سازنده تا یک منبعِ حقیقت بماند:
+     * `readTimeout = 0` چون لاگ می‌تواند دقایق ساکت بماند، و
+     * `retryOnConnectionFailure(false)` چون تلاشِ دوبارهٔ OkHttp روی پاسخِ
+     * نیمه‌کارهٔ streaming یعنی دو جریانِ هم‌زمان و خط‌های تکراری روی صفحه.
+     * interceptorها (نگاشتِ ۴۰۱ به [SessionExpiredException]، retryِ متدهای امن)
+     * سرِ جایشان می‌مانند.
+     */
+    private val streamClient: OkHttpClient by lazy {
+        client.newBuilder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .retryOnConnectionFailure(false)
+            .build()
+    }
 
     /** بدنهٔ خالیِ JSON برای POSTهایی که پارامتر ندارند (مثلِ چرخشِ کلیدِ API). */
     private const val EMPTY_JSON = "{}"
@@ -579,6 +597,46 @@ object PanelApi {
                 .post("".toRequestBody(jsonType)).build()
         )
     }
+
+    // ── جریانِ لاگِ نود (SSE) ──────────────────────────────────────────────
+    //
+    // پنل لاگ را با `EventSourceResponse` می‌دهد (`GET /api/node/{id}/logs`،
+    // مجوزِ `nodes.logs`)؛ خودِ نود ایجنتِ Go است و پنل لاگ را از آن می‌گیرد، پس
+    // اپ هرگز مستقیم با نود حرف نمی‌زند. چون پاسخ «جریان» است نه JSON، این مسیر
+    // کلاینتِ جدا و عمرِ مشخصی می‌خواهد (شرحش در `NodeLogStream.kt`).
+
+    /**
+     * بازکردنِ جریانِ لاگ — تا رسیدنِ پاسخ باز می‌ماند و بعد خواندنِ خط‌ها با
+     * [NodeLogConnection.nextEvent] انجام می‌شود.
+     *
+     * `Accept: text/event-stream` عمداً فرستاده می‌شود: sse-starlette بدونِ آن هم
+     * کار می‌کند، ولی با آن مطمئن می‌شویم هیچ واسطه‌ای (پروکسی/CDN) بدنه را
+     * buffer نمی‌کند. `Cache-Control: no-cache` همان کار را برای واسطه‌های
+     * بدجنس‌تر می‌کند — لاگِ کش‌شده یعنی دیدنِ دیروز به‌جای امروز.
+     *
+     * خطاها مثلِ بقیهٔ مسیرها `detail`ِ پنل را در message نگه می‌دارند تا
+     * `ApiErrorMapper` بتواند ۴۰۳ «مجوزِ nodes.logs نداری» را خوانا نشان بدهد.
+     */
+    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection =
+        withContext(Dispatchers.IO) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
+                .header("Accept", "text/event-stream")
+                .header("Cache-Control", "no-cache")
+                .get().build()
+            val call = streamClient.newCall(request)
+            val response = try {
+                call.execute()
+            } catch (e: IOException) {
+                call.cancel()
+                throw e
+            }
+            if (!response.isSuccessful) {
+                val detail = errorDetail(response.body?.string())
+                response.close()
+                error("Node logs failed: ${response.code} $detail".trim())
+            }
+            NodeLogConnection(call, response)
+        }
 
     /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
     /**

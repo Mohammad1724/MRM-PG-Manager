@@ -49,6 +49,7 @@ import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.formatBytes
@@ -57,7 +58,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+fun StatisticsScreen(
+    session: Session,
+    onOpenSettings: () -> Unit = {},
+    onOpenNodeLogs: (Int) -> Unit = {}
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
@@ -396,6 +401,24 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                         )
                                     }
                                 }
+                                // لاگِ زنده فقط از نودِ متصل معنا دارد (پنل هم در
+                                // انتخاب‌گرِ لاگش بقیه را نمی‌گذارد).
+                                if (n.isConnected && AdminAccess.can("nodes", "logs")) {
+                                    Box(
+                                        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm)
+                                            .clickable { onOpenNodeLogs(n.id) }
+                                            .background(theme.cardSurfaceColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+                                            .pressScale(0.94f)
+                                            .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.nl_open),
+                                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                            color = theme.accentTextColor, maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                             if (live != null) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -418,11 +441,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     Text(it.take(90), fontSize = 11.sp, color = theme.mutedColor, maxLines = 2)
                                 }
                                 // اولین پاسخ realtime هنوز در راه است؛ اسپینر خنثی به‌جای برچسب خطا.
-                                !nodeStatsLoaded -> CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    strokeWidth = 1.6.dp,
-                                    color = theme.mutedColor
-                                )
+                                !nodeStatsLoaded -> MrmBusyIndicator(color = theme.mutedColor, size = 14.dp, strokeWidth = 1.6.dp)
                                 // پاسخ آمد ولی این نود در نقشه نبود: واقعاً آمار زنده ندارد.
                                 else -> Text(
                                     n.message?.take(90) ?: stringResource(R.string.st_node_unreachable),

@@ -68,6 +68,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  *   اشتراک، محدودیتِ دستگاه و اعلان‌ها).
  * @param onOpenApiKeys باز کردنِ «کلیدهای API» (ورودِ ماندگار برای ورکر/ویجت).
  * @param onOpenAdmins باز کردنِ «اپراتورها و نقش‌ها» (چه کسی چه مجوزی دارد).
+ * @param onOpenNodeLogs باز کردنِ «لاگِ نودها» (جریانِ زندهٔ لاگِ هر نود).
  */
 @Composable
 fun PanelScreen(
@@ -78,6 +79,7 @@ fun PanelScreen(
     onOpenPanelSettings: () -> Unit = {},
     onOpenApiKeys: () -> Unit = {},
     onOpenAdmins: () -> Unit = {},
+    onOpenNodeLogs: () -> Unit = {},
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {}
 ) {
@@ -176,6 +178,17 @@ fun PanelScreen(
                         title = stringResource(R.string.ar_entry_title),
                         subtitle = stringResource(R.string.ar_entry_desc),
                         onClick = onOpenAdmins
+                    )
+                }
+                // لاگِ نود: آخرین قلمِ فهرستِ «پنلِ من» (فاز ۷). با مجوزِ *خودش*
+                // گیت می‌شود، نه `nodes.read` — بیِ آن درخواستِ لاگ ۴۰۳ می‌گیرد و
+                // کاربر فقط یک صفحهٔ خالی می‌دید.
+                if (com.mrm.pgmanager.data.AdminAccess.can("nodes", "logs")) {
+                    PanelEntryCard(
+                        icon = AppIcon.DenseList,
+                        title = stringResource(R.string.nl_entry_title),
+                        subtitle = stringResource(R.string.nl_entry_desc),
+                        onClick = onOpenNodeLogs
                     )
                 }
             }
