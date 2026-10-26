@@ -137,8 +137,22 @@ RE_CALL = re.compile(r"[\s.(]([A-Za-z_]\w*)\s*\(")
 # چرا محدود؟ نام‌هایی مثل `width`/`size`/`height` هم در `androidx.compose.ui.test`
 # وجود دارند (به‌عنوانِ اعضای `SemanticsNode`) و اگر همه را بسنجیم، مثبتِ کاذب می‌سازیم.
 HELPER_PREFIXES = ("onNode", "onAllNodes", "assert", "perform", "print", "capture")
-# این سه نام در نمایه هستند ولی هم‌نامِ JUnit/stdlib هم می‌شوند؛ سنجیدنشان امن نیست.
-HELPER_EXCLUDE = {"assert", "assertAll", "assertAny"}
+# این نام‌ها در نمایه هستند ولی هم‌نامِ JUnit/stdlib هم می‌شوند؛ سنجیدنشان امن نیست.
+# `assertExists`/`assertDoesNotExist` هم **متدِ عضوِ** `SemanticsNodeInteraction`‌اند، نه
+# تابعِ سطحِ فایل؛ نمایه آن‌ها را از یک متدِ کمکیِ همان فایل برداشته بود. نتیجهٔ عملی:
+# ابزار «importِ جاافتاده» پیشنهاد می‌داد و همان import کامپایلر را می‌شکست
+# (`Unresolved reference: assertExists`) — یک چرخهٔ CI کامل. پس:
+#   • صدا زدنشان بدونِ import درست است (نه خطا)
+#   • import کردنشان خطاست (پاسِ سوم)
+MEMBER_ONLY = {"assertExists", "assertDoesNotExist"}
+HELPER_EXCLUDE = {"assert", "assertAll", "assertAny"} | MEMBER_ONLY
+
+
+def forbidden_imports(path: Path) -> list:
+    """importهایی که کامپایلر را می‌شکنند چون نماد عضوِ کلاس است، نه تابعِ سطحِ فایل."""
+    text = strip_code(path.read_text(encoding="utf-8"))
+    imported = re.findall(r"^\s*import\s+androidx\.compose\.ui\.test\.([A-Za-z0-9_]+)\s*$", text, re.M)
+    return sorted(n for n in imported if n in MEMBER_ONLY)
 
 
 def ui_test_helpers(index: set) -> set:
@@ -197,6 +211,12 @@ if __name__ == "__main__":
             print(f"❌ {rel}")
             for name in missing:
                 print(f"     importِ جاافتاده: androidx.compose.ui.test.{name}")
+        # پاسِ سوم: عکسِ پاسِ دوم — importی که نباید باشد.
+        for name in forbidden_imports(f):
+            bad += 1
+            rel = f.relative_to(ROOT) if str(f).startswith(str(ROOT)) else f
+            print(f"❌ {rel}")
+            print(f"     importِ ممنوع: androidx.compose.ui.test.{name} — عضوِ کلاس است، import نمی‌خواهد")
     if bad == 0:
         print(f"✅ همهٔ {total_checked} ارجاعِ Compose در {len(files)} فایل در نسخهٔ پروژه موجود است.")
     else:
