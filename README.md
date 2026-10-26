@@ -60,7 +60,9 @@ delete / disabled / reset / revoke_sub / active_next / usage), `/api/users/bulk/
 APKs are built by GitHub Actions: open **Actions → Build Android APK** and download the
 `MRM-PG-Manager-debug-apk` artifact. The workflow validates resources and Kotlin sources
 (`tools/*.py`), runs the unit tests (`app/src/test`, MockWebServer contract tests against the panel API
-shapes) and then assembles the debug APK.
+shapes) and then assembles the debug APK. A red run is readable without the log: every failing test
+becomes a check-run annotation with `file:line` — see `docs/CI.md` (what runs, how to read failures,
+the rules the tests must follow, and the three test seams in production code).
 
 Local build: Android Studio (compileSdk 35, minSdk 26) or `./gradlew assembleDebug`.
 
