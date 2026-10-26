@@ -23,7 +23,10 @@ see `docs/PANEL-5.5-COMPAT.md`. Device counts need no gate: they appear only if 
   from template), edit, disable, reset usage, revoke subscription, next plan, HWID devices, QR / copy
   subscription, invoices, debtor tracking with optional auto‑disable. Device counts come straight from the
   list response (`hwid_count`, panel 5.5+) — no extra request per row.
-- **Panel infrastructure** (Settings → Connection): **hosts** (create/edit/enable/disable/delete),
+- **Two separate homes**: *app settings* (theme, language, notifications, form defaults, invoice,
+  backup, app lock) and **My panel** (server, panel version/compatibility, role & scopes, accounts,
+  test connection) — see `docs/SETTINGS-SPLIT.md`.
+- **Panel infrastructure** (My panel → Infrastructure): **hosts** (create/edit/enable/disable/delete),
   **cores** (rename, inbound exclude/fallback tags, restart nodes, delete) and **client templates**
   (Clash / Xray / sing-box / user-agent) — see `docs/PHASE-2-PANEL-INFRA.md`. Edits merge into the
   raw payload, so advanced fields the phone form does not know (transport, mux, fragment, ECH, routing)

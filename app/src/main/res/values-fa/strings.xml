@@ -1185,4 +1185,10 @@
     <string name="search_ct">جست‌وجوی قالب</string>
     <string name="ct_type_locked">نوع پس از ساخت تغییر نمی‌کند</string>
     <string name="ct_chars_fmt">%1$d کاراکتر</string>
+
+    <!-- ── جداسازیِ تنظیماتِ اپ از تنظیماتِ پنل (نسخهٔ ۰٫۱۲) ── -->
+    <string name="set_tab_security">قفلِ برنامه</string>
+    <string name="panel_title">پنلِ من</string>
+    <string name="panel_subtitle">سرور، دسترسی و زیرساخت</string>
+    <string name="acct_open_panel">مدیریتِ پنل</string>
 </resources>

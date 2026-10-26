@@ -57,6 +57,8 @@ fun AccountSheet(
     onSwitch: (Session) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
+    /** باز کردنِ صفحهٔ «پنلِ من» (سرور/نسخه/نقش/زیرساخت) — فاز ۳. */
+    onOpenPanel: () -> Unit,
     onLogout: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -137,6 +139,9 @@ fun AccountSheet(
             }
             Box(Modifier.fillMaxWidth().height(DsBorder.Hairline).background(theme.borderColor))
 
+            // «پنلِ من» اول می‌آید: این ورقه دربارهٔ هویتِ *همین پنل* است، پس
+            // مدیریتِ آن نزدیک‌تر از تنظیماتِ گوشی است.
+            AccountRow(icon = AppIcon.Storage, label = stringResource(R.string.acct_open_panel)) { onOpenPanel() }
             AccountRow(icon = AppIcon.Settings, label = stringResource(R.string.app_settings)) { onOpenSettings() }
             AccountRow(icon = AppIcon.UserAdd, label = stringResource(R.string.acct_add)) { onAddAccount() }
 

@@ -1186,4 +1186,10 @@
     <string name="search_ct">Search templates</string>
     <string name="ct_type_locked">The type cannot change after creation</string>
     <string name="ct_chars_fmt">%1$d characters</string>
+
+    <!-- ── جداسازیِ تنظیماتِ اپ از تنظیماتِ پنل (نسخهٔ ۰٫۱۲) ── -->
+    <string name="set_tab_security">App lock</string>
+    <string name="panel_title">My panel</string>
+    <string name="panel_subtitle">Server, access and infrastructure</string>
+    <string name="acct_open_panel">Manage panel</string>
 </resources>

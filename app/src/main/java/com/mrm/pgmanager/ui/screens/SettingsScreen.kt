@@ -65,7 +65,10 @@ import com.mrm.pgmanager.ui.theme.ThemeState
  * مقایسه می‌کرد. با عوض‌کردنِ زبان، مقایسه شکست می‌خورد و تبِ فعال گم می‌شد.
  * شناسهٔ پایدار این کلاسِ باگ را ریشه‌کن می‌کند.
  */
-enum class SettingsSection { CONNECTION, APPEARANCE, MONITORING, ADVANCED }
+//  ترتیبِ تب‌ها = ترتیبِ پیمایش. «اتصال» از این صفحه حذف شد (نسخهٔ ۰٫۱۲): هویتِ
+//  سرور/نسخه/نقش/حساب‌ها به صفحهٔ «پنلِ من» رفت و قفلِ برنامه اینجا ماند — تنظیمات
+//  حالا فقط چیزهایی است که مالِ *همین دستگاه* است.
+enum class SettingsSection { APPEARANCE, MONITORING, ADVANCED, SECURITY }
 
 /**
  * صفحهٔ تنظیمات — بازطراحی‌شده به‌صورتِ صفحهٔ کامل، هم‌سبک با بقیهٔ صفحه‌ها.
@@ -99,23 +102,22 @@ fun SettingsScreen(
     onLockTimeoutChange: (Int) -> Unit = {},
     appLanguage: String = "system",
     onLanguageChange: (String) -> Unit = {},
-    onLogout: (() -> Unit)? = null,
     appVersion: String = "",
-    // ── وابستگی‌های بخشِ «پیشرفته» (اتصال/کاربران/فاکتور/پشتیبان)
+    // ── وابستگی‌های بخشِ «پیشرفته» (کاربران/فاکتور/پشتیبان)
+    //  نکته: `session`/`store` هنوز لازم‌اند چون پیش‌فرض‌های فرم (گروه/تمپلت)،
+    //  فاکتور و پشتیبان‌گیری از دادهٔ پنل/دیسک می‌خوانند — ولی هویتِ سرور،
+    //  سوئیچِ حساب و زیرساخت به `PanelScreen` منتقل شده‌اند.
     session: Session? = null,
     store: SessionStore? = null,
-    onSwitchAccount: (Session) -> Unit = {},
-    onAddAccount: () -> Unit = {},
     onBulkCreate: () -> Unit = {},
-    /** باز کردنِ صفحهٔ «زیرساختِ پنل» (هاست/کور/قالبِ کلاینت) — فاز ۲. */
-    onOpenPanelInfra: () -> Unit = {},
     /** پس از بازیابیِ موفقِ پشتیبان، stateهای درون‌حافظه‌ای از روی prefs تازه شوند. */
     onDataRestored: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
-    // فاز ۱.۴: چهار بخشِ «اتصال و حساب‌ها ← ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته».
-    var section by rememberSaveable { mutableStateOf(SettingsSection.CONNECTION) }
+    // چهار بخش: «ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته ← قفلِ برنامه».
+    // «اتصال و حساب‌ها» در نسخهٔ ۰٫۱۲ به صفحهٔ «پنلِ من» منتقل شد.
+    var section by rememberSaveable { mutableStateOf(SettingsSection.APPEARANCE) }
     val sections = SettingsSection.entries
     val scope = rememberCoroutineScope()
     // بخش‌ها حالا با انگشت هم عوض می‌شوند، نه فقط با زدنِ تب. پیجر و نوارِ تب
@@ -165,10 +167,10 @@ fun SettingsScreen(
 
         // ── نوار بخش‌ها
         val tabs = listOf(
-            SettingsSection.CONNECTION to stringResource(R.string.set_tab_connection),
             SettingsSection.APPEARANCE to stringResource(R.string.appearance),
             SettingsSection.MONITORING to stringResource(R.string.set_tab_monitoring),
-            SettingsSection.ADVANCED to stringResource(R.string.advanced_title)
+            SettingsSection.ADVANCED to stringResource(R.string.advanced_title),
+            SettingsSection.SECURITY to stringResource(R.string.set_tab_security)
         )
         androidx.compose.foundation.lazy.LazyRow(
             state = tabListState,
@@ -211,32 +213,6 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(DsSpacing.SectionGap)
         ) {
             when (sections[page]) {
-                // ── اتصال و حساب‌ها: اطلاعات پنل/سوئیچ حساب (از پیشرفته منتقل شد)
-                //    + قفل برنامه و خروج — همه مستقیم، بدون آکاردئون (≤۱ کلیک).
-                SettingsSection.CONNECTION -> {
-                    if (store != null) {
-                        ConnectionSection(
-                            session = session,
-                            store = store,
-                            scope = scope,
-                            onSwitchAccount = onSwitchAccount,
-                            onAddAccount = onAddAccount
-                        )
-                    }
-                    // فاز ۲: مدیریتِ زیرساختِ پنل (هاست/کور/قالبِ کلاینت). فقط با
-                    // حسابِ فعال معنا دارد — بی‌آن هیچ درخواستی نمی‌شود فرستاد.
-                    if (session != null) {
-                        PanelInfraEntryCard(onClick = onOpenPanelInfra)
-                    }
-                    SecuritySection(
-                        isAppLockEnabled = isAppLockEnabled,
-                        onAppLockChange = onAppLockChange,
-                        appLockTimeout = appLockTimeout,
-                        onLockTimeoutChange = onLockTimeoutChange,
-                        onLogout = onLogout
-                    )
-                }
-
                 SettingsSection.APPEARANCE -> AppearanceSection(
                     themeState = themeState,
                     onThemeChange = onThemeChange,
@@ -272,6 +248,17 @@ fun SettingsScreen(
                         onDataRestored = onDataRestored
                     )
                 }
+
+                // قفلِ برنامه: تنها چیزی که از تبِ «اتصال» اینجا ماند. خروج از حساب
+                // عمداً به ورقهٔ حساب (AccountSheet) سپرده شد تا هویت و خروج کنارِ
+                // هم باشند و تنظیمات فقط «این دستگاه» باشد.
+                SettingsSection.SECURITY -> SecuritySection(
+                    isAppLockEnabled = isAppLockEnabled,
+                    onAppLockChange = onAppLockChange,
+                    appLockTimeout = appLockTimeout,
+                    onLockTimeoutChange = onLockTimeoutChange,
+                    onLogout = null
+                )
             }
             AboutFooter(appVersion = appVersion)
             Spacer(Modifier.height(DsSpacing.Sm))
@@ -281,46 +268,10 @@ fun SettingsScreen(
 }
 
 /**
- * کارتِ ورودیِ «زیرساختِ پنل» در تبِ «اتصال و حساب‌ها».
- *
- * چرا اینجا: هاست/کور/قالبِ کلاینت به خودِ *پنل* مربوط‌اند نه به ترجیحاتِ اپ، و
- * دقیقاً همان‌جایی هستند که ادمین آدرس و حسابش را می‌بیند. یک ردیفِ تک‌خطیِ
- * قابل‌لمس، با فلشِ سمتِ مقابل — بدونِ آکاردئون و بدونِ صفحهٔ اضافه.
- */
-@Composable
-private fun PanelInfraEntryCard(onClick: () -> Unit) {
-    val theme = LocalThemeState.current
-    Row(
-        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .clickable { onClick() }
-            .heightIn(min = 56.dp)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-    ) {
-        Box(
-            Modifier.size(34.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.14f)),
-            contentAlignment = Alignment.Center
-        ) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 16.dp) }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                stringResource(R.string.infra_settings_entry_title),
-                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
-            )
-            Text(
-                stringResource(R.string.infra_settings_entry_desc),
-                fontSize = 10.sp, color = theme.mutedColor, maxLines = 2
-            )
-        }
-        RoundedAppIcon(AppIcon.Next, tint = theme.mutedColor, size = 16.dp)
-    }
-}
-
-/**
  * بخشِ «پیشرفته»: سه زیربخشِ سنگین (کاربران/فاکتور/پشتیبان) که به `session`/`store`
  * و لانچرهای فایل وابسته‌اند و به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه
- * شلوغ نشود. زیربخشِ «اتصال» در فاز ۱.۴ به تبِ «اتصال و حساب‌ها» منتقل شد.
+ * شلوغ نشود. زیربخشِ «اتصال» در فاز ۱.۴ به تبِ «اتصال و حساب‌ها» رفت و در
+ * نسخهٔ ۰٫۱۲ همان تب هم به صفحهٔ «پنلِ من» منتقل شد (جداسازیِ تنظیماتِ اپ از پنل).
  *
  * فقط یک زیربخش هم‌زمان باز است؛ ایندکسِ زیربخشِ باز با [rememberSaveable]
  * نگه داشته می‌شود تا با چرخشِ صفحه یا تغییرِ زبان گم نشود (`-1` = همه بسته).

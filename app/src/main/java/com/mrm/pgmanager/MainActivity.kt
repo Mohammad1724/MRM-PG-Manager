@@ -58,6 +58,7 @@ import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
 import com.mrm.pgmanager.ui.screens.PanelInfraScreen
+import com.mrm.pgmanager.ui.screens.PanelScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.AppFeedbackHost
 import com.mrm.pgmanager.ui.components.NotificationPermissionDialog
@@ -242,8 +243,10 @@ fun MRMApp() {
     }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
-    // صفحهٔ «زیرساختِ پنل» (فاز ۲) — مستقل از تنظیمات، چون از داخلِ تنظیمات باز
-    // می‌شود ولی دکمهٔ برگشتش باید اول همین را ببندد و بعد تنظیمات را.
+    // صفحهٔ «پنلِ من» — سرور/نسخه/نقش/حساب‌ها/زیرساخت. از ورقهٔ حساب باز می‌شود
+    // و کاملاً مستقل از تنظیماتِ اپ است (نسخهٔ ۰٫۱۲: جداسازیِ این دو).
+    var showPanelScreen by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «زیرساختِ پنل» (فاز ۲) — روی «پنلِ من» باز می‌شود.
     var showPanelInfra by rememberSaveable { mutableStateOf(false) }
     // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
     var showAccountSheet by rememberSaveable { mutableStateOf(false) }
@@ -350,13 +353,13 @@ fun MRMApp() {
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
             // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false
+            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
         val onSessionExpired: () -> Unit = {
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false
+            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
@@ -433,15 +436,17 @@ fun MRMApp() {
             val exitHint = stringResource(R.string.back_exit_hint)
             androidx.activity.compose.BackHandler {
                 when {
-                    // ۰. زیرساختِ پنل روی تنظیمات باز است → اول خودش
+                    // ۰. زیرساختِ پنل روی «پنلِ من» باز است → اول خودش
                     showPanelInfra -> showPanelInfra = false
-                    // ۱. تنظیمات باز است → ببند
+                    // ۱. «پنلِ من» باز است → ببند
+                    showPanelScreen -> showPanelScreen = false
+                    // ۲. تنظیماتِ اپ باز است → ببند
                     showDashboardSettings -> showDashboardSettings = false
-                    // ۲. ورقهٔ حساب باز است → ببند
+                    // ۳. ورقهٔ حساب باز است → ببند
                     showAccountSheet -> showAccountSheet = false
-                    // ۳. در بخشی غیر از داشبورد → برگرد به داشبورد
+                    // ۴. در بخشی غیر از داشبورد → برگرد به داشبورد
                     selectedTab != TAB_DASHBOARD -> selectedTab = TAB_DASHBOARD
-                    // ۴. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
+                    // ۵. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
                     //    اتفاقی کلِ اپ بسته نشود.
                     else -> {
                         val now = System.currentTimeMillis()
@@ -582,12 +587,9 @@ fun MRMApp() {
                             onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
                             appLanguage = appLanguage,
                             onLanguageChange = handleLanguageChange,
-                            onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
                             appVersion = "${BuildConfig.VERSION_NAME} · ${BuildConfig.BUILD_SHA}",
                             session = session,
                             store = store,
-                            onSwitchAccount = switchAccount,
-                            onAddAccount = { showDashboardSettings = false; addingAccount = true },
                             // ساخت گروهی در صفحهٔ کاربران باز می‌شود تا بعد از پایان،
                             // لیستِ کاربران خودش رفرش شود.
                             onBulkCreate = {
@@ -595,10 +597,6 @@ fun MRMApp() {
                                 selectedTab = TAB_USERS
                                 pendingBulkCreate = true
                             },
-                            // فاز ۲: هاست‌ها/کورها/قالب‌های کلاینت. تنظیمات بسته
-                            // نمی‌شود (پشتِ صفحهٔ زیرساخت می‌ماند) تا برگشت از
-                            // زیرساخت، کاربر را دقیقاً همان‌جا که بود برگرداند.
-                            onOpenPanelInfra = { showPanelInfra = true },
                             // بازیابیِ پشتیبان مستقیم prefs را عوض می‌کند؛ stateهای
                             // درون‌حافظه باید همین‌جا تازه شوند وگرنه تا ری‌استارت اپ
                             // تم/تنظیمات/قفلِ قدیمی دیده می‌شد.
@@ -610,6 +608,24 @@ fun MRMApp() {
                                 isAppLockEnabled = store.readAppLock()
                                 com.mrm.pgmanager.data.cache.PanelCache.clear()
                             }
+                        )
+                    }
+                }
+                // «پنلِ من»: صفحهٔ کاملِ رویی. از ورقهٔ حساب باز می‌شود و
+                // تنظیماتِ اپ را لمس نمی‌کند — دو مسیرِ مستقل با دو مسئولیت.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPanelScreen,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        PanelScreen(
+                            session = session,
+                            store = store,
+                            onBack = { showPanelScreen = false },
+                            onOpenInfra = { showPanelInfra = true },
+                            onSwitchAccount = switchAccount,
+                            onAddAccount = { showPanelScreen = false; addingAccount = true }
                         )
                     }
                 }
@@ -640,8 +656,19 @@ fun MRMApp() {
                 accounts = store.readAccounts(),
                 onSwitch = { acc -> showAccountSheet = false; switchAccount(acc) },
                 onAddAccount = { showAccountSheet = false; showDashboardSettings = false; addingAccount = true },
-                onOpenSettings = { showAccountSheet = false; showDashboardSettings = true },
-                onLogout = { showAccountSheet = false; store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
+                onOpenSettings = { showAccountSheet = false; showPanelScreen = false; showDashboardSettings = true },
+                onOpenPanel = { showAccountSheet = false; showDashboardSettings = false; showPanelScreen = true },
+                onLogout = {
+                    showAccountSheet = false
+                    // خروج از حساب باید هر دو صفحهٔ وابسته به نشست را هم ببندد،
+                    // وگرنه صفحهٔ «پنلِ من» با session=null روی صفحه می‌ماند.
+                    showPanelScreen = false
+                    showPanelInfra = false
+                    store.clear()
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    session = null
+                    isUnlocked = false
+                },
                 onDismiss = { showAccountSheet = false }
             )
         }
