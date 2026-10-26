@@ -328,7 +328,6 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
     }
 }
 
-/** یک ردیفِ کلید: نام، متنِ ماسک‌شده، وضعیت، انقضا و سه اکشن. */
 /**
  * بدنهٔ دیالوگِ «یک‌بار نمایش» — عمداً بیرونِ `Dialog` زندگی می‌کند تا همین گره‌ها در
  * `ApiKeyRevealContentTest` آزموده شوند.
@@ -366,6 +365,7 @@ internal fun ApiKeyRevealContent(fresh: CreatedApiKey, onDismiss: () -> Unit) {
     }
 }
 
+/** یک ردیفِ کلید: نام، متنِ ماسک‌شده، وضعیت، انقضا و سه اکشن. */
 @Composable
 private fun ApiKeyRow(
     key: PanelApiKey,

@@ -1,6 +1,9 @@
 package com.mrm.pgmanager.ui.screens
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -69,12 +72,24 @@ class ApiKeyRevealContentTest {
     private val hint get() = localized("This is the only time the full key is shown.", R.string.ak_reveal_hint)
     private val done get() = localized("Done", R.string.ak_reveal_done)
 
+    /**
+     * ریشهٔ هر دو شکستِ اولیهٔ همین تست: `setContent { ApiKeyRevealContent(…) }`
+     * خالی. محتوای دیالوگ `Column(Modifier.fillMaxWidth())` است و ارتفاعش را از
+     * محتوا می‌گیرد؛ در میزبانِ تست بدونِ یک والدِ تمام‌صفحه، ارتفاعِ در دسترس صفر
+     * می‌شد — یعنی «گره هست ولی displayed نیست» برای `Text`های ساده، و برای برچسبِ
+     * `MrmButton` حتی *نبودِ* گره (متنی که هیچ خطی جا نشود semantics نمی‌سازد).
+     * همان `Box(Modifier.fillMaxSize())` که `StatCardGeometryTest` می‌گذارد.
+     */
     private fun render(onDismiss: () -> Unit = {}) {
         val fresh = CreatedApiKey(
             key = fullKey,
             item = PanelApiKey(id = 1, name = "Backup monitor", trimmed = maskedKey)
         )
-        rule.setContent { ApiKeyRevealContent(fresh = fresh, onDismiss = onDismiss) }
+        rule.setContent {
+            Box(Modifier.fillMaxSize()) {
+                ApiKeyRevealContent(fresh = fresh, onDismiss = onDismiss)
+            }
+        }
     }
 
     @Test
