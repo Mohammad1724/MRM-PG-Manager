@@ -1323,6 +1323,8 @@
     <string name="host_port">پورت</string>
     <string name="host_port_hint">خالی = پیش‌فرضِ inbound</string>
     <string name="host_inbound">تگِ inbound</string>
+    <string name="chip_more_fmt">+%1$d دیگر</string>
+    <string name="chip_show_less">نمایشِ کمتر</string>
     <string name="host_inbound_auto">خودکار (از inbound)</string>
     <string name="host_security">امنیت</string>
     <string name="host_security_inbound_default">پیش‌فرضِ inbound</string>

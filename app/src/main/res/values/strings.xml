@@ -1324,6 +1324,8 @@
     <string name="host_port">Port</string>
     <string name="host_port_hint">Empty = inbound default</string>
     <string name="host_inbound">Inbound tag</string>
+    <string name="chip_more_fmt">+%1$d more</string>
+    <string name="chip_show_less">Show less</string>
     <string name="host_inbound_auto">Auto (from inbound)</string>
     <string name="host_security">Security</string>
     <string name="host_security_inbound_default">Inbound default</string>

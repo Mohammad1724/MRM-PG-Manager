@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,6 +49,8 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmErrorState
+import com.mrm.pgmanager.ui.components.PGStartAlign
+import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.PGSearchBar
@@ -211,7 +214,10 @@ internal fun HostsSection(session: Session) {
             else -> {
                 val intro = rememberListIntro()
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
+                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
+                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
+                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                     contentPadding = PaddingValues(bottom = DsSpacing.Xl)
                 ) {
@@ -346,7 +352,8 @@ private fun HostRow(
             Text(
                 host.remark, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                 color = if (host.isDisabled) theme.mutedColor else theme.inkColor,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                textAlign = PGStartAlign()
             )
             Text(
                 buildString {
@@ -354,12 +361,11 @@ private fun HostRow(
                     host.port?.let { append(" · ").append(it) }
                 }.ifBlank { "—" },
                 fontSize = 11.sp, color = theme.mutedColor, maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis, textAlign = PGStartAlign()
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-            ) {
+            // ردیفِ جاری: برچسب‌ها در عرضِ موجود می‌شکنند، نه این‌که یک برچسبِ بلند
+            // کلِ کارت را سه‌خطی کند (گزارشِ «چینشِ هاست‌ها»).
+            PGWrapRow(horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                 PGBadge(securityLabel(host.security), theme.accentPrimary)
                 host.inboundTag?.let { PGBadge(it, DsSemantic.Violet) }
                 if (host.priority > 0) PGBadge(
@@ -570,7 +576,7 @@ private fun HostEditorDialog(
                             }
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد.
                     enabled = canSave
                 )
             }

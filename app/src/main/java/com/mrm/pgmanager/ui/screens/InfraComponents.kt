@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGStartAlign
 import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -43,11 +44,15 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  */
 
 /**
- * سربرگِ بخش: عنوان + زیرعنوان + شمارنده + دکمه‌های تازه‌سازی/افزودن.
+ * سرِبخشِ «زیرساختِ پنل»: عنوان + توضیح + شمارش + تازه‌سازی + ساخت.
  *
  * ناحیهٔ لمسیِ دکمه‌ها ۴۰dp است (کمینهٔ استانداردِ خودِ اپ) و برای صفحه‌خوان
  * `contentDescription` می‌گیرند — آیکونِ تنها بدونِ برچسب برای کاربرِ صفحه‌خوان
  * بی‌معناست.
+ *
+ * توضیح عمداً در خطِ *دوم* و با سراسرِ عرض است: قبلاً داخلِ همان Columnی بود که
+ * کنارِ بجِ شمارش و دو دکمهٔ ۴۰dp جا می‌شد، پس به ~۲/۳ عرض می‌رسید و کلمهٔ آخرِ
+ * جمله تنهایی به خطِ بعد می‌افتاد («…behind subscription / links»).
  */
 @Composable
 internal fun InfraSectionHeader(
@@ -59,28 +64,36 @@ internal fun InfraSectionHeader(
     addLabel: String
 ) {
     val theme = LocalThemeState.current
-    Row(
-        Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-    ) {
-        Column(Modifier.weight(1f)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+        ) {
+            // weight با fill=false: عنوان تا جا دارد طبیعی اندازه می‌گیرد و اگر جا
+            // نبود سه‌نقطه می‌خورد — وگرنه (به‌جای Spacerِ قبلی) عنوانِ بلند دکمه‌های
+            // تازه‌سازی/افزودن را از ردیف بیرون می‌انداخت.
             Text(
-                title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+                title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = PGStartAlign(),
+                modifier = Modifier.weight(1f, fill = false)
             )
-            Text(subtitle, fontSize = 11.sp, color = theme.mutedColor, maxLines = 2)
+            if (count != null && count > 0) PGBadge("$count")
+            InfraIconButton(
+                icon = AppIcon.Refresh,
+                description = stringResource(R.string.refresh),
+                tint = theme.mutedColor,
+                onClick = onRefresh
+            )
+            if (onAdd != null) InfraIconButton(
+                icon = AppIcon.Add,
+                description = addLabel,
+                tint = theme.accentPrimary,
+                onClick = onAdd
+            )
         }
-        if (count != null && count > 0) PGBadge("$count")
-        InfraIconButton(
-            icon = AppIcon.Refresh,
-            description = stringResource(R.string.refresh),
-            tint = theme.mutedColor,
-            onClick = onRefresh
-        )
-        if (onAdd != null) InfraIconButton(
-            icon = AppIcon.Add,
-            description = addLabel,
-            tint = theme.accentPrimary,
-            onClick = onAdd
+        Text(
+            subtitle, fontSize = 11.sp, color = theme.mutedColor, maxLines = 2,
+            textAlign = PGStartAlign()
         )
     }
 }

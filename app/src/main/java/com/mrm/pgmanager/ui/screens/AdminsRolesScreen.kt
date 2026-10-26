@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -215,7 +216,10 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
             ) else {
                 val intro = rememberListIntro()
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
+                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
+                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
+                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                     contentPadding = PaddingValues(bottom = DsSpacing.Xl)
                 ) {
@@ -232,7 +236,10 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
             ) else {
                 val intro = rememberListIntro()
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
+                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
+                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
+                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                     contentPadding = PaddingValues(bottom = DsSpacing.Xl)
                 ) {

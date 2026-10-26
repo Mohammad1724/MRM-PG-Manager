@@ -25,7 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -188,6 +191,16 @@ fun PGScreenHeader(
     }
 }
 
+/**
+ * برچسبِ کوچکِ وضعیت/دسته — خطِ واحد، همیشه.
+ *
+ * دو محدودیت که قبلاً نبود و «چینشِ هاست‌ها» را به‌هم ریخت:
+ *  • `maxLines = 1` + سقفِ عرض: برخی پنل‌ها مقدارِ `inbound_tag` را با خط‌شکستن
+ *    (و گاهی چندخطیِ واقعی) می‌فرستند؛ یک برچسبِ سه‌خطی قدِ کلِ کارتِ هاست را
+ *    می‌ترکاند و آیکون/دکمه‌ها وسطِ فضای خالی معلق می‌ماندند. متنِ کامل در
+ *    گرهٔ semantics می‌ماند، پس TalkBack و تست‌ها همان را می‌خوانند.
+ *  • تبدیلِ شکستِ خط به « · »: مقدارِ خامِ پنل مستقیمِ چیدمان نمی‌شود.
+ */
 @Composable
 fun PGBadge(text: String, color: Color = Color.Unspecified) {
     val t = LocalThemeState.current
@@ -197,7 +210,100 @@ fun PGBadge(text: String, color: Color = Color.Unspecified) {
             .border(BorderStroke(0.5.dp, resolvedColor.copy(0.18f)), RoundedCornerShape(6.dp))
             .padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xxs)
     ) {
-        Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = resolvedColor)
+        Text(
+            badgeLabel(text),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = resolvedColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = PGStartAlign(),
+            modifier = Modifier.widthIn(max = 140.dp)
+        )
+    }
+}
+
+/** شکستِ خط (با فاصله‌های دور آن) که پنل وسطِ مقدارِ برچسب می‌فرستد. */
+private val BADGE_LINE_BREAK = Regex("[ \\t]*\\R[ \\t]*")
+
+/** خط‌هایِ ارزشِ پنل به « · »؛ رشته‌های کوتاه دست‌نخورده می‌مانند. */
+internal fun badgeLabel(text: String): String = text.trim().replace(BADGE_LINE_BREAK, " · ")
+
+/**
+ * ترازِ خطوط بر اساسِ **جهتِ چیدمان**، نه جهتِ خودِ متن.
+ *
+ * چرا لازم است: `TextAlign.Unspecified` تراز را از *پاراگراف* می‌گیرد و پاراگرافِ
+ * فارسی راست‌به‌چپ است؛ پس remarkِ فارسیِ یک هاست در رابطِ انگلیسی به لبهٔ راستِ
+ * ستون می‌چسبید در حالی‌که سطرِ آدرسِ زیرش چپ بود (همان «چینش‌نبودن»ِ گزارش‌شده).
+ * چپ/راستِ مطلق اینسو/آنسو را قفل می‌کند و ترتیبِ حروفِ داخلِ خط — که کارِ
+ * bidi است — دست‌نخورده می‌ماند.
+ */
+@Composable
+fun PGStartAlign(): TextAlign =
+    if (LocalLayoutDirection.current == LayoutDirection.Ltr) TextAlign.Left else TextAlign.Right
+
+/**
+ * ردیفِ جریان‌دارِ چیپ: هر چه در عرضِ موجود جا می‌شود در یک خط، باقی‌اش به خطِ بعد
+ * — بدونِ اسکرولِ افقی و بدونِ چیپِ نصفه‌در‌نیمه.
+ *
+ * چرا دستی ساخته شد: `FlowRow` در همین نسخهٔ foundation نیست (نمایۀ
+ * `tools/compose-api-index.txt` آن را ندارد) و `ContextualFlowRow` آزمایشی است؛
+ * `Layout`ِ پایه همان کار را با APIِ پایدار می‌دهد. `placeRelative` مختصات را در
+ * RTL آینه می‌کند، پس در فارسی جریان از راست شروع می‌شود و خودِ جهتِ هیچ عنصری جابه‌جا نمی‌شود.
+ */
+@Composable
+fun PGWrapRow(
+    modifier: Modifier = Modifier,
+    horizontalGap: Dp = DsSpacing.Sm,
+    verticalGap: Dp = DsSpacing.Xs,
+    content: @Composable () -> Unit
+) {
+    // فاصله‌ها همین‌جا به px تبدیل می‌شوند: داخلِ composable چگالیِ محلی در دسترس است،
+    // ولی لامبدای اندازه‌گیری هیچ Densityای ندارد و `roundToPx()` آن‌جا کامپایل نمی‌شود.
+    val hGap = horizontalGap.roundToPx()
+    val vGap = verticalGap.roundToPx()
+    Layout(modifier = modifier, content = content) { measurables, constraints ->
+        val available = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
+        val placeables = measurables.map {
+            it.measure(constraints.copy(minWidth = 0, minHeight = 0, maxWidth = available))
+        }
+        val lineOf = IntArray(placeables.size)
+        val xOf = IntArray(placeables.size)
+        val heights = mutableListOf<Int>()
+        val widths = mutableListOf<Int>()
+        var line = 0
+        var x = 0
+        placeables.forEachIndexed { i, p ->
+            val step = if (x == 0) p.width else hGap + p.width
+            if (x != 0 && x + step > available) {
+                line++
+                x = 0
+            }
+            if (heights.size <= line) {
+                heights.add(0)
+                widths.add(0)
+            }
+            lineOf[i] = line
+            xOf[i] = x
+            heights[line] = maxOf(heights[line], p.height)
+            x += step
+            widths[line] = maxOf(widths[line], x)
+        }
+        val tops = IntArray(heights.size)
+        var y = 0
+        for (l in tops.indices) {
+            tops[l] = y
+            y += heights[l] + vGap
+        }
+        val totalHeight = if (heights.isEmpty()) 0 else y - vGap
+        val maxLineWidth = if (widths.isEmpty()) 0 else widths.max()
+        val width = if (constraints.hasBoundedWidth) available else maxLineWidth
+        layout(width.coerceAtLeast(constraints.minWidth), totalHeight.coerceAtLeast(constraints.minHeight)) {
+            placeables.forEachIndexed { i, p ->
+                val l = lineOf[i]
+                p.placeRelative(xOf[i], tops[l] + (heights[l] - p.height) / 2)
+            }
+        }
     }
 }
 

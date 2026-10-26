@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,6 +52,8 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmErrorState
+import com.mrm.pgmanager.ui.components.PGStartAlign
+import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.PGSearchBar
@@ -235,7 +238,10 @@ internal fun ClientTemplatesSection(session: Session) {
             else -> {
                 val intro = rememberListIntro()
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
+                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
+                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
+                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
                     contentPadding = PaddingValues(bottom = DsSpacing.Xl)
                 ) {
@@ -320,12 +326,10 @@ private fun ClientTemplateRow(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
             Text(
                 template.name, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis
+                color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                textAlign = PGStartAlign()
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-            ) {
+            PGWrapRow(horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                 PGBadge(templateTypeLabel(template.templateType), theme.accentPrimary)
                 if (template.isDefault) PGBadge(
                     stringResource(R.string.ct_default_badge), DsSemantic.Success
@@ -511,7 +515,7 @@ private fun ClientTemplateEditorDialog(
                             }
                         }
                     },
-                    modifier = Modifier.weight(1f),
+                    // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد.
                     enabled = canSave
                 )
             }
