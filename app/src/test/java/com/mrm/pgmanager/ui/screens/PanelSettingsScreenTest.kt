@@ -275,7 +275,13 @@ class PanelSettingsScreenTest {
         val sent = putBodies.toList()
         assertEquals("دقیقاً یک ذخیرهٔ بخش", 1, sent.size)
         val body = org.json.JSONObject(sent.single())
-        assertEquals("بدنهٔ `PUT` فقط بخشِ تبِ باز را دارد", setOf("general"), body.keySet().toSet())
+        // `has`/`opt` (نه `keySet()`): پیاده‌سازیِ org.json در کلاسِ تست
+        // ممکن است اندروید یا مرجعِ maven باشد، ولی این دو در هر دو یکی‌اند.
+        assertTrue(
+            "بدنهٔ `PUT` باید فقط بخشِ تبِ باز را داشته باشد: $body",
+            body.has("general") && !body.has("subscription") && !body.has("hwid") &&
+                !body.has("notification_settings")
+        )
         val general = body.getJSONObject("general")
         assertEquals("aes-128-gcm", general.getString("default_method"))
         assertEquals(
