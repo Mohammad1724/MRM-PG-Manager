@@ -1049,4 +1049,32 @@
     <string name="err_tls_expired">The certificate is expired or not yet valid — check the panel’s certificate dates and the phone’s date/time.</string>
     <string name="login_diagnose">Check connection</string>
     <string name="login_diagnose_busy">Checking…</string>
+    <!-- PasarGuard 5.5.1 compatibility -->
+    <string name="panel_ver_outdated_title">Panel is older than %1$s</string>
+    <string name="panel_ver_outdated_body">This app is built for PasarGuard %1$s and newer. Your panel still works, but version‑5.5 features (inactive‑user cleanup, node ordering, device counts) stay hidden until you update the panel.</string>
+    <string name="set_conn_panel_compat">App compatibility</string>
+    <string name="set_conn_panel_compat_ok">Compatible — this app supports %1$s and newer</string>
+    <string name="set_conn_panel_compat_old">Outdated — update the panel to %1$s or newer</string>
+    <string name="set_conn_panel_compat_unknown">Unknown — needs the panel’s system permission to read the version</string>
+    <string name="us_devices_fmt">%1$d devices</string>
+    <string name="us_cleanup_inactive">Clean up inactive</string>
+    <string name="us_cleanup_inactive_title">Inactive users</string>
+    <string name="us_cleanup_inactive_desc">List users with no activity for the given number of days (last connection, or creation date if never online).</string>
+    <string name="us_cleanup_inactive_days">Days without activity</string>
+    <string name="us_cleanup_inactive_invalid">Enter a number of days greater than zero.</string>
+    <string name="us_cleanup_inactive_apply">Show users</string>
+    <string name="us_cleanup_inactive_confirm_title">Delete %1$d inactive users?</string>
+    <string name="us_cleanup_inactive_confirm_msg">No activity for at least %1$d days. Deleting these accounts cannot be undone.</string>
+    <string name="st_node_order">Order</string>
+    <string name="st_node_order_title">Node display order</string>
+    <string name="st_node_order_desc">The order is saved in the panel (nodes.update) and used by the dashboard and generated subscriptions.</string>
+    <string name="st_node_order_save">Save order</string>
+    <string name="st_node_order_saved">Node order saved</string>
+    <string name="st_node_move_up">Move up</string>
+    <string name="st_node_move_down">Move down</string>
+    <string name="ue_on_hold_action_fmt">When the timeout ends, the panel will %1$s this user.</string>
+    <string name="ue_on_hold_action_activate">activate</string>
+    <string name="ue_on_hold_action_disable">disable</string>
+    <string name="ue_on_hold_action_delete">delete</string>
+    <string name="err_forbidden_detail_fmt">Not enough permissions: %1$s</string>
 </resources>

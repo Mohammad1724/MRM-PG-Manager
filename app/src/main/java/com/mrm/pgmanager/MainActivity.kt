@@ -188,6 +188,18 @@ fun MRMApp() {
     val activity = context as? FragmentActivity
     val store = remember { SessionStore(context) }
     var session by remember { mutableStateOf(store.read()) }
+    // نسخهٔ پنل (دروازهٔ قابلیت‌های 5.5) — از کشِ همان پنل خوانده می‌شود؛ با سوییچِ
+    // حساب اول پاک می‌شود تا نسخهٔ پنلِ قبلی روی پنلِ جدید نماند.
+    androidx.compose.runtime.LaunchedEffect(session?.baseUrl) {
+        com.mrm.pgmanager.data.PanelSupport.reset()
+        session?.let { s ->
+            com.mrm.pgmanager.data.PanelSupport.updateFrom(
+                com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(
+                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s.baseUrl)
+                )
+            )
+        }
+    }
     var themeState by remember { mutableStateOf(store.readTheme()) }
     var appLanguage by remember { mutableStateOf(store.readAppLanguage()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }

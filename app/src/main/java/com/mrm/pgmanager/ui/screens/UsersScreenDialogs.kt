@@ -180,6 +180,101 @@ fun DebtorEditDialog(
     }
 }
 
+/**
+ * دیالوگِ «پاک‌سازیِ کاربرانِ بی‌فعال» — **PasarGuard v5.5**.
+ *
+ * چرا تعداد روز می‌پرسیم: پنل برای `target=inactive` فیلترِ `expired_before` را
+ * **الزامی** کرده است (آخرین فعالیت قبل از این لحظه). ادمین به‌جای تاریخِ خام،
+ * «چند روز بی‌فعالیتی» می‌گوید و همین‌جا به ISO-8601 تبدیل می‌شود؛ همان مقداری که
+ * فهرست با آن گرفته شده در state نگه داشته می‌شود تا تأییدِ حذف دقیقاً همان مجموعه
+ * را هدف بگیرد.
+ */
+@Composable
+private fun InactiveCleanupDialog(ui: UsersUiState, session: Session) {
+    val context = ui.context
+    val theme = LocalThemeState.current
+    val scope = ui.scope
+    var days by remember { mutableStateOf("30") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    val invalidMsg = stringResource(R.string.us_cleanup_inactive_invalid)
+    Dialog(onDismissRequest = { if (!loading) ui.inactiveCleanupOpen = false }) {
+        Column(
+            Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+                .padding(DsSpacing.Xl),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)
+        ) {
+            Text(
+                stringResource(R.string.us_cleanup_inactive_title),
+                fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor
+            )
+            Text(stringResource(R.string.us_cleanup_inactive_desc), fontSize = 11.sp, color = theme.mutedColor)
+            Text(stringResource(R.string.us_cleanup_inactive_days), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+            Box(
+                Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+                    .padding(horizontal = DsSpacing.FieldHorizontal),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                BasicTextField(
+                    value = days,
+                    onValueChange = { raw ->
+                        // ارقامِ فارسی هم پذیرفته می‌شوند (کیبوردِ پیش‌فرضِ فارسی).
+                        days = com.mrm.pgmanager.utils.normalizePersianDigits(raw).filter(Char::isDigit)
+                        error = null
+                    },
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !loading
+                )
+            }
+            error?.let { Text(it, fontSize = 11.sp, color = GlassRed, fontWeight = FontWeight.Medium) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                PGSecondaryButton(
+                    stringResource(R.string.re_cancel),
+                    onClick = { if (!loading) ui.inactiveCleanupOpen = false },
+                    modifier = Modifier.weight(1f)
+                )
+                PGPrimaryButton(
+                    text = if (loading) stringResource(R.string.refresh) else stringResource(R.string.us_cleanup_inactive_apply),
+                    icon = AppIcon.Search,
+                    enabled = !loading,
+                    onClick = {
+                        val n = days.toIntOrNull()?.takeIf { it > 0 }
+                        if (n == null) { error = invalidMsg; return@PGPrimaryButton }
+                        loading = true
+                        error = null
+                        scope.launch {
+                            val cutoff = java.time.Instant.now()
+                                .minus(n.toLong(), java.time.temporal.ChronoUnit.DAYS)
+                                .toString()
+                            runCatching { PanelApi.cleanupCandidates(session, PanelApi.CLEANUP_INACTIVE, cutoff) }
+                                .onSuccess { names ->
+                                    loading = false
+                                    ui.inactiveCleanupOpen = false
+                                    if (names.isEmpty()) {
+                                        com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
+                                    } else {
+                                        ui.cleanupTarget = PanelApi.CLEANUP_INACTIVE
+                                        ui.cleanupExpiredBefore = cutoff
+                                        ui.cleanupInactiveDays = n
+                                        ui.cleanupNames = names
+                                    }
+                                }
+                                .onFailure {
+                                    loading = false
+                                    error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+                                }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
 /** دیالوگ‌های/ورقه‌های صفحهٔ کاربران؛ state از [UsersUiState] می‌آید. */
 @Composable
 internal fun UsersScreenDialogs(
@@ -335,19 +430,35 @@ internal fun UsersScreenDialogs(
         )
     }
 
+    if (ui.inactiveCleanupOpen) InactiveCleanupDialog(ui, session)
+
     ui.cleanupNames?.let { names ->
+        // هدف و مهلت همان چیزی است که فهرست با آن گرفته شده؛ برای `inactive` پنل
+        // `expired_before` را الزامی می‌خواهد، پس دستِ کاربر نمی‌مانیم که فراموشش کند.
+        val target = ui.cleanupTarget
+        val cutoff = ui.cleanupExpiredBefore
+        val inactiveDays = ui.cleanupInactiveDays
+        val isInactive = target == PanelApi.CLEANUP_INACTIVE
+        val clear = {
+            ui.cleanupNames = null
+            ui.cleanupTarget = "expired"
+            ui.cleanupExpiredBefore = null
+            ui.cleanupInactiveDays = 0
+        }
         ConfirmActionDialog(
-            title = stringResource(R.string.us_cleanup_title, names.size),
-            message = stringResource(R.string.us_cleanup_msg) + "\n\n" + names.take(12).joinToString("، ") +
-                if (names.size > 12) " …" else "",
-            onDismiss = { ui.cleanupNames = null },
+            title = if (isInactive) stringResource(R.string.us_cleanup_inactive_confirm_title, names.size)
+                    else stringResource(R.string.us_cleanup_title, names.size),
+            message = (if (isInactive) stringResource(R.string.us_cleanup_inactive_confirm_msg, inactiveDays)
+                       else stringResource(R.string.us_cleanup_msg)) + "\n\n" +
+                names.take(12).joinToString("، ") + if (names.size > 12) " …" else "",
+            onDismiss = { clear() },
             onConfirm = {
                 val count = names.size
-                ui.cleanupNames = null
+                clear()
                 // successMessage فقط بعد از پاسخ موفقِ سرور نشان داده می‌شود؛ قبلاً
                 // اسنکِ «حذف شد» بلافاصله (و در خطا، قبل از پیام خطا) دیده می‌شد.
                 ui.runAction(successMessage = context.getString(R.string.us_cleanup_done, count)) {
-                    PanelApi.deleteCleanupCandidates(session)
+                    PanelApi.deleteCleanupCandidates(session, target, cutoff)
                 }
             }
         )

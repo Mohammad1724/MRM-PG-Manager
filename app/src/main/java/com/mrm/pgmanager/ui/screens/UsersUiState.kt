@@ -133,6 +133,19 @@ internal class UsersUiState(
     var pendingBulk by mutableStateOf<PendingBulk?>(null)
     // پاک‌سازیِ منقضی‌ها
     var cleanupNames by mutableStateOf<List<String>?>(null)
+    /**
+     * هدفِ پاک‌سازیِ در جریان: `expired` (پیش‌فرض) یا `inactive` — دومی از
+     * **PasarGuard v5.5** اضافه شده و بر اساسِ «آخرین فعالیت» فیلتر می‌کند.
+     * هنگامِ تأییدِ حذف همان هدف/مهلتی که فهرست با آن گرفته شده به پنل می‌رود،
+     * وگرنه ممکن بود فهرستی که کاربر دید با چیزی که حذف می‌شود یکی نباشد.
+     */
+    var cleanupTarget by mutableStateOf("expired")
+    /** مهلتِ `expired_before` (ISO-8601) برای هدفِ `inactive` — پنل آن را الزامی می‌خواهد. */
+    var cleanupExpiredBefore by mutableStateOf<String?>(null)
+    /** تعداد روزهای بی‌فعالیتی که فهرستِ فعلی با آن گرفته شده (برای متنِ تأیید). */
+    var cleanupInactiveDays by mutableStateOf(0)
+    /** دیالوگِ گرفتنِ تعداد روز برای پاک‌سازیِ کاربرانِ بی‌فعال. */
+    var inactiveCleanupOpen by mutableStateOf(false)
 
     // ── بدهکاران ─────────────────────────────────────────────────────────
     var debtors by mutableStateOf(store.readDebtors())

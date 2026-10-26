@@ -135,6 +135,47 @@ internal fun DebtorBadge(compact: Boolean = false) {
     }
 }
 
+/**
+ * تعداد دستگاه‌های ثبت‌شده (HWID) — از **PasarGuard v5.5** در پاسخِ لیست کاربران
+ * به‌صورتِ `hwid_count` می‌آید، پس این عدد **بدونِ هیچ درخواستِ اضافه‌ای** روی کارت
+ * دیده می‌شود. `null` یعنی پنل عدد نداده (نقشِ بدونِ `hwids.read` یا پنلِ قدیمی) و
+ * چیزی نشان داده نمی‌شود؛ صفر یک مقدارِ واقعی است و نمایش داده می‌شود.
+ *
+ * @param iconOnly برای ردیفِ micro که جای افقی‌اش تنگ است: فقط آیکون + عدد
+ *   (توضیحِ کامل در `contentDescription` می‌ماند تا TalkBack همان را بخواند).
+ */
+@Composable
+internal fun DeviceBadge(count: Int, compact: Boolean = false, iconOnly: Boolean = false) {
+    val theme = LocalThemeState.current
+    // صفر = «دستگاهی ثبت نشده»؛ رنگِ خنثی تا با «چند دستگاه فعال» قاطی نشود.
+    val tint = if (count > 0) DsSemantic.Info else theme.mutedColor
+    Row(
+        Modifier
+            .heightIn(min = if (compact) 18.dp else 24.dp)
+            .clip(DsRadius.Sm)
+            .background(tint.copy(alpha = 0.10f))
+            .border(BorderStroke(DsBorder.Hairline, tint.copy(alpha = 0.22f)), DsRadius.Sm)
+            .padding(horizontal = if (iconOnly) DsSpacing.Xs else DsSpacing.Md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
+    ) {
+        RoundedAppIcon(
+            AppIcon.Device,
+            contentDescription = if (iconOnly) stringResource(R.string.us_devices_fmt, count) else null,
+            tint = tint,
+            size = if (compact) 10.dp else 11.dp
+        )
+        MrmText(
+            text = if (iconOnly) "$count" else stringResource(R.string.us_devices_fmt, count),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = tint,
+            maxLines = 1,
+            isTechnical = true
+        )
+    }
+}
+
 /** متنِ وضعیت برای کارت: اول وضعیت (غیرفعال/منقضی/محدود)، بعد روزِ مانده. */
 @Composable
 internal fun cardStatusText(user: PanelUser): String = when (user.status) {
@@ -218,6 +259,8 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
                             Text(user.groupNames.first(), fontSize = 11.sp, color = DsSemantic.Violet, maxLines = 1)
                         }
                     }
+                    // تعداد دستگاه از hwid_count پاسخِ لیست (PasarGuard v5.5).
+                    user.hwidCount?.let { DeviceBadge(it) }
                 }
             }
         }
@@ -374,7 +417,10 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                         overflow = TextOverflow.Ellipsis,
                         isTechnical = true
                     )
-                    OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 13.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+                        OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 13.dp)
+                        user.hwidCount?.let { DeviceBadge(it, compact = true) }
+                    }
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
@@ -436,7 +482,11 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
             // عرضِ نام انعطاف‌پذیر است (قبلاً ۹۶dp ثابت = فضای خالیِ بی‌دلیل)؛ ستونِ مصرف عرضِ ثابتِ MICRO_USAGE_WIDTH دارد.
             Column(Modifier.weight(1f).testTag("micro_name"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
                 MrmText(user.username, fontSize = 11.sp, fontWeight = FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true)
-                OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
+                    OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 11.dp)
+                    // در ردیفِ متراکم فقط آیکون+عدد؛ متنِ «دستگاه» جا ندارد و نام را می‌بُرد.
+                    user.hwidCount?.let { DeviceBadge(it, compact = true, iconOnly = true) }
+                }
             }
             UserStatusBadge(user, compact = true)
             if (debtorInfo != null) DebtorBadge(compact = true)

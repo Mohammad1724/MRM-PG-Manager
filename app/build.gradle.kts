@@ -11,8 +11,8 @@ android {
         applicationId = "com.mrm.pgmanager"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "0.9.2"
+        versionCode = 20
+        versionName = "0.10.0"
         // فقط برای «نمایش»: کامیتِ سازندهٔ همین APK (در CI = GITHUB_SHA). versionName عمداً
         // دست‌نخورده می‌ماند چون در متادیتای بک‌آپ هم نوشته می‌شود.
         buildConfigField("String", "BUILD_SHA", "\"${System.getenv("GITHUB_SHA")?.take(7) ?: "dev"}\"")

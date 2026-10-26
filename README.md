@@ -2,9 +2,14 @@
 
 Android client (Kotlin + Jetpack Compose) for administrating a **PasarGuard** panel from your phone.
 
-Targets PasarGuard panel **v5.x** (tested against the v5.4.1 API). The app relies on v5‑only routes
-(`/api/user/by-id/…`, `/api/users/counts/…`, `PUT …/disabled`, `GET /api/admin` RBAC), so older
-panels (v3/v4) are not supported.
+Targets PasarGuard panel **v5.5.x** (built and tested against the **v5.5.1** API). The app relies on
+v5‑only routes (`/api/user/by-id/…`, `/api/users/counts/…`, `PUT …/disabled`, `GET /api/admin` RBAC),
+so older panels (v3/v4) are not supported.
+
+**Minimum supported panel: 5.5.1.** Below that the app still works but shows an “outdated panel”
+banner and hides version‑5.5 features (inactive‑user cleanup, node ordering, the on‑hold action hint) —
+see `docs/PANEL-5.5-COMPAT.md`. Device counts need no gate: they appear only if the panel sends
+`hwid_count`.
 
 ## Features
 
@@ -16,10 +21,14 @@ panels (v3/v4) are not supported.
 - **Dashboard**: system resources, user counters, nodes, admins (when permitted), health alerts.
 - **Users**: server‑side search / status / online / group filters, sorting and paging; create (single, bulk,
   from template), edit, disable, reset usage, revoke subscription, next plan, HWID devices, QR / copy
-  subscription, invoices, debtor tracking with optional auto‑disable.
+  subscription, invoices, debtor tracking with optional auto‑disable. Device counts come straight from the
+  list response (`hwid_count`, panel 5.5+) — no extra request per row.
+- **Cleanup**: expired users, plus **inactive users** (`target=inactive`, 5.5+) with a “days without
+  activity” prompt that maps to the required `expired_before` cutoff.
 - **Bulk actions** on selected users (delete, reset, enable/disable, revoke, add days/data, groups, apply template).
 - **Groups** and **User templates** management.
-- **Statistics**: traffic charts, per‑metric counters, node realtime stats and reconnect.
+- **Statistics**: traffic charts, per‑metric counters, node realtime stats, reconnect, and **persistent
+  node ordering** (`PUT /api/nodes/order`, 5.5+).
 - **RBAC‑aware UI**: the admin's role (`GET /api/admin`) hides actions the panel would reject with 403.
 - Background **monitoring worker** (limited / expired / near‑limit / near‑expiry users, node offline,
   CPU/RAM/disk, capacity) with an offline cache and a home‑screen widget.
@@ -32,7 +41,8 @@ All requests are HTTPS. Main endpoints: `POST /api/admin/token`, `GET /api/admin
 `GET /api/users` (+ `search/status/online/group/sort/offset/limit`), `/api/user/by-id/{id}` (get / modify /
 delete / disabled / reset / revoke_sub / active_next / usage), `/api/users/bulk/*`, `/api/user/from_template`,
 `/api/users/expired`, `/api/user/{id}/hwids`, `/api/groups`, `/api/user_templates`, `/api/nodes`,
-`/api/nodes/realtime_stats`, `/api/inbounds`, `/api/admins`.
+`/api/nodes/realtime_stats`, `/api/nodes/order`, `/api/users/simple`, `/api/settings/general`,
+`/api/inbounds`, `/api/admins`.
 
 "Online" uses the panel's own 2‑minute window (`online_at`), and `online=true` is applied server‑side.
 

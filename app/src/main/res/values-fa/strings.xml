@@ -1048,4 +1048,32 @@
     <string name="err_tls_expired">گواهی منقضی شده یا هنوز معتبر نشده — تاریخِ گواهی پنل و ساعتِ گوشی را بررسی کنید.</string>
     <string name="login_diagnose">تستِ اتصال</string>
     <string name="login_diagnose_busy">در حالِ بررسی…</string>
+    <!-- سازگاری با PasarGuard 5.5.1 -->
+    <string name="panel_ver_outdated_title">نسخهٔ پنل قدیمی‌تر از %1$s است</string>
+    <string name="panel_ver_outdated_body">این اپ برای PasarGuard %1$s و بالاتر ساخته شده است. پنلِ فعلی همچنان کار می‌کند، ولی قابلیت‌های نسخهٔ ۵٫۵ (پاک‌سازیِ کاربرانِ بی‌فعال، ترتیبِ نودها، شمارشِ دستگاه) تا آپدیت‌کردنِ پنل پنهان می‌مانند.</string>
+    <string name="set_conn_panel_compat">سازگاری با اپ</string>
+    <string name="set_conn_panel_compat_ok">سازگار — این اپ %1$s و بالاتر را پشتیبانی می‌کند</string>
+    <string name="set_conn_panel_compat_old">قدیمی — پنل را به %1$s یا بالاتر به‌روزرسانی کنید</string>
+    <string name="set_conn_panel_compat_unknown">نامعلوم — برای خواندنِ نسخه، مجوزِ سیستمیِ پنل لازم است</string>
+    <string name="us_devices_fmt">%1$d دستگاه</string>
+    <string name="us_cleanup_inactive">پاک‌سازیِ بی‌فعال‌ها</string>
+    <string name="us_cleanup_inactive_title">کاربرانِ بی‌فعال</string>
+    <string name="us_cleanup_inactive_desc">کاربرانی که در این تعداد روز هیچ فعالیتی نداشته‌اند (آخرین اتصال، یا اگر هرگز آنلاین نشده‌اند تاریخِ ساخت).</string>
+    <string name="us_cleanup_inactive_days">روزهای بی‌فعالیتی</string>
+    <string name="us_cleanup_inactive_invalid">تعداد روز باید بزرگ‌تر از صفر باشد.</string>
+    <string name="us_cleanup_inactive_apply">نمایشِ کاربران</string>
+    <string name="us_cleanup_inactive_confirm_title">%1$d کاربرِ بی‌فعال حذف شوند؟</string>
+    <string name="us_cleanup_inactive_confirm_msg">حداقل %1$d روز بی‌فعال بوده‌اند. حذفِ این حساب‌ها برگشت‌پذیر نیست.</string>
+    <string name="st_node_order">ترتیب</string>
+    <string name="st_node_order_title">ترتیبِ نمایشِ نودها</string>
+    <string name="st_node_order_desc">این ترتیب در خودِ پنل ذخیره می‌شود (مجوزِ nodes.update) و در داشبورد و لینک‌های اشتراکِ تولیدشده استفاده می‌شود.</string>
+    <string name="st_node_order_save">ذخیرهٔ ترتیب</string>
+    <string name="st_node_order_saved">ترتیبِ نودها ذخیره شد</string>
+    <string name="st_node_move_up">یک پله بالا</string>
+    <string name="st_node_move_down">یک پله پایین</string>
+    <string name="ue_on_hold_action_fmt">با پایانِ مهلت، پنل این کاربر را %1$s می‌کند.</string>
+    <string name="ue_on_hold_action_activate">فعال</string>
+    <string name="ue_on_hold_action_disable">غیرفعال</string>
+    <string name="ue_on_hold_action_delete">حذف</string>
+    <string name="err_forbidden_detail_fmt">دسترسی کافی نیست: %1$s</string>
 </resources>

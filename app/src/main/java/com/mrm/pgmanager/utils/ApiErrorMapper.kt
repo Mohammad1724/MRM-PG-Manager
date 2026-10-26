@@ -154,7 +154,14 @@ object ApiErrorMapper {
                 TlsReason.UNKNOWN -> context.getString(R.string.err_tls_panel)
             }
             ApiErrorKind.UNAUTHORIZED -> context.getString(R.string.us_session_expired)
-            ApiErrorKind.FORBIDDEN -> context.getString(R.string.err_forbidden_panel)
+            // ۴۰۳ پنل دو طعم دارد: «نقش/کلید API این مجوز را ندارد» و «دامنهٔ مجوز کافی
+            // نیست» (scope=own در برابر ALL). از PasarGuard v5.5 سخت‌گیریِ RBAC روی
+            // کلیدهای API و bulkها بیشتر شده، پس متنِ خودِ پنل (اگر آمده باشد) به پیام
+            // اضافه می‌شود تا ادمین بداند دقیقاً چه چیزی کم است، نه فقط «اجازه ندارید».
+            ApiErrorKind.FORBIDDEN -> panelDetail(e)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { context.getString(R.string.err_forbidden_detail_fmt, it) }
+                ?: context.getString(R.string.err_forbidden_panel)
             ApiErrorKind.NOT_FOUND -> context.getString(R.string.err_not_found_panel)
             ApiErrorKind.SERVER -> context.getString(R.string.err_server_fmt, httpCodeOf(e) ?: 500)
             ApiErrorKind.VALIDATION -> panelDetail(e)

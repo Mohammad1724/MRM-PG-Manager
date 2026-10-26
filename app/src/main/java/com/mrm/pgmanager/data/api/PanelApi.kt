@@ -26,6 +26,9 @@ import com.mrm.pgmanager.data.model.NodeTrafficPoint
 import com.mrm.pgmanager.data.model.OnlineIp
 import com.mrm.pgmanager.data.model.SubUpdate
 import com.mrm.pgmanager.data.model.SubUpdateList
+import com.mrm.pgmanager.data.model.UserRef
+import com.mrm.pgmanager.data.model.PanelGeneralSettings
+import com.mrm.pgmanager.data.model.OnHoldAction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -107,6 +110,26 @@ object PanelApi {
         }
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    /**
+     * مقادیرِ مجازِ `target` برای پاک‌سازی — همان `ExpiredUsersQuery.target` پنل.
+     * `inactive` از PasarGuard v5.5 اضافه شده است.
+     */
+    internal val CLEANUP_TARGETS = listOf("expired", "limited", "on_hold", "disabled", CLEANUP_INACTIVE)
+    internal const val CLEANUP_INACTIVE = "inactive"
+
+    /** مقادیرِ مجازِ `on_hold_timeout_action` در پنل (`OnHoldTimeoutAction`، v5.5). */
+    internal val ON_HOLD_ACTIONS = listOf(OnHoldAction.ACTIVATE, OnHoldAction.DISABLE, OnHoldAction.DELETE)
+
+    /**
+     * سقفِ ثانیه‌ایِ پنل برای `next_plan.expire` و `on_hold_expire_duration`
+     * (`MAX_ON_HOLD_EXPIRE_DURATION_SECONDS = 2_147_483_647` در `app/models/validators.py`).
+     *
+     * از PasarGuard **v5.5** پنل این سقف را برای `next_plan` هم اعمال می‌کند
+     * (`UserWithValidator.validate_next_plan`). بدونِ کلمپ، یک ورودیِ بزرگ (مثلاً
+     * «۳۰۰۰۰۰ روز») به‌جای پیامِ روشن، ۴۲۲ خامِ pydantic می‌گرفت.
+     */
+    internal const val MAX_PLAN_SECONDS = 2_147_483_647L
 
     /**
      * فقط برای تست‌های واحد: MockWebServer روی `http://localhost` بالا می‌آید و مسیرِ
@@ -789,7 +812,7 @@ object PanelApi {
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
         val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", gbToBytes(limitGb))
         if (onHold) {
-            body.put("on_hold_expire_duration", onHoldExpireSeconds)
+            body.put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // پنل عددِ صحیح را «ثانیه از الان» تعبیر می‌کند.
             if (onHoldTimeoutSeconds != null && onHoldTimeoutSeconds > 0L) body.put("on_hold_timeout", onHoldTimeoutSeconds)
         } else body.put("expire", expireValue(expireIso))
@@ -821,7 +844,7 @@ object PanelApi {
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
         val body = JSONObject().put("data_limit", gbToBytes(limitGb))
         if (onHold) {
-            body.put("status", "on_hold").put("on_hold_expire_duration", onHoldExpireSeconds)
+            body.put("status", "on_hold").put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
             onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
         } else {
@@ -874,7 +897,8 @@ object PanelApi {
         return JSONObject().apply {
             plan.templateId?.let { put("user_template_id", it) }
             plan.dataLimit?.let { put("data_limit", it) }
-            plan.expireSeconds?.let { put("expire", it) }
+            // کلمپ به سقفِ پنل (v5.5 این سقف را برای next_plan هم اعمال می‌کند).
+            plan.expireSeconds?.let { put("expire", it.coerceIn(0L, MAX_PLAN_SECONDS)) }
             put("add_remaining_traffic", plan.addRemainingTraffic)
         }
     }
@@ -957,7 +981,10 @@ object PanelApi {
             onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
             onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" },
             dataLimitResetStrategy = if (user.isNull("data_limit_reset_strategy")) null else user.optString("data_limit_reset_strategy").takeIf { it.isNotBlank() && it != "null" },
-            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 }
+            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 },
+            // PasarGuard v5.5: تعداد دستگاه در خودِ پاسخِ لیست می‌آید (بدونِ درخواستِ جداگانهٔ HWID).
+            // `null` = عدد در دسترس نیست؛ صفر یک مقدارِ واقعی است («دستگاهی ثبت نشده»).
+            hwidCount = if (user.isNull("hwid_count")) null else user.optInt("hwid_count").takeIf { it >= 0 }
         )
     }
 
@@ -1449,24 +1476,120 @@ object PanelApi {
 
     /**
      * کاربرانی که هدفِ پاک‌سازی‌اند — `GET /api/users/expired?target=…`.
-     * `target` یکی از expired / limited / on_hold / disabled. پاسخ آرایه‌ای از
-     * نام‌های کاربری است، پس می‌شود قبل از حذف نشانشان داد.
+     *
+     * `target` یکی از `expired` / `limited` / `on_hold` / `disabled` / **`inactive`**.
+     * `inactive` از **PasarGuard v5.5** اضافه شده و برخلافِ بقیه بر اساسِ «آخرین
+     * فعالیت» (online_at، و اگر هرگز آنلاین نشده created_at) فیلتر می‌کند؛ پنل برای
+     * همین حالت `expired_before` را **الزامی** کرده است
+     * (`ExpiredUsersQuery.validate_inactive_cutoff`) و بدونِ آن ۴۲۲ می‌دهد. پس همان
+     * قاعده را سمتِ اپ هم اعتبارسنجی می‌کنیم تا خطا پیش از رفتن به شبکه روشن باشد.
+     *
+     * پاسخ آرایه‌ای از نام‌های کاربری است، پس می‌شود قبل از حذف نشانشان داد.
      */
-    suspend fun cleanupCandidates(session: Session, target: String = "expired"): List<String> =
-        withContext(Dispatchers.IO) {
-            val request = requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").get().build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("Expired list failed: ${response.code}")
-                val arr = org.json.JSONArray(response.body?.string() ?: "[]")
-                List(arr.length()) { i -> arr.optString(i) }
+    suspend fun cleanupCandidates(
+        session: Session,
+        target: String = "expired",
+        expiredBefore: String? = null
+    ): List<String> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, cleanupUrl(session, target, expiredBefore)).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Expired list failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val arr = org.json.JSONArray(response.body?.string() ?: "[]")
+            List(arr.length()) { i -> arr.optString(i) }
+        }
+    }
+
+    /** حذفِ همان فهرست — `DELETE /api/users/expired?target=…` (همان قاعدهٔ `inactive`). */
+    suspend fun deleteCleanupCandidates(
+        session: Session,
+        target: String = "expired",
+        expiredBefore: String? = null
+    ) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, cleanupUrl(session, target, expiredBefore)).delete().build())
+    }
+
+    /** ساختِ URLِ پاک‌سازی با همان اعتبارسنجیِ پنل (`inactive` بدونِ مهلت = ۴۲۲). */
+    private fun cleanupUrl(session: Session, target: String, expiredBefore: String?): String {
+        require(target in CLEANUP_TARGETS) { "Unknown cleanup target: $target" }
+        val cutoff = expiredBefore?.trim()?.takeIf { it.isNotEmpty() }
+        require(target != CLEANUP_INACTIVE || cutoff != null) {
+            "expired_before is required for the inactive target"
+        }
+        return buildString {
+            append(session.baseUrl); append("/api/users/expired?target="); append(target)
+            if (cutoff != null) {
+                append("&expired_before="); append(URLEncoder.encode(cutoff, "UTF-8"))
             }
         }
+    }
 
-    /** حذفِ همان فهرست — `DELETE /api/users/expired?target=…`. */
-    suspend fun deleteCleanupCandidates(session: Session, target: String = "expired") = withContext(Dispatchers.IO) {
+    /**
+     * فهرستِ سبکِ کاربران — `GET /api/users/simple` (فقط `id` و `username`).
+     *
+     * برای جست‌وجوی «فقط یک نام» (بدهکارِ سررسیدشده در ورکر پس‌زمینه، یا پیدا کردنِ
+     * شناسهٔ یک نام) از `/api/users` با همهٔ فیلدهای سنگین‌اش استفاده نمی‌کنیم؛
+     * پنل برای همین کارکرد اندپوینتِ ارزان‌تر دارد و روی پنل‌های چند‌هزار‌کاربری
+     * تفاضلِ پارس/شبکه محسوس است.
+     */
+    suspend fun usersSimple(
+        session: Session,
+        search: String? = null,
+        offset: Int = 0,
+        limit: Int = 50
+    ): List<UserRef> = withContext(Dispatchers.IO) {
+        require(limit in 1..1000) { "limit must be between 1 and 1000" }
+        val url = buildString {
+            append(session.baseUrl); append("/api/users/simple?offset="); append(offset)
+            append("&limit="); append(limit)
+            search?.takeIf { it.isNotBlank() }?.let {
+                append("&search="); append(URLEncoder.encode(it, "UTF-8"))
+            }
+        }
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Simple users failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val arr = JSONObject(response.body?.string() ?: "{}").optJSONArray("users") ?: return@use emptyList()
+            List(arr.length()) { i ->
+                val u = arr.getJSONObject(i)
+                UserRef(id = u.optLong("id", 0L), username = u.optString("username"))
+            }
+        }
+    }
+
+    /**
+     * ذخیرهٔ ترتیبِ نمایشِ نودها — `PUT /api/nodes/order` (**PasarGuard v5.5**،
+     * مجوزِ `nodes.update`، بدنه `{"ordered_ids": [..]}`).
+     *
+     * پنل حداقل دو شناسه و بدونِ تکرار می‌خواهد (`ReorderRequest`)، پس همان قواعد
+     * سمتِ اپ بررسی می‌شوند تا درخواستِ بی‌معنا اصلاً نرود.
+     */
+    suspend fun reorderNodes(session: Session, orderedIds: List<Int>) = withContext(Dispatchers.IO) {
+        require(orderedIds.size >= 2) { "Reordering needs at least two nodes" }
+        require(orderedIds.size == orderedIds.distinct().size) { "Node ids must be unique" }
+        val body = JSONObject().put("ordered_ids", org.json.JSONArray(orderedIds))
         executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").delete().build()
+            requestBuilder(session, "${session.baseUrl}/api/nodes/order")
+                .put(body.toString().toRequestBody(jsonType)).build()
         )
+    }
+
+    /**
+     * تنظیماتِ عمومیِ پنل — `GET /api/settings/general` (مجوزِ `settings.read_general`).
+     * فقط برای خواندنِ `on_hold_timeout_action` استفاده می‌شود (v5.5)؛ اگر نقش مجوز
+     * نداشته باشد ۴۰۳ می‌دهد و صداکننده باید سکوت کند، نه اینکه خطا نشان دهد.
+     */
+    suspend fun generalSettings(session: Session): PanelGeneralSettings = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings/general").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("General settings failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val o = JSONObject(response.body?.string() ?: "{}")
+            val action = o.optString("on_hold_timeout_action", OnHoldAction.ACTIVATE)
+            PanelGeneralSettings(
+                defaultMethod = o.optString("default_method", ""),
+                // مقدارِ ناشناخته → پیش‌فرضِ پنل (`activate`) تا متنِ UI چیزی از خودش نسازد.
+                onHoldTimeoutAction = if (action in ON_HOLD_ACTIONS) action else OnHoldAction.ACTIVATE
+            )
+        }
     }
 
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {

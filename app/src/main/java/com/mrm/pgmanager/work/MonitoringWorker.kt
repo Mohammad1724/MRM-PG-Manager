@@ -97,8 +97,14 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                     // کاربر را در لیست پیدا کن؛ اگر فهرستِ کامل دانلود نشده، فقط همین یک نفر را از پنل می‌پرسیم.
                     val pu = users.find { it.username == d.username }
                         ?: runCatching {
-                            PanelApi.usersPage(session, com.mrm.pgmanager.data.model.UserQuery(search = d.username, limit = 5))
-                                .users.firstOrNull { it.username == d.username }
+                            // مسیرِ سبک: `/api/users/simple` فقط id و username می‌دهد و
+                            // برای «پیدا کردنِ همین یک نفر» کافی است — نسخهٔ قبلی صفحهٔ
+                            // کاملِ کاربران (با همهٔ فیلدهای سنگین) را برای یک نام می‌گرفت.
+                            val ref = PanelApi.usersSimple(session, search = d.username, limit = 5)
+                                .firstOrNull { it.username == d.username }
+                            // وضعیت برای تصمیمِ «غیرفعال کن یا نه» لازم است؛ فقط وقتی
+                            // پیدا شد همان یک کاربر را کامل می‌خوانیم.
+                            ref?.let { PanelApi.user(session, com.mrm.pgmanager.data.model.PanelUser(id = it.id, username = it.username, status = "", usedTraffic = 0L, dataLimit = 0L, expire = null, createdAt = null)) }
                         }.getOrNull()
                         ?: return@forEach
                     if (pu.status == "disabled") {

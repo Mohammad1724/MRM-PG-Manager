@@ -92,7 +92,16 @@ data class PanelUser(
      */
     val dataLimitResetStrategy: String? = null,
     /** حذفِ خودکار N روز پس از انقضا؛ null یعنی هرگز. */
-    val autoDeleteDays: Int? = null
+    val autoDeleteDays: Int? = null,
+    /**
+     * تعداد دستگاه‌های ثبت‌شده (HWID) — از **PasarGuard v5.5** در پاسخِ `/api/users`
+     * به‌صورتِ `hwid_count` می‌آید.
+     *
+     * `null` یعنی پنل عدد را نداده است (نسخهٔ قدیمی‌تر، یا نقشِ بدونِ مجوزِ
+     * `hwids.read`) — در این حالت هیچ بجی نشان داده نمی‌شود؛ عددِ صفر معنا‌دار است
+     * («دستگاهی ثبت نشده») و از `null` جدا نگه داشته می‌شود.
+     */
+    val hwidCount: Int? = null
 ) {
     /** مدت اعتبارِ on_hold به روز (گِرد به بالا)؛ null اگر کاربر on_hold نیست. */
     val onHoldDays: Int?
@@ -161,6 +170,35 @@ data class NodeUsage(val nodeId: Int, val points: List<NodeTrafficPoint>) {
             return totals.map { TrafficPoint(it.key, it.value) }
         }
     }
+}
+
+/**
+ * ارجاعِ سبک به یک کاربر — پاسخِ `GET /api/users/simple` (فقط `id` و `username`).
+ *
+ * چرا جدا از [PanelUser]: این اندپوینت برای «پیدا کردنِ یک نام» ساخته شده
+ * (مثلاً یافتنِ کاربرِ بدهکار در ورکر پس‌زمینه) و پنل عمداً هیچ فیلدِ سنگینی
+ * برنمی‌گرداند؛ مدلِ سنگین‌تر فقط پارسِ بی‌مصرف بود.
+ */
+data class UserRef(val id: Long, val username: String)
+
+/**
+ * تنظیماتِ عمومیِ پنل — `GET /api/settings/general` (مجوزِ `settings.read_general`).
+ *
+ * تنها فیلدی که اپ لازم دارد `on_hold_timeout_action` است: از **PasarGuard v5.5**
+ * پنل هنگامِ پایانِ مهلتِ کاربرِ on_hold خودش یکی از سه کار را می‌کند
+ * (`activate` / `disable` / `delete`). متنِ راهنمای فرمِ کاربر باید همان را بگوید،
+ * وگرنه ادمین فکر می‌کند پنل همیشه «فعال» می‌کند.
+ */
+data class PanelGeneralSettings(
+    val defaultMethod: String = "",
+    val onHoldTimeoutAction: String = OnHoldAction.ACTIVATE
+)
+
+/** مقادیرِ مجازِ `on_hold_timeout_action` در پنل (`OnHoldTimeoutAction`). */
+object OnHoldAction {
+    const val ACTIVATE = "activate"
+    const val DISABLE = "disable"
+    const val DELETE = "delete"
 }
 
 data class Group(val id: Int, val name: String)

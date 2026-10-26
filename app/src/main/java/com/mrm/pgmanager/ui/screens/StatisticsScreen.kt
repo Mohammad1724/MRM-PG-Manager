@@ -90,6 +90,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     // خطای واکشی فهرست نودها (جدا از خطای system stats) تا خطای گذرا «نودی وجود ندارد» نگوییم.
     var nodesError by remember(session) { mutableStateOf<String?>(null) }
     var reconnecting by remember { mutableStateOf<Int?>(null) }
+    // ترتیبِ نودها (PasarGuard v5.5: `PUT /api/nodes/order`).
+    var orderDialogOpen by remember { mutableStateOf(false) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     // خطای بارگذاریِ اولیه — قبلاً کاملاً بلعیده می‌شد و صفحهٔ خالی بی‌توضیح می‌ماند.
     var loadError by remember(session) { mutableStateOf<String?>(null) }
@@ -106,7 +108,11 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }
-            .onSuccess { stats = it; loadError = null; PanelCache.put(statsKey, it) }
+            .onSuccess {
+                stats = it; loadError = null; PanelCache.put(statsKey, it)
+                // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5.
+                com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
+            }
             .onFailure { if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
@@ -285,9 +291,45 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         .padding(DsSpacing.Card),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp)
-                        Text(stringResource(R.string.st_nodes_health), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        Text(
+                            stringResource(R.string.st_nodes_health), fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold, color = theme.inkColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // ترتیبِ نودها: قابلیتِ PasarGuard v5.5 و نیازمندِ مجوزِ nodes.update.
+                        if (nodes.size >= 2 && AdminAccess.can("nodes", "update") &&
+                            com.mrm.pgmanager.data.PanelSupport.supportsNodeOrder
+                        ) {
+                            com.mrm.pgmanager.ui.dialogs.NodeOrderEntry(onClick = { orderDialogOpen = true })
+                        }
+                    }
+                    if (orderDialogOpen) {
+                        com.mrm.pgmanager.ui.dialogs.NodeOrderDialog(
+                            nodes = nodes,
+                            onDismiss = { orderDialogOpen = false },
+                            onSave = { ordered ->
+                                orderDialogOpen = false
+                                scope.launch {
+                                    runCatching { PanelApi.reorderNodes(session, ordered) }
+                                        .onSuccess {
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.st_node_order_saved))
+                                            load(true)
+                                        }
+                                        .onFailure {
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                                                com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                                                detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
+                                            )
+                                        }
+                                }
+                            }
+                        )
                     }
                     if (nodes.isEmpty()) {
                         // N7: فهرست خالیِ خطازده با «نودی وجود ندارد» فرق دارد.

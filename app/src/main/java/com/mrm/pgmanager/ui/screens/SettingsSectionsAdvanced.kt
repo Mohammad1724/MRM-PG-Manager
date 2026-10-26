@@ -106,6 +106,21 @@ internal fun ConnectionSection(
             ?.takeIf { it.isNotBlank() }
             ?: diskPanelVersion
         if (panelVersion.isNotBlank()) SettingsInfoRow(stringResource(R.string.set_conn_panel_version), "PasarGuard v$panelVersion")
+        // دروازهٔ نسخه در یک نگاه: این اپ فقط PasarGuard 5.5.1+ را پشتیبانی می‌کند و
+        // قابلیت‌های تازهٔ ۵.۵ روی پنلِ قدیمی پنهان می‌شوند. متن صریح است تا کاربر
+        // بداند چرا دکمه‌ای را نمی‌بیند.
+        // در LaunchedEffect و نه در خودِ composition: نوشتنِ state وسطِ ترسیم،
+        // می‌تواند در بدترین حالت بازترسیمِ حلقه‌ای بسازد.
+        androidx.compose.runtime.LaunchedEffect(panelVersion) {
+            com.mrm.pgmanager.data.PanelSupport.update(panelVersion)
+        }
+        val support = com.mrm.pgmanager.data.PanelSupport
+        val compatText = when {
+            support.isOutdated -> stringResource(R.string.set_conn_panel_compat_old, support.minSupported)
+            support.isKnown -> stringResource(R.string.set_conn_panel_compat_ok, support.minSupported)
+            else -> stringResource(R.string.set_conn_panel_compat_unknown)
+        }
+        SettingsInfoRow(stringResource(R.string.set_conn_panel_compat), compatText)
         com.mrm.pgmanager.data.AdminAccess.current?.let { admin ->
             val role = when {
                 admin.isOwner -> stringResource(R.string.set_conn_role_owner)
