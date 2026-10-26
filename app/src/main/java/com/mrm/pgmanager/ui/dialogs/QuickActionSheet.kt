@@ -72,7 +72,9 @@ fun QuickActionSheet(
      */
     canResetUsage: Boolean = true,
     canToggle: Boolean = true,
-    canDelete: Boolean = true
+    canDelete: Boolean = true,
+    /** «مدیریتِ دستگاه‌ها» — فقط با مجوزِ `hwids.read` پاس داده می‌شود. */
+    onDevices: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -117,6 +119,13 @@ fun QuickActionSheet(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Copy, stringResource(R.string.qa_copy_link), theme.inkColor, Modifier.weight(1f)) { onCopySub(); onDismiss() }
                             QuickActionRow(AppIcon.Qr, stringResource(R.string.qa_show_qr), theme.inkColor, Modifier.weight(1f)) { onQr(); onDismiss() }
+                        }
+                        // دستگاه‌ها (HWID): دیدنِ همه و حذفِ یکی — کاربرِ عوض‌کرده‌گوشی
+                        // وقتی سقف پر است همین‌جا آزاد می‌شود.
+                        if (onDevices != null) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                                QuickActionRow(AppIcon.Device, stringResource(R.string.qa_devices), theme.accentPrimary, Modifier.fillMaxWidth()) { onDevices(); onDismiss() }
+                            }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                             QuickActionRow(AppIcon.Note, stringResource(R.string.qa_invoice) + " 🧾", theme.accentPrimary, Modifier.weight(1f)) {

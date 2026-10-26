@@ -117,6 +117,8 @@ internal class UsersUiState(
     var invoiceDialogUser by mutableStateOf<PanelUser?>(null)
     var debtorDialogUser by mutableStateOf<PanelUser?>(null)
     var resetExpiryTarget by mutableStateOf<PanelUser?>(null)
+    /** دیالوگِ «مدیریتِ دستگاه‌ها» (HWID) — از ورقهٔ جزئیات و اکشنِ سریع باز می‌شود. */
+    var devicesUser by mutableStateOf<PanelUser?>(null)
 
     // ── عملیاتِ گروهی ────────────────────────────────────────────────────
     // انتخابگرِ گروه برای عملیاتِ گروهی

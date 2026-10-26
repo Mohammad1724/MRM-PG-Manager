@@ -207,7 +207,13 @@ fun UserDetailsDialog(
     /** RBAC — اکشنِ مخرب برای ادمینِ بدونِ مجوز پنهان می‌شود (نامعلوم = مجاز). */
     canResetUsage: Boolean = true,
     canToggle: Boolean = true,
-    canDelete: Boolean = true
+    canDelete: Boolean = true,
+    /**
+     * باز کردنِ دیالوگِ «مدیریتِ دستگاه‌ها». جایِ دو ردیفِ درون‌خطی نشسته است:
+     * ورقهٔ جزئیات فقط دو دستگاهِ اول را نشان می‌داد و راهی برای دیدنِ بقیه
+     * نداشت، پس کاربرِ با پنج دستگاه عملاً قابلِ مدیریت نبود.
+     */
+    onManageDevices: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -223,13 +229,14 @@ fun UserDetailsDialog(
     var templatesFailed by remember { mutableStateOf(false) }
     var revokeConfirm by remember { mutableStateOf(false) }
     var notesSheetOpen by remember { mutableStateOf(false) }
-    var devicesResetConfirm by remember { mutableStateOf(false) }
     var nextPlanConfirm by remember { mutableStateOf(false) }
     var devices by remember(user.id) { mutableStateOf<List<UserDevice>>(emptyList()) }
     var showMore by remember { mutableStateOf(false) }
     // IPهای فعال (nodes.stats) — null یعنی هنوز پرسیده نشده؛ فقط برای کاربرِ آنلاین خودکار پرسیده می‌شود
     // چون پنل باید از همهٔ نودهای سالم بپرسد.
     val canNodeStats = com.mrm.pgmanager.data.AdminAccess.can("nodes", "stats")
+    // فهرستِ دستگاه‌ها مجوزِ جداگانه دارد (`hwids.read`)؛ بدونِ آن پنل ۴۰۳ می‌داد.
+    val canReadHwids = com.mrm.pgmanager.data.AdminAccess.can("hwids", "read")
     var onlineIps by remember(user.id) { mutableStateOf<List<OnlineIp>?>(null) }
     var onlineIpsLoading by remember(user.id) { mutableStateOf(false) }
     // تاریخچهٔ گرفتنِ لینکِ اشتراک (users.read) — ۵ موردِ آخر + شمارِ کل.
@@ -240,7 +247,7 @@ fun UserDetailsDialog(
     }
 
     fun reloadDevices() {
-        if (session == null) return
+        if (session == null || !canReadHwids) return
         scope.launch { runCatching { PanelApi.userDevices(session, currentUser.id) }.onSuccess { devices = it } }
     }
     fun loadOnlineIps() {
@@ -424,21 +431,24 @@ fun UserDetailsDialog(
                         }
                     }
 
-                    if (session != null && (devices.isNotEmpty() || currentUser.hwidLimit != null)) {
+                    // دستگاه‌ها: خلاصه + ورود به دیالوگِ کاملِ مدیریت (فقط با
+                    // مجوزِ hwids.read؛ بدونِ آن پنل ۴۰۳ می‌داد).
+                    if (session != null && canReadHwids && (devices.isNotEmpty() || currentUser.hwidLimit != null)) {
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                             SectionLabel(stringResource(R.string.ud_devices))
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                     Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
-                                    if (devices.isNotEmpty()) Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Full).clickable { devicesResetConfirm = true }.background(GlassRed.copy(0.10f)).pressScale(0.95f).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_devices_reset), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                    if (onManageDevices != null) Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Full).clickable { onManageDevices() }.background(theme.accentPrimary.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.26f)), DsRadius.Full).pressScale(0.95f).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ud_devices_manage), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary) }
                                 }
                                 if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 11.sp, color = theme.mutedColor)
-                                devices.take(2).forEach { d ->
+                                devices.take(3).forEach { d ->
                                     Row(Modifier.fillMaxWidth().clip(DsRadius.Sm).background(theme.searchBgColor).padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                         MrmText(listOfNotNull(d.deviceModel, d.deviceOs).joinToString(" · ").ifBlank { d.hwid.take(10) }, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                                        Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable { scope.launch { runCatching { PanelApi.deleteUserDevice(session, currentUser.id, d.hwid) }; reloadDevices() } }.background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.2f)), DsRadius.Sm).pressScale(0.9f).padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xs)) { Text(stringResource(R.string.ud_device_forget), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed) }
+                                        d.lastUsedAt?.let { Text(lastSeenText(it, false), fontSize = 10.sp, color = theme.mutedColor, maxLines = 1) }
                                     }
                                 }
+                                if (devices.size > 3) Text(stringResource(R.string.ud_devices_more, devices.size - 3), fontSize = 10.sp, color = theme.mutedColor)
                             }
                         }
                     }
@@ -502,7 +512,6 @@ fun UserDetailsDialog(
     if (notesSheetOpen) NotesSheetDialog(note = currentUser.note.orEmpty(), onDismiss = { notesSheetOpen = false }, onEdit = { notesSheetOpen = false; editOpen = true })
     if (qrOpen) SubscriptionQrDialog(user = currentUser, onDismiss = { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog(title = stringResource(R.string.ud_reset_data_title), message = stringResource(R.string.ud_reset_data_msg), onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })
-    if (devicesResetConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_devices_reset_title), message = stringResource(R.string.ud_devices_reset_msg), onDismiss = { devicesResetConfirm = false }, onConfirm = { devicesResetConfirm = false; scope.launch { runCatching { PanelApi.resetUserDevices(session, currentUser.id) }; reloadDevices() } })
     if (nextPlanConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_next_plan_activate_title), message = stringResource(R.string.ud_next_plan_activate_msg), onDismiss = { nextPlanConfirm = false }, onConfirm = { nextPlanConfirm = false; scope.launch { runCatching { PanelApi.activateNextPlan(session, currentUser) }.onSuccess { runCatching { PanelApi.user(session, currentUser) }.onSuccess { currentUser = it } } } })
     if (revokeConfirm && session != null) ConfirmActionDialog(title = stringResource(R.string.ud_revoke_title), message = stringResource(R.string.ud_revoke_msg), onDismiss = { revokeConfirm = false }, onConfirm = { revokeConfirm = false; scope.launch { runCatching { PanelApi.revokeSubscription(session, currentUser) }.onSuccess { currentUser = it; com.mrm.pgmanager.ui.feedback.AppFeedback.success(revokedMsg) }.onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(subFailedMsg) } } })
     if (expiryConfirm) ResetExpiryDurationDialog(onDismiss = { expiryConfirm = false }, onConfirm = { days -> expiryConfirm = false; onResetExpiry(days) })

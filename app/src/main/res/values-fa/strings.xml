@@ -747,6 +747,7 @@
     <string name="qa_reset_time">ریست زمان</string>
     <string name="qa_copy_link">کپی لینک</string>
     <string name="qa_show_qr">نمایش بارکد</string>
+    <string name="qa_devices">دستگاه‌ها</string>
     <string name="qa_invoice">فاکتور</string>
     <string name="qa_settle_debt">تسویه بدهی</string>
     <string name="qa_debtor">ثبت بدهکار</string>
@@ -986,9 +987,13 @@
     <string name="ud_sub_updates_count">در مجموع %1$d بار دریافت شده — آخرین‌ها:</string>
     <string name="ud_device_last_used">آخرین استفاده %1$s</string>
     <string name="ud_device_forget">حذف</string>
+    <string name="ud_device_removed">دستگاه حذف شد</string>
     <string name="ud_devices_reset">حذف همه</string>
     <string name="ud_devices_reset_title">همهٔ دستگاه‌ها حذف شوند؟</string>
     <string name="ud_devices_reset_msg">کاربر می‌تواند تا سقف خودش دوباره دستگاه ثبت کند. وقتی به کار می‌آید که گوشی عوض کرده باشد یا سقف پر شده باشد.</string>
+    <string name="ud_devices_reset_done">همهٔ دستگاه‌ها حذف شدند</string>
+    <string name="ud_devices_manage">مدیریت</string>
+    <string name="ud_devices_more">%1$d دستگاهِ دیگر — «مدیریت» را باز کنید</string>
     <string name="ud_next_plan">پلن بعدی</string>
     <string name="ud_next_plan_template">از قالب %1$s</string>
     <string name="ud_next_plan_manual">%1$s · %2$d روز</string>

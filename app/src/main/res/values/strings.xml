@@ -747,6 +747,7 @@
     <string name="qa_reset_time">Reset time</string>
     <string name="qa_copy_link">Copy link</string>
     <string name="qa_show_qr">Show QR</string>
+    <string name="qa_devices">Devices</string>
     <string name="qa_invoice">Invoice</string>
     <string name="qa_settle_debt">Settle debt</string>
     <string name="qa_debtor">Mark debtor</string>
@@ -986,10 +987,14 @@
     <string name="ud_sub_updates_empty">The subscription link has never been fetched</string>
     <string name="ud_sub_updates_count">%1$d fetches in total — latest below</string>
     <string name="ud_device_last_used">Last used %1$s</string>
+    <string name="ud_device_removed">Device forgotten</string>
     <string name="ud_device_forget">Forget</string>
     <string name="ud_devices_reset">Forget all</string>
     <string name="ud_devices_reset_title">Forget every device?</string>
     <string name="ud_devices_reset_msg">The user can register devices again up to their limit. Use this when someone changed phones or the limit is full.</string>
+    <string name="ud_devices_reset_done">All devices forgotten</string>
+    <string name="ud_devices_manage">Manage</string>
+    <string name="ud_devices_more">%1$d more — open Manage to see all</string>
     <string name="ud_next_plan">Next plan</string>
     <string name="ud_next_plan_template">From template %1$s</string>
     <string name="ud_next_plan_manual">%1$s · %2$d days</string>

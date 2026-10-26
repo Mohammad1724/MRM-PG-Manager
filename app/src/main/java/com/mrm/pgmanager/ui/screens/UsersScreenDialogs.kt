@@ -597,7 +597,11 @@ internal fun UsersScreenDialogs(
             // RBAC — اکشن‌های مخرب بدونِ مجوز پنهان می‌شوند (پنل ۴۰۳ می‌داد).
             canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
             canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
-            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete")
+            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete"),
+            // «مدیریتِ دستگاه‌ها» فقط با مجوزِ hwids.read (بدونِ آن پنل ۴۰۳ می‌داد).
+            onDevices = if (com.mrm.pgmanager.data.AdminAccess.can("hwids", "read")) {
+                { ui.quickActionUser = null; ui.devicesUser = u }
+            } else null
         )
     }
 
@@ -663,7 +667,11 @@ internal fun UsersScreenDialogs(
             },
             canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
             canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
-            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete")
+            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete"),
+            // مدیریتِ کاملِ دستگاه‌ها (همه‌ی فهرست، نه دو ردیفِ اول) — دیالوگِ جدا.
+            onManageDevices = if (com.mrm.pgmanager.data.AdminAccess.can("hwids", "read")) {
+                { ui.devicesUser = user }
+            } else null
         )
     }
     if (ui.createMenuOpen) {
@@ -715,6 +723,15 @@ internal fun UsersScreenDialogs(
                 }
             }
         }
+    }
+    // مدیریتِ دستگاه‌ها (HWID) — عمداً بعد از ورقهٔ جزئیات رندر می‌شود تا رویش
+    // بنشیند؛ بستنش کاربر را به همان ورقه برمی‌گرداند.
+    ui.devicesUser?.let { target ->
+        UserDevicesDialog(
+            session = session,
+            user = target,
+            onDismiss = { ui.devicesUser = null }
+        )
     }
     ui.qrUser?.let { user ->
         SubscriptionQrDialog(user = user, onDismiss = { ui.qrUser = null })
