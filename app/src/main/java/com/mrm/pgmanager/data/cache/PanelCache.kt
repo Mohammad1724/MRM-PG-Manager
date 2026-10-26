@@ -74,4 +74,12 @@ object PanelCache {
     fun inboundsKey(baseUrl: String) = "inbounds:$baseUrl"
     fun templatesKey(baseUrl: String) = "templates:$baseUrl"
     fun templateGroupsKey(baseUrl: String) = "templates.groups:$baseUrl"
+
+    // ── زیرساختِ پنل (فازِ ۲): هاست‌ها / کورها / قالب‌های کلاینت.
+    // این‌ها دادهٔ «سطحِ سرور» هستند و در یک نشست تقریباً ثابت‌اند، پس کشِ
+    // کوتاه‌مدتِ همین حافظه برای برگشت از تب/صفحه کافی است و از درخواستِ
+    // تکراری هنگامِ جابه‌جایی بین تب‌های مدیریتِ پنل جلوگیری می‌کند.
+    fun hostsKey(baseUrl: String) = "hosts:$baseUrl"
+    fun coresKey(baseUrl: String) = "cores:$baseUrl"
+    fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
 }

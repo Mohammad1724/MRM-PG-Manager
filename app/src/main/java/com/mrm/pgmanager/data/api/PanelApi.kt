@@ -29,6 +29,9 @@ import com.mrm.pgmanager.data.model.SubUpdateList
 import com.mrm.pgmanager.data.model.UserRef
 import com.mrm.pgmanager.data.model.PanelGeneralSettings
 import com.mrm.pgmanager.data.model.OnHoldAction
+import com.mrm.pgmanager.data.model.ClientTemplate
+import com.mrm.pgmanager.data.model.PanelCore
+import com.mrm.pgmanager.data.model.PanelHost
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -1599,6 +1602,313 @@ object PanelApi {
             if (note.isNotBlank()) put("note", note)
         }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/apply_template").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    // ═══════════════════ زیرساختِ پنل (فاز ۲) ═══════════════════
+    //
+    // سه گروهِ «دادهٔ سطحِ سرور» که تا امروز فقط از پنلِ وب قابلِ مدیریت بودند:
+    // هاست‌ها (سازندهٔ لینکِ اشتراک)، کورها (کانفیگِ Xray/WireGuard/MTProto/sing-box) و
+    // قالب‌های کلاینت (خروجیِ اشتراک). همه با مجوزِ خودِ پنل گیت شده‌اند و هر
+    // خطای ۴۰۳/۴۲۲ عیناً با `detail` به UI می‌رسد (نقش‌های محدود در v5.5
+    // سخت‌گیرانه‌تر شده‌اند).
+
+    /**
+     * فهرستِ هاست‌ها — `GET /api/hosts` (مجوزِ `hosts.read`).
+     *
+     * `limit=0` در پنل یعنی «همه»؛ هاست‌ها معمولاً چند ده‌تایی هستند و صفحه‌بندی
+     * برایشان معنا ندارد. پاسخ آرایهٔ خالص است، ولی پوششِ `{"hosts": […]}` هم
+     * تحمل می‌شود تا با فورک‌های پنل نشکند.
+     */
+    suspend fun hosts(session: Session): List<PanelHost> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/hosts?limit=0&offset=0").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load hosts failed: ${response.code} ${errorDetail(raw)}".trim())
+            val trimmed = raw.trim()
+            val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
+            else JSONObject(trimmed.ifBlank { "{}" }).optJSONArray("hosts") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseHost(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * ساختِ هاست — `POST /api/host/` (مجوزِ `hosts.create`).
+     *
+     * فقط کمینهٔ لازم فرستاده می‌شود: پنل بقیهٔ فیلدها را با پیش‌فرضِ خودش
+     * می‌سازد. `inbound_tag` باید در یکی از کورها موجود باشد، وگرنه پنل ۴۰۰
+     * با پیامِ روشن می‌دهد — همان پیام به کاربر نشان داده می‌شود.
+     */
+    suspend fun createHost(
+        session: Session,
+        remark: String,
+        addresses: List<String>,
+        inboundTag: String? = null,
+        port: Int? = null,
+        security: String = "inbound_default"
+    ): PanelHost = withContext(Dispatchers.IO) {
+        require(remark.isNotBlank()) { "Remark cannot be empty" }
+        val cleanAddresses = addresses.map { it.trim() }.filter { it.isNotEmpty() }
+        require(cleanAddresses.isNotEmpty()) { "At least one address is required" }
+        val body = JSONObject()
+            .put("remark", remark.trim())
+            .put("address", org.json.JSONArray(cleanAddresses))
+            .put("security", security)
+            .put("priority", 0)
+            .put("is_disabled", false)
+            .put("alpn", org.json.JSONArray())
+        if (!inboundTag.isNullOrBlank()) body.put("inbound_tag", inboundTag)
+        port?.let { body.put("port", it) }
+        val response = executeJsonForBody(
+            requestBuilder(session, "${session.baseUrl}/api/host/")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+        parseHost(response)
+    }
+
+    /**
+     * ویرایشِ هاست — `PUT /api/host/{id}` (مجوزِ `hosts.update`).
+     *
+     * پنل برای PUT **کلِ** بدنهٔ `CreateHost` را می‌خواهد؛ اگر فقط فیلدهای فرم را
+     * بفرستیم، بقیه (transport/mux/fragment/ECH/…) به پیش‌فرض برمی‌گردند و
+     * هاستی که با پنلِ وب ساخته شده بی‌سروصدا خراب می‌شود. پس بدنهٔ خامِ همان
+     * ردیف گرفته و فقط کلیدهای تغییرکرده رویش merge می‌شوند؛ مقدارِ `null`
+     * یعنی «کلید را بردار».
+     */
+    suspend fun modifyHost(session: Session, host: PanelHost, changes: Map<String, Any?>): PanelHost =
+        withContext(Dispatchers.IO) {
+            val body = runCatching { JSONObject(host.raw) }.getOrElse { JSONObject() }
+            changes.forEach { (key, value) ->
+                if (value == null) body.remove(key) else body.put(key, value)
+            }
+            val response = executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/host/${host.id}")
+                    .put(body.toString().toRequestBody(jsonType)).build()
+            )
+            parseHost(response)
+        }
+
+    /** حذفِ هاست — `DELETE /api/host/{id}` (مجوزِ `hosts.update`، پاسخ ۲۰۴). */
+    suspend fun deleteHost(session: Session, hostId: Int) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/host/$hostId").delete().build())
+    }
+
+    /**
+     * فعال/غیرفعال‌کردنِ گروهیِ هاست‌ها — `POST /api/hosts/bulk/{enable|disable}`
+     * (مجوزِ `hosts.update`). پنل تعدادِ انجام‌شده را در `count` می‌دهد؛ همان
+     * برگردانده می‌شود تا UI «۳ هاست غیرفعال شد» بگوید، نه یک پیامِ کلی.
+     */
+    suspend fun setHostsDisabled(session: Session, ids: Set<Int>, disabled: Boolean): Int =
+        withContext(Dispatchers.IO) {
+            require(ids.isNotEmpty()) { "No hosts selected" }
+            val body = JSONObject().put("ids", org.json.JSONArray(ids.toList()))
+            val action = if (disabled) "disable" else "enable"
+            val response = executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/hosts/bulk/$action")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+            if (response.isNull("count")) ids.size else response.optInt("count", ids.size)
+        }
+
+    /**
+     * فهرستِ کورها — `GET /api/cores` (مجوزِ `cores.read`).
+     * بدونِ `limit` همه برمی‌گردند (`CoreListQuery.limit = None`).
+     */
+    suspend fun cores(session: Session): List<PanelCore> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/cores").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load cores failed: ${response.code} ${errorDetail(raw)}".trim())
+            val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("cores") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseCore(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * ویرایشِ کور — `PUT /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.update`).
+     *
+     * دو نکتهٔ قرارداد که اگر رعایت نشوند درخواست همیشه ۴۲۲ می‌گیرد:
+     *  ۱. `restart_nodes` یک query paramِ **الزامی** است (بدونِ مقدارِ پیش‌فرض در پنل)؛
+     *  ۲. بدنه باید `config` کامل را داشته باشد — پس [PanelCore.config] خام و
+     *     دست‌نخورده دوباره فرستاده می‌شود و فقط فیلدهای فرم عوض می‌شوند.
+     */
+    suspend fun modifyCore(
+        session: Session,
+        core: PanelCore,
+        name: String,
+        type: String?,
+        excludeInboundTags: List<String>,
+        fallbacksInboundTags: List<String>,
+        restartNodes: Boolean
+    ): PanelCore = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "Core name cannot be empty" }
+        val config = runCatching { JSONObject(core.config) }.getOrElse { JSONObject() }
+        require(config.length() > 0) { "Core config cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("config", config)
+            .put("exclude_inbound_tags", org.json.JSONArray(excludeInboundTags))
+            .put("fallbacks_inbound_tags", org.json.JSONArray(fallbacksInboundTags))
+        if (type.isNullOrBlank()) body.put("type", JSONObject.NULL) else body.put("type", type)
+        val url = "${session.baseUrl}/api/cores/${core.id}?restart_nodes=$restartNodes"
+        parseCore(
+            executeJsonForBody(
+                requestBuilder(session, url).put(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** ری‌استارتِ نودهای یک کور — `POST /api/cores/{id}/restart` (مجوزِ `cores.update`، ۲۰۴). */
+    suspend fun restartCore(session: Session, coreId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/cores/$coreId/restart")
+                .post("".toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** حذفِ کور — `DELETE /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.delete`، ۲۰۴). */
+    suspend fun deleteCore(session: Session, coreId: Int, restartNodes: Boolean = false) =
+        withContext(Dispatchers.IO) {
+            executeJson(
+                requestBuilder(session, "${session.baseUrl}/api/cores/$coreId?restart_nodes=$restartNodes")
+                    .delete().build()
+            )
+        }
+
+    /**
+     * فهرستِ قالب‌های کلاینت — `GET /api/client_templates` (مجوزِ `client_templates.read`).
+     * برخلافِ `/api/user_templates` پاسخ **پوشیده** است: `{"count": n, "templates": […]}`
+     * (آن یکی آرایهٔ خالص بود) — همین تفاوت قبلاً منبعِ باگِ پارس بوده است.
+     */
+    suspend fun clientTemplates(session: Session): List<ClientTemplate> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/client_templates").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load client templates failed: ${response.code} ${errorDetail(raw)}".trim())
+            val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("templates") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseClientTemplate(arr.getJSONObject(i)) }
+        }
+    }
+
+    /** ساختِ قالبِ کلاینت — `POST /api/client_templates` (مجوزِ `client_templates.create`). */
+    suspend fun createClientTemplate(
+        session: Session,
+        name: String,
+        templateType: String,
+        content: String,
+        isDefault: Boolean = false
+    ): ClientTemplate = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "Template name cannot be empty" }
+        require(content.isNotBlank()) { "Template content cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("template_type", templateType)
+            .put("content", content)
+            .put("is_default", isDefault)
+        parseClientTemplate(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/client_templates")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /**
+     * ویرایشِ قالبِ کلاینت — `PUT /api/client_templates/{id}` (مجوزِ `client_templates.update`).
+     *
+     * `template_type` در پنل تغییرپذیر نیست (`ClientTemplateModify` فقط نام/محتوا/
+     * پیش‌فرض را می‌پذیرد)، پس انتخابِ نوع فقط در فرمِ «ساخت» دیده می‌شود.
+     */
+    suspend fun modifyClientTemplate(
+        session: Session,
+        templateId: Int,
+        name: String? = null,
+        content: String? = null,
+        isDefault: Boolean? = null
+    ): ClientTemplate = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        name?.let { body.put("name", it.trim()) }
+        content?.let { body.put("content", it) }
+        isDefault?.let { body.put("is_default", it) }
+        require(body.length() > 0) { "Nothing to update" }
+        parseClientTemplate(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId")
+                    .put(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** حذفِ قالبِ کلاینت — `DELETE /api/client_templates/{id}` (پاسخ ۲۰۰/۲۰۴). */
+    suspend fun deleteClientTemplate(session: Session, templateId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId").delete().build()
+        )
+    }
+
+    // ── پارسِ زیرساخت ────────────────────────────────────────────────────
+
+    private fun parseHost(o: JSONObject): PanelHost = PanelHost(
+        id = o.optInt("id"),
+        remark = o.optString("remark"),
+        addresses = jsonStringList(o, "address"),
+        inboundTag = optionalString(o, "inbound_tag"),
+        port = if (o.isNull("port")) null else o.optInt("port"),
+        sni = jsonStringList(o, "sni"),
+        host = jsonStringList(o, "host"),
+        path = optionalString(o, "path"),
+        security = optionalString(o, "security") ?: "inbound_default",
+        alpn = jsonStringList(o, "alpn"),
+        fingerprint = optionalString(o, "fingerprint") ?: "none",
+        isDisabled = o.optBoolean("is_disabled", false),
+        priority = o.optInt("priority", 0),
+        status = jsonStringList(o, "status"),
+        useSniAsHost = o.optBoolean("use_sni_as_host", false),
+        randomUserAgent = o.optBoolean("random_user_agent", false),
+        raw = o.toString()
+    )
+
+    private fun parseCore(o: JSONObject): PanelCore = PanelCore(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        type = optionalString(o, "type"),
+        excludeInboundTags = jsonStringList(o, "exclude_inbound_tags"),
+        fallbacksInboundTags = jsonStringList(o, "fallbacks_inbound_tags"),
+        sortOrder = o.optInt("sort_order", 0),
+        // کانفیگ رشتهٔ خام می‌ماند تا PUT بعدی عیناً همان را برگرداند.
+        config = o.optJSONObject("config")?.toString() ?: "{}"
+    )
+
+    private fun parseClientTemplate(o: JSONObject): ClientTemplate = ClientTemplate(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        templateType = o.optString("template_type"),
+        content = o.optString("content"),
+        isDefault = o.optBoolean("is_default", false),
+        isSystem = o.optBoolean("is_system", false)
+    )
+
+    /**
+     * رشتهٔ اختیاری از JSON. `optString` برای مقدارِ null رشتهٔ `"null"` می‌دهد؛
+     * این تابع آن حالت و رشتهٔ خالی را به `null` تبدیل می‌کند (مثلِ `inbound_tag`).
+     */
+    private fun optionalString(o: JSONObject, key: String): String? =
+        o.optString(key).takeIf { it.isNotBlank() && it != "null" }
+
+    /** آرایهٔ رشته‌ها؛ کلیدِ غایب یا null → لیستِ خالی (نه خطا). */
+    private fun jsonStringList(o: JSONObject, key: String): List<String> {
+        val arr = o.optJSONArray(key) ?: return emptyList()
+        return List(arr.length()) { i -> arr.optString(i) }.filter { it.isNotBlank() && it != "null" }
+    }
+
+    /** مثلِ [executeJson] ولی بدنهٔ پاسخ را هم برمی‌گرداند (برای POST/PUT که آبجکت می‌دهند). */
+    private fun executeJsonForBody(request: Request): JSONObject {
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+            }
+            return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+        }
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()

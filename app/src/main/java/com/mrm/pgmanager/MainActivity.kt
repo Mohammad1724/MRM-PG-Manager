@@ -57,6 +57,7 @@ import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
+import com.mrm.pgmanager.ui.screens.PanelInfraScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.AppFeedbackHost
 import com.mrm.pgmanager.ui.components.NotificationPermissionDialog
@@ -241,6 +242,9 @@ fun MRMApp() {
     }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «زیرساختِ پنل» (فاز ۲) — مستقل از تنظیمات، چون از داخلِ تنظیمات باز
+    // می‌شود ولی دکمهٔ برگشتش باید اول همین را ببندد و بعد تنظیمات را.
+    var showPanelInfra by rememberSaveable { mutableStateOf(false) }
     // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
     var showAccountSheet by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
@@ -429,6 +433,8 @@ fun MRMApp() {
             val exitHint = stringResource(R.string.back_exit_hint)
             androidx.activity.compose.BackHandler {
                 when {
+                    // ۰. زیرساختِ پنل روی تنظیمات باز است → اول خودش
+                    showPanelInfra -> showPanelInfra = false
                     // ۱. تنظیمات باز است → ببند
                     showDashboardSettings -> showDashboardSettings = false
                     // ۲. ورقهٔ حساب باز است → ببند
@@ -589,6 +595,10 @@ fun MRMApp() {
                                 selectedTab = TAB_USERS
                                 pendingBulkCreate = true
                             },
+                            // فاز ۲: هاست‌ها/کورها/قالب‌های کلاینت. تنظیمات بسته
+                            // نمی‌شود (پشتِ صفحهٔ زیرساخت می‌ماند) تا برگشت از
+                            // زیرساخت، کاربر را دقیقاً همان‌جا که بود برگرداند.
+                            onOpenPanelInfra = { showPanelInfra = true },
                             // بازیابیِ پشتیبان مستقیم prefs را عوض می‌کند؛ stateهای
                             // درون‌حافظه باید همین‌جا تازه شوند وگرنه تا ری‌استارت اپ
                             // تم/تنظیمات/قفلِ قدیمی دیده می‌شد.
@@ -601,6 +611,23 @@ fun MRMApp() {
                                 com.mrm.pgmanager.data.cache.PanelCache.clear()
                             }
                         )
+                    }
+                }
+                // زیرساختِ پنل: صفحهٔ کاملِ رویی (هم‌سبکِ تنظیمات). بدونِ حساب
+                // هرگز باز نمی‌شود؛ در غیرِ این صورت هر درخواستش ۴۰۱ می‌گرفت.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPanelInfra && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            PanelInfraScreen(
+                                session = activeSession,
+                                onBack = { showPanelInfra = false }
+                            )
+                        }
                     }
                 }
             }

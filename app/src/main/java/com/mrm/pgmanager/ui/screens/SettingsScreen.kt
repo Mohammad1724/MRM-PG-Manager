@@ -107,6 +107,8 @@ fun SettingsScreen(
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {},
     onBulkCreate: () -> Unit = {},
+    /** باز کردنِ صفحهٔ «زیرساختِ پنل» (هاست/کور/قالبِ کلاینت) — فاز ۲. */
+    onOpenPanelInfra: () -> Unit = {},
     /** پس از بازیابیِ موفقِ پشتیبان، stateهای درون‌حافظه‌ای از روی prefs تازه شوند. */
     onDataRestored: () -> Unit = {}
 ) {
@@ -221,6 +223,11 @@ fun SettingsScreen(
                             onAddAccount = onAddAccount
                         )
                     }
+                    // فاز ۲: مدیریتِ زیرساختِ پنل (هاست/کور/قالبِ کلاینت). فقط با
+                    // حسابِ فعال معنا دارد — بی‌آن هیچ درخواستی نمی‌شود فرستاد.
+                    if (session != null) {
+                        PanelInfraEntryCard(onClick = onOpenPanelInfra)
+                    }
                     SecuritySection(
                         isAppLockEnabled = isAppLockEnabled,
                         onAppLockChange = onAppLockChange,
@@ -270,6 +277,43 @@ fun SettingsScreen(
             Spacer(Modifier.height(DsSpacing.Sm))
         }
         }
+    }
+}
+
+/**
+ * کارتِ ورودیِ «زیرساختِ پنل» در تبِ «اتصال و حساب‌ها».
+ *
+ * چرا اینجا: هاست/کور/قالبِ کلاینت به خودِ *پنل* مربوط‌اند نه به ترجیحاتِ اپ، و
+ * دقیقاً همان‌جایی هستند که ادمین آدرس و حسابش را می‌بیند. یک ردیفِ تک‌خطیِ
+ * قابل‌لمس، با فلشِ سمتِ مقابل — بدونِ آکاردئون و بدونِ صفحهٔ اضافه.
+ */
+@Composable
+private fun PanelInfraEntryCard(onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .clickable { onClick() }
+            .heightIn(min = 56.dp)
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
+    ) {
+        Box(
+            Modifier.size(34.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.14f)),
+            contentAlignment = Alignment.Center
+        ) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 16.dp) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                stringResource(R.string.infra_settings_entry_title),
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
+            )
+            Text(
+                stringResource(R.string.infra_settings_entry_desc),
+                fontSize = 10.sp, color = theme.mutedColor, maxLines = 2
+            )
+        }
+        RoundedAppIcon(AppIcon.Next, tint = theme.mutedColor, size = 16.dp)
     }
 }
 

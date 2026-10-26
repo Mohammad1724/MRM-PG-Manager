@@ -71,9 +71,12 @@ generalSettings(session).onHoldTimeoutAction   // activate | disable | delete
 
 ## ۵. کارهایی که عمداً انجام نشدند
 
-1. **صفحه‌های Hosts / Cores / Client templates / API Keys / Settings پنل** — قابلیت‌های سطحِ ۵،
-   نه «هماهنگ‌سازی نسخه»؛ فازِ بعدی.
+1. **API Keys / Settings پنل / Admin Roles** — فازِ سوم؛ شرحش در
+   `docs/PHASE-2-PANEL-INFRA.md` §۵.
 2. **ورود با Passkey** — روی موبایل نیازمندِ WebAuthn/Credential Manager است.
 3. **`GET /api/users/sub_update/chart`، `bulk/proxy_settings`، لاگ/آپدیتِ نود** — استفاده نشده‌اند.
 4. **حذفِ `settings-redesign.patch`** — فایلِ مرده در ریشهٔ مخزن است (با `git apply --check` هم
    اعمال نمی‌شود)؛ حذفش تصمیمِ جداگانه می‌خواهد.
+
+> **به‌روزرسانی (فاز ۲، نسخهٔ ۰٫۱۱٫۰):** صفحه‌های **Hosts / Cores / Client templates**
+> ساخته شدند — جزئیات و تصمیم‌های طراحی در `docs/PHASE-2-PANEL-INFRA.md`.

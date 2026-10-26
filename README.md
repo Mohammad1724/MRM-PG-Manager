@@ -23,6 +23,11 @@ see `docs/PANEL-5.5-COMPAT.md`. Device counts need no gate: they appear only if 
   from template), edit, disable, reset usage, revoke subscription, next plan, HWID devices, QR / copy
   subscription, invoices, debtor tracking with optional auto‑disable. Device counts come straight from the
   list response (`hwid_count`, panel 5.5+) — no extra request per row.
+- **Panel infrastructure** (Settings → Connection): **hosts** (create/edit/enable/disable/delete),
+  **cores** (rename, inbound exclude/fallback tags, restart nodes, delete) and **client templates**
+  (Clash / Xray / sing-box / user-agent) — see `docs/PHASE-2-PANEL-INFRA.md`. Edits merge into the
+  raw payload, so advanced fields the phone form does not know (transport, mux, fragment, ECH, routing)
+  survive a save.
 - **Cleanup**: expired users, plus **inactive users** (`target=inactive`, 5.5+) with a “days without
   activity” prompt that maps to the required `expired_before` cutoff.
 - **Bulk actions** on selected users (delete, reset, enable/disable, revoke, add days/data, groups, apply template).
@@ -41,7 +46,8 @@ All requests are HTTPS. Main endpoints: `POST /api/admin/token`, `GET /api/admin
 `GET /api/users` (+ `search/status/online/group/sort/offset/limit`), `/api/user/by-id/{id}` (get / modify /
 delete / disabled / reset / revoke_sub / active_next / usage), `/api/users/bulk/*`, `/api/user/from_template`,
 `/api/users/expired`, `/api/user/{id}/hwids`, `/api/groups`, `/api/user_templates`, `/api/nodes`,
-`/api/nodes/realtime_stats`, `/api/nodes/order`, `/api/users/simple`, `/api/settings/general`,
+`/api/nodes/realtime_stats`, `/api/nodes/order`, `/api/users/simple`, `/api/settings/general`, `/api/hosts`, `/api/cores`,
+`/api/client_templates`,
 `/api/inbounds`, `/api/admins`.
 
 "Online" uses the panel's own 2‑minute window (`online_at`), and `online=true` is applied server‑side.

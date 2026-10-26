@@ -670,3 +670,160 @@ data class UserEditorValues(
     /** مهلت فعال‌سازی از الان (ثانیه)؛ 0 یعنی پاکش کن؛ null یعنی دست نزن. */
     val onHoldTimeoutSeconds: Long? = null
 )
+
+// ─────────────────────────── زیرساختِ پنل — PasarGuard v5 ───────────────────────────
+//
+// سه مفهومِ «سطحِ سرور» که تا امروز فقط در پنلِ وب قابلِ مدیریت بودند و اپ فقط
+// به‌صورتِ غیرمستقیم (از طریقِ گروه‌ها/کاربران/اشتراک) با آن‌ها کار می‌کرد:
+//
+//  • **host** — همان چیزی که لینکِ اشتراک را می‌سازد (آدرس/پورت/SNI/امنیت/ALPN).
+//  • **core** — کانفیگِ هستهٔ اجراییِ نود (Xray / WireGuard / MTProto / sing-box).
+//  • **client template** — قالبِ خروجیِ اشتراک برای کلاینت‌ها (Clash/Xray/sing-box…).
+//
+// مدل‌ها عمداً **کم‌فیلد** هستند: فقط چیزهایی که در یک صفحهٔ گوشی جا می‌شوند.
+// هر جا بدنهٔ اصلیِ JSON لازم است (ویرایشِ هاست/کور)، رشتهٔ خامش نگه داشته
+// می‌شود تا فیلدهای پیشرفته‌ای که فرمِ موبایل نمی‌شناسد (transport/mux/fragment/
+// ECH/…) با یک «ذخیره» بی‌سروصدا پاک نشوند. این مهم‌ترین تصمیمِ طراحیِ این بخش است.
+
+/**
+ * یک هاستِ اشتراک — `GET /api/hosts` (مجوزِ `hosts.read`).
+ *
+ * [raw] بدنهٔ کاملِ همان ردیف است؛ ویرایش با merge روی همین JSON انجام می‌شود،
+ * پس فرمِ موبایل لازم نیست (و نباید) همهٔ فیلدهای پنل را بشناسد.
+ */
+data class PanelHost(
+    val id: Int,
+    val remark: String,
+    val addresses: List<String> = emptyList(),
+    val inboundTag: String? = null,
+    val port: Int? = null,
+    val sni: List<String> = emptyList(),
+    val host: List<String> = emptyList(),
+    val path: String? = null,
+    /** `inbound_default` | `none` | `tls` — مقدارِ خامِ پنل (پیش‌فرض: پیش‌فرضِ inbound). */
+    val security: String = HostSecurity.INBOUND_DEFAULT,
+    val alpn: List<String> = emptyList(),
+    val fingerprint: String = "none",
+    val isDisabled: Boolean = false,
+    val priority: Int = 0,
+    /** وضعیت‌هایی که این هاست برایشان ساخته می‌شود (`active`/`disabled`/…). */
+    val status: List<String> = emptyList(),
+    val useSniAsHost: Boolean = false,
+    val randomUserAgent: Boolean = false,
+    val raw: String = "{}"
+)
+
+/**
+ * مقادیرِ مجازِ `security` — عیناً `ProxyHostSecurity` در `app/db/models.py` پنل:
+ * فقط `inbound_default`، `none` و `tls`.
+ *
+ * نکته: `reality` اینجا **نیست**؛ در PasarGuard، Reality در کانفیگِ inbound/core
+ * تعریف می‌شود نه روی هاست. فرستادنش ۴۲۲ می‌گیرد، پس عمداً در فهرست نیست.
+ */
+object HostSecurity {
+    const val INBOUND_DEFAULT = "inbound_default"
+    const val NONE = "none"
+    const val TLS = "tls"
+    val ALL = listOf(INBOUND_DEFAULT, NONE, TLS)
+}
+
+/**
+ * اعتبارسنجیِ فرمِ هاست، جدا از UI تا قابلِ تست باشد.
+ *
+ * قواعد از پنل (`CreateHost`): `remark` خالی مجاز نیست و پورت باید ۰..۶۵۵۳۵
+ * باشد؛ `address` هم حداقل یک مقدارِ غیرخالی می‌خواهد چون بدونِ آدرس، هاست
+ * هیچ لینکی تولید نمی‌کند و در پنل هم بی‌فایده است.
+ */
+object HostValidation {
+    const val ERR_REMARK = "remark"
+    const val ERR_ADDRESS = "address"
+    const val ERR_PORT = "port"
+
+    /** پیامِ خطای فرم، یا null اگر همه‌چیز درست است. `port` خالی = «پیش‌فرضِ inbound». */
+    fun validate(remark: String, addresses: List<String>, port: String): String? {
+        if (remark.trim().isEmpty()) return ERR_REMARK
+        if (addresses.none { it.isNotBlank() }) return ERR_ADDRESS
+        val p = port.trim()
+        if (p.isNotEmpty()) {
+            val n = p.toIntOrNull() ?: return ERR_PORT
+            if (n !in 0..65535) return ERR_PORT
+        }
+        return null
+    }
+}
+
+/**
+ * یک کور — `GET /api/cores` (مجوزِ `cores.read`).
+ *
+ * [config] عمداً رشتهٔ خام است: کانفیگِ Xray می‌تواند صدها کیلوبایت JSON باشد و
+ * پارس/دوباره‌سازی‌اش در فرمِ موبایل ریسکِ گم‌شدنِ کلیدها را دارد. فقط فیلدهای
+ * کوتاه (نام/تگ‌های استثنا/فالبک) در فرم ویرایش می‌شوند و کانفیگ دست‌نخورده
+ * دوباره فرستاده می‌شود — پنل هم PUT را کامل می‌خواهد.
+ */
+data class PanelCore(
+    val id: Int,
+    val name: String,
+    /** `xray` | `wg` | `mtproto` | `singbox` یا null (پنل از روی کانفیگ حدس می‌زند). */
+    val type: String? = null,
+    val excludeInboundTags: List<String> = emptyList(),
+    val fallbacksInboundTags: List<String> = emptyList(),
+    val sortOrder: Int = 0,
+    val config: String = "{}"
+)
+
+/**
+ * انواعِ کور — عیناً همان مقادیرِ `CoreType` در `app/db/models.py` پنل:
+ * `xray`، `wg`، `mtproto`، `singbox`. یک حرف اختلاف در این رشته‌ها یعنی ۴۲۲ در
+ * `PUT /api/cores/{id}`؛ پس نه «sing-box» (با خط تیره) و نه «mihomo» درست نیستند.
+ */
+object CoreType {
+    const val XRAY = "xray"
+    const val WG = "wg"
+    const val MTPROTO = "mtproto"
+    const val SING_BOX = "singbox"
+    val ALL = listOf(XRAY, WG, MTPROTO, SING_BOX)
+}
+
+/**
+ * قالبِ کلاینت — `GET /api/client_templates` (مجوزِ `client_templates.read`).
+ * برخلافِ «قالبِ کاربر» ([UserTemplateItem]) این یکی *محتوای* خروجیِ اشتراک است.
+ */
+data class ClientTemplate(
+    val id: Int,
+    val name: String,
+    /** `clash_subscription` | `xray_subscription` | `singbox_subscription` | `user_agent` | `grpc_user_agent`. */
+    val templateType: String,
+    val content: String,
+    val isDefault: Boolean = false,
+    /** قالبِ سیستمی را پنل اجازهٔ حذف نمی‌دهد (۴۰۳/۴۰۰) — دکمه‌اش را نشان نمی‌دهیم. */
+    val isSystem: Boolean = false
+)
+
+/** انواعِ قالبِ کلاینت (`ClientTemplateType`) با ترتیبِ نمایش. */
+object ClientTemplateType {
+    const val CLASH = "clash_subscription"
+    const val XRAY = "xray_subscription"
+    const val SING_BOX = "singbox_subscription"
+    const val USER_AGENT = "user_agent"
+    const val GRPC_USER_AGENT = "grpc_user_agent"
+    val ALL = listOf(CLASH, XRAY, SING_BOX, USER_AGENT, GRPC_USER_AGENT)
+}
+
+/**
+ * اعتبارسنجیِ قالبِ کلاینت — همان قواعدِ پنل (`ClientTemplateBase`):
+ * نام ≤ ۶۴ کاراکتر و غیرخالی، محتوا غیرخالی.
+ */
+object ClientTemplateValidation {
+    const val MAX_NAME = 64
+    const val ERR_NAME = "name"
+    const val ERR_NAME_LONG = "name_long"
+    const val ERR_CONTENT = "content"
+
+    fun validate(name: String, content: String): String? {
+        val n = name.trim()
+        if (n.isEmpty()) return ERR_NAME
+        if (n.length > MAX_NAME) return ERR_NAME_LONG
+        if (content.isBlank()) return ERR_CONTENT
+        return null
+    }
+}
