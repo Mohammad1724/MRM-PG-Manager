@@ -494,7 +494,10 @@ private fun CreateApiKeyDialog(
                     modifier = Modifier.weight(1f)
                 )
                 PGPrimaryButton(
-                    text = stringResource(R.string.ak_create),
+                    // برچسبِ تأیید جدا از عنوانِ دیالوگ: «ساخت کلید» عنوان است،
+                    // «بساز» کاری که با لمس انجام می‌شود (و تستِ Compose هم
+                    // دیگر بینِ عنوان و دکمه اشتباه نمی‌کند).
+                    text = stringResource(R.string.ak_create_action),
                     onClick = {
                         busy = true
                         submit(name.trim(), note.trim(), days.toLongOrNull()?.takeIf { it > 0 }) { message ->

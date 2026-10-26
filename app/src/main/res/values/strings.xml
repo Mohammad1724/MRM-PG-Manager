@@ -1103,6 +1103,7 @@
     <string name="ak_title">API keys</string>
     <string name="ak_subtitle">Keys never expire, so background monitoring keeps working</string>
     <string name="ak_create">Create key</string>
+    <string name="ak_create_action">Create</string>
     <string name="ak_create_hint">The full key is shown once, right after it is created.</string>
     <string name="ak_name">Name</string>
     <string name="ak_note">Note (optional)</string>

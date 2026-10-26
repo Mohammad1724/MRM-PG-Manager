@@ -1102,6 +1102,7 @@
     <string name="ak_title">کلیدهای API</string>
     <string name="ak_subtitle">این کلیدها منقضی نمی‌شوند، پس مانیتورینگِ پس‌زمینه قطع نمی‌شود</string>
     <string name="ak_create">ساختِ کلید</string>
+    <string name="ak_create_action">بساز</string>
     <string name="ak_create_hint">متنِ کاملِ کلید فقط یک‌بار — همان لحظهٔ ساخت — نشان داده می‌شود.</string>
     <string name="ak_name">نام</string>
     <string name="ak_note">یادداشت (اختیاری)</string>
