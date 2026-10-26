@@ -143,7 +143,6 @@
     <string name="invoice_title">Invoice</string>
     <string name="backup_title">Backup</string>
     <string name="security_title">Security</string>
-    <string name="advanced_title">Advanced</string>
     <string name="advanced_conn_desc">Current panel, saved accounts, connection test</string>
     <string name="advanced_users_desc">Username pattern, debtors, bulk create, export</string>
     <string name="advanced_invoice_desc">Invoice logo and seller name</string>
@@ -1188,6 +1187,8 @@
     <string name="ct_chars_fmt">%1$d characters</string>
 
     <!-- ── جداسازیِ تنظیماتِ اپ از تنظیماتِ پنل (نسخهٔ ۰٫۱۲) ── -->
+    <string name="set_tab_users">User defaults</string>
+    <string name="set_tab_data">Data &amp; backup</string>
     <string name="set_tab_security">App lock</string>
     <string name="panel_title">My panel</string>
     <string name="panel_subtitle">Server, access and infrastructure</string>

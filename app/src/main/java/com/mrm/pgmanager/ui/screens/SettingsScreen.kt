@@ -65,10 +65,12 @@ import com.mrm.pgmanager.ui.theme.ThemeState
  * مقایسه می‌کرد. با عوض‌کردنِ زبان، مقایسه شکست می‌خورد و تبِ فعال گم می‌شد.
  * شناسهٔ پایدار این کلاسِ باگ را ریشه‌کن می‌کند.
  */
-//  ترتیبِ تب‌ها = ترتیبِ پیمایش. «اتصال» از این صفحه حذف شد (نسخهٔ ۰٫۱۲): هویتِ
-//  سرور/نسخه/نقش/حساب‌ها به صفحهٔ «پنلِ من» رفت و قفلِ برنامه اینجا ماند — تنظیمات
-//  حالا فقط چیزهایی است که مالِ *همین دستگاه* است.
-enum class SettingsSection { APPEARANCE, MONITORING, ADVANCED, SECURITY }
+//  ترتیبِ تب‌ها = ترتیبِ پیمایش. دو تغییرِ نسخهٔ ۰٫۱۲:
+//   • «اتصال و حساب‌ها» حذف شد → هویتِ سرور/نسخه/نقش/حساب‌ها به «پنلِ من» رفت و
+//     قفلِ برنامه اینجا ماند؛
+//   • «پیشرفته» شکست: چهار قابلیت زیرِ یک نامِ مبهم پنهان بود. حالا دو تبِ روشن
+//     دارد: «پیش‌فرض‌های کاربر» (کاربران) و «داده و پشتیبان» (فاکتور + پشتیبان).
+enum class SettingsSection { APPEARANCE, MONITORING, USERS, DATA, SECURITY }
 
 /**
  * صفحهٔ تنظیمات — بازطراحی‌شده به‌صورتِ صفحهٔ کامل، هم‌سبک با بقیهٔ صفحه‌ها.
@@ -169,7 +171,8 @@ fun SettingsScreen(
         val tabs = listOf(
             SettingsSection.APPEARANCE to stringResource(R.string.appearance),
             SettingsSection.MONITORING to stringResource(R.string.set_tab_monitoring),
-            SettingsSection.ADVANCED to stringResource(R.string.advanced_title),
+            SettingsSection.USERS to stringResource(R.string.set_tab_users),
+            SettingsSection.DATA to stringResource(R.string.set_tab_data),
             SettingsSection.SECURITY to stringResource(R.string.set_tab_security)
         )
         androidx.compose.foundation.lazy.LazyRow(
@@ -234,16 +237,28 @@ fun SettingsScreen(
                     )
                 }
 
-                // بخشِ پیشرفته فقط وقتی معنا دارد که SessionStore پاس داده شده باشد
-                // (در MainActivity همیشه پاس داده می‌شود؛ مقدار پیش‌فرضِ null فقط
-                // برای پیش‌نمایش‌ها و تست‌هاست).
-                SettingsSection.ADVANCED -> if (store != null) {
-                    AdvancedSection(
+                // دو تبِ زیر فقط وقتی معنا دارند که SessionStore پاس داده شده باشد
+                // (در MainActivity همیشه پاس می‌شود؛ مقدار پیش‌فرضِ null فقط برای
+                // پیش‌نمایش‌ها و تست‌هاست).
+                //
+                // «پیش‌فرض‌های کاربر»: پیشوندِ نامِ کاربری، بدهکار/قطعِ خودکار،
+                // ساختِ گروهی و خروجیِ فهرست — هر چیزی که فرمِ «ساختِ کاربر» را
+                // شکل می‌دهد.
+                SettingsSection.USERS -> if (store != null) {
+                    UsersSettingsTab(
                         session = session,
                         store = store,
                         monitoringSettings = monitoringSettings,
                         onMonitoringChange = onMonitoringChange,
-                        onBulkCreate = onBulkCreate,
+                        onBulkCreate = onBulkCreate
+                    )
+                }
+
+                // «داده و پشتیبان»: فاکتور (لوگو/فروشنده) و پشتیبان‌گیری/بازیابی.
+                // هر دو با *فایل* کار می‌کنند، به همین دلیل یک تب‌اند.
+                SettingsSection.DATA -> if (store != null) {
+                    DataSettingsTab(
+                        store = store,
                         appVersion = appVersion,
                         onDataRestored = onDataRestored
                     )
@@ -268,24 +283,44 @@ fun SettingsScreen(
 }
 
 /**
- * بخشِ «پیشرفته»: سه زیربخشِ سنگین (کاربران/فاکتور/پشتیبان) که به `session`/`store`
- * و لانچرهای فایل وابسته‌اند و به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه
- * شلوغ نشود. زیربخشِ «اتصال» در فاز ۱.۴ به تبِ «اتصال و حساب‌ها» رفت و در
- * نسخهٔ ۰٫۱۲ همان تب هم به صفحهٔ «پنلِ من» منتقل شد (جداسازیِ تنظیماتِ اپ از پنل).
+ * تبِ **«پیش‌فرض‌های کاربر»** — هر چیزی که فرمِ ساخت/ویرایشِ کاربر را شکل می‌دهد:
+ * الگوی نامِ کاربری، آستانهٔ بدهکار و قطعِ خودکار، ساختِ گروهی و خروجیِ فهرست.
  *
- * فقط یک زیربخش هم‌زمان باز است؛ ایندکسِ زیربخشِ باز با [rememberSaveable]
- * نگه داشته می‌شود تا با چرخشِ صفحه یا تغییرِ زبان گم نشود (`-1` = همه بسته).
- *
- * دیالوگِ بازیابیِ پشتیبان عمداً اینجا (سطحِ بخش) میزبانی می‌شود، نه داخلِ
- * [BackupSection]، چون آن داخلِ ستونِ اسکرول‌شونده است.
+ * قبلاً یکی از سه زیربخشِ آکاردئونِ «پیشرفته» بود؛ حالا که تبِ خودش را دارد،
+ * بدونِ یک لایهٔ کلیکِ اضافه مستقیم نمایش داده می‌شود (همان محتوا، همان کارت‌ها).
  */
 @Composable
-private fun AdvancedSection(
+private fun UsersSettingsTab(
     session: Session?,
     store: SessionStore,
     monitoringSettings: MonitoringSettings,
     onMonitoringChange: (MonitoringSettings) -> Unit,
-    onBulkCreate: () -> Unit,
+    onBulkCreate: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    UsersSettingsSection(
+        session = session,
+        store = store,
+        scope = scope,
+        monitoringSettings = monitoringSettings,
+        onMonitoringChange = onMonitoringChange,
+        onBulkCreate = onBulkCreate
+    )
+}
+
+/**
+ * تبِ **«داده و پشتیبان»** — فاکتور (لوگو و نامِ فروشنده) و پشتیبان‌گیری/بازیابی.
+ *
+ * چرا این دو با هم: هر دو با *فایل* کار می‌کنند (ذخیره/بازیابیِ تصویرِ لوگو و
+ * فایلِ بکاپ) و همان جایی هستند که کاربر سراغِ «نگهداری از داده‌هایم» می‌رود.
+ *
+ * داخلِ تب، هر دو گروه جمع‌شونده‌اند و فقط یکی هم‌زمان باز است — نه برای پنهان‌کاری،
+ * بلکه چون هر کدام چند کارتِ بلند دارند و صفحه نباید یک ستونِ بی‌پایان شود. عنوان و
+ * زیرعنوانِ هر گروه همیشه دیده می‌شود، پس کشف‌پذیری از دست نمی‌رود.
+ */
+@Composable
+private fun DataSettingsTab(
+    store: SessionStore,
     appVersion: String,
     onDataRestored: () -> Unit = {}
 ) {
@@ -294,30 +329,12 @@ private fun AdvancedSection(
     var restoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     ExpandableSettingsGroup(
-        title = stringResource(R.string.users_title),
-        subtitle = stringResource(R.string.advanced_users_desc),
-        icon = AppIcon.Users,
-        accent = GlassGreen,
-        expanded = openGroup == 0,
-        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
-    ) {
-        UsersSettingsSection(
-            session = session,
-            store = store,
-            scope = scope,
-            monitoringSettings = monitoringSettings,
-            onMonitoringChange = onMonitoringChange,
-            onBulkCreate = onBulkCreate
-        )
-    }
-
-    ExpandableSettingsGroup(
         title = stringResource(R.string.invoice_title),
         subtitle = stringResource(R.string.advanced_invoice_desc),
         icon = AppIcon.Receipt,
         accent = GlassAmber,
-        expanded = openGroup == 1,
-        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
+        expanded = openGroup == 0,
+        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
     ) {
         InvoiceSection(store = store, scope = scope)
     }
@@ -327,8 +344,8 @@ private fun AdvancedSection(
         subtitle = stringResource(R.string.advanced_backup_desc),
         icon = AppIcon.Backup,
         accent = LocalThemeState.current.accentPrimary,
-        expanded = openGroup == 2,
-        onToggle = { openGroup = if (openGroup == 2) -1 else 2 }
+        expanded = openGroup == 1,
+        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
     ) {
         BackupSection(
             store = store,
@@ -338,6 +355,8 @@ private fun AdvancedSection(
         )
     }
 
+    // دیالوگِ بازیابی در سطحِ تب میزبانی می‌شود، نه داخلِ [BackupSection]، چون آن
+    // داخلِ ستونِ اسکرول‌شونده است و دیالوگ باید مستقل از اسکرول بماند.
     restoreUri?.let { uri ->
         RestoreBackupDialog(
             uri = uri,
