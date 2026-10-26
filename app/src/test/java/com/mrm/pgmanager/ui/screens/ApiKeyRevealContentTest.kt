@@ -2,9 +2,9 @@ package com.mrm.pgmanager.ui.screens
 
 import android.app.Application
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,13 +16,13 @@ import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * دیالوگِ «یک‌بار نمایشِ کلید» — تنها جایی که متنِ کاملِ کلید دیده می‌شود.
@@ -37,7 +37,6 @@ import org.robolectric.annotation.GraphicsMode
  * بدونِ این، تغییرِ یک واژه در رشته، تست را می‌شکست.
  */
 @RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp")
 class ApiKeyRevealContentTest {
 
@@ -73,12 +72,15 @@ class ApiKeyRevealContentTest {
     private val done get() = localized("Done", R.string.ak_reveal_done)
 
     /**
-     * ریشهٔ هر دو شکستِ اولیهٔ همین تست: `setContent { ApiKeyRevealContent(…) }`
-     * خالی. محتوای دیالوگ `Column(Modifier.fillMaxWidth())` است و ارتفاعش را از
-     * محتوا می‌گیرد؛ در میزبانِ تست بدونِ یک والدِ تمام‌صفحه، ارتفاعِ در دسترس صفر
-     * می‌شد — یعنی «گره هست ولی displayed نیست» برای `Text`های ساده، و برای برچسبِ
-     * `MrmButton` حتی *نبودِ* گره (متنی که هیچ خطی جا نشود semantics نمی‌سازد).
-     * همان `Box(Modifier.fillMaxSize())` که `StatCardGeometryTest` می‌گذارد.
+     * والدِ اندازه‌دار عمدی است، نه سلیقه: محتوای دیالوگ `Column(Modifier.fillMaxWidth())`
+     * است و ارتفاعش را از محتوا می‌گیرد. اگر میزبانِ تست فضای بلندی ندهد، `Column`
+     * فرزندی را که در فضایِ باقی‌مانده نمی‌گنجاند **اندازه نمی‌گیرد** — یعنی نه
+     * placed می‌شود نه گرهٔ semantics می‌سازد. نتیجهٔ واقعی‌اش در CI همین بود:
+     * «گره هست ولی displayed نیست» برای دو `Text` اول و «هیچ گره‌ای پیدا نشد» برای
+     * دکمهٔ چهارم. پس این‌جا یک `Box` با ابعادِ صریح می‌گذاریم تا چیدمان مثلِ
+     * پنجرهٔ دیالوگِ واقعی باشد؛ `assertIsDisplayed` را هم به کار نمی‌بریم، چون
+     * «ناحیهٔ دیدنی» با کرانهٔ *پنجره* بریده می‌شود و پنجرهٔ Robolectric در این
+     * میزبان ارتفاعِ قابلِ اتکا ندارد — `boundsInRoot` همان حرف را با عدد می‌زند.
      */
     private fun render(onDismiss: () -> Unit = {}) {
         val fresh = CreatedApiKey(
@@ -86,18 +88,24 @@ class ApiKeyRevealContentTest {
             item = PanelApiKey(id = 1, name = "Backup monitor", trimmed = maskedKey)
         )
         rule.setContent {
-            Box(Modifier.fillMaxSize()) {
+            Box(Modifier.size(width = 400.dp, height = 700.dp)) {
                 ApiKeyRevealContent(fresh = fresh, onDismiss = onDismiss)
             }
         }
     }
 
+    /** ارتفاعِ واقعیِ گره — همان چیزی که «صفر شدنِ چیدمان» را از «نبودِ متن» جدا می‌کند. */
+    private fun heightOf(text: String): Float =
+        rule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot.height
+
     @Test
     fun the_full_key_is_shown_with_its_own_label() {
         render()
-        rule.onNodeWithText(title).assertIsDisplayed()
-        rule.onNodeWithText(fullKey).assertIsDisplayed()
-        rule.onNodeWithText("Backup monitor").assertIsDisplayed()
+        rule.onNodeWithText(title).assertExists()
+        rule.onNodeWithText(fullKey).assertExists()
+        rule.onNodeWithText("Backup monitor").assertExists()
+        // ارتفاعِ صفر یعنی «چیدمان نشکسته، اصلاً چیده نشده» — همان دامِ CI.
+        assertTrue("عنوانِ دیالوگ ارتفاع ندارد: ${heightOf(title)}", heightOf(title) > 0f)
     }
 
     /**
@@ -114,7 +122,8 @@ class ApiKeyRevealContentTest {
     @Test
     fun the_warning_that_this_is_the_only_chance_is_on_screen() {
         render()
-        rule.onNodeWithText(hint).assertIsDisplayed()
+        rule.onNodeWithText(hint).assertExists()
+        assertTrue("هشدارِ «فقط همین یک‌بار» ارتفاع ندارد", heightOf(hint) > 0f)
     }
 
     @Test
