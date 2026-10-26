@@ -63,6 +63,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.listIntro
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.ApiErrorMapper
 import com.mrm.pgmanager.utils.DateLogic
@@ -211,7 +212,7 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
             loading && keys.isEmpty() -> Box(
                 Modifier.fillMaxWidth().heightIn(min = 160.dp),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator(color = theme.accentPrimary) }
+            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
             loadError != null && keys.isEmpty() -> MrmErrorState(
                 onRetry = { scope.launch { loading = true; load() } },
@@ -399,9 +400,7 @@ private fun ApiKeyRow(
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(expiryText, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.weight(1f))
-            if (busy) CircularProgressIndicator(
-                modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary
-            )
+            if (busy) MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
             if (onRotate != null) InfraIconButton(
                 icon = AppIcon.Random,
                 description = stringResource(R.string.ak_rotate),

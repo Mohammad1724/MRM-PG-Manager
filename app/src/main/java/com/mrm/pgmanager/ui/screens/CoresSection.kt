@@ -59,6 +59,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
 import com.mrm.pgmanager.ui.dialogs.ChipSelector
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
@@ -165,7 +166,7 @@ internal fun CoresSection(session: Session) {
             loading && cores.isEmpty() -> Box(
                 Modifier.fillMaxWidth().height(160.dp),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator(color = theme.accentPrimary) }
+            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
             loadError != null && cores.isEmpty() -> MrmErrorState(
                 onRetry = { scope.launch { loading = true; load() } },
@@ -317,10 +318,7 @@ private fun CoreRow(
         }
 
         if (busy) {
-            CircularProgressIndicator(
-                color = theme.accentPrimary, strokeWidth = 2.dp,
-                modifier = Modifier.size(18.dp)
-            )
+            MrmBusyIndicator(color = theme.accentPrimary, size = 18.dp, strokeWidth = 2.dp)
         } else {
             if (onRestart != null) InfraIconButton(
                 icon = AppIcon.Reset,

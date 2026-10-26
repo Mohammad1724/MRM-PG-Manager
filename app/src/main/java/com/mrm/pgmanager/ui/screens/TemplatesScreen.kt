@@ -50,6 +50,7 @@ import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
 import com.mrm.pgmanager.ui.dialogs.ChipSelector
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
@@ -246,7 +247,7 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 when {
                     loading && templates.isEmpty() -> {
                         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = theme.accentPrimary)
+                            MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
                         }
                     }
 

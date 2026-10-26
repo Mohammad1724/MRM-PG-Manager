@@ -48,6 +48,7 @@ import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.ApiErrorMapper
@@ -228,7 +229,7 @@ fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
                 loading && current == null -> Box(
                     Modifier.fillMaxWidth().heightIn(min = 160.dp),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = theme.accentPrimary) }
+                ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
                 loadError != null && current == null -> MrmErrorState(
                     onRetry = { scope.launch { loading = true; load() } },

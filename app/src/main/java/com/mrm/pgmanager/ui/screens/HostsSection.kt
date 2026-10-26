@@ -60,6 +60,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.dialogs.ChipSelector
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
@@ -183,7 +184,7 @@ internal fun HostsSection(session: Session) {
             loading && hosts.isEmpty() -> Box(
                 Modifier.fillMaxWidth().height(160.dp),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator(color = theme.accentPrimary) }
+            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
             loadError != null && hosts.isEmpty() -> MrmErrorState(
                 onRetry = { scope.launch { loading = true; load() } },
@@ -374,11 +375,7 @@ private fun HostRow(
         }
 
         if (busy) {
-            CircularProgressIndicator(
-                color = theme.accentPrimary,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(18.dp)
-            )
+            MrmBusyIndicator(color = theme.accentPrimary, size = 18.dp, strokeWidth = 2.dp)
         } else {
             if (onToggle != null) InfraIconButton(
                 icon = if (host.isDisabled) AppIcon.StatusDisabled else AppIcon.StatusActive,

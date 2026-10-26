@@ -37,6 +37,7 @@ import com.mrm.pgmanager.data.model.*
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.*
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.*
 import com.mrm.pgmanager.utils.*
 import kotlinx.coroutines.Dispatchers
@@ -74,7 +75,7 @@ fun BulkApplyTemplateDialog(
 
                 if (isLoading) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                        CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
+                        MrmBusyIndicator(color = theme.accentPrimary, size = 13.dp, strokeWidth = 2.dp)
                         Text(stringResource(R.string.bt_loading), fontSize = 11.sp, color = theme.mutedColor)
                     }
                 } else if (loadFailed) {

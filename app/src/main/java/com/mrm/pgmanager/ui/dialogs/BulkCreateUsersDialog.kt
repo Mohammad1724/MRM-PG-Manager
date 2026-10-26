@@ -39,6 +39,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -191,7 +192,7 @@ fun BulkCreateUsersDialog(
                         ) { useTemplate = it == 0 }
                         if (templatesLoading) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                                CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
+                                MrmBusyIndicator(color = theme.accentPrimary, size = 13.dp, strokeWidth = 2.dp)
                                 Text(stringResource(R.string.bc_loading_templates), fontSize = 11.sp, color = theme.mutedColor)
                             }
                         } else if (useTemplate && templates.isEmpty()) {
@@ -233,7 +234,7 @@ fun BulkCreateUsersDialog(
                     // نمای پیشرفت / نتیجه
                     SettingsCard(if (done) stringResource(R.string.bc_result) else stringResource(R.string.bc_creating), AppIcon.Users, accent = if (done) GlassGreen else theme.accentPrimary) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                            if (!done) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
+                            if (!done) MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
                             Text(stringResource(R.string.bc_progress, progress, count), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         }
                         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(4.dp)).background(theme.searchBgColor)) {

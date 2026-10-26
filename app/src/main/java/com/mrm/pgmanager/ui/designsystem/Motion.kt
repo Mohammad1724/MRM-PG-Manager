@@ -48,6 +48,11 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Canvas
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
@@ -400,4 +405,48 @@ fun Modifier.pressScale(
         label = "pressScaleShared"
     )
     return this.graphicsLayer { scaleX = current; scaleY = current }
+}
+
+/**
+ * نشانگرِ «مشغولم» — تنها راهِ ساختنِ اسپینرِ درون‌خطی در اپ.
+ *
+ * چرا یک کامپوزبلِ جدا و نه `CircularProgressIndicator` خام در هر صفحه:
+ * اسپینرِ بی‌پایان دو جا گران می‌آید.
+ *
+ *  ۱. کاربری که «کاهش انیمیشن» را روشن کرده، چرخشِ مداوم دقیقاً همان محرکِ
+ *     ناخوشایند است. یک کمانِ ساکن همان پیام را می‌رساند: «کارت هنوز زنده است،
+ *     منتظر بمان» — بدونِ حرکت.
+ *  ۲. برای آزمون، هر انیمیشنِ بی‌پایان یعنی `waitForIdle` که برنمی‌گردد
+ *     (قاعدهٔ §۳ `docs/CI.md`). با همین یک نقطه، صفحه‌ها و دیالوگ‌ها در حالتِ
+ *     «کاهش انیمیشن» قابلِ آزمون می‌مانند، بی‌آنکه رفتارِ تولید عوض شود.
+ *
+ * @param color رنگِ خودِ نشانگر؛ فراخوان آن را از تم می‌گیرد (کنتراست با سطح).
+ */
+@Composable
+fun MrmBusyIndicator(
+    color: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 20.dp,
+    strokeWidth: Dp = 2.dp
+) {
+    if (!MotionPrefs.reduceMotion) {
+        CircularProgressIndicator(
+            modifier = modifier.size(size),
+            color = color,
+            strokeWidth = strokeWidth
+        )
+        return
+    }
+    Canvas(modifier.size(size)) {
+        val stroke = strokeWidth.toPx().coerceAtMost(this.size.minDimension / 2f)
+        drawArc(
+            color = color,
+            startAngle = -45f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(stroke / 2f, stroke / 2f),
+            size = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+    }
 }

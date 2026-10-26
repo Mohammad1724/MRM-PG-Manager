@@ -72,6 +72,7 @@ import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsGlass
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -346,11 +347,7 @@ fun MrmButton(
                 contentAlignment = Alignment.Center
             ) {
                 if (loading) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(coinSize - 9.dp),
-                        color = contentColor,
-                        strokeWidth = 2.dp
-                    )
+                    MrmBusyIndicator(color = contentColor, size = coinSize - 9.dp, strokeWidth = 2.dp)
                 } else if (icon != null) {
                     RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconXs else DsComponent.IconSm)
                 }
@@ -376,11 +373,7 @@ fun MrmButton(
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 if (loading) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(DsComponent.IconMd),
-                        color = contentColor,
-                        strokeWidth = 2.5.dp
-                    )
+                    MrmBusyIndicator(color = contentColor, size = DsComponent.IconMd, strokeWidth = 2.5.dp)
                 } else {
                     if (icon != null) {
                         RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)

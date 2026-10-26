@@ -49,6 +49,7 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.feedback.AppFeedback
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.ApiErrorMapper
@@ -176,7 +177,7 @@ fun UserDevicesDialog(
                 loading -> Box(
                     Modifier.fillMaxWidth().heightIn(min = 120.dp),
                     contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = theme.accentPrimary) }
+                ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
                 loadError != null -> Column(
                     Modifier.fillMaxWidth(),
@@ -281,9 +282,7 @@ private fun DeviceRow(
                 )
             }
         }
-        if (busy) CircularProgressIndicator(
-            modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary
-        )
+        if (busy) MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
         if (canDelete) Box(
             Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable { onForget() }
                 .background(theme.cardSurfaceColor)
