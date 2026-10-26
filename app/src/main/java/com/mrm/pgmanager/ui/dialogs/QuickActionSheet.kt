@@ -65,7 +65,14 @@ fun QuickActionSheet(
     onDelete: () -> Unit,
     onDebtor: (() -> Unit)? = null,
     isDebtor: Boolean = false,
-    onInvoice: (() -> Unit)? = null
+    onInvoice: (() -> Unit)? = null,
+    /**
+     * RBAC — اکشن‌های مخربِ ردیف برای ادمینِ بدونِ مجوز پنهان می‌شوند. نامعلوم‌بودنِ
+     * مجوز = مجاز (همان قرارِ [com.mrm.pgmanager.data.AdminAccess]).
+     */
+    canResetUsage: Boolean = true,
+    canToggle: Boolean = true,
+    canDelete: Boolean = true
 ) {
     val theme = LocalThemeState.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -104,7 +111,7 @@ fun QuickActionSheet(
                             QuickActionRow(AppIcon.Edit, stringResource(R.string.qa_edit), theme.inkColor, Modifier.weight(1f)) { onEdit(); onDismiss() }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-                            QuickActionRow(AppIcon.Reset, stringResource(R.string.qa_reset_data), theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
+                            if (canResetUsage) QuickActionRow(AppIcon.Reset, stringResource(R.string.qa_reset_data), theme.accentPrimary, Modifier.weight(1f)) { onResetUsage(); onDismiss() }
                             QuickActionRow(AppIcon.Calendar, stringResource(R.string.qa_reset_time), theme.accentPrimary, Modifier.weight(1f)) { onResetExpiry(); onDismiss() }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -119,9 +126,11 @@ fun QuickActionSheet(
                                 if (onDebtor != null) { onDebtor(); onDismiss() } else { onDismiss() }
                             }
                         }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-                            QuickActionRow(AppIcon.User, stringResource(if (user.status == "disabled") R.string.qa_enable else R.string.qa_disable), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
-                            QuickActionRow(AppIcon.Delete, stringResource(R.string.qa_delete), GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
+                        if (canToggle || canDelete) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                                if (canToggle) QuickActionRow(AppIcon.User, stringResource(if (user.status == "disabled") R.string.qa_enable else R.string.qa_disable), theme.inkColor, Modifier.weight(1f)) { onToggle(); onDismiss() }
+                                if (canDelete) QuickActionRow(AppIcon.Delete, stringResource(R.string.qa_delete), GlassRed, Modifier.weight(1f)) { onDelete(); onDismiss() }
+                            }
                         }
                     }
                     

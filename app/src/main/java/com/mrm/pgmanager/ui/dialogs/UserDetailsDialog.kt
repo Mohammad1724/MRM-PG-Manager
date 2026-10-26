@@ -203,7 +203,11 @@ fun UserDetailsDialog(
      * پس‌زمینه از پنل تازه می‌شود؛ نتیجه به لیست هم پس داده می‌شود تا ردیفِ
      * پشتِ ورقه با چیزی که کاربر دید یکی بماند.
      */
-    onRefreshed: ((PanelUser) -> Unit)? = null
+    onRefreshed: ((PanelUser) -> Unit)? = null,
+    /** RBAC — اکشنِ مخرب برای ادمینِ بدونِ مجوز پنهان می‌شود (نامعلوم = مجاز). */
+    canResetUsage: Boolean = true,
+    canToggle: Boolean = true,
+    canDelete: Boolean = true
 ) {
     val theme = LocalThemeState.current
     val context = LocalContext.current
@@ -388,18 +392,18 @@ fun UserDetailsDialog(
                         // ردیف اول: 3 تایی
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                             CompactAction(icon = AppIcon.Template, label = stringResource(R.string.ud_template), onClick = { templatePickerOpen = true }, modifier = Modifier.weight(1f))
-                            CompactAction(icon = AppIcon.Reset, label = stringResource(R.string.ud_reset_data), onClick = { usageConfirm = true }, modifier = Modifier.weight(1f))
+                            if (canResetUsage) CompactAction(icon = AppIcon.Reset, label = stringResource(R.string.ud_reset_data), onClick = { usageConfirm = true }, modifier = Modifier.weight(1f))
                             CompactAction(icon = AppIcon.Calendar, label = stringResource(R.string.ud_reset_time), onClick = { expiryConfirm = true }, modifier = Modifier.weight(1f))
                         }
                         // ردیف دوم: فعال/غیرفعال + حذف (چینش جدید)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                            CompactAction(
+                        if (canToggle || canDelete) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                            if (canToggle) CompactAction(
                                 icon = if (isDisabled) AppIcon.CheckCircle else AppIcon.StatusDisabled,
                                 label = stringResource(if (isDisabled) R.string.ud_enable else R.string.ud_disable),
                                 onClick = { onToggle() }, modifier = Modifier.weight(1f),
                                 tint = if (isDisabled) GlassGreen else GlassAmber
                             )
-                            CompactAction(icon = AppIcon.Delete, label = stringResource(R.string.ud_delete), onClick = { onDelete() }, modifier = Modifier.weight(1f), isDestructive = true)
+                            if (canDelete) CompactAction(icon = AppIcon.Delete, label = stringResource(R.string.ud_delete), onClick = { onDelete() }, modifier = Modifier.weight(1f), isDestructive = true)
                         }
                     }
 

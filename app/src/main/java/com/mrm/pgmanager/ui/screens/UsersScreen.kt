@@ -633,7 +633,12 @@ fun UsersScreen(
                         // (`require_scope_all("users","update")`)؛ برای ادمینِ محدود به
                         // کاربرانِ خودش این دو آیتم پنهان می‌شوند تا به ۴۰۳ نخورد.
                         showAddDays = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update"),
-                        showAddData = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update")
+                        showAddData = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update"),
+                        // اکشن‌های مخربِ گروهی — بدونِ مجوز پنهان می‌شوند (پنل ۴۰۳ می‌داد).
+                        canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete"),
+                        canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
+                        canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
+                        canRevokeSubs = com.mrm.pgmanager.data.AdminAccess.can("users", "revoke_sub")
                     )
                 }
             }

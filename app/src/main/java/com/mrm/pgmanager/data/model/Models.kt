@@ -289,6 +289,12 @@ data class PanelNode(
     val message: String? = null,
     val xrayVersion: String? = null,
     val nodeVersion: String? = null,
+    /**
+     * ترتیبِ نمایش در پنل (v5.5+، `sort_order`). پنل نودها را با همین عدد مرتب
+     * می‌کند و `PUT /api/nodes/order` عوضش می‌کند؛ اپ هم همان ترتیب را نشان
+     * می‌دهد تا فهرستِ نودها با پنل یکی بماند. پیش‌فرض `0` = ترتیبِ خودِ پاسخ.
+     */
+    val sortOrder: Int = 0,
     val uplink: Long = 0L,
     val downlink: Long = 0L
 ) {

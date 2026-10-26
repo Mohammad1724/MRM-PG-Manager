@@ -593,7 +593,11 @@ internal fun UsersScreenDialogs(
             onDelete = { ui.deleteUser = u },
             onDebtor = { ui.debtorDialogUser = u },
             isDebtor = isDebtor,
-            onInvoice = { ui.invoiceDialogUser = u }
+            onInvoice = { ui.invoiceDialogUser = u },
+            // RBAC — اکشن‌های مخرب بدونِ مجوز پنهان می‌شوند (پنل ۴۰۳ می‌داد).
+            canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
+            canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
+            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete")
         )
     }
 
@@ -656,7 +660,10 @@ internal fun UsersScreenDialogs(
             onInvoice = {
                 ui.invoiceDialogUser = user
                 ui.selectedUser = null
-            }
+            },
+            canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
+            canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
+            canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete")
         )
     }
     if (ui.createMenuOpen) {
