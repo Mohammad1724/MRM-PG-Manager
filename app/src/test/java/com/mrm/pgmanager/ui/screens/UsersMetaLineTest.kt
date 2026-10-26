@@ -89,7 +89,9 @@ class UsersMetaLineTest {
         val numbers = chipNumbers()
         assertTrue("دو چیپ انتظار می‌رفت، ${icons.size} تا دیده شد", icons.size == 2 && numbers.size == 2)
         // قبل از این اصلاح لبهٔ چپِ چیپ به پهنای متنِ «آخرین دیدار» بند بود و این دو
-        // عدد چند dp با هم فرق می‌کردند.
+        // عدد چند dp با هم فرق می‌کردند. عمودی را نمی‌سنجیم: دو *ردیف* روی هم ۳۵dp
+        // اختلافِ y دارند (این اولش در همین تست عددِ ۱۳ در برابرِ ۴۸ داد) و آن هم
+        // تابعِ چیدمانِ ستون است، نه جایِ چیپ در خط.
         assertTrue(
             "آیکونِ چیپ در دو ردیف هم‌راستا نیست (${icons[0].left} در برابرِ ${icons[1].left})",
             abs(icons[0].left - icons[1].left) <= 0.5f
@@ -97,10 +99,6 @@ class UsersMetaLineTest {
         assertTrue(
             "عددِ چیپ در دو ردیف هم‌راستا نیست (${numbers[0].left} در برابرِ ${numbers[1].left})",
             abs(numbers[0].left - numbers[1].left) <= 0.5f
-        )
-        assertTrue(
-            "چیپ‌ها روی یک خطِ افقی نیستند (${icons[0].top} در برابرِ ${icons[1].top})",
-            abs(icons[0].top - icons[1].top) <= 0.5f
         )
     }
 
