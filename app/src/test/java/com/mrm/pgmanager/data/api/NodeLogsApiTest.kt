@@ -22,8 +22,11 @@ import org.junit.Test
  *     تنها راهی است که مانیتورینگِ پس‌زمینه بعد از ۲۴ ساعت نمی‌میرد؛
  *  ۳. قاب‌های SSE همان‌طور که sse-starlette می‌فرستد خوانده می‌شوند (چند `data:` در
  *     یک رویداد = یک رویداد، خطِ خالی = پایانِ رویداد، `:` = keep-alive)؛
- *  ۴. `detail`ِ پنل در پیامِ خطا می‌ماند و ۴۰۱ به [SessionExpiredException]
- *     تبدیل می‌شود — وگرنه روی صفحه فقط «خطای شبکه» نوشته می‌شد.
+ *  ۴. `detail`ِ پنل در پیامِ خطا می‌ماند و ۴۰۱ همان‌جا تشخیصِ «نشست منقضی»
+ *     می‌گیرد (`PanelApi.isUnauthorized`) — وگرنه روی صفحه فقط «خطای شبکه» نوشته
+ *     می‌شد و کاربر نمی‌فهمست باید دوباره وارد شود. مسیرِ جریان `executeJson` را
+ *     صدا نمی‌زند، پس خودِ استثنا `SessionExpiredException` نیست؛ چیزی که صفحه
+ *     به آن تکیه می‌کند همان تشخیصِ یکپارچه است.
  */
 class NodeLogsApiTest {
 
@@ -103,7 +106,8 @@ class NodeLogsApiTest {
     @Test fun `expired session on the stream is a session expiry not a generic failure`() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(401))
         val error = runCatching { PanelApi.openNodeLogs(session, 2) }.exceptionOrNull()
-        // صفحه با همین تشخیص «نشست منقضی» را از «پنل در دسترس نیست» جدا می‌کند.
+        // صفحه با همین تشخیص «نشست منقضی» را از «پنل در دسترس نیست» جدا می‌کند
+        // (تبدیلِ خودِ نوع فقط در مسیرهای JSON اتفاق می‌افتد).
         assertTrue("۴۰۱ باید به SessionExpiredException تبدیل شود: $error", PanelApi.isUnauthorized(error))
     }
 

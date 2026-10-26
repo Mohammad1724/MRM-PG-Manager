@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -273,32 +272,13 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
     )
 
     // ── نمایشِ یک‌بارهٔ متنِ کلید (پس از ساخت یا چرخش)
+    // قابِ دیالوگ اینجا است و محتوا بیرون (`ApiKeyRevealContent`)، تا همان محتوا در
+    // تستِ Compose بدونِ `Dialog` رندر شود: در Robolectric پنجرهٔ دیالوگ هرگز idle
+    // گزارش نمی‌کند و `performClick` روی دکمهٔ بازکردنش کلاس را ۶۰ ثانیه می‌خواباند
+    // (`docs/CI.md` §۳).
     revealed?.let { fresh ->
         Dialog(onDismissRequest = { revealed = null }) {
-            Column(
-                Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(DsSpacing.Xl),
-                verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
-            ) {
-                Text(
-                    stringResource(R.string.ak_reveal_title), fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.ak_reveal_hint), fontSize = 11.sp, color = theme.mutedColor
-                )
-                SettingsInfoRow(
-                    label = fresh.item.name,
-                    value = fresh.key,
-                    copyable = true
-                )
-                PGPrimaryButton(
-                    text = stringResource(R.string.ak_reveal_done),
-                    onClick = { revealed = null },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            ApiKeyRevealContent(fresh = fresh, onDismiss = { revealed = null })
         }
     }
 
@@ -349,6 +329,43 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
 }
 
 /** یک ردیفِ کلید: نام، متنِ ماسک‌شده، وضعیت، انقضا و سه اکشن. */
+/**
+ * بدنهٔ دیالوگِ «یک‌بار نمایش» — عمداً بیرونِ `Dialog` زندگی می‌کند تا همین گره‌ها در
+ * `ApiKeyRevealContentTest` آزموده شوند.
+ *
+ * دو قرارداد اینجا نباید جابه‌جا شود: متنِ کاملِ کلید فقط همین‌جا دیده می‌شود
+ * (پنل بعد از بستنِ این دیالوگ دیگر `api_key` کامل را نمی‌دهد — فهرست فقط
+ * `api_key_trimed` است) و «کپی» همان `SettingsInfoRow` خودش است، نه دکمهٔ جدا.
+ */
+@Composable
+internal fun ApiKeyRevealContent(fresh: CreatedApiKey, onDismiss: () -> Unit) {
+    val theme = LocalThemeState.current
+    Column(
+        Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
+            .padding(DsSpacing.Xl),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
+    ) {
+        Text(
+            stringResource(R.string.ak_reveal_title), fontSize = 16.sp,
+            fontWeight = FontWeight.ExtraBold, color = theme.inkColor
+        )
+        Text(
+            stringResource(R.string.ak_reveal_hint), fontSize = 11.sp, color = theme.mutedColor
+        )
+        SettingsInfoRow(
+            label = fresh.item.name,
+            value = fresh.key,
+            copyable = true
+        )
+        PGPrimaryButton(
+            text = stringResource(R.string.ak_reveal_done),
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
 @Composable
 private fun ApiKeyRow(
     key: PanelApiKey,

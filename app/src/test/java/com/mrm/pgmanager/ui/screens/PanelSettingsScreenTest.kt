@@ -60,6 +60,9 @@ class PanelSettingsScreenTest {
     private lateinit var server: MockWebServer
     private lateinit var session: Session
 
+    /** بدنهٔ `PUT`هایی که UI فرستاد — برای سنجیدنِ «فقط بخشِ کثیف». */
+    private val putBodies = java.util.concurrent.ConcurrentLinkedQueue<String>()
+
     private val settingsJson = """
         {"general":{
             "default_method":"chacha20-ietf-poly1305",
@@ -89,6 +92,7 @@ class PanelSettingsScreenTest {
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
         AdminAccess.reset()
+        putBodies.clear()
         // «کاهش انیمیشن» روشن: هیچ انیمیشنی (listIntro، pressScale، گذارِ تب)
         // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
         MotionPrefs.reduceMotion = true
@@ -105,11 +109,22 @@ class PanelSettingsScreenTest {
         server.shutdown()
     }
 
-    private fun installDispatcher(settingsResponse: MockResponse? = null, adminBody: String? = null) {
+    private fun installDispatcher(
+        settingsResponse: MockResponse? = null,
+        adminBody: String? = null,
+        putResponse: String? = null
+    ) {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 val path = request.path.orEmpty().substringBefore('?')
                 return when {
+                    // `PUT /api/settings` را خودِ دیسپچر می‌گیرد تا بدنهٔ ارسالیِ UI
+                    // سنجیده شود؛ پاسخ پیش‌فرض همان `settingsJson` است (پنل همیشه
+                    // `SettingsSchema` کامل را برمی‌گرداند).
+                    path == "/api/settings" && request.method == "PUT" -> {
+                        putBodies += request.body.readUtf8()
+                        MockResponse().setBody(putResponse ?: settingsJson)
+                    }
                     path == "/api/admin" -> adminBody?.let { MockResponse().setBody(it) }
                         ?: MockResponse().setResponseCode(404)
                     path.startsWith("/api/settings") -> settingsResponse ?: MockResponse().setBody(settingsJson)
@@ -208,6 +223,76 @@ class PanelSettingsScreenTest {
         awaitRequests(1)
         // داده نباید وسطِ کار غیب شود: تب‌ها همان اول هم بودند و بعد هم هستند.
         assertEquals(1, count(str(R.string.panel_settings_tab_general)))
+    }
+
+    /**
+     * نشانهٔ «پاسخِ سرور اعمال شد» کش است، نه گرهٔ semantics: خواندنِ کش در حلقه
+     * مجاز است (قاعدهٔ ۲ فقط خواندنِ گره را از داخلِ شرطِ `waitUntil` منع می‌کند)
+     * و مسابقهٔ نخ‌ها را حذف می‌کند — `putResponse` دقیقاً همان چیزی است که
+     * `persist` بعد از موفقیت در کش می‌گذارد.
+     */
+    private fun awaitCached(method: String): Boolean {
+        val key = PanelCache.panelSettingsKey(session.baseUrl)
+        repeat(60) {
+            if (PanelCache.get<PanelSettings>(key)?.general?.defaultMethod == method) return true
+            rule.waitForIdle()
+            Thread.sleep(10)
+        }
+        return PanelCache.get<PanelSettings>(key)?.general?.defaultMethod == method
+    }
+
+    /**
+     * مسیرِ ذخیره — تا پیش از ۰٫۱۶٫۰ آزمودنی نبود، چون `saving=true` نشانگرِ
+     * بی‌پایان می‌آورد و `waitForIdle` گیر می‌کرد. حالا که همهٔ نشانگرها از
+     * `MrmBusyIndicator` می‌آیند و `setUp` «کاهش انیمیشن» را روشن می‌کند، همان
+     * نشانگر ساکن است؛ پس این‌جا واقعاً «ذخیره» لمس می‌شود و بدنهٔ `PUT` سنجیده
+     * می‌شود. سه چیز قفل می‌شود که هیچ‌کدام در لایهٔ داده معنا ندارد:
+     *  ۱. یک `PUT /api/settings` با **فقط** بخشِ تبِ باز (`general`) — فرستادنِ
+     *     `subscription` هم‌زمان یعنی بازنویسیِ چیزی که کاربر اصلاً ندیده؛
+     *  ۲. فیلدهایی که کاربر دست نزده (`on_hold_timeout_action`،
+     *     `custom_variables`) عیناً در بدنه می‌مانند — نبودنشان در پنل یعنی
+     *     «برگرد به پیش‌فرض» و متغیرهای زیرساخت پاک می‌شود؛
+     *  ۳. بعد از پاسخ، فرم از `SettingsSchema`ِ تازه سِت می‌شود و «ذخیره» دوباره
+     *     غیرفعال است — موندنِ حالتِ کثیف یعنی یک `PUTِ` بی‌دلیلِ دیگر، و هر
+     *     `PUT` سرویس‌های پنل را ری‌استارت می‌کند.
+     */
+    @Test fun save_sends_one_put_for_the_dirty_section_only() {
+        // پنل تغییر را پذیرفته و `SettingsSchema` کاملِ تازه را برگردانده است.
+        installDispatcher(
+            putResponse = settingsJson.replace(
+                "\"default_method\":\"chacha20-ietf-poly1305\"",
+                "\"default_method\":\"aes-128-gcm\""
+            )
+        )
+        render()
+
+        val save = str(R.string.ps_save)
+        rule.onNodeWithText(save).assertIsNotEnabled()
+        rule.onNodeWithText("aes-128-gcm").performClick()
+        rule.onNodeWithText(save).performClick()
+
+        awaitRequests(1)
+        val sent = putBodies.toList()
+        assertEquals("دقیقاً یک ذخیرهٔ بخش", 1, sent.size)
+        val body = org.json.JSONObject(sent.single())
+        assertEquals("بدنهٔ `PUT` فقط بخشِ تبِ باز را دارد", setOf("general"), body.keySet().toSet())
+        val general = body.getJSONObject("general")
+        assertEquals("aes-128-gcm", general.getString("default_method"))
+        assertEquals(
+            "فیلدِ دست‌نخورده باید عیناً بماند",
+            "activate", general.getString("on_hold_timeout_action")
+        )
+        assertEquals(
+            "متغیرهای سفارشی اگر در بدنه نباشند، در پنل پاک می‌شوند",
+            "BRAND", general.getJSONArray("custom_variables").getJSONObject(0).getString("key")
+        )
+        // «ذخیرهٔ موفق» نباید با GETِ دنبالِ آن همراه باشد: پاسخِ `PUT` خودِ schema کامل است.
+        assertEquals(1, server.requestCount)
+
+        assertTrue("پاسخ باید به کش هم برسد (برگشتن به صفحه دادهٔ تازه می‌خواهد)", awaitCached("aes-128-gcm"))
+        rule.waitForIdle()
+        rule.onNodeWithText(save).assertIsNotEnabled()
+        rule.onNodeWithText(str(R.string.ps_revert)).assertIsNotEnabled()
     }
 
     @Test fun read_only_role_gets_no_save_button_only_an_explanation() {
