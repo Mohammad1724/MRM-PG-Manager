@@ -32,6 +32,11 @@ import com.mrm.pgmanager.data.model.OnHoldAction
 import com.mrm.pgmanager.data.model.ClientTemplate
 import com.mrm.pgmanager.data.model.PanelCore
 import com.mrm.pgmanager.data.model.PanelHost
+import com.mrm.pgmanager.data.model.PanelSettings
+import com.mrm.pgmanager.data.model.PanelGeneralSection
+import com.mrm.pgmanager.data.model.PanelSubscriptionSection
+import com.mrm.pgmanager.data.model.PanelHwidSection
+import com.mrm.pgmanager.data.model.PanelNotificationSection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -1856,6 +1861,53 @@ object PanelApi {
             requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId").delete().build()
         )
     }
+
+    // ═══════════════════ تنظیماتِ پنل (فازِ ۵) ═══════════════════
+    //
+    // پنل تنظیماتش را در بخش‌های مستقل نگه می‌دارد و `PUT /api/settings` هر بخشِ
+    // فرستاده‌شده را **کامل** جایگزین می‌کند (`model_dump(exclude_none=True)`).
+    // پس هر تابعِ ذخیره، بخشِ کامل می‌فرستد و برای فیلدهای ناشناخته بدنهٔ خامِ
+    // قبلی را نگه می‌دارد (همان قاعدهٔ هاست‌ها در فاز ۲). مجوزها:
+    // `settings.read` برای خواندن و `settings.update` برای نوشتن؛ ۴۰۳ با `detail`
+    // خودِ پنل به UI می‌رسد.
+
+    /** بخش‌های مجازِ `PUT /api/settings` — نگهبانِ محلی برای اینکه کلیدِ اشتباه نرود. */
+    private val PANEL_SETTINGS_SECTIONS =
+        setOf("general", "subscription", "hwid", "notification_settings")
+
+    /** همهٔ تنظیماتِ پنل — `GET /api/settings` (مجوزِ `settings.read`). */
+    suspend fun panelSettings(session: Session): PanelSettings = withContext(Dispatchers.IO) {
+        PanelSettings.from(
+            executeJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
+        )
+    }
+
+    /**
+     * نوشتنِ یک بخش — `PUT /api/settings` با `{section: body}`.
+     *
+     * پاسخ، `SettingsSchema` کاملِ تازه است؛ همان را برمی‌گردانیم تا UI مقدارِ
+     * نرمال‌شدهٔ سرور را نشان بدهد (مثلاً `url_prefix` که پنل `/`های دو طرف را
+     * می‌بُرد، یا `custom_variables` که از `general` به `subscription` منتقل می‌شود).
+     */
+    private fun putPanelSection(session: Session, section: String, body: JSONObject): PanelSettings {
+        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section: $section" }
+        val payload = JSONObject().put(section, body)
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings")
+            .put(payload.toString().toRequestBody(jsonType)).build()
+        return PanelSettings.from(executeJsonForBody(request))
+    }
+
+    suspend fun savePanelGeneral(session: Session, section: PanelGeneralSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "general", section.toJson()) }
+
+    suspend fun savePanelSubscription(session: Session, section: PanelSubscriptionSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "subscription", section.toJson()) }
+
+    suspend fun savePanelHwid(session: Session, section: PanelHwidSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "hwid", section.toJson()) }
+
+    suspend fun savePanelNotifications(session: Session, section: PanelNotificationSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "notification_settings", section.toJson()) }
 
     // ── پارسِ زیرساخت ────────────────────────────────────────────────────
 

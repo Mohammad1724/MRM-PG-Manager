@@ -64,6 +64,8 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * @param session حسابِ فعال (اگر null باشد، [ConnectionSection] خودش کارتِ
  *   «اول وارد شوید» را نشان می‌دهد و بقیهٔ صفحه چیزی برای گفتن ندارد).
  * @param onOpenInfra باز کردنِ «زیرساختِ پنل» (هاست/کور/قالبِ کلاینت).
+ * @param onOpenPanelSettings باز کردنِ «تنظیماتِ پنل» (پیش‌فرض‌های سرور،
+ *   اشتراک، محدودیتِ دستگاه و اعلان‌ها).
  */
 @Composable
 fun PanelScreen(
@@ -71,6 +73,7 @@ fun PanelScreen(
     store: SessionStore?,
     onBack: () -> Unit,
     onOpenInfra: () -> Unit,
+    onOpenPanelSettings: () -> Unit = {},
     onSwitchAccount: (Session) -> Unit = {},
     onAddAccount: () -> Unit = {}
 ) {
@@ -136,20 +139,40 @@ fun PanelScreen(
 
             // زیرساخت: هاست/کور/قالبِ کلاینت. فقط با حسابِ فعال معنا دارد.
             if (session != null) {
-                PanelInfraEntryCard(onClick = onOpenInfra)
+                PanelEntryCard(
+                    icon = AppIcon.Storage,
+                    title = stringResource(R.string.infra_settings_entry_title),
+                    subtitle = stringResource(R.string.infra_settings_entry_desc),
+                    onClick = onOpenInfra
+                )
+                // تنظیماتِ پنل: فقط اگر نقش مجوزِ خواندن دارد. «نامعلوم» (هنوز
+                // مجوزها نرسیده) مجاز است؛ پنل خودش ۴۰۳ را با detail نشان می‌دهد.
+                if (com.mrm.pgmanager.data.AdminAccess.can("settings", "read")) {
+                    PanelEntryCard(
+                        icon = AppIcon.Settings,
+                        title = stringResource(R.string.panel_settings_entry_title),
+                        subtitle = stringResource(R.string.panel_settings_entry_desc),
+                        onClick = onOpenPanelSettings
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * کارتِ ورودیِ «زیرساختِ پنل».
+ * کارتِ ورودیِ یک صفحهٔ زیرمجموعهٔ «پنلِ من» (زیرساخت، تنظیماتِ پنل، …).
  *
- * یک ردیفِ تک‌خطیِ قابل‌لمس با فلشِ سمتِ مقابل — بدونِ آکاردئون، چون خودش یک
- * صفحهٔ کامل با سه تب است.
+ * یک ردیفِ تک‌خطیِ قابلِ‌لمس با فلشِ سمتِ مقابل — بدونِ آکاردئون، چون هرکدام یک
+ * صفحهٔ کاملِ جدا با تب‌های خودشان‌اند.
  */
 @Composable
-private fun PanelInfraEntryCard(onClick: () -> Unit) {
+private fun PanelEntryCard(
+    icon: AppIcon,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
     val theme = LocalThemeState.current
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
@@ -163,14 +186,14 @@ private fun PanelInfraEntryCard(onClick: () -> Unit) {
         Box(
             Modifier.size(34.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.14f)),
             contentAlignment = Alignment.Center
-        ) { RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 16.dp) }
+        ) { RoundedAppIcon(icon, tint = theme.accentPrimary, size = 16.dp) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                stringResource(R.string.infra_settings_entry_title),
+                title,
                 fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor
             )
             Text(
-                stringResource(R.string.infra_settings_entry_desc),
+                subtitle,
                 fontSize = 10.sp, color = theme.mutedColor, maxLines = 2
             )
         }

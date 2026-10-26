@@ -98,6 +98,13 @@ object PanelCache {
     // کوتاه‌مدتِ همین حافظه برای برگشت از تب/صفحه کافی است و از درخواستِ
     // تکراری هنگامِ جابه‌جایی بین تب‌های مدیریتِ پنل جلوگیری می‌کند.
     fun hostsKey(baseUrl: String) = "hosts:$baseUrl"
+
+    /**
+     * تنظیماتِ پنل (`GET /api/settings`). مثلِ بقیهٔ داده‌های سطحِ سرور کش می‌شود
+     * تا رفت‌وبرگشت بین چهار تب دوباره درخواست نفرستد؛ بعد از هر ذخیره، پاسخِ
+     * تازه جای همین می‌نشیند.
+     */
+    fun panelSettingsKey(baseUrl: String) = "panelsettings:$baseUrl"
     fun coresKey(baseUrl: String) = "cores:$baseUrl"
     fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
 }
