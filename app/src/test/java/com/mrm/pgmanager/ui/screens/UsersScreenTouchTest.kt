@@ -108,7 +108,17 @@ class UsersScreenTouchTest {
         }
         rule.onNodeWithContentDescription(str(R.string.us_share_subscription, "sample_1"))
             .performTouchInput { click(center) }
-        rule.waitUntil(15_000) { detailRequests.get() == 1 && ScreenSecurity.holds > initialHolds }
+        try {
+            rule.waitUntil(15_000) { detailRequests.get() >= 1 && ScreenSecurity.holds > initialHolds }
+        } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
+            throw AssertionError(
+                "Share did not open: detail requests=${detailRequests.get()}, " +
+                    "secure holds=${ScreenSecurity.holds}, initial holds=$initialHolds, " +
+                    "total requests=${server.requestCount}",
+                error
+            )
+        }
+        assertEquals(1, detailRequests.get())
         rule.onNodeWithText("QR sample_1").assertIsDisplayed()
         rule.onNodeWithContentDescription("QR").assertIsDisplayed()
         rule.onNodeWithText(str(R.string.qr_send_card)).assertIsDisplayed()

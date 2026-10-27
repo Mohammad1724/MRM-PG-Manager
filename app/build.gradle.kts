@@ -75,8 +75,14 @@ android {
         }
     }
 
-    // تست‌های رفتاریِ Compose (لمسِ واقعی) زیر Robolectric اجرا می‌شوند و به منابعِ merge‌شده نیاز دارند.
-    testOptions { unitTests { isIncludeAndroidResources = true } }
+    // Compose behavior tests need merged resources, and Robolectric's file descriptor shadow
+    // needs reflective access to java.io when testing FileProvider streams on JDK 17.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all { it.jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED") }
+        }
+    }
 
     buildFeatures { compose = true; buildConfig = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
