@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -131,7 +132,7 @@ class UsersScreenTouchTest {
             .performTouchInput { click(center) }
         try {
             rule.waitUntil(15_000) {
-                detailRequests.get() >= 1 && rule.runOnUiThread { ScreenSecurity.holds > initialHolds }
+                rule.onAllNodesWithText("QR sample_1").fetchSemanticsNodes().isNotEmpty()
             }
         } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
             throw AssertionError(
@@ -146,6 +147,7 @@ class UsersScreenTouchTest {
         rule.onNodeWithText("QR sample_1").assertIsDisplayed()
         rule.onNodeWithContentDescription("QR").assertIsDisplayed()
         rule.onNodeWithText(str(R.string.qr_send_card)).assertIsDisplayed()
+        rule.runOnIdle { assertEquals(initialHolds + 1, ScreenSecurity.holds) }
         rule.onNodeWithText(str(R.string.qr_copy)).performClick()
         rule.runOnIdle {
             val clipboard = RuntimeEnvironment.getApplication()
