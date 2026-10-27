@@ -158,8 +158,7 @@ fun PGScreenHeader(
     modifier: Modifier = Modifier,
     settingsLabel: String,
     refreshLabel: String,
-    badge: @Composable (() -> Unit)? = null,
-    compactActions: Boolean = false
+    badge: @Composable (() -> Unit)? = null
 ) {
     val t = LocalThemeState.current
     Row(
@@ -186,9 +185,9 @@ fun PGScreenHeader(
                 maxLines = 2, overflow = TextOverflow.Ellipsis
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(if (compactActions) 0.dp else DsSpacing.Xs)) {
-            PGHeaderAction(AppIcon.Refresh, refreshLabel, onRefresh, spinning = refreshing, compact = compactActions)
-            PGHeaderAction(AppIcon.Settings, settingsLabel, onOpenSettings, compact = compactActions)
+        Row {
+            PGHeaderAction(AppIcon.Refresh, refreshLabel, onRefresh, spinning = refreshing, compact = true)
+            PGHeaderAction(AppIcon.Settings, settingsLabel, onOpenSettings, compact = true)
         }
     }
 }
@@ -366,12 +365,14 @@ fun PGStartAlign(): TextAlign =
  * `tools/compose-api-index.txt` آن را ندارد) و `ContextualFlowRow` آزمایشی است؛
  * `Layout`ِ پایه همان کار را با APIِ پایدار می‌دهد. `placeRelative` مختصات را در
  * RTL آینه می‌کند، پس در فارسی جریان از راست شروع می‌شود و خودِ جهتِ هیچ عنصری جابه‌جا نمی‌شود.
+ * When requested, distribute spare width across each line and center a lone item.
  */
 @Composable
 fun PGWrapRow(
     modifier: Modifier = Modifier,
     horizontalGap: Dp = DsSpacing.Sm,
     verticalGap: Dp = DsSpacing.Xs,
+    distributeHorizontally: Boolean = false,
     content: @Composable () -> Unit
 ) {
     // فاصله‌ها همین‌جا به px تبدیل می‌شوند: لامبدای اندازه‌گیری هیچ Densityای ندارد؛
@@ -421,13 +422,20 @@ fun PGWrapRow(
         val totalHeight = if (heights.isEmpty()) 0 else y - vGap
         val maxLineWidth = if (widths.isEmpty()) 0 else widths.max()
         val width = if (constraints.hasBoundedWidth) available else maxLineWidth
+        val itemCounts = IntArray(heights.size)
+        val itemIndices = IntArray(placeables.size) { i -> itemCounts[lineOf[i]]++ }
         // شکلِ بدون‌صفت: همین را UsersScreen.kt:331 هم داخلِ بلوکِ `Modifier.layout`
         // صدا می‌زند و در 1.7.6 تنها شکلِ حل‌شدنی است (`this.layout(...)` روی نوع
         // MeasureScope «Overload resolution ambiguity» می‌دهد).
         layout(width.coerceAtLeast(constraints.minWidth), totalHeight.coerceAtLeast(constraints.minHeight)) {
             placeables.forEachIndexed { i, p ->
                 val l = lineOf[i]
-                p.placeRelative(xOf[i], tops[l] + (heights[l] - p.height) / 2)
+                val extraOffset = if (distributeHorizontally && constraints.hasBoundedWidth) {
+                    val spare = (width - widths[l]).coerceAtLeast(0)
+                    if (itemCounts[l] == 1) spare / 2
+                    else (spare.toLong() * itemIndices[i] / (itemCounts[l] - 1)).toInt()
+                } else 0
+                p.placeRelative(xOf[i] + extraOffset, tops[l] + (heights[l] - p.height) / 2)
             }
         }
     }

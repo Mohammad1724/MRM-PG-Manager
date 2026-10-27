@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -114,13 +115,32 @@ internal fun InfraIconButton(
     enabled: Boolean = true
 ) {
     val theme = LocalThemeState.current
-    Box(
-        Modifier.size(48.dp).clip(DsRadius.Sm)
-            .clickable(enabled = enabled) { onClick() }
-            .background(theme.searchBgColor)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center
-    ) { RoundedAppIcon(icon, tint = if (enabled) tint else theme.mutedColor.copy(0.5f), size = 16.dp) }
+    val iconTint = if (enabled) tint else theme.mutedColor.copy(0.5f)
+    if (icon == AppIcon.Refresh) {
+        // Match the main headers without shrinking the accessible target.
+        Box(
+            Modifier.size(48.dp)
+                .clickable(enabled = enabled) { onClick() }
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(36.dp).testTag("infra_refresh_visual")
+                    .clip(DsRadius.Sm).background(theme.searchBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                RoundedAppIcon(icon, tint = iconTint, size = 16.dp, modifier = Modifier.testTag("infra_refresh_icon"))
+            }
+        }
+    } else {
+        Box(
+            Modifier.size(48.dp).clip(DsRadius.Sm)
+                .clickable(enabled = enabled) { onClick() }
+                .background(theme.searchBgColor)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) { RoundedAppIcon(icon, tint = iconTint, size = 16.dp) }
+    }
 }
 
 /** برچسبِ کوچکِ بالای فیلدهای فرم (هم‌سبکِ بقیهٔ دیالوگ‌های اپ). */

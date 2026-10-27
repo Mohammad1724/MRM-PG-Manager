@@ -201,8 +201,7 @@ internal fun TopBarHeader(
         onRefresh = onRefresh,
         onOpenSettings = onOpenSettings,
         settingsLabel = stringResource(R.string.app_settings),
-        refreshLabel = stringResource(R.string.refresh),
-        compactActions = true
+        refreshLabel = stringResource(R.string.refresh)
     )
 }
 
@@ -257,7 +256,12 @@ internal fun FilterAndControlBar(
         UserSort.CREATED -> stringResource(R.string.created)
         UserSort.LAST_ONLINE -> stringResource(R.string.us_sort_last_online)
     }
-    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xxs, verticalGap = DsSpacing.Sm) {
+    PGWrapRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalGap = DsSpacing.Xxs,
+        verticalGap = DsSpacing.Sm,
+        distributeHorizontally = true
+    ) {
         // فیلتر و مرتب‌سازی فقط آیکون‌اند (درخواستِ کاربر): برچسبِ دوسطری در عرضِ کم
         // بریده می‌شد («Filte»، «مرتبس…»). اطلاعات حذف نشده:
         //   • مقدارِ فعلی در contentDescription می‌ماند (TalkBack آن را می‌خواند)،

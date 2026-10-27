@@ -144,6 +144,60 @@ class UsersCompactControlsTest {
         rule.onNodeWithContentDescription(str(R.string.us_view_compact)).assertIsSelected()
     }
 
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `toolbar distributes spare space across the full width`() {
+        rule.setContent {
+            Box(Modifier.width(360.dp).testTag("toolbar_container")) {
+                FilterAndControlBar(
+                    currentFilter = UserFilter.ALL, onFilterChange = {},
+                    currentSort = UserSort.CREATED, onSortChange = {},
+                    viewMode = ViewMode.GRID, onViewModeChange = {},
+                    groups = listOf(Group(1, "VIP"))
+                )
+            }
+        }
+        val container = rule.onNodeWithTag("toolbar_container").fetchSemanticsNode().boundsInRoot
+        val filter = rule.onNodeWithContentDescription(str(R.string.filter) + ": " + str(R.string.all))
+            .fetchSemanticsNode().boundsInRoot
+        val sort = rule.onNodeWithContentDescription(str(R.string.sort) + ": " + str(R.string.created))
+            .fetchSemanticsNode().boundsInRoot
+        val group = rule.onNodeWithText(str(R.string.us_group_filter)).fetchSemanticsNode().boundsInRoot
+        val firstView = rule.onNodeWithContentDescription(str(R.string.us_view_grid)).fetchSemanticsNode().boundsInRoot
+        val lastView = rule.onNodeWithContentDescription(str(R.string.us_view_micro)).fetchSemanticsNode().boundsInRoot
+
+        assertEquals(container.left, filter.left, 0.5f)
+        assertEquals(container.right, lastView.right, 0.5f)
+        val gaps = listOf(sort.left - filter.right, group.left - sort.right, firstView.left - group.right)
+        assertTrue(gaps.all { it >= 0f })
+        assertEquals(gaps[0], gaps[1], 1f)
+        assertEquals(gaps[1], gaps[2], 1f)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `toolbar without groups still uses the available width`() {
+        rule.setContent {
+            Box(Modifier.width(360.dp).testTag("toolbar_container")) {
+                FilterAndControlBar(
+                    currentFilter = UserFilter.ALL, onFilterChange = {},
+                    currentSort = UserSort.CREATED, onSortChange = {},
+                    viewMode = ViewMode.GRID, onViewModeChange = {}
+                )
+            }
+        }
+        val container = rule.onNodeWithTag("toolbar_container").fetchSemanticsNode().boundsInRoot
+        val filter = rule.onNodeWithContentDescription(str(R.string.filter) + ": " + str(R.string.all))
+            .fetchSemanticsNode().boundsInRoot
+        val sort = rule.onNodeWithContentDescription(str(R.string.sort) + ": " + str(R.string.created))
+            .fetchSemanticsNode().boundsInRoot
+        val firstView = rule.onNodeWithContentDescription(str(R.string.us_view_grid)).fetchSemanticsNode().boundsInRoot
+        val lastView = rule.onNodeWithContentDescription(str(R.string.us_view_micro)).fetchSemanticsNode().boundsInRoot
+        assertEquals(container.left, filter.left, 0.5f)
+        assertEquals(container.right, lastView.right, 0.5f)
+        assertEquals(sort.left - filter.right, firstView.left - sort.right, 1f)
+    }
+
     @Test fun `compact create button keeps a 48dp target and stops accepting taps when hidden`() {
         var clicks = 0
         var visible by mutableStateOf(true)
@@ -173,6 +227,7 @@ class UsersCompactControlsTest {
     }
 
     @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(qualifiers = "fa-rIR-w320dp-h800dp")
     fun `narrow RTL toolbar retains non-overlapping targets at large system font scale`() {
         rule.setContent {
@@ -208,6 +263,12 @@ class UsersCompactControlsTest {
                 assertTrue("Touch targets overlap: $first and $second", !overlaps(first, second))
             }
         }
+        val container = rule.onNodeWithTag("toolbar_container").fetchSemanticsNode().boundsInRoot
+        val grid = bounds[2]
+        val dense = bounds[4]
+        val group = bounds[5]
+        assertTrue("View modes should wrap below the group filter", grid.top >= group.bottom)
+        assertEquals(container.center.x, (dense.left + grid.right) / 2f, 1f)
     }
 
     private fun overlaps(a: Rect, b: Rect): Boolean =
