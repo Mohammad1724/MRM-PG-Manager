@@ -134,6 +134,11 @@
     <string name="unlock_with_biometric">ورود با اثر انگشت / رمز گوشی</string>
     <string name="settings_title">تنظیمات</string>
     <string name="appearance">ظاهر</string>
+    <string name="set_font_size_title">اندازهٔ متن</string>
+    <string name="set_font_size_value">اندازه</string>
+    <string name="set_font_size_description">اندازهٔ متن برنامه را تغییر دهید. پیش‌فرض برنامه با تنظیم فونت گوشی هماهنگ است.</string>
+    <string name="set_font_size_reset">پیش‌فرض برنامه</string>
+    <string name="set_font_size_sample">نمونه‌ای از متن برنامه</string>
     <string name="monitoring_title">پایش</string>
     <string name="notifications_title">اعلان‌ها</string>
     <string name="connection_title">اتصال</string>
@@ -187,6 +192,7 @@
     <string name="search_groups">جست‌وجوی گروه</string>
     <string name="no_results">نتیجه‌ای یافت نشد</string>
     <string name="no_results_hint">جست‌وجوی دیگری امتحان کنید یا آن را پاک کنید</string>
+    <string name="clear_search">پاک‌کردن جست‌وجو</string>
     <string name="err_name_short">نام باید حداقل ۳ کاراکتر باشد</string>
     <string name="err_name_long">نام باید حداکثر ۶۴ کاراکتر باشد</string>
     <string name="err_no_inbound">حداقل یک inbound انتخاب کنید</string>
@@ -850,6 +856,8 @@
     <string name="sc_validity">اعتبار</string>
     <string name="cal_title">تقویم</string>
     <string name="cal_today">امروز</string>
+    <string name="cal_previous_month">ماه قبل</string>
+    <string name="cal_next_month">ماه بعد</string>
     <string name="cal_cancel">انصراف</string>
     <string name="cal_confirm">تایید</string>
     <string name="nc_events">رویدادهای کاربران</string>
@@ -885,6 +893,8 @@
     <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
     <string name="a11y_switch_on">روشن</string>
     <string name="a11y_switch_off">خاموش</string>
+    <string name="a11y_decrease_value">کاهش %1$s</string>
+    <string name="a11y_increase_value">افزایش %1$s</string>
     <string name="set_a11y_title">دسترس‌پذیری و حریم خصوصی</string>
     <string name="set_a11y_haptics">بازخوردِ لرزشی</string>
     <string name="set_a11y_haptics_desc">لرزشِ کوتاه، انجام‌شدنِ کار را تأیید می‌کند. اگر گوشی همیشه بی‌صدا است یا اذیت می‌شوید، خاموشش کنید.</string>
@@ -1199,6 +1209,12 @@
     <string name="nl_level_warning">هشدارها</string>
     <string name="nl_level_info">اطلاعی</string>
     <string name="nl_level_debug">دیباگ</string>
+    <string name="nl_row_error">خطا</string>
+    <string name="nl_row_warning">هشدار</string>
+    <string name="nl_row_info">اطلاعات</string>
+    <string name="nl_row_debug">گزارش دیباگ</string>
+    <string name="nl_line_expanded">بازشده</string>
+    <string name="nl_line_collapsed">بسته</string>
     <string name="nl_time_all">همهٔ زمان‌ها</string>
     <string name="nl_time_1m">۱ دقیقه</string>
     <string name="nl_time_15m">۱۵ دقیقه</string>

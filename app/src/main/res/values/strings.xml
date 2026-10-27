@@ -134,6 +134,11 @@
     <string name="unlock_with_biometric">Unlock with fingerprint / device PIN</string>
     <string name="settings_title">Settings</string>
     <string name="appearance">Appearance</string>
+    <string name="set_font_size_title">Text size</string>
+    <string name="set_font_size_value">Size</string>
+    <string name="set_font_size_description">Adjust text size in this app. The app default adapts to your device font setting.</string>
+    <string name="set_font_size_reset">Use app default</string>
+    <string name="set_font_size_sample">Sample text</string>
     <string name="monitoring_title">Monitoring</string>
     <string name="notifications_title">Notifications</string>
     <string name="connection_title">Connection</string>
@@ -187,6 +192,7 @@
     <string name="search_groups">Search groups</string>
     <string name="no_results">No matching results</string>
     <string name="no_results_hint">Try another search or clear it</string>
+    <string name="clear_search">Clear search</string>
     <string name="err_name_short">Name must be at least 3 characters</string>
     <string name="err_name_long">Name must be at most 64 characters</string>
     <string name="err_no_inbound">Select at least one inbound</string>
@@ -850,6 +856,8 @@
     <string name="sc_validity">Validity</string>
     <string name="cal_title">Calendar</string>
     <string name="cal_today">Today</string>
+    <string name="cal_previous_month">Previous month</string>
+    <string name="cal_next_month">Next month</string>
     <string name="cal_cancel">Cancel</string>
     <string name="cal_confirm">Confirm</string>
     <string name="nc_events">User events</string>
@@ -885,6 +893,8 @@
     <!-- فاز ۷ — دسترس‌پذیری و حریم خصوصی -->
     <string name="a11y_switch_on">On</string>
     <string name="a11y_switch_off">Off</string>
+    <string name="a11y_decrease_value">Decrease %1$s</string>
+    <string name="a11y_increase_value">Increase %1$s</string>
     <string name="set_a11y_title">Accessibility &amp; privacy</string>
     <string name="set_a11y_haptics">Vibration feedback</string>
     <string name="set_a11y_haptics_desc">A short vibration confirms completed actions. Turn off if you keep the phone on silent or find it distracting.</string>
@@ -1200,6 +1210,12 @@
     <string name="nl_level_warning">Warnings</string>
     <string name="nl_level_info">Info</string>
     <string name="nl_level_debug">Debug</string>
+    <string name="nl_row_error">Error</string>
+    <string name="nl_row_warning">Warning</string>
+    <string name="nl_row_info">Information</string>
+    <string name="nl_row_debug">Debug log</string>
+    <string name="nl_line_expanded">Expanded</string>
+    <string name="nl_line_collapsed">Collapsed</string>
     <string name="nl_time_all">Any time</string>
     <string name="nl_time_1m">1 min</string>
     <string name="nl_time_15m">15 min</string>

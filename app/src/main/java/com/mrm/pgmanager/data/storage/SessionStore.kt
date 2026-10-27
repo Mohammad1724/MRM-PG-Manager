@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.SystemStats
@@ -22,6 +23,9 @@ class SessionStore(context: Context) {
     internal val prefs: android.content.SharedPreferences = sharedPrefs(context)
 
     companion object {
+        private const val FONT_SCALE_KEY = "ui_font_scale_percent_v2"
+        private const val LEGACY_FONT_SCALE_KEY = "ui_font_scale_percent"
+
         // کلیدهای نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری)
         const val HINT_LONG_PRESS = "hint_long_press"
         const val HINT_MULTI_SELECT = "hint_multi_select"
@@ -490,15 +494,27 @@ class SessionStore(context: Context) {
     fun saveInvoiceSeller(name: String) = prefs.edit().putString("invoice_seller", name).apply()
 
     // === ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷) ===
+    // Keep old saved sizes on upgrade; never reinterpret an already-written v2 value.
+    private fun readFontScalePercent(): Int = when {
+        prefs.contains(FONT_SCALE_KEY) ->
+            AppFontScale.normalize(prefs.getInt(FONT_SCALE_KEY, AppFontScale.DEFAULT_PERCENT))
+        prefs.contains(LEGACY_FONT_SCALE_KEY) ->
+            AppFontScale.fromLegacyPercent(prefs.getInt(LEGACY_FONT_SCALE_KEY, 100))
+        else -> AppFontScale.DEFAULT_PERCENT
+    }
+
     fun readUiPrefs() = com.mrm.pgmanager.data.model.UiPrefs(
         hapticsEnabled = prefs.getBoolean("ui_haptics", true),
         reduceMotion = prefs.getBoolean("ui_reduce_motion", false),
-        secureScreen = prefs.getBoolean("ui_secure_screen", false)
+        secureScreen = prefs.getBoolean("ui_secure_screen", false),
+        fontScalePercent = readFontScalePercent()
     )
     fun saveUiPrefs(p: com.mrm.pgmanager.data.model.UiPrefs) = prefs.edit()
         .putBoolean("ui_haptics", p.hapticsEnabled)
         .putBoolean("ui_reduce_motion", p.reduceMotion)
         .putBoolean("ui_secure_screen", p.secureScreen)
+        .putInt(FONT_SCALE_KEY, AppFontScale.normalize(p.fontScalePercent))
+        .putInt(LEGACY_FONT_SCALE_KEY, AppFontScale.toLegacyPercent(p.fontScalePercent))
         .apply()
 
     // === تنظیمات پشتیبان‌گیری ===
