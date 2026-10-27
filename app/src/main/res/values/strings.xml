@@ -1326,6 +1326,15 @@
     <string name="host_inbound">Inbound tag</string>
     <string name="chip_more_fmt">+%1$d more</string>
     <string name="chip_show_less">Show less</string>
+    <string name="col_name">Name</string>
+    <string name="col_address">Address</string>
+    <string name="col_inbound">Inbound</string>
+    <string name="col_priority">Priority</string>
+    <string name="col_type">Type</string>
+    <string name="col_tags">Tags</string>
+    <string name="col_sort">Order</string>
+    <string name="col_flags">Flags</string>
+    <string name="act_more">More actions</string>
     <string name="host_inbound_auto">Auto (from inbound)</string>
     <string name="host_security">Security</string>
     <string name="host_security_inbound_default">Inbound default</string>

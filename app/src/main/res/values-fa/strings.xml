@@ -1325,6 +1325,15 @@
     <string name="host_inbound">تگِ inbound</string>
     <string name="chip_more_fmt">+%1$d دیگر</string>
     <string name="chip_show_less">نمایشِ کمتر</string>
+    <string name="col_name">نام</string>
+    <string name="col_address">آدرس</string>
+    <string name="col_inbound">ینباند</string>
+    <string name="col_priority">اولویت</string>
+    <string name="col_type">نوع</string>
+    <string name="col_tags">تگ‌ها</string>
+    <string name="col_sort">ترتیب</string>
+    <string name="col_flags">پرچم‌ها</string>
+    <string name="act_more">عملگرهای بیشتر</string>
     <string name="host_inbound_auto">خودکار (از inbound)</string>
     <string name="host_security">امنیت</string>
     <string name="host_security_inbound_default">پیش‌فرضِ inbound</string>

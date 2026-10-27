@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -49,9 +48,6 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmErrorState
-import com.mrm.pgmanager.ui.components.PGStartAlign
-import com.mrm.pgmanager.ui.components.PGWrapRow
-import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.PGSearchBar
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
@@ -68,6 +64,17 @@ import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
+
+/**
+ * سه ستونِ پنل + اولویت. سرتیتر و هر ردیف همین لیست را می‌گیرند، پس لبهٔ
+ * چپِ ستون‌ها در همهٔ سطرها یکی است (کارتِ قبلی جهتِ هر متن را خودش می‌گذاشت).
+ */
+private val HOST_COLUMNS = listOf(
+    InfraColumn(R.string.col_name, 1f),
+    InfraColumn(R.string.col_address, 0.78f),
+    InfraColumn(R.string.col_inbound, 0.72f),
+    InfraColumn(R.string.col_priority, 0.30f)
+)
 
 /**
  * مقادیرِ فرمِ هاست — یک تصویرِ ساده از آنچه کاربر تغییر می‌دهد.
@@ -212,14 +219,15 @@ internal fun HostsSection(session: Session) {
             ) { PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" }) }
 
             else -> {
+                InfraTableHeader(HOST_COLUMNS)
                 val intro = rememberListIntro()
                 LazyColumn(
                     // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
                     // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
                     // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
                     modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
-                    contentPadding = PaddingValues(bottom = DsSpacing.Xl)
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
+                    contentPadding = PaddingValues(top = DsSpacing.Xxs, bottom = DsSpacing.Xl)
                 ) {
                     itemsIndexed(filtered, key = { _, h -> h.id }) { index, host ->
                         Box(Modifier.animateItem().listIntro(intro, index)) {
@@ -326,78 +334,43 @@ private fun HostRow(
     onDelete: (() -> Unit)?
 ) {
     val theme = LocalThemeState.current
-    val rowModifier = if (onEdit != null) Modifier.clickable { onEdit() } else Modifier
-    Row(
-        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .then(rowModifier)
-            .heightIn(min = 44.dp)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-    ) {
-        Box(
-            Modifier.size(34.dp).clip(DsRadius.Md)
-                .background(if (host.isDisabled) theme.searchBgColor else theme.accentPrimary.copy(0.14f)),
-            contentAlignment = Alignment.Center
-        ) {
-            RoundedAppIcon(
-                AppIcon.Link,
-                tint = if (host.isDisabled) theme.mutedColor else theme.accentPrimary,
-                size = 16.dp
-            )
-        }
-
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
-            Text(
-                host.remark, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                color = if (host.isDisabled) theme.mutedColor else theme.inkColor,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                textAlign = PGStartAlign()
-            )
-            Text(
-                buildString {
-                    append(host.addresses.joinToString(", "))
-                    host.port?.let { append(" · ").append(it) }
-                }.ifBlank { "—" },
-                fontSize = 11.sp, color = theme.mutedColor, maxLines = 1,
-                overflow = TextOverflow.Ellipsis, textAlign = PGStartAlign()
-            )
-            // ردیفِ جاری: برچسب‌ها در عرضِ موجود می‌شکنند، نه این‌که یک برچسبِ بلند
-            // کلِ کارت را سه‌خطی کند (گزارشِ «چینشِ هاست‌ها»).
-            PGWrapRow(horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                PGBadge(securityLabel(host.security), theme.accentPrimary)
-                host.inboundTag?.let { PGBadge(it, DsSemantic.Violet) }
-                if (host.priority > 0) PGBadge(
-                    stringResource(R.string.host_priority_fmt, host.priority),
-                    DsSemantic.Warning
-                )
-                if (host.isDisabled) PGBadge(
-                    stringResource(R.string.host_disabled_badge),
-                    DsSemantic.DangerSoft
-                )
-            }
-        }
-
-        if (busy) {
-            MrmBusyIndicator(color = theme.accentPrimary, size = 18.dp, strokeWidth = 2.dp)
-        } else {
-            if (onToggle != null) InfraIconButton(
-                icon = if (host.isDisabled) AppIcon.StatusDisabled else AppIcon.StatusActive,
-                description = stringResource(
-                    if (host.isDisabled) R.string.host_toggle_enable else R.string.host_toggle_disable
-                ),
-                tint = if (host.isDisabled) theme.mutedColor else DsSemantic.Success,
-                onClick = onToggle
-            )
-            if (onDelete != null) InfraIconButton(
-                icon = AppIcon.Delete,
-                description = stringResource(R.string.delete_host),
-                tint = DsSemantic.Danger,
-                onClick = onDelete
-            )
-        }
+    // «inbound_default» یعنی «روی هاست چیزی تنظیم نشده»؛ همان کاری که پنل
+    // می‌کند: در آن حالت فقط برچسبِ ینباند نشان داده می‌شود، نه چیپِ زردِ
+    // «Inbound default» که در کارتِ قبلی یک خطِ تمام‌عرض را بی‌مصرف می‌گرفت.
+    val explicitSecurity = when (host.security) {
+        HostSecurity.NONE, HostSecurity.TLS -> securityLabel(host.security)
+        else -> ""
     }
+    val tag = host.inboundTag?.takeIf { it.isNotBlank() }
+    InfraTableRow(
+        columns = HOST_COLUMNS,
+        name = host.remark,
+        cells = listOf(
+            buildString {
+                append(host.addresses.joinToString(", "))
+                host.port?.let { append(":").append(it) }
+            }.ifBlank { "—" },
+            when {
+                tag != null && explicitSecurity.isNotEmpty() -> "$tag · $explicitSecurity"
+                tag != null -> tag
+                else -> explicitSecurity.ifEmpty { "—" }
+            },
+            if (host.priority > 0) host.priority.toString() else "—"
+        ),
+        dot = if (host.isDisabled) theme.mutedColor else DsSemantic.Success,
+        muted = host.isDisabled,
+        busy = busy,
+        actions = buildList {
+            if (onEdit != null) add(InfraRowAction(R.string.qa_edit) { onEdit() })
+            if (onToggle != null) add(
+                InfraRowAction(
+                    if (host.isDisabled) R.string.host_toggle_enable else R.string.host_toggle_disable
+                ) { onToggle() }
+            )
+            if (onDelete != null) add(InfraRowAction(R.string.delete_host, danger = true) { onDelete() })
+        },
+        onEdit = onEdit
+    )
 }
 
 /** برچسبِ فارسی/انگلیسیِ `security` — مقدارِ خامِ پنل نگاشت می‌شود. */

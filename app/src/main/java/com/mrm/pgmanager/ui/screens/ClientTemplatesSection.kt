@@ -51,7 +51,6 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmErrorState
-import com.mrm.pgmanager.ui.components.PGStartAlign
 import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
@@ -71,6 +70,13 @@ import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import kotlinx.coroutines.launch
+
+/** نام / نوع / پرچم‌ها («پیش‌فرض · سیستمی» به‌جای دو چیپ سبز و خاکستری). */
+private val CT_COLUMNS = listOf(
+    InfraColumn(R.string.col_name, 1f),
+    InfraColumn(R.string.col_type, 0.66f),
+    InfraColumn(R.string.col_flags, 0.8f)
+)
 
 /**
  * بخشِ «قالب‌های کلاینت» — فهرست، فیلتر بر اساسِ نوع، ساخت، ویرایش و حذف.
@@ -239,14 +245,15 @@ internal fun ClientTemplatesSection(session: Session) {
             }
 
             else -> {
+                InfraTableHeader(CT_COLUMNS)
                 val intro = rememberListIntro()
                 LazyColumn(
                     // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
                     // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
                     // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
                     modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Md),
-                    contentPadding = PaddingValues(bottom = DsSpacing.Xl)
+                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
+                    contentPadding = PaddingValues(top = DsSpacing.Xxs, bottom = DsSpacing.Xl)
                 ) {
                     itemsIndexed(filtered, key = { _, t -> t.id }) { index, template ->
                         Box(Modifier.animateItem().listIntro(intro, index)) {
@@ -311,45 +318,24 @@ private fun ClientTemplateRow(
     onEdit: (() -> Unit)?,
     onDelete: (() -> Unit)?
 ) {
-    val theme = LocalThemeState.current
-    Row(
-        Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .then(if (onEdit != null) Modifier.clickable { onEdit() } else Modifier)
-            .heightIn(min = 44.dp)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-    ) {
-        Box(
-            Modifier.size(34.dp).clip(DsRadius.Md).background(theme.accentPrimary.copy(0.14f)),
-            contentAlignment = Alignment.Center
-        ) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 16.dp) }
-
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
-            Text(
-                template.name, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                textAlign = PGStartAlign()
-            )
-            PGWrapRow(horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                PGBadge(templateTypeLabel(template.templateType), theme.accentPrimary)
-                if (template.isDefault) PGBadge(
-                    stringResource(R.string.ct_default_badge), DsSemantic.Success
-                )
-                if (template.isSystem) PGBadge(
-                    stringResource(R.string.ct_system_badge), theme.mutedColor
-                )
-            }
-        }
-
-        if (onDelete != null) InfraIconButton(
-            icon = AppIcon.Delete,
-            description = stringResource(R.string.delete_ct),
-            tint = DsSemantic.Danger,
-            onClick = onDelete
-        )
-    }
+    val flags = listOfNotNull(
+        if (template.isDefault) stringResource(R.string.ct_default_badge) else null,
+        if (template.isSystem) stringResource(R.string.ct_system_badge) else null
+    )
+    InfraTableRow(
+        columns = CT_COLUMNS,
+        name = template.name,
+        cells = listOf(
+            templateTypeLabel(template.templateType),
+            flags.joinToString(" · ").ifEmpty { "—" }
+        ),
+        dot = null,
+        actions = buildList {
+            if (onEdit != null) add(InfraRowAction(R.string.qa_edit) { onEdit() })
+            if (onDelete != null) add(InfraRowAction(R.string.delete_ct, danger = true) { onDelete() })
+        },
+        onEdit = onEdit
+    )
 }
 
 /** برچسبِ نوعِ قالب؛ نوعِ ناشناخته همان مقدارِ خامِ پنل نمایش داده می‌شود. */
