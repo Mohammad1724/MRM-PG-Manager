@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -440,12 +440,14 @@ private fun HostReadableRow(
 @Composable
 private fun HostInfoLine(label: String, value: String, tag: String) {
     val theme = LocalThemeState.current
+    // Match the paragraph and layout widths, while preserving value space at normal text sizes.
+    val labelWidth = (54f * LocalDensity.current.fontScale).coerceIn(54f, 96f).dp
     Row(
         Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Text(
             "$label:", fontSize = 10.sp, lineHeight = 16.sp, color = theme.mutedColor,
-            modifier = Modifier.widthIn(min = 54.dp, max = 96.dp).alignByBaseline().testTag("${tag}_label"),
+            modifier = Modifier.width(labelWidth).alignByBaseline().testTag("${tag}_label"),
             textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
         )
         Text(

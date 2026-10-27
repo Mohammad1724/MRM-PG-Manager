@@ -110,7 +110,9 @@ class HostResponsiveRowTest {
         assertFalse(
             "Representative text must not be truncated: $tag; text=${layout.layoutInput.text}; " +
                 "size=${layout.size}; constraints=${layout.layoutInput.constraints}; lines=${layout.lineCount}; " +
-                "widthOverflow=${layout.didOverflowWidth}; heightOverflow=${layout.didOverflowHeight}; " +
+                "paragraphWidth=${layout.multiParagraph.width}; widthOverflow=${layout.didOverflowWidth}; " +
+                "heightOverflow=${layout.didOverflowHeight}; " +
+                "lineEdges=${(0 until layout.lineCount).map { layout.getLineLeft(it) to layout.getLineRight(it) }}; " +
                 "ellipsized=${(0 until layout.lineCount).any { layout.isLineEllipsized(it) }}",
             layout.hasVisualOverflow
         )
@@ -128,6 +130,11 @@ class HostResponsiveRowTest {
         listOf("host_readable_address", "host_readable_inbound", "host_readable_priority").forEach { tag ->
             assertEquals("Label and value should share a baseline for $tag", firstBaseline("${tag}_label"), firstBaseline(tag), 1f)
         }
+    }
+
+    private fun assertLabelsFit() {
+        listOf("host_readable_address_label", "host_readable_inbound_label", "host_readable_priority_label")
+            .forEach(::assertValueFits)
     }
 
     private fun assertSeparated(direction: LayoutDirection) {
@@ -160,6 +167,7 @@ class HostResponsiveRowTest {
             .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
         assertSeparated(LayoutDirection.Ltr)
         assertLabelBaselinesAligned()
+        assertLabelsFit()
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
         assertTrue("A representative host card should fit within 120 dp", bounds("host_readable_row").height <= 120f * density)
@@ -173,8 +181,7 @@ class HostResponsiveRowTest {
         render(direction = LayoutDirection.Rtl, fontScale = 2f)
         assertSeparated(LayoutDirection.Rtl)
         assertLabelBaselinesAligned()
-        listOf("host_readable_address_label", "host_readable_inbound_label", "host_readable_priority_label")
-            .forEach(::assertValueFits)
+        assertLabelsFit()
         assertValueFits("host_readable_name")
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
@@ -194,6 +201,8 @@ class HostResponsiveRowTest {
         assertTrue(address.width > 40f * density)
         assertTrue(address.left >= row.left && address.right <= row.right)
         assertTrue(address.bottom <= inbound.top + 1f && inbound.bottom <= priority.top + 1f)
+        assertLabelBaselinesAligned()
+        assertLabelsFit()
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
         rule.onNodeWithContentDescription(str(R.string.act_more))
