@@ -1,48 +1,27 @@
 package com.mrm.pgmanager.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Session
-import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PGPageHeader
 import com.mrm.pgmanager.ui.components.PGTabBar
-import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.designsystem.DsBorder
-import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
-import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.theme.LocalThemeState
-import com.mrm.pgmanager.ui.theme.primarySurface
 
 /**
  * «زیرساختِ پنل» — صفحهٔ سطحِ سرور برای سه چیزی که تا امروز فقط از پنلِ وب
@@ -74,34 +53,35 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
         R.string.infra_tab_templates
     )
 
-    Column(
-        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()
-            .padding(
-                start = DsSpacing.Screen, end = DsSpacing.Screen,
-                top = DsSpacing.Screen, bottom = DsSpacing.Mid
-            ),
-        verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-    ) {
-        // ── سربرگ: برگشت + عنوان (هم‌سبکِ سربرگِ تنظیمات/گروه‌ها)
-        PGPageHeader(
-            title = stringResource(R.string.infra_title),
-            subtitle = stringResource(R.string.infra_subtitle),
-            onBack = onBack
-        )
+    // The active section places this header in its lazy list so the entire
+    // header, tabs, search and rows share one scroll viewport.
+    val pageHeader: @Composable () -> Unit = {
+        Column(
+            Modifier.fillMaxWidth().testTag("infra_page_header"),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+        ) {
+            PGPageHeader(
+                title = stringResource(R.string.infra_title),
+                subtitle = stringResource(R.string.infra_subtitle),
+                onBack = onBack,
+                compact = true
+            )
+            PGTabBar(
+                labels = tabs.map { stringResource(it) },
+                selectedIndex = tab,
+                onSelect = { tab = it },
+                compact = true,
+                scrollWithParent = true
+            )
+        }
+    }
 
-        // ── تب‌ها: سه گزینه، هم‌عرض، با ارتفاعِ لمسیِ ۴۰dp.
-        PGTabBar(
-            labels = tabs.map { stringResource(it) },
-            selectedIndex = tab,
-            onSelect = { tab = it }
-        )
-
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-            when (tab) {
-                0 -> HostsSection(session)
-                1 -> CoresSection(session)
-                else -> ClientTemplatesSection(session)
-            }
+    // Consume system-bar insets once around every section's scroll viewport.
+    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()) {
+        when (tab) {
+            0 -> HostsSection(session, pageHeader)
+            1 -> CoresSection(session, pageHeader)
+            else -> ClientTemplatesSection(session, pageHeader)
         }
     }
 }

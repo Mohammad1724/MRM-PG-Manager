@@ -6,17 +6,16 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -103,7 +104,7 @@ internal data class HostDraft(
  * کلیدهای تغییرکرده را جایگزین می‌کند.
  */
 @Composable
-internal fun HostsSection(session: Session) {
+internal fun HostsSection(session: Session, pageHeader: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -169,90 +170,90 @@ internal fun HostsSection(session: Session) {
     val canCreate = com.mrm.pgmanager.data.AdminAccess.can("hosts", "create")
     val canUpdate = com.mrm.pgmanager.data.AdminAccess.can("hosts", "update")
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-        InfraSectionHeader(
-            title = stringResource(R.string.hosts_title),
-            subtitle = stringResource(R.string.hosts_subtitle),
-            count = hosts.size,
-            onRefresh = { scope.launch { loading = hosts.isEmpty(); load() } },
-            onAdd = if (canCreate) ({ editing = PanelHost(id = 0, remark = "") }) else null,
-            addLabel = stringResource(R.string.add_host)
-        )
-
-        if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
-        banner?.let { InfraBanner(text = it, success = false) { banner = null } }
-
-        if (hosts.isNotEmpty()) {
-            PGSearchBar(
-                query = query, onQueryChange = { query = it },
-                placeholder = stringResource(R.string.search_hosts)
-            )
-        }
-
-        when {
-            loading && hosts.isEmpty() -> Box(
-                Modifier.fillMaxWidth().height(160.dp),
-                contentAlignment = Alignment.Center
-            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
-
-            loadError != null && hosts.isEmpty() -> MrmErrorState(
-                onRetry = { scope.launch { loading = true; load() } },
-                message = loadError
-            )
-
-            hosts.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_hosts),
-                subtitle = stringResource(R.string.no_hosts_hint),
-                icon = AppIcon.Link
-            ) {
-                if (canCreate) PGPrimaryButton(
-                    stringResource(R.string.add_host),
-                    onClick = { editing = PanelHost(id = 0, remark = "") },
-                    icon = AppIcon.Add
-                )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // A phone or large text needs more room per value than a four-column table.
+        val readableRows = maxWidth < 560.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+        val intro = if (filtered.isNotEmpty()) rememberListIntro() else null
+        InfraScrollableContent(
+            listTag = "infra_hosts_list",
+            header = {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                    pageHeader()
+                    InfraSectionHeader(
+                        title = stringResource(R.string.hosts_title),
+                        subtitle = stringResource(R.string.hosts_subtitle),
+                        count = hosts.size,
+                        onRefresh = { scope.launch { loading = hosts.isEmpty(); load() } },
+                        onAdd = if (canCreate) ({ editing = PanelHost(id = 0, remark = "") }) else null,
+                        addLabel = stringResource(R.string.add_host)
+                    )
+                    if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
+                    banner?.let { InfraBanner(text = it, success = false) { banner = null } }
+                    if (hosts.isNotEmpty()) {
+                        PGSearchBar(
+                            query = query, onQueryChange = { query = it },
+                            placeholder = stringResource(R.string.search_hosts)
+                        )
+                    }
+                    if (hosts.isNotEmpty() && filtered.isNotEmpty() && !readableRows) {
+                        InfraTableHeader(HOST_COLUMNS)
+                    }
+                }
             }
-
-            filtered.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_results),
-                subtitle = stringResource(R.string.no_results_hint),
-                icon = AppIcon.Search
-            ) { PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" }) }
-
-            else -> {
-                InfraTableHeader(HOST_COLUMNS)
-                val intro = rememberListIntro()
-                LazyColumn(
-                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
-                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
-                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
-                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
-                    contentPadding = PaddingValues(top = DsSpacing.Xxs, bottom = DsSpacing.Xl)
-                ) {
-                    itemsIndexed(filtered, key = { _, h -> h.id }) { index, host ->
-                        Box(Modifier.animateItem().listIntro(intro, index)) {
-                            HostRow(
-                                host = host,
-                                busy = busyId == host.id,
-                                onEdit = if (canUpdate) ({ editing = host }) else null,
-                                onToggle = if (canUpdate) ({
-                                    busyId = host.id
-                                    scope.launch {
-                                        runCatching {
-                                            PanelApi.setHostsDisabled(session, setOf(host.id), !host.isDisabled)
-                                        }.onSuccess { count ->
-                                            toast = if (host.isDisabled) String.format(msgEnabledFmt, count)
-                                            else String.format(msgDisabledFmt, count)
-                                            load()
-                                        }.onFailure {
-                                            banner = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
-                                        }
-                                        busyId = null
+        ) {
+            when {
+                loading && hosts.isEmpty() -> item(key = "hosts_loading") {
+                    Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                        MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
+                    }
+                }
+                loadError != null && hosts.isEmpty() -> item(key = "hosts_error") {
+                    MrmErrorState(onRetry = { scope.launch { loading = true; load() } }, message = loadError)
+                }
+                hosts.isEmpty() -> item(key = "hosts_empty") {
+                    MrmEmptyState(
+                        title = stringResource(R.string.no_hosts),
+                        subtitle = stringResource(R.string.no_hosts_hint),
+                        icon = AppIcon.Link
+                    ) {
+                        if (canCreate) PGPrimaryButton(
+                            stringResource(R.string.add_host),
+                            onClick = { editing = PanelHost(id = 0, remark = "") },
+                            icon = AppIcon.Add
+                        )
+                    }
+                }
+                filtered.isEmpty() -> item(key = "hosts_no_results") {
+                    MrmEmptyState(
+                        title = stringResource(R.string.no_results),
+                        subtitle = stringResource(R.string.no_results_hint),
+                        icon = AppIcon.Search
+                    ) { PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" }) }
+                }
+                else -> itemsIndexed(filtered, key = { _, host -> host.id }) { index, host ->
+                    Box(Modifier.animateItem().listIntro(requireNotNull(intro), index)) {
+                        HostRow(
+                            host = host,
+                            readable = readableRows,
+                            busy = busyId == host.id,
+                            onEdit = if (canUpdate) ({ editing = host }) else null,
+                            onToggle = if (canUpdate) ({
+                                busyId = host.id
+                                scope.launch {
+                                    runCatching {
+                                        PanelApi.setHostsDisabled(session, setOf(host.id), !host.isDisabled)
+                                    }.onSuccess { count ->
+                                        toast = if (host.isDisabled) String.format(msgEnabledFmt, count)
+                                        else String.format(msgDisabledFmt, count)
+                                        load()
+                                    }.onFailure {
+                                        banner = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                                     }
-                                }) else null,
-                                onDelete = if (canUpdate) ({ deleting = host }) else null
-                            )
-                        }
+                                    busyId = null
+                                }
+                            }) else null,
+                            onDelete = if (canUpdate) ({ deleting = host }) else null
+                        )
                     }
                 }
             }
@@ -324,53 +325,138 @@ internal fun HostsSection(session: Session) {
     }
 }
 
-/** یک ردیفِ هاست: نام، آدرس/پورت، و بج‌های امنیت/inbound/اولویت. */
+/** A host keeps the same actions in both the wide table and narrow list. */
 @Composable
-private fun HostRow(
+internal fun HostRow(
     host: PanelHost,
+    readable: Boolean,
     busy: Boolean,
     onEdit: (() -> Unit)?,
     onToggle: (() -> Unit)?,
     onDelete: (() -> Unit)?
 ) {
     val theme = LocalThemeState.current
-    // «inbound_default» یعنی «روی هاست چیزی تنظیم نشده»؛ همان کاری که پنل
-    // می‌کند: در آن حالت فقط برچسبِ ینباند نشان داده می‌شود، نه چیپِ زردِ
-    // «Inbound default» که در کارتِ قبلی یک خطِ تمام‌عرض را بی‌مصرف می‌گرفت.
     val explicitSecurity = when (host.security) {
         HostSecurity.NONE, HostSecurity.TLS -> securityLabel(host.security)
         else -> ""
     }
     val tag = host.inboundTag?.takeIf { it.isNotBlank() }
-    InfraTableRow(
-        columns = HOST_COLUMNS,
-        name = host.remark,
-        cells = listOf(
-            buildString {
-                append(host.addresses.joinToString(", "))
-                host.port?.let { append(":").append(it) }
-            }.ifBlank { "—" },
-            when {
-                tag != null && explicitSecurity.isNotEmpty() -> "$tag · $explicitSecurity"
-                tag != null -> tag
-                else -> explicitSecurity.ifEmpty { "—" }
-            },
-            if (host.priority > 0) host.priority.toString() else "—"
-        ),
-        dot = if (host.isDisabled) theme.mutedColor else DsSemantic.Success,
-        muted = host.isDisabled,
-        busy = busy,
-        actions = buildList {
-            if (onEdit != null) add(InfraRowAction(R.string.qa_edit) { onEdit() })
-            if (onToggle != null) add(
-                InfraRowAction(
-                    if (host.isDisabled) R.string.host_toggle_enable else R.string.host_toggle_disable
-                ) { onToggle() }
-            )
-            if (onDelete != null) add(InfraRowAction(R.string.delete_host, danger = true) { onDelete() })
-        },
-        onEdit = onEdit
+    val address = buildString {
+        append(host.addresses.joinToString(", "))
+        host.port?.let { append(":").append(it) }
+    }.ifBlank { "—" }
+    val inbound = when {
+        tag != null && explicitSecurity.isNotEmpty() -> "$tag · $explicitSecurity"
+        tag != null -> tag
+        else -> explicitSecurity.ifEmpty { "—" }
+    }
+    val priority = if (host.priority > 0) host.priority.toString() else "—"
+    val actions = hostRowActions(host, onEdit, onToggle, onDelete)
+    if (readable) {
+        HostReadableRow(
+            name = host.remark, address = address, inbound = inbound, priority = priority,
+            disabled = host.isDisabled, busy = busy, actions = actions, onEdit = onEdit
+        )
+    } else {
+        InfraTableRow(
+            columns = HOST_COLUMNS,
+            name = host.remark,
+            cells = listOf(address, inbound, priority),
+            dot = if (host.isDisabled) theme.mutedColor else DsSemantic.Success,
+            muted = host.isDisabled,
+            busy = busy,
+            actions = actions,
+            onEdit = onEdit
+        )
+    }
+}
+
+internal fun hostRowActions(
+    host: PanelHost,
+    onEdit: (() -> Unit)?,
+    onToggle: (() -> Unit)?,
+    onDelete: (() -> Unit)?
+): List<InfraRowAction> = buildList {
+    if (onEdit != null) add(InfraRowAction(R.string.qa_edit) { onEdit() })
+    if (onToggle != null) add(
+        InfraRowAction(if (host.isDisabled) R.string.host_toggle_enable else R.string.host_toggle_disable) { onToggle() }
     )
+    if (onDelete != null) add(InfraRowAction(R.string.delete_host, danger = true) { onDelete() })
+}
+
+/** Separate labeled values on narrow screens instead of squeezing four columns together. */
+@Composable
+private fun HostReadableRow(
+    name: String,
+    address: String,
+    inbound: String,
+    priority: String,
+    disabled: Boolean,
+    busy: Boolean,
+    actions: List<InfraRowAction>,
+    onEdit: (() -> Unit)?
+) {
+    val theme = LocalThemeState.current
+    val statusLabel = stringResource(if (disabled) R.string.host_disabled_badge else R.string.active)
+    Column(
+        Modifier.fillMaxWidth().testTag("host_readable_row")
+            .clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .then(if (onEdit != null) Modifier.clickable { onEdit() } else Modifier)
+            .padding(start = DsSpacing.Card, end = DsSpacing.Card, top = DsSpacing.Xxs, bottom = DsSpacing.Md),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+        ) {
+            Box(
+                Modifier.size(12.dp).semantics { contentDescription = statusLabel },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier.size(7.dp).clip(DsRadius.Full)
+                        .background(if (disabled) theme.mutedColor else DsSemantic.Success)
+                )
+            }
+            Text(
+                name, modifier = Modifier.weight(1f).testTag("host_readable_name"),
+                fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                color = if (disabled) theme.mutedColor else theme.inkColor,
+                textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
+            )
+            InfraRowActions(busy = busy, actions = actions)
+        }
+        Column(
+            Modifier.fillMaxWidth().padding(start = 18.dp, end = DsSpacing.Xs),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
+        ) {
+            HostInfoLine(stringResource(R.string.col_address), address, "host_readable_address")
+            HostInfoLine(stringResource(R.string.col_inbound), inbound, "host_readable_inbound")
+            HostInfoLine(stringResource(R.string.col_priority), priority, "host_readable_priority")
+        }
+    }
+}
+
+@Composable
+private fun HostInfoLine(label: String, value: String, tag: String) {
+    val theme = LocalThemeState.current
+    Row(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            "$label:", fontSize = 10.sp, color = theme.mutedColor,
+            modifier = Modifier.widthIn(min = 54.dp, max = 96.dp), maxLines = 2,
+            overflow = TextOverflow.Ellipsis, textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
+        )
+        Text(
+            value, modifier = Modifier.weight(1f).testTag(tag), fontSize = 11.sp,
+            color = theme.inkColor,
+            style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Left
+        )
+    }
 }
 
 /** برچسبِ فارسی/انگلیسیِ `security` — مقدارِ خامِ پنل نگاشت می‌شود. */

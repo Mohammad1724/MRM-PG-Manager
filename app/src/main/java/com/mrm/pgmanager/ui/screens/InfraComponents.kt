@@ -10,11 +10,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
@@ -52,6 +56,28 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * نسخهٔ خودش را می‌داشت، بعد از اولین تغییرِ سبک، سه ظاهرِ کمی متفاوت می‌شد.
  * این‌ها `internal` هستند و بیرون از این پکیج استفاده نمی‌شوند.
  */
+
+/** A single scroll viewport for the page header, section controls and lazy rows. */
+@Composable
+internal fun InfraScrollableContent(
+    listTag: String,
+    header: @Composable () -> Unit,
+    content: LazyListScope.() -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag(listTag),
+        contentPadding = PaddingValues(
+            start = DsSpacing.Screen, end = DsSpacing.Screen,
+            top = DsSpacing.Md, bottom = DsSpacing.Xl
+        ),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+    ) {
+        item(key = "infra_header") {
+            Box(Modifier.fillMaxWidth().padding(bottom = DsSpacing.Xs)) { header() }
+        }
+        content()
+    }
+}
 
 /**
  * سرِبخشِ «زیرساختِ پنل»: عنوان + توضیح + شمارش + تازه‌سازی + ساخت.
@@ -215,7 +241,7 @@ internal class InfraRowAction(val labelRes: Int, val danger: Boolean = false, va
 private val InfraDotSlot = 12.dp
 private val InfraActionSlot = 48.dp
 
-/** سرِ ستون‌ها — یک‌بار بالای لیست، بیرونِ LazyColumn (همیشه دیدنی). */
+/** Column headings share the same widths and scroll with the infrastructure controls. */
 @Composable
 internal fun InfraTableHeader(columns: List<InfraColumn>) {
     val theme = LocalThemeState.current
@@ -265,7 +291,6 @@ internal fun InfraTableRow(
     onEdit: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
-    val menuOpen = remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
@@ -300,30 +325,38 @@ internal fun InfraTableRow(
                 modifier = Modifier.weight(c.weight)
             )
         }
-        Box(Modifier.size(InfraActionSlot), contentAlignment = Alignment.Center) {
-            if (busy) {
-                MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
-            } else if (actions.isNotEmpty()) {
-                Box {
-                    InfraIconButton(
-                        icon = AppIcon.More,
-                        description = stringResource(R.string.act_more),
-                        tint = theme.inkColor,
-                        onClick = { menuOpen.value = true }
-                    )
-                    AppDropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
-                        actions.forEach { a ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(a.labelRes),
-                                        fontSize = 12.sp,
-                                        color = if (a.danger) DsSemantic.Danger else theme.inkColor
-                                    )
-                                },
-                                onClick = { menuOpen.value = false; a.run() }
-                            )
-                        }
+        InfraRowActions(busy = busy, actions = actions)
+    }
+}
+
+/** Preserve the same menu and busy slot in both table and narrow-screen rows. */
+@Composable
+internal fun InfraRowActions(busy: Boolean, actions: List<InfraRowAction>) {
+    val theme = LocalThemeState.current
+    val menuOpen = remember { mutableStateOf(false) }
+    Box(Modifier.size(InfraActionSlot), contentAlignment = Alignment.Center) {
+        if (busy) {
+            MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
+        } else if (actions.isNotEmpty()) {
+            Box {
+                InfraIconButton(
+                    icon = AppIcon.More,
+                    description = stringResource(R.string.act_more),
+                    tint = theme.inkColor,
+                    onClick = { menuOpen.value = true }
+                )
+                AppDropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
+                    actions.forEach { action ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(action.labelRes),
+                                    fontSize = 12.sp,
+                                    color = if (action.danger) DsSemantic.Danger else theme.inkColor
+                                )
+                            },
+                            onClick = { menuOpen.value = false; action.run() }
+                        )
                     }
                 }
             }

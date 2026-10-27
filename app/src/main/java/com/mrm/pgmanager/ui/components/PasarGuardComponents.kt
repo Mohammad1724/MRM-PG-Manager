@@ -201,17 +201,18 @@ fun PGPageHeader(
     subtitle: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     Row(
         modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
+            .padding(horizontal = DsSpacing.Card, vertical = if (compact) DsSpacing.Xs else DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
-        PGHeaderAction(AppIcon.Prev, stringResource(R.string.cd_back), onBack)
+        PGHeaderAction(AppIcon.Prev, stringResource(R.string.cd_back), onBack, compact = compact)
         Column(Modifier.weight(1f)) {
             Text(
                 title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor,
@@ -224,25 +225,42 @@ fun PGPageHeader(
     }
 }
 
-/** Tabs wrap, remain scrollable at large font scales, and expose their selected state. */
+/** Tabs wrap, expose their selected state and can scroll independently or with their parent. */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun PGTabBar(labels: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun PGTabBar(
+    labels: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    scrollWithParent: Boolean = false
+) {
     val theme = LocalThemeState.current
+    val scrollState = rememberScrollState()
     PGWrapRow(
-        modifier = modifier.fillMaxWidth().heightIn(max = 176.dp).clip(DsRadius.Lg).background(theme.searchBgColor)
+        // An outer list should move the tabs as one item, including at large font scales.
+        modifier = modifier.fillMaxWidth()
+            .then(if (scrollWithParent) Modifier else Modifier.heightIn(max = 176.dp))
+            .clip(DsRadius.Lg).background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-            .verticalScroll(rememberScrollState()).padding(DsSpacing.Xs).selectableGroup(),
+            .then(if (scrollWithParent) Modifier else Modifier.verticalScroll(scrollState))
+            .padding(horizontal = DsSpacing.Xs, vertical = if (compact) 0.dp else DsSpacing.Xs)
+            .selectableGroup(),
         horizontalGap = DsSpacing.Xs,
         verticalGap = DsSpacing.Xs
     ) {
         labels.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val bringIntoView = remember { BringIntoViewRequester() }
-            LaunchedEffect(selected) { if (selected) bringIntoView.bringIntoView() }
+            // Do not relocate an enclosing list whenever its lazy header re-enters composition.
+            LaunchedEffect(selected, scrollWithParent) {
+                if (selected && !scrollWithParent) bringIntoView.bringIntoView()
+            }
             Box(
-                Modifier.bringIntoViewRequester(bringIntoView).heightIn(min = DsComponent.MinTouchTarget).clip(DsRadius.Md)
-                    .primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
+                Modifier.bringIntoViewRequester(bringIntoView).heightIn(min = DsComponent.MinTouchTarget)
+                    .then(if (compact) Modifier.widthIn(min = DsComponent.MinTouchTarget) else Modifier)
+                    .clip(DsRadius.Md).primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
                     .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
                 contentAlignment = Alignment.Center

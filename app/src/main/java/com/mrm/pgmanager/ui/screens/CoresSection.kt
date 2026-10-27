@@ -7,17 +7,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -91,7 +88,7 @@ private val CORE_COLUMNS = listOf(
  * [PanelCore.config] رشتهٔ خام است و دست‌نخورده برگردانده می‌شود.
  */
 @Composable
-internal fun CoresSection(session: Session) {
+internal fun CoresSection(session: Session, pageHeader: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -149,72 +146,67 @@ internal fun CoresSection(session: Session) {
     val canUpdate = com.mrm.pgmanager.data.AdminAccess.can("cores", "update")
     val canDelete = com.mrm.pgmanager.data.AdminAccess.can("cores", "delete")
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-        InfraSectionHeader(
-            title = stringResource(R.string.cores_title),
-            subtitle = stringResource(R.string.cores_subtitle),
-            count = cores.size,
-            onRefresh = { scope.launch { loading = cores.isEmpty(); load() } },
-            // ساخت از گوشی ممکن نیست (کانفیگِ JSON کامل لازم است) — توضیحش در حالتِ خالی است.
-            onAdd = null,
-            addLabel = ""
-        )
-
-        if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
-        banner?.let { InfraBanner(text = it, success = false) { banner = null } }
-
-        if (cores.isNotEmpty()) {
-            PGSearchBar(
-                query = query, onQueryChange = { query = it },
-                placeholder = stringResource(R.string.search_cores)
-            )
+    val intro = if (filtered.isNotEmpty()) rememberListIntro() else null
+    InfraScrollableContent(
+        listTag = "infra_cores_list",
+        header = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                pageHeader()
+                InfraSectionHeader(
+                    title = stringResource(R.string.cores_title),
+                    subtitle = stringResource(R.string.cores_subtitle),
+                    count = cores.size,
+                    onRefresh = { scope.launch { loading = cores.isEmpty(); load() } },
+                    // ساخت از گوشی ممکن نیست (کانفیگِ JSON کامل لازم است) — توضیحش در حالتِ خالی است.
+                    onAdd = null,
+                    addLabel = ""
+                )
+                if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
+                banner?.let { InfraBanner(text = it, success = false) { banner = null } }
+                if (cores.isNotEmpty()) {
+                    PGSearchBar(
+                        query = query, onQueryChange = { query = it },
+                        placeholder = stringResource(R.string.search_cores)
+                    )
+                }
+                if (cores.isNotEmpty() && filtered.isNotEmpty()) InfraTableHeader(CORE_COLUMNS)
+            }
         }
-
+    ) {
         when {
-            loading && cores.isEmpty() -> Box(
-                Modifier.fillMaxWidth().height(160.dp),
-                contentAlignment = Alignment.Center
-            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
-
-            loadError != null && cores.isEmpty() -> MrmErrorState(
-                onRetry = { scope.launch { loading = true; load() } },
-                message = loadError
-            )
-
-            cores.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_cores),
-                subtitle = stringResource(R.string.no_cores_hint),
-                icon = AppIcon.Storage
-            ) { PGSecondaryButton(stringResource(R.string.refresh), onClick = { scope.launch { loading = true; load() } }) }
-
-            filtered.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_results),
-                subtitle = stringResource(R.string.no_results_hint),
-                icon = AppIcon.Search
-            ) { PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" }) }
-
-            else -> {
-                InfraTableHeader(CORE_COLUMNS)
-                val intro = rememberListIntro()
-                LazyColumn(
-                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
-                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
-                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
-                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
-                    contentPadding = PaddingValues(top = DsSpacing.Xxs, bottom = DsSpacing.Xl)
+            loading && cores.isEmpty() -> item(key = "cores_loading") {
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
+                }
+            }
+            loadError != null && cores.isEmpty() -> item(key = "cores_error") {
+                MrmErrorState(onRetry = { scope.launch { loading = true; load() } }, message = loadError)
+            }
+            cores.isEmpty() -> item(key = "cores_empty") {
+                MrmEmptyState(
+                    title = stringResource(R.string.no_cores),
+                    subtitle = stringResource(R.string.no_cores_hint),
+                    icon = AppIcon.Storage
                 ) {
-                    itemsIndexed(filtered, key = { _, c -> c.id }) { index, core ->
-                        Box(Modifier.animateItem().listIntro(intro, index)) {
-                            CoreRow(
-                                core = core,
-                                busy = busyId == core.id,
-                                onEdit = if (canUpdate) ({ editing = core }) else null,
-                                onRestart = if (canUpdate) ({ restarting = core }) else null,
-                                onDelete = if (canDelete) ({ deleting = core }) else null
-                            )
-                        }
-                    }
+                    PGSecondaryButton(stringResource(R.string.refresh), onClick = { scope.launch { loading = true; load() } })
+                }
+            }
+            filtered.isEmpty() -> item(key = "cores_no_results") {
+                MrmEmptyState(
+                    title = stringResource(R.string.no_results),
+                    subtitle = stringResource(R.string.no_results_hint),
+                    icon = AppIcon.Search
+                ) { PGSecondaryButton(stringResource(R.string.clear_filter), onClick = { query = "" }) }
+            }
+            else -> itemsIndexed(filtered, key = { _, core -> core.id }) { index, core ->
+                Box(Modifier.animateItem().listIntro(requireNotNull(intro), index)) {
+                    CoreRow(
+                        core = core,
+                        busy = busyId == core.id,
+                        onEdit = if (canUpdate) ({ editing = core }) else null,
+                        onRestart = if (canUpdate) ({ restarting = core }) else null,
+                        onDelete = if (canDelete) ({ deleting = core }) else null
+                    )
                 }
             }
         }
