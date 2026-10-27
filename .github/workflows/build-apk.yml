@@ -10,11 +10,6 @@ on:
       - "arena/**"
   pull_request:
   workflow_dispatch:
-    inputs:
-      test_filter:
-        description: Optional Gradle test filter for manual diagnostics
-        required: false
-        type: string
 
 # با هر push تازه، اجرای قبلیِ همان شاخه لغو می‌شود تا صفِ بیلدِ ۶ دقیقه‌ای
 # پشتِ هم نیفتد (و نتیجهٔ کهنه روی شاخه نماند).
@@ -82,13 +77,14 @@ jobs:
       # `testDebugUnitTest` هم سورسِ main و هم تست را کامپایل می‌کند، پس خطای
       # کامپایل هم همین‌جا سرخ می‌شود.
       - name: Run unit tests
-        env:
-          TEST_FILTER: ${{ inputs.test_filter }}
         run: |
           set -o pipefail
-          args=(testDebugUnitTest --console=plain)
-          if [ -n "$TEST_FILTER" ]; then args+=(--tests "$TEST_FILTER"); fi
-          ./gradlew "${args[@]}" 2>&1 | tee build.log
+          ./gradlew testDebugUnitTest --console=plain --tests '*UsersScreenTouchTest*' 2>&1 | tee build.log
+
+      - name: Stop after temporary focused diagnostics
+        run: |
+          echo '::error::Focused diagnostics are not a full CI run.'
+          exit 1
 
       # شکستِ گامِ قبل را به annotation تبدیل می‌کند: نامِ تستِ شکست‌خورده یا
       # `e: file://…:line: msg` کامپایلر، مستقیم روی خطِ همان فایل در تبِ Checks.
