@@ -4,6 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,15 +121,17 @@ internal fun InfraIconButton(
     val iconTint = if (enabled) tint else theme.mutedColor.copy(0.5f)
     if (icon == AppIcon.Refresh) {
         // Match the main headers without shrinking the accessible target.
+        val interaction = remember { MutableInteractionSource() }
         Box(
             Modifier.size(48.dp)
-                .clickable(enabled = enabled) { onClick() }
+                .clickable(enabled = enabled, interactionSource = interaction, indication = null) { onClick() }
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center
         ) {
             Box(
                 Modifier.size(36.dp).testTag("infra_refresh_visual")
-                    .clip(DsRadius.Sm).background(theme.searchBgColor),
+                    .clip(DsRadius.Sm).background(theme.searchBgColor)
+                    .indication(interaction, LocalIndication.current),
                 contentAlignment = Alignment.Center
             ) {
                 RoundedAppIcon(icon, tint = iconTint, size = 16.dp, modifier = Modifier.testTag("infra_refresh_icon"))

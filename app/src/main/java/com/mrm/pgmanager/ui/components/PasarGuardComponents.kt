@@ -8,6 +8,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -265,17 +267,19 @@ private fun PGHeaderAction(
 ) {
     val theme = LocalThemeState.current
     if (compact) {
+        val interaction = remember { MutableInteractionSource() }
         Box(
             Modifier.size(DsComponent.MinTouchTarget)
                 .semantics { contentDescription = label }
-                .clickable(onClick = onClick)
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick)
                 .pressScale(0.92f),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 Modifier.size(36.dp).testTag("header_action_visual_${icon.name}")
                     .clip(DsRadius.Md).background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md),
+                    .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+                    .indication(interaction, LocalIndication.current),
                 contentAlignment = Alignment.Center
             ) {
                 RoundedAppIcon(

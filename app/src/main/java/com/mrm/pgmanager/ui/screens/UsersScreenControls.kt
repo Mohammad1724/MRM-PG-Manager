@@ -13,6 +13,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -281,11 +283,13 @@ internal fun FilterAndControlBar(
         // فیلترِ گروه — پنل خودش اعمالش می‌کند (`?group=`)
         if (groups.isNotEmpty()) {
             var groupMenu by remember { mutableStateOf(false) }
+            val interaction = remember { MutableInteractionSource() }
             val selectedName = groups.firstOrNull { it.id == groupFilterId }?.name
             Box {
                 Box(
                     Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)
-                        .clickable { groupMenu = true }.pressScale(0.97f),
+                        .clickable(interactionSource = interaction, indication = null) { groupMenu = true }
+                        .pressScale(0.97f),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -293,6 +297,7 @@ internal fun FilterAndControlBar(
                             .clip(DsRadius.Sm)
                             .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
                             .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
+                            .indication(interaction, LocalIndication.current)
                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
@@ -426,10 +431,11 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
+    val interaction = remember { MutableInteractionSource() }
     Box(
         Modifier.size(48.dp)
             .semantics { this.contentDescription = contentDescription }
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .pressScale(0.97f),
         contentAlignment = Alignment.Center
     ) {
@@ -437,7 +443,8 @@ private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boo
             Modifier.size(36.dp).testTag("users_bar_visual_${icon.name}")
                 .clip(DsRadius.Sm)
                 .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, if (active) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm),
+                .border(BorderStroke(DsBorder.Hairline, if (active) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
+                .indication(interaction, LocalIndication.current),
             contentAlignment = Alignment.Center
         ) {
             RoundedAppIcon(icon, tint = if (active) theme.accentTextColor else theme.mutedColor, size = 16.dp, modifier = Modifier.testTag("users_bar_icon_${icon.name}"))
@@ -449,13 +456,18 @@ private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boo
 internal fun ViewModeIcon(icon: AppIcon, contentDescription: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
+    val interaction = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier.size(48.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        modifier = Modifier.size(48.dp).selectable(
+            selected = selected, interactionSource = interaction, indication = null,
+            role = Role.RadioButton, onClick = onClick
+        ),
         contentAlignment = Alignment.Center
     ) {
         Box(
             Modifier.size(36.dp).testTag("users_view_visual_${icon.name}")
-                .clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent),
+                .clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent)
+                .indication(interaction, LocalIndication.current),
             contentAlignment = Alignment.Center
         ) {
             RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.testTag("users_view_icon_${icon.name}"))
