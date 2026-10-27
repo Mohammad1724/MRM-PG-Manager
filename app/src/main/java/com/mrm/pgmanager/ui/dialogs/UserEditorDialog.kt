@@ -124,6 +124,19 @@ fun UserEditorDialog(
         }
     }
 
+    // رفتارِ پایانِ مهلتِ on_hold — از PasarGuard v5.5 پنل خودش تصمیم می‌گیرد کاربر را
+    // فعال/غیرفعال/حذف کند (`on_hold_timeout_action` در تنظیماتِ عمومی). متنِ راهنما
+    // باید همان را بگوید، وگرنه ادمین فکر می‌کند همیشه «فعال» می‌شود.
+    var onHoldAction by remember(session) { mutableStateOf<String?>(null) }
+    LaunchedEffect(session) {
+        if (session != null && com.mrm.pgmanager.data.PanelSupport.supportsOnHoldAction &&
+            com.mrm.pgmanager.data.AdminAccess.can("settings", "read_general")
+        ) {
+            // ۴۰۳ برای نقشِ بدونِ مجوز طبیعی است؛ در آن حالت متنِ عمومی می‌ماند.
+            onHoldAction = runCatching { PanelApi.generalSettings(session).onHoldTimeoutAction }.getOrNull()
+        }
+    }
+
     val filteredGroups = remember(groups, groupSearchQuery) {
         if (groupSearchQuery.isBlank()) groups else groups.filter { it.name.contains(groupSearchQuery, ignoreCase = true) }
     }
@@ -266,7 +279,9 @@ fun UserEditorDialog(
                                     fontSize = 11.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
                                 )
                             }
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                            // خودِ چیپ‌ها padding هفت‌dpی دارند، پس فاصله‌ها صفر است؛
+                            // فقط به‌جای اسکرولِ افقی، خط می‌شکنند.
+                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = 0.dp, verticalGap = 0.dp) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
                                         Modifier.padding(7.dp).height(26.dp).clip(DsRadius.Full).clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }.background(theme.searchBgColor)
@@ -285,6 +300,18 @@ fun UserEditorDialog(
                                 placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Calendar
                             )
                             Text(stringResource(R.string.ue_on_hold_timeout_hint), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            // اقدامِ پنل پس از پایانِ مهلت (v5.5) — فقط وقتی خوانده شده باشد.
+                            onHoldAction?.let { action ->
+                                val actionText = when (action) {
+                                    com.mrm.pgmanager.data.model.OnHoldAction.DISABLE -> stringResource(R.string.ue_on_hold_action_disable)
+                                    com.mrm.pgmanager.data.model.OnHoldAction.DELETE -> stringResource(R.string.ue_on_hold_action_delete)
+                                    else -> stringResource(R.string.ue_on_hold_action_activate)
+                                }
+                                Text(
+                                    stringResource(R.string.ue_on_hold_action_fmt, actionText),
+                                    fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
 

@@ -169,6 +169,8 @@ fun DashboardScreen(
         var expired = false
         runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; store.saveAlertFlag("panel_offline", false); offlineAt = null
             PanelCache.put(statsKey, it)
+            // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5 (همین پاسخ، بدونِ درخواستِ اضافه).
+            com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
             refreshDebtors()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
@@ -299,6 +301,40 @@ fun DashboardScreen(
                         color = theme.accentTextColor, fontSize = 11.sp, fontWeight = FontWeight.Medium,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                     )
+                }
+            }
+
+            // نسخهٔ پنل قدیمی‌تر از حداقلِ پشتیبانی (PasarGuard 5.5.1): یک بنرِ روشن
+            // به‌جای قفل‌کردنِ اپ. قابلیت‌های ۵.۵ (پاک‌سازیِ بی‌فعال‌ها، ترتیبِ نودها)
+            // همان‌جا با PanelSupport پنهان می‌شوند؛ کارهای روزمره دست‌نخورده می‌مانند.
+            if (com.mrm.pgmanager.data.PanelSupport.isOutdated) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
+                    modifier = Modifier.fillMaxWidth()
+                        .clip(DsRadius.Md)
+                        .background(GlassAmber.copy(alpha = 0.12f))
+                        .border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(alpha = 0.30f)), DsRadius.Md)
+                        .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
+                ) {
+                    RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 13.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            stringResource(
+                                R.string.panel_ver_outdated_title,
+                                com.mrm.pgmanager.data.PanelSupport.minSupported
+                            ),
+                            color = theme.warningTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        )
+                        Text(
+                            stringResource(
+                                R.string.panel_ver_outdated_body,
+                                com.mrm.pgmanager.data.PanelSupport.minSupported
+                            ),
+                            color = theme.mutedColor, fontSize = 11.sp, lineHeight = 13.sp
+                        )
+                    }
                 }
             }
 

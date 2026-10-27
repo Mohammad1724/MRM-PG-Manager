@@ -72,6 +72,7 @@ import com.mrm.pgmanager.ui.designsystem.DsElevation
 import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsGlass
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -346,11 +347,7 @@ fun MrmButton(
                 contentAlignment = Alignment.Center
             ) {
                 if (loading) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(coinSize - 9.dp),
-                        color = contentColor,
-                        strokeWidth = 2.dp
-                    )
+                    MrmBusyIndicator(color = contentColor, size = coinSize - 9.dp, strokeWidth = 2.dp)
                 } else if (icon != null) {
                     RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconXs else DsComponent.IconSm)
                 }
@@ -376,11 +373,7 @@ fun MrmButton(
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 if (loading) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(DsComponent.IconMd),
-                        color = contentColor,
-                        strokeWidth = 2.5.dp
-                    )
+                    MrmBusyIndicator(color = contentColor, size = DsComponent.IconMd, strokeWidth = 2.5.dp)
                 } else {
                     if (icon != null) {
                         RoundedAppIcon(icon, tint = contentColor, size = if (compact) DsComponent.IconSm else DsComponent.IconMd)
@@ -470,7 +463,16 @@ fun BulkActionsBar(
      * خودش این آیتم‌ها **پنهان** می‌شوند تا به ۴۰۳ نخورد.
      */
     showAddDays: Boolean = true,
-    showAddData: Boolean = true
+    showAddData: Boolean = true,
+    /**
+     * RBAC — اکشن‌های مخرب برای ادمینِ بدونِ مجوز **پنهان** می‌شوند؛ تا حالا فقط
+     * `users.create` و دو اکشنِ scope_all بررسی می‌شد و ادمینِ محدود دکمه‌هایی
+     * می‌دید که پنل ۴۰۳ می‌داد. نامعلوم‌بودنِ مجوز = مجاز (مانند [com.mrm.pgmanager.data.AdminAccess]).
+     */
+    canDelete: Boolean = true,
+    canToggle: Boolean = true,
+    canResetUsage: Boolean = true,
+    canRevokeSubs: Boolean = true
 ) {
     val theme = LocalThemeState.current
     val isFa = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
@@ -502,9 +504,11 @@ fun BulkActionsBar(
             // Vertical divider
             Box(Modifier.width(1.dp).height(16.dp).background(theme.borderColor))
 
-            // Trash action (Delete)
-            IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
-                RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 15.dp)
+            // Trash action (Delete) — `users.delete`
+            if (canDelete) {
+                IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {
+                    RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 15.dp)
+                }
             }
 
             // More actions (...)
@@ -517,18 +521,22 @@ fun BulkActionsBar(
                     onDismissRequest = { expanded = false },
                     modifier = Modifier.background(theme.cardSurfaceColor)
                 ) {
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_enable) else "Enable", color = theme.inkColor) } },
-                        onClick = { onEnable(); expanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_disable) else "Disable", color = theme.inkColor) } },
-                        onClick = { onDisable(); expanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_reset_data) else "Reset Usage", color = theme.inkColor) } },
-                        onClick = { onResetUsage(); expanded = false }
-                    )
+                    if (canToggle) {
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Check, tint = GlassGreen, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_enable) else "Enable", color = theme.inkColor) } },
+                            onClick = { onEnable(); expanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.User, tint = theme.mutedColor, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_disable) else "Disable", color = theme.inkColor) } },
+                            onClick = { onDisable(); expanded = false }
+                        )
+                    }
+                    if (canResetUsage) {
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_reset_data) else "Reset Usage", color = theme.inkColor) } },
+                            onClick = { onResetUsage(); expanded = false }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Template, tint = theme.accentPrimary, size = 14.dp); Text(if (isFa) stringResource(R.string.cc_apply_template) else "Apply Template", color = theme.inkColor) } },
                         onClick = { onApplyTemplate(); expanded = false }
@@ -547,10 +555,12 @@ fun BulkActionsBar(
                             onClick = { onAddData(); expanded = false }
                         )
                     }
-                    DropdownMenuItem(
-                        text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
-                        onClick = { onRevokeSubs(); expanded = false }
-                    )
+                    if (canRevokeSubs) {
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) { RoundedAppIcon(AppIcon.Reset, tint = GlassAmber, size = 14.dp); Text(stringResource(R.string.us_bulk_revoke), color = theme.inkColor) } },
+                            onClick = { onRevokeSubs(); expanded = false }
+                        )
+                    }
                     // افزودن/برداشتنِ گروه برای چند کاربر یک‌جا — قبلاً باید
                     // تک‌تکِ کاربرها را ویرایش می‌کردی.
                     DropdownMenuItem(

@@ -5,7 +5,17 @@ on:
     branches:
       - main
       - liquid-glass-ui
+      # شاخه‌های کاریِ ایجنتِ Arena: تا کارِ هر شاخه *قبل از merge* کامپایل و تست
+      # شود. قبلاً فقط main بیلد می‌شد و سه کامیتِ پشتِ‌سرهم هرگز کامپایل نشدند.
+      - "arena/**"
+  pull_request:
   workflow_dispatch:
+
+# با هر push تازه، اجرای قبلیِ همان شاخه لغو می‌شود تا صفِ بیلدِ ۶ دقیقه‌ای
+# پشتِ هم نیفتد (و نتیجهٔ کهنه روی شاخه نماند).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -62,8 +72,21 @@ jobs:
           # AARها ساخته شده و در مخزن کامیت است، پس اینجا دانلودی لازم نیست.
           python3 tools/kt-compose-api.py
 
+      # خروجی در build.log نگه داشته می‌شود؛ گامِ بعدی از همان فایل خطاها را به
+      # annotation تبدیل می‌کند (لاگِ اجرا از API در دسترس نیست).
+      # `testDebugUnitTest` هم سورسِ main و هم تست را کامپایل می‌کند، پس خطای
+      # کامپایل هم همین‌جا سرخ می‌شود.
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: |
+          set -o pipefail
+          ./gradlew testDebugUnitTest --console=plain 2>&1 | tee build.log
+
+      # شکستِ گامِ قبل را به annotation تبدیل می‌کند: نامِ تستِ شکست‌خورده یا
+      # `e: file://…:line: msg` کامپایلر، مستقیم روی خطِ همان فایل در تبِ Checks.
+      # (لاگِ اجرا روی *.blob.core.windows.net است و از خیلی محیط‌ها خواندنی نیست.)
+      - name: Annotate failures
+        if: failure()
+        run: python3 tools/ci-annotate.py build.log app/build/test-results/testDebugUnitTest
 
       # PNGهای رندرِ Robolectric (MicroRowScreenshotTest) — برای دیدنِ چیدمانِ واقعی بدون گوشی.
       - name: Upload UI screenshots
@@ -83,7 +106,9 @@ jobs:
           if-no-files-found: ignore
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --console=plain 2>&1 | tee -a build.log
 
       # بیلدِ ریلیز (R8 + کوچک‌سازیِ منابع) همین‌جا هم ساخته می‌شود: بیلدِ debug
       # ذاتاً کندتر است (debuggable، بدونِ R8، بدونِ پروفایلِ پایه) و برای حس‌کردنِ

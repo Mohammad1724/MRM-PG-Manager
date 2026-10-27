@@ -40,15 +40,33 @@ object PanelCache {
      */
     const val DefaultFreshMs = 20_000L
 
+    /**
+     * ساعتِ کش بر حسبِ میلی‌ثانیه.
+     *
+     * چرا جایگزین‌شدنی است: تست‌های JVM (`PanelCacheTest`) نه Robolectric اجرا
+     * می‌کنند و نه `SystemClock` واقعی دارند، پس `SystemClock.elapsedRealtime()`
+     * با `RuntimeException: Method elapsedRealtime … not mocked` کلِ تست را
+     * می‌شکست. جدا از آن، سنجشِ «کهنه شدن» با ساعتِ واقعی غیرقطعی است؛ تست یک
+     * شمارندهٔ دستی می‌دهد و سن را دقیق می‌سنجد. مقدارِ پیش‌فرض در تولید همان
+     * `elapsedRealtime` است.
+     */
+    @Volatile
+    internal var clock: () -> Long = { SystemClock.elapsedRealtime() }
+
+    /** برگرداندنِ ساعت به حالتِ تولید — پایانِ هر تست. */
+    internal fun resetClockForTests() {
+        clock = { SystemClock.elapsedRealtime() }
+    }
+
     fun put(key: String, value: Any?) {
-        entries[key] = Entry(value, SystemClock.elapsedRealtime())
+        entries[key] = Entry(value, clock())
     }
 
     @Suppress("UNCHECKED_CAST")
     fun <T> get(key: String): T? = entries[key]?.value as? T
 
     /** سنِ دادهٔ ذخیره‌شده بر حسب میلی‌ثانیه، یا null اگر اصلاً ذخیره نشده. */
-    fun ageMs(key: String): Long? = entries[key]?.let { SystemClock.elapsedRealtime() - it.at }
+    fun ageMs(key: String): Long? = entries[key]?.let { clock() - it.at }
 
     fun isFresh(key: String, maxAgeMs: Long = DefaultFreshMs): Boolean =
         (ageMs(key) ?: Long.MAX_VALUE) <= maxAgeMs
@@ -74,4 +92,26 @@ object PanelCache {
     fun inboundsKey(baseUrl: String) = "inbounds:$baseUrl"
     fun templatesKey(baseUrl: String) = "templates:$baseUrl"
     fun templateGroupsKey(baseUrl: String) = "templates.groups:$baseUrl"
+
+    // ── زیرساختِ پنل (فازِ ۲): هاست‌ها / کورها / قالب‌های کلاینت.
+    // این‌ها دادهٔ «سطحِ سرور» هستند و در یک نشست تقریباً ثابت‌اند، پس کشِ
+    // کوتاه‌مدتِ همین حافظه برای برگشت از تب/صفحه کافی است و از درخواستِ
+    // تکراری هنگامِ جابه‌جایی بین تب‌های مدیریتِ پنل جلوگیری می‌کند.
+    fun hostsKey(baseUrl: String) = "hosts:$baseUrl"
+
+    /**
+     * تنظیماتِ پنل (`GET /api/settings`). مثلِ بقیهٔ داده‌های سطحِ سرور کش می‌شود
+     * تا رفت‌وبرگشت بین چهار تب دوباره درخواست نفرستد؛ بعد از هر ذخیره، پاسخِ
+     * تازه جای همین می‌نشیند.
+     */
+    fun panelSettingsKey(baseUrl: String) = "panelsettings:$baseUrl"
+
+    /** فهرستِ کلیدهای API — همان قاعدهٔ کشِ کوتاه‌مدتِ داده‌های سطحِ سرور. */
+    fun apiKeysKey(baseUrl: String) = "apikeys:$baseUrl"
+
+    /** اپراتورها و نقش‌ها (صفحهٔ «اپراتورها و نقش‌ها») — دو کلیدِ جدا. */
+    fun adminsKey(baseUrl: String) = "admins:$baseUrl"
+    fun adminRolesKey(baseUrl: String) = "adminroles:$baseUrl"
+    fun coresKey(baseUrl: String) = "cores:$baseUrl"
+    fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
 }

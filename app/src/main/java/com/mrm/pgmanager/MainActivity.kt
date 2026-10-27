@@ -57,6 +57,12 @@ import com.mrm.pgmanager.ui.screens.DashboardScreen
 import com.mrm.pgmanager.ui.screens.StatisticsScreen
 import com.mrm.pgmanager.ui.screens.GroupsScreen
 import com.mrm.pgmanager.ui.screens.TemplatesScreen
+import com.mrm.pgmanager.ui.screens.PanelInfraScreen
+import com.mrm.pgmanager.ui.screens.PanelScreen
+import com.mrm.pgmanager.ui.screens.PanelSettingsScreen
+import com.mrm.pgmanager.ui.screens.AdminsRolesScreen
+import com.mrm.pgmanager.ui.screens.ApiKeysScreen
+import com.mrm.pgmanager.ui.screens.NodeLogsScreen
 import com.mrm.pgmanager.ui.screens.SettingsScreen
 import com.mrm.pgmanager.ui.components.AppFeedbackHost
 import com.mrm.pgmanager.ui.components.NotificationPermissionDialog
@@ -188,6 +194,18 @@ fun MRMApp() {
     val activity = context as? FragmentActivity
     val store = remember { SessionStore(context) }
     var session by remember { mutableStateOf(store.read()) }
+    // نسخهٔ پنل (دروازهٔ قابلیت‌های 5.5) — از کشِ همان پنل خوانده می‌شود؛ با سوییچِ
+    // حساب اول پاک می‌شود تا نسخهٔ پنلِ قبلی روی پنلِ جدید نماند.
+    androidx.compose.runtime.LaunchedEffect(session?.baseUrl) {
+        com.mrm.pgmanager.data.PanelSupport.reset()
+        session?.let { s ->
+            com.mrm.pgmanager.data.PanelSupport.updateFrom(
+                com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(
+                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s.baseUrl)
+                )
+            )
+        }
+    }
     var themeState by remember { mutableStateOf(store.readTheme()) }
     var appLanguage by remember { mutableStateOf(store.readAppLanguage()) }
     var isAppLockEnabled by remember { mutableStateOf(store.readAppLock()) }
@@ -229,6 +247,21 @@ fun MRMApp() {
     }
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showDashboardSettings by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «پنلِ من» — سرور/نسخه/نقش/حساب‌ها/زیرساخت. از ورقهٔ حساب باز می‌شود
+    // و کاملاً مستقل از تنظیماتِ اپ است (نسخهٔ ۰٫۱۲: جداسازیِ این دو).
+    var showPanelScreen by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «زیرساختِ پنل» (فاز ۲) — روی «پنلِ من» باز می‌شود.
+    var showPanelInfra by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «تنظیماتِ پنل» (فاز ۵) — چهار بخشِ SettingsSchema که در گوشی معنا دارند.
+    var showPanelSettings by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «کلیدهای API» (فاز ۵.۲) — ساخت/چرخش/غیرفعال‌سازیِ کلیدهای پنل.
+    var showApiKeys by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «اپراتورها و نقش‌ها» (فاز ۶.۲) — فقط خواندنی.
+    var showAdminsRoles by rememberSaveable { mutableStateOf(false) }
+    // صفحهٔ «لاگِ نود» (فاز ۷) — جریانِ SSE که تا بستنِ صفحه باز می‌ماند.
+    var showNodeLogs by rememberSaveable { mutableStateOf(false) }
+    // نودِ انتخابی وقتی از کارتِ «آمار» باز می‌شود؛ null = هر نودِ متصل.
+    var nodeLogsId by remember { mutableStateOf<Int?>(null) }
     // ورقهٔ هویت/حساب (جایگزین کشوی کناریِ حذف‌شده) — فاز ۱ نقشه راه UX.
     var showAccountSheet by rememberSaveable { mutableStateOf(false) }
     // دیپ‌لینک اعلان: نام کاربری مقصد برای بازشدن مستقیم جزئیات او در تب کاربران.
@@ -334,13 +367,13 @@ fun MRMApp() {
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
             // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false
+            store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
         val onSessionExpired: () -> Unit = {
             com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false
+            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
@@ -417,13 +450,21 @@ fun MRMApp() {
             val exitHint = stringResource(R.string.back_exit_hint)
             androidx.activity.compose.BackHandler {
                 when {
-                    // ۱. تنظیمات باز است → ببند
+                    // ۰. زیرساختِ پنل روی «پنلِ من» باز است → اول خودش
+                    showNodeLogs -> showNodeLogs = false
+                    showAdminsRoles -> showAdminsRoles = false
+                    showApiKeys -> showApiKeys = false
+                    showPanelSettings -> showPanelSettings = false
+                    showPanelInfra -> showPanelInfra = false
+                    // ۱. «پنلِ من» باز است → ببند
+                    showPanelScreen -> showPanelScreen = false
+                    // ۲. تنظیماتِ اپ باز است → ببند
                     showDashboardSettings -> showDashboardSettings = false
-                    // ۲. ورقهٔ حساب باز است → ببند
+                    // ۳. ورقهٔ حساب باز است → ببند
                     showAccountSheet -> showAccountSheet = false
-                    // ۳. در بخشی غیر از داشبورد → برگرد به داشبورد
+                    // ۴. در بخشی غیر از داشبورد → برگرد به داشبورد
                     selectedTab != TAB_DASHBOARD -> selectedTab = TAB_DASHBOARD
-                    // ۴. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
+                    // ۵. روی داشبورد → دو بار پشت‌سرهم برای خروج، تا با یک لمسِ
                     //    اتفاقی کلِ اپ بسته نشود.
                     else -> {
                         val now = System.currentTimeMillis()
@@ -512,7 +553,12 @@ fun MRMApp() {
                         ) {
                         when (page) {
                             TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
-                            TAB_STATISTICS -> StatisticsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
+                            TAB_STATISTICS -> StatisticsScreen(
+                                session!!,
+                                onOpenSettings = { showDashboardSettings = true },
+                                // «لاگ» روی کارتِ هر نود؛ همان نود از پیش انتخاب می‌شود.
+                                onOpenNodeLogs = { id -> nodeLogsId = id; showNodeLogs = true }
+                            )
                             TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
@@ -564,12 +610,9 @@ fun MRMApp() {
                             onLockTimeoutChange = { t -> appLockTimeout = t; store.saveAppLockTimeoutSecs(t) },
                             appLanguage = appLanguage,
                             onLanguageChange = handleLanguageChange,
-                            onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false; showDashboardSettings = false },
                             appVersion = "${BuildConfig.VERSION_NAME} · ${BuildConfig.BUILD_SHA}",
                             session = session,
                             store = store,
-                            onSwitchAccount = switchAccount,
-                            onAddAccount = { showDashboardSettings = false; addingAccount = true },
                             // ساخت گروهی در صفحهٔ کاربران باز می‌شود تا بعد از پایان،
                             // لیستِ کاربران خودش رفرش شود.
                             onBulkCreate = {
@@ -591,6 +634,112 @@ fun MRMApp() {
                         )
                     }
                 }
+                // «پنلِ من»: صفحهٔ کاملِ رویی. از ورقهٔ حساب باز می‌شود و
+                // تنظیماتِ اپ را لمس نمی‌کند — دو مسیرِ مستقل با دو مسئولیت.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPanelScreen,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        PanelScreen(
+                            session = session,
+                            store = store,
+                            onBack = { showPanelScreen = false },
+                            onOpenInfra = { showPanelInfra = true },
+                            onOpenPanelSettings = { showPanelSettings = true },
+                            onOpenApiKeys = { showApiKeys = true },
+                            onOpenAdmins = { showAdminsRoles = true },
+                            onOpenNodeLogs = { nodeLogsId = null; showNodeLogs = true },
+                            onSwitchAccount = switchAccount,
+                            onAddAccount = { showPanelScreen = false; addingAccount = true }
+                        )
+                    }
+                }
+                // زیرساختِ پنل: صفحهٔ کاملِ رویی (هم‌سبکِ تنظیمات). بدونِ حساب
+                // هرگز باز نمی‌شود؛ در غیرِ این صورت هر درخواستش ۴۰۱ می‌گرفت.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPanelInfra && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            PanelInfraScreen(
+                                session = activeSession,
+                                onBack = { showPanelInfra = false }
+                            )
+                        }
+                    }
+                }
+                // تنظیماتِ پنل: مثلِ زیرساخت، بدونِ حساب هرگز باز نمی‌شود.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showPanelSettings && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            PanelSettingsScreen(
+                                session = activeSession,
+                                onBack = { showPanelSettings = false }
+                            )
+                        }
+                    }
+                }
+                // کلیدهای API: صفحهٔ کاملِ رویی، فقط با نشستِ فعال.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showApiKeys && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            ApiKeysScreen(
+                                session = activeSession,
+                                onBack = { showApiKeys = false }
+                            )
+                        }
+                    }
+                }
+                // اپراتورها و نقش‌ها: صفحهٔ کاملِ رویی، فقط با نشستِ فعال.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showAdminsRoles && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            AdminsRolesScreen(
+                                session = activeSession,
+                                onBack = { showAdminsRoles = false }
+                            )
+                        }
+                    }
+                }
+                // لاگِ نود: صفحهٔ کاملِ رویی. مثلِ بقیهٔ صفحه‌های نشست‌محور بدونِ
+                // حساب باز نمی‌شود، و با بسته‌شدنش جریانِ SSE بسته می‌شود
+                // (خودِ صفحه این را با DisposableEffect انجام می‌دهد).
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showNodeLogs && session != null,
+                    enter = com.mrm.pgmanager.ui.designsystem.DsTransition.screenEnter,
+                    exit = com.mrm.pgmanager.ui.designsystem.DsTransition.screenExit
+                ) {
+                    Box(Modifier.fillMaxSize().background(effectiveTheme.backgroundColor)) {
+                        val activeSession = session
+                        if (activeSession != null) {
+                            NodeLogsScreen(
+                                session = activeSession,
+                                nodeId = nodeLogsId,
+                                onBack = { showNodeLogs = false }
+                            )
+                        }
+                    }
+                }
             }
         }
         // ورقهٔ هویت/حساب — مستقیم زیرِ ریشه تا اسنکِ بازخوردِ سراسری رویش بنشیند.
@@ -601,8 +750,23 @@ fun MRMApp() {
                 accounts = store.readAccounts(),
                 onSwitch = { acc -> showAccountSheet = false; switchAccount(acc) },
                 onAddAccount = { showAccountSheet = false; showDashboardSettings = false; addingAccount = true },
-                onOpenSettings = { showAccountSheet = false; showDashboardSettings = true },
-                onLogout = { showAccountSheet = false; store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false },
+                onOpenSettings = { showAccountSheet = false; showPanelScreen = false; showDashboardSettings = true },
+                onOpenPanel = { showAccountSheet = false; showDashboardSettings = false; showPanelScreen = true },
+                onLogout = {
+                    showAccountSheet = false
+                    // خروج از حساب باید هر دو صفحهٔ وابسته به نشست را هم ببندد،
+                    // وگرنه صفحهٔ «پنلِ من» با session=null روی صفحه می‌ماند.
+                    showPanelScreen = false
+                    showPanelInfra = false
+                    showPanelSettings = false
+                    showApiKeys = false
+                    showAdminsRoles = false
+                    showNodeLogs = false
+                    store.clear()
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    session = null
+                    isUnlocked = false
+                },
                 onDismiss = { showAccountSheet = false }
             )
         }

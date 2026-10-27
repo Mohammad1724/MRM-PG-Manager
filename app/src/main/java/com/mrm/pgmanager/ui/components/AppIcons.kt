@@ -19,6 +19,9 @@ import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Speed
@@ -78,7 +81,10 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh
     // نوار ابزار
     Sort, Filter,
     // ناوبری
-    Menu, Add, ChevronUp, ChevronDown,
+    Menu, More, Add, ChevronUp, ChevronDown,
+    // جریانِ لاگ (فاز ۷) — « Pause/Play»؛ خودِ آیکونِ لاگ لازم نشد،
+    // DenseList (ViewHeadline) همان چند خطِ متنی است که صفحهٔ لاگ نشان می‌دهد.
+    Pause, Play,
     // زبان
     Language, Accessibility }
 
@@ -143,6 +149,12 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Filter -> Icons.Rounded.FilterList
     AppIcon.Language -> Icons.Rounded.Language
     AppIcon.Menu -> Icons.Rounded.Menu
+    // ⋮ ردیف‌هایِ جدولِ زیرساخت (عملگرها در منو جمع شده‌اند).
+    AppIcon.More -> Icons.Rounded.MoreVert
+    // Pause/Play برای توقف و ادامهٔ جریانِ لاگ. هر دو در همهٔ خانواده‌ها هستند
+    // (برعکسِ Terminal که فقط Outlined دارد) و در RTL هم آینه نمی‌شوند.
+    AppIcon.Pause -> Icons.Rounded.Pause
+    AppIcon.Play -> Icons.Rounded.PlayArrow
     AppIcon.Add -> Icons.Rounded.Add
     AppIcon.ChevronUp -> Icons.Rounded.KeyboardArrowUp
     AppIcon.ChevronDown -> Icons.Rounded.KeyboardArrowDown

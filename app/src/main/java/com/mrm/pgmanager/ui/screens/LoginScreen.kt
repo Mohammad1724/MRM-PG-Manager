@@ -418,6 +418,20 @@ private fun LanguageToggle(
  */
 private enum class FieldAutofill { Username, Password }
 
+/**
+ * درخواستِ پیشنهادِ Autofill «تا حدِ امکان» — نه شرطی برای ورود.
+ *
+ * چارچوبِ Autofill اندروید در حالت‌های واقعی استثنا می‌اندازد (مدیرِ رمزِ خراب،
+ * ویویی که هنوز چیده نشده) و در محیطِ تست همیشه:
+ * `IllegalStateException: requestAutofill called before onChildPositioned()`.
+ * پرکردنِ خودکار یک همراهیِ اختیاری است؛ اگر نیامد فیلد باید مثلِ همیشه کار کند،
+ * پس استثنا همین‌جا خورده می‌شود و به فرم نمی‌رسد.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+private fun Autofill?.requestAutofillSafely(node: AutofillNode) {
+    runCatching { this?.requestAutofillForNode(node) }
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun PGField(
@@ -457,8 +471,8 @@ private fun PGField(
         }
         LocalAutofillTree.current += autofillNode
         Modifier
-            .onFocusChanged { if (it.isFocused) autofill?.requestAutofillForNode(autofillNode) }
-            .clickable { autofill?.requestAutofillForNode(autofillNode) }
+            .onFocusChanged { if (it.isFocused) autofill.requestAutofillSafely(autofillNode) }
+            .clickable { autofill.requestAutofillSafely(autofillNode) }
     } else Modifier
     // یک استایلِ مشترک برای متنِ واقعی و متنِ راهنما.
     //

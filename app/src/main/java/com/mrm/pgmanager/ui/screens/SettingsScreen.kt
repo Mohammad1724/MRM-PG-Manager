@@ -65,7 +65,12 @@ import com.mrm.pgmanager.ui.theme.ThemeState
  * مقایسه می‌کرد. با عوض‌کردنِ زبان، مقایسه شکست می‌خورد و تبِ فعال گم می‌شد.
  * شناسهٔ پایدار این کلاسِ باگ را ریشه‌کن می‌کند.
  */
-enum class SettingsSection { CONNECTION, APPEARANCE, MONITORING, ADVANCED }
+//  ترتیبِ تب‌ها = ترتیبِ پیمایش. دو تغییرِ نسخهٔ ۰٫۱۲:
+//   • «اتصال و حساب‌ها» حذف شد → هویتِ سرور/نسخه/نقش/حساب‌ها به «پنلِ من» رفت و
+//     قفلِ برنامه اینجا ماند؛
+//   • «پیشرفته» شکست: چهار قابلیت زیرِ یک نامِ مبهم پنهان بود. حالا دو تبِ روشن
+//     دارد: «پیش‌فرض‌های کاربر» (کاربران) و «داده و پشتیبان» (فاکتور + پشتیبان).
+enum class SettingsSection { APPEARANCE, MONITORING, USERS, DATA, SECURITY }
 
 /**
  * صفحهٔ تنظیمات — بازطراحی‌شده به‌صورتِ صفحهٔ کامل، هم‌سبک با بقیهٔ صفحه‌ها.
@@ -99,21 +104,22 @@ fun SettingsScreen(
     onLockTimeoutChange: (Int) -> Unit = {},
     appLanguage: String = "system",
     onLanguageChange: (String) -> Unit = {},
-    onLogout: (() -> Unit)? = null,
     appVersion: String = "",
-    // ── وابستگی‌های بخشِ «پیشرفته» (اتصال/کاربران/فاکتور/پشتیبان)
+    // ── وابستگی‌های بخشِ «پیشرفته» (کاربران/فاکتور/پشتیبان)
+    //  نکته: `session`/`store` هنوز لازم‌اند چون پیش‌فرض‌های فرم (گروه/تمپلت)،
+    //  فاکتور و پشتیبان‌گیری از دادهٔ پنل/دیسک می‌خوانند — ولی هویتِ سرور،
+    //  سوئیچِ حساب و زیرساخت به `PanelScreen` منتقل شده‌اند.
     session: Session? = null,
     store: SessionStore? = null,
-    onSwitchAccount: (Session) -> Unit = {},
-    onAddAccount: () -> Unit = {},
     onBulkCreate: () -> Unit = {},
     /** پس از بازیابیِ موفقِ پشتیبان، stateهای درون‌حافظه‌ای از روی prefs تازه شوند. */
     onDataRestored: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
     val backLabel = stringResource(R.string.cd_back)
-    // فاز ۱.۴: چهار بخشِ «اتصال و حساب‌ها ← ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته».
-    var section by rememberSaveable { mutableStateOf(SettingsSection.CONNECTION) }
+    // چهار بخش: «ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته ← قفلِ برنامه».
+    // «اتصال و حساب‌ها» در نسخهٔ ۰٫۱۲ به صفحهٔ «پنلِ من» منتقل شد.
+    var section by rememberSaveable { mutableStateOf(SettingsSection.APPEARANCE) }
     val sections = SettingsSection.entries
     val scope = rememberCoroutineScope()
     // بخش‌ها حالا با انگشت هم عوض می‌شوند، نه فقط با زدنِ تب. پیجر و نوارِ تب
@@ -163,10 +169,11 @@ fun SettingsScreen(
 
         // ── نوار بخش‌ها
         val tabs = listOf(
-            SettingsSection.CONNECTION to stringResource(R.string.set_tab_connection),
             SettingsSection.APPEARANCE to stringResource(R.string.appearance),
             SettingsSection.MONITORING to stringResource(R.string.set_tab_monitoring),
-            SettingsSection.ADVANCED to stringResource(R.string.advanced_title)
+            SettingsSection.USERS to stringResource(R.string.set_tab_users),
+            SettingsSection.DATA to stringResource(R.string.set_tab_data),
+            SettingsSection.SECURITY to stringResource(R.string.set_tab_security)
         )
         androidx.compose.foundation.lazy.LazyRow(
             state = tabListState,
@@ -209,27 +216,6 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(DsSpacing.SectionGap)
         ) {
             when (sections[page]) {
-                // ── اتصال و حساب‌ها: اطلاعات پنل/سوئیچ حساب (از پیشرفته منتقل شد)
-                //    + قفل برنامه و خروج — همه مستقیم، بدون آکاردئون (≤۱ کلیک).
-                SettingsSection.CONNECTION -> {
-                    if (store != null) {
-                        ConnectionSection(
-                            session = session,
-                            store = store,
-                            scope = scope,
-                            onSwitchAccount = onSwitchAccount,
-                            onAddAccount = onAddAccount
-                        )
-                    }
-                    SecuritySection(
-                        isAppLockEnabled = isAppLockEnabled,
-                        onAppLockChange = onAppLockChange,
-                        appLockTimeout = appLockTimeout,
-                        onLockTimeoutChange = onLockTimeoutChange,
-                        onLogout = onLogout
-                    )
-                }
-
                 SettingsSection.APPEARANCE -> AppearanceSection(
                     themeState = themeState,
                     onThemeChange = onThemeChange,
@@ -251,20 +237,43 @@ fun SettingsScreen(
                     )
                 }
 
-                // بخشِ پیشرفته فقط وقتی معنا دارد که SessionStore پاس داده شده باشد
-                // (در MainActivity همیشه پاس داده می‌شود؛ مقدار پیش‌فرضِ null فقط
-                // برای پیش‌نمایش‌ها و تست‌هاست).
-                SettingsSection.ADVANCED -> if (store != null) {
-                    AdvancedSection(
+                // دو تبِ زیر فقط وقتی معنا دارند که SessionStore پاس داده شده باشد
+                // (در MainActivity همیشه پاس می‌شود؛ مقدار پیش‌فرضِ null فقط برای
+                // پیش‌نمایش‌ها و تست‌هاست).
+                //
+                // «پیش‌فرض‌های کاربر»: پیشوندِ نامِ کاربری، بدهکار/قطعِ خودکار،
+                // ساختِ گروهی و خروجیِ فهرست — هر چیزی که فرمِ «ساختِ کاربر» را
+                // شکل می‌دهد.
+                SettingsSection.USERS -> if (store != null) {
+                    UsersSettingsTab(
                         session = session,
                         store = store,
                         monitoringSettings = monitoringSettings,
                         onMonitoringChange = onMonitoringChange,
-                        onBulkCreate = onBulkCreate,
+                        onBulkCreate = onBulkCreate
+                    )
+                }
+
+                // «داده و پشتیبان»: فاکتور (لوگو/فروشنده) و پشتیبان‌گیری/بازیابی.
+                // هر دو با *فایل* کار می‌کنند، به همین دلیل یک تب‌اند.
+                SettingsSection.DATA -> if (store != null) {
+                    DataSettingsTab(
+                        store = store,
                         appVersion = appVersion,
                         onDataRestored = onDataRestored
                     )
                 }
+
+                // قفلِ برنامه: تنها چیزی که از تبِ «اتصال» اینجا ماند. خروج از حساب
+                // عمداً به ورقهٔ حساب (AccountSheet) سپرده شد تا هویت و خروج کنارِ
+                // هم باشند و تنظیمات فقط «این دستگاه» باشد.
+                SettingsSection.SECURITY -> SecuritySection(
+                    isAppLockEnabled = isAppLockEnabled,
+                    onAppLockChange = onAppLockChange,
+                    appLockTimeout = appLockTimeout,
+                    onLockTimeoutChange = onLockTimeoutChange,
+                    onLogout = null
+                )
             }
             AboutFooter(appVersion = appVersion)
             Spacer(Modifier.height(DsSpacing.Sm))
@@ -274,23 +283,44 @@ fun SettingsScreen(
 }
 
 /**
- * بخشِ «پیشرفته»: سه زیربخشِ سنگین (کاربران/فاکتور/پشتیبان) که به `session`/`store`
- * و لانچرهای فایل وابسته‌اند و به‌صورتِ آکاردئونی نمایش داده می‌شوند تا صفحه
- * شلوغ نشود. زیربخشِ «اتصال» در فاز ۱.۴ به تبِ «اتصال و حساب‌ها» منتقل شد.
+ * تبِ **«پیش‌فرض‌های کاربر»** — هر چیزی که فرمِ ساخت/ویرایشِ کاربر را شکل می‌دهد:
+ * الگوی نامِ کاربری، آستانهٔ بدهکار و قطعِ خودکار، ساختِ گروهی و خروجیِ فهرست.
  *
- * فقط یک زیربخش هم‌زمان باز است؛ ایندکسِ زیربخشِ باز با [rememberSaveable]
- * نگه داشته می‌شود تا با چرخشِ صفحه یا تغییرِ زبان گم نشود (`-1` = همه بسته).
- *
- * دیالوگِ بازیابیِ پشتیبان عمداً اینجا (سطحِ بخش) میزبانی می‌شود، نه داخلِ
- * [BackupSection]، چون آن داخلِ ستونِ اسکرول‌شونده است.
+ * قبلاً یکی از سه زیربخشِ آکاردئونِ «پیشرفته» بود؛ حالا که تبِ خودش را دارد،
+ * بدونِ یک لایهٔ کلیکِ اضافه مستقیم نمایش داده می‌شود (همان محتوا، همان کارت‌ها).
  */
 @Composable
-private fun AdvancedSection(
+private fun UsersSettingsTab(
     session: Session?,
     store: SessionStore,
     monitoringSettings: MonitoringSettings,
     onMonitoringChange: (MonitoringSettings) -> Unit,
-    onBulkCreate: () -> Unit,
+    onBulkCreate: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    UsersSettingsSection(
+        session = session,
+        store = store,
+        scope = scope,
+        monitoringSettings = monitoringSettings,
+        onMonitoringChange = onMonitoringChange,
+        onBulkCreate = onBulkCreate
+    )
+}
+
+/**
+ * تبِ **«داده و پشتیبان»** — فاکتور (لوگو و نامِ فروشنده) و پشتیبان‌گیری/بازیابی.
+ *
+ * چرا این دو با هم: هر دو با *فایل* کار می‌کنند (ذخیره/بازیابیِ تصویرِ لوگو و
+ * فایلِ بکاپ) و همان جایی هستند که کاربر سراغِ «نگهداری از داده‌هایم» می‌رود.
+ *
+ * داخلِ تب، هر دو گروه جمع‌شونده‌اند و فقط یکی هم‌زمان باز است — نه برای پنهان‌کاری،
+ * بلکه چون هر کدام چند کارتِ بلند دارند و صفحه نباید یک ستونِ بی‌پایان شود. عنوان و
+ * زیرعنوانِ هر گروه همیشه دیده می‌شود، پس کشف‌پذیری از دست نمی‌رود.
+ */
+@Composable
+private fun DataSettingsTab(
+    store: SessionStore,
     appVersion: String,
     onDataRestored: () -> Unit = {}
 ) {
@@ -299,30 +329,12 @@ private fun AdvancedSection(
     var restoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     ExpandableSettingsGroup(
-        title = stringResource(R.string.users_title),
-        subtitle = stringResource(R.string.advanced_users_desc),
-        icon = AppIcon.Users,
-        accent = GlassGreen,
-        expanded = openGroup == 0,
-        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
-    ) {
-        UsersSettingsSection(
-            session = session,
-            store = store,
-            scope = scope,
-            monitoringSettings = monitoringSettings,
-            onMonitoringChange = onMonitoringChange,
-            onBulkCreate = onBulkCreate
-        )
-    }
-
-    ExpandableSettingsGroup(
         title = stringResource(R.string.invoice_title),
         subtitle = stringResource(R.string.advanced_invoice_desc),
         icon = AppIcon.Receipt,
         accent = GlassAmber,
-        expanded = openGroup == 1,
-        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
+        expanded = openGroup == 0,
+        onToggle = { openGroup = if (openGroup == 0) -1 else 0 }
     ) {
         InvoiceSection(store = store, scope = scope)
     }
@@ -332,8 +344,8 @@ private fun AdvancedSection(
         subtitle = stringResource(R.string.advanced_backup_desc),
         icon = AppIcon.Backup,
         accent = LocalThemeState.current.accentPrimary,
-        expanded = openGroup == 2,
-        onToggle = { openGroup = if (openGroup == 2) -1 else 2 }
+        expanded = openGroup == 1,
+        onToggle = { openGroup = if (openGroup == 1) -1 else 1 }
     ) {
         BackupSection(
             store = store,
@@ -343,6 +355,8 @@ private fun AdvancedSection(
         )
     }
 
+    // دیالوگِ بازیابی در سطحِ تب میزبانی می‌شود، نه داخلِ [BackupSection]، چون آن
+    // داخلِ ستونِ اسکرول‌شونده است و دیالوگ باید مستقل از اسکرول بماند.
     restoreUri?.let { uri ->
         RestoreBackupDialog(
             uri = uri,

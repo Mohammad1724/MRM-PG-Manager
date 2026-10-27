@@ -35,6 +35,8 @@ import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.PGIconButton
+import com.mrm.pgmanager.ui.components.PGStartAlign
+import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsAnim
@@ -326,11 +328,18 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
     }
 }
 
+/** سقفِ چیپ‌هایِ نمایش‌داده‌شده در حالتِ جمع‌شده؛ بقیه پشتِ «+N دیگر» می‌مانند. */
+private const val CHIP_SELECTOR_VISIBLE_LIMIT = 11
 
 /**
- * ردیفی از چیپ‌های تک‌انتخابی — برای enumهای کوتاهِ پنل (استراتژیِ ریست،
- * وضعیتِ اولیه…). از صفحهٔ قالب‌ها به اینجا منتقل شد چون فرمِ کاربر هم لازمش
- * داشت و آنجا `private` بود.
+ * ردیفی از چیپ‌های تک‌انتخابی — برای enumهای کوتاهِ پنل (استراتژیِ ریست، امنیتِ
+ * هاست، تگِ inbound، فیلترِ لاگ…). از صفحهٔ قالب‌ها به اینجا منتقل شد چون فرمِ
+ * کاربر هم لازمش داشت و آنجا `private` بود.
+ *
+ * توجه: `values` و `labels` باید هم‌اندازه باشند؛ `labels` فقط برای نمایش است و
+ * `values` چیزی که به پنل می‌رود (برای inbound tag مقدارِ تهی = «خودکار»).
+ * حداکثر [CHIP_SELECTOR_VISIBLE_LIMIT] چیپ دیده می‌شود و اگر انتخابِ فعلی بیرونِ
+ * این حد باشد جای آخرین چیپ را می‌گیرد، پس وضعیتِ انتخاب‌شده هرگز پنهان نمی‌ماند.
  */
 @Composable
 fun ChipSelector(
@@ -340,35 +349,85 @@ fun ChipSelector(
     onSelect: (String) -> Unit
 ) {
     val theme = LocalThemeState.current
-    // FlowRow نمی‌خواهیم (وابستگیِ آزمایشی)؛ ردیفِ قابل اسکرول کافی است.
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-    ) {
-        values.forEachIndexed { i, v ->
-            val active = v == selected
-            Box(
-                Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable { onSelect(v) }
-                    .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                    .border(
-                        BorderStroke(
-                            DsBorder.Hairline,
-                            if (active) theme.accentPrimary.copy(0.45f) else theme.borderColor
-                        ),
-                        DsRadius.Sm
-                    )
-                    
-                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
-            ) {
-                Text(
-                    labels.getOrElse(i) { v },
-                    fontSize = 11.sp,
-                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (active) theme.accentPrimary else theme.mutedColor,
-                    maxLines = 1
-                )
-            }
+    // قبلاً یک Row + horizontalScroll بود: چیپِ آخر نصفه در نیمه بریده می‌شد و هیچ
+    // نشانه‌ای نبود که «ادامه دارد» — گزارشِ کاربر: «اسکرول افقی اصلاً جالب نیست».
+    // حالا چیپ‌ها در عرضِ موجود می‌شکنند (PGWrapRow) و لیستِ بلند یک «+N دیگر»
+    // می‌گیرد که همان‌جا باز می‌شود؛ نه دیالوگ تازه، نه پنجرهٔ بی‌قرار در تست.
+    var expanded by remember(values) { mutableStateOf(false) }
+    val selectedIndex = values.indexOf(selected)
+    val visible: List<Int> = when {
+        expanded || values.size <= CHIP_SELECTOR_VISIBLE_LIMIT -> values.indices.toList()
+        selectedIndex >= CHIP_SELECTOR_VISIBLE_LIMIT ->
+            (0 until CHIP_SELECTOR_VISIBLE_LIMIT - 1).toList() + selectedIndex
+        else -> (0 until CHIP_SELECTOR_VISIBLE_LIMIT).toList()
+    }
+    val hiddenCount = values.size - visible.size
+    PGWrapRow(horizontalGap = DsSpacing.Sm, verticalGap = DsSpacing.Xs) {
+        visible.forEach { i ->
+            ChipSelectorItem(
+                label = labels.getOrElse(i) { values[i] },
+                active = values[i] == selected,
+                onClick = { onSelect(values[i]) }
+            )
         }
+        if (hiddenCount > 0) {
+            ChipSelectorItem(
+                label = stringResource(R.string.chip_more_fmt, hiddenCount),
+                active = false,
+                emphasized = true,
+                onClick = { expanded = true }
+            )
+        }
+        if (expanded && values.size > CHIP_SELECTOR_VISIBLE_LIMIT) {
+            ChipSelectorItem(
+                label = stringResource(R.string.chip_show_less),
+                active = false,
+                onClick = { expanded = false }
+            )
+        }
+    }
+}
+
+/** یک چیپِ انتخاب — ارتفاعِ حداقلِ ۴۰dp برای ناحیهٔ لمسیِ قابل‌قبول. */
+@Composable
+private fun ChipSelectorItem(
+    label: String,
+    active: Boolean,
+    emphasized: Boolean = false,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val tint = when {
+        active -> theme.accentPrimary
+        emphasized -> theme.accentPrimary
+        else -> theme.mutedColor
+    }
+    Box(
+        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable { onClick() }
+            .background(
+                if (active) theme.accentPrimary.copy(0.16f)
+                else if (emphasized) theme.accentPrimary.copy(0.08f)
+                else theme.searchBgColor
+            )
+            .border(
+                BorderStroke(
+                    DsBorder.Hairline,
+                    if (active) theme.accentPrimary.copy(0.45f)
+                    else if (emphasized) theme.accentPrimary.copy(0.30f)
+                    else theme.borderColor
+                ),
+                DsRadius.Sm
+            )
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
+    ) {
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = if (active || emphasized) FontWeight.SemiBold else FontWeight.Normal,
+            color = tint,
+            maxLines = 1,
+            textAlign = PGStartAlign()
+        )
     }
 }
 

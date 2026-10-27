@@ -48,6 +48,12 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
@@ -210,8 +216,15 @@ fun animatedCount(target: Int): Int {
  * حرکت = محوشدن + ۱۴dp بالا آمدن، همه در graphicsLayer (نه recomposition، نه relayout).
  */
 class ListIntro internal constructor(private val bornAtNanos: Long) {
+    /**
+     * «کاهش انیمیشن» اینجا هم رعایت می‌شود (و نه فقط با مدتِ صفر): ردیف‌ها از
+     * همان اول با آلفای یک و بدونِ `delay` ساخته می‌شوند. دلیلِ `!reduceMotion`
+     * علاوه بر دسترس‌پذیری، قطعی‌بودنِ تست‌های Compose است — تا وقتی یک
+     * `Animatable` روی صفحه جریان دارد، تست هیچ‌وقت به idle نمی‌رسد.
+     */
     fun shouldAnimate(index: Int): Boolean =
-        index in 0 until MAX_ITEMS && (System.nanoTime() - bornAtNanos) / 1_000_000L < WINDOW_MS
+        !MotionPrefs.reduceMotion &&
+            index in 0 until MAX_ITEMS && (System.nanoTime() - bornAtNanos) / 1_000_000L < WINDOW_MS
 
     companion object {
         const val MAX_ITEMS = 10
@@ -245,6 +258,10 @@ fun Modifier.listIntro(intro: ListIntro, index: Int): Modifier {
  *
  * برای دکمه‌های رفرش: قبلاً آیکون با یک اسپینرِ گرد عوض می‌شد و لحظهٔ تعویض
  * پرش داشت. حالا خودِ آیکون می‌چرخد؛ حرکت پیوسته است و جای دکمه ثابت می‌ماند.
+ *
+ * چرخش عملاً «بی‌پایان» است (تا تمام شدنِ `spinning`)، پس در حالتِ «کاهش
+ * انیمیشن» کلاً ساخته نمی‌شود: همان آیکونِ ساکن، بدونِ هیچ انیمیشنی که
+ *Composition را بیدار نگه دارد.
  */
 @Composable
 fun Modifier.spinWhile(spinning: Boolean): Modifier {
@@ -257,7 +274,7 @@ fun Modifier.spinWhile(spinning: Boolean): Modifier {
     // چرخش با یک انیمیشنِ قابلِ لغو پیش می‌رود و در پایان نرم روی صفر می‌ایستد،
     // تا آیکون کج نماند.
     LaunchedEffect(spinning) {
-        if (spinning) {
+        if (spinning && !MotionPrefs.reduceMotion) {
             val start = angle
             val clock = androidx.compose.animation.core.Animatable(start)
             clock.animateTo(
@@ -389,4 +406,48 @@ fun Modifier.pressScale(
         label = "pressScaleShared"
     )
     return this.graphicsLayer { scaleX = current; scaleY = current }
+}
+
+/**
+ * نشانگرِ «مشغولم» — تنها راهِ ساختنِ اسپینرِ درون‌خطی در اپ.
+ *
+ * چرا یک کامپوزبلِ جدا و نه `CircularProgressIndicator` خام در هر صفحه:
+ * اسپینرِ بی‌پایان دو جا گران می‌آید.
+ *
+ *  ۱. کاربری که «کاهش انیمیشن» را روشن کرده، چرخشِ مداوم دقیقاً همان محرکِ
+ *     ناخوشایند است. یک کمانِ ساکن همان پیام را می‌رساند: «کارت هنوز زنده است،
+ *     منتظر بمان» — بدونِ حرکت.
+ *  ۲. برای آزمون، هر انیمیشنِ بی‌پایان یعنی `waitForIdle` که برنمی‌گردد
+ *     (قاعدهٔ §۳ `docs/CI.md`). با همین یک نقطه، صفحه‌ها و دیالوگ‌ها در حالتِ
+ *     «کاهش انیمیشن» قابلِ آزمون می‌مانند، بی‌آنکه رفتارِ تولید عوض شود.
+ *
+ * @param color رنگِ خودِ نشانگر؛ فراخوان آن را از تم می‌گیرد (کنتراست با سطح).
+ */
+@Composable
+fun MrmBusyIndicator(
+    color: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 20.dp,
+    strokeWidth: Dp = 2.dp
+) {
+    if (!MotionPrefs.reduceMotion) {
+        CircularProgressIndicator(
+            modifier = modifier.size(size),
+            color = color,
+            strokeWidth = strokeWidth
+        )
+        return
+    }
+    Canvas(modifier.size(size)) {
+        val stroke = strokeWidth.toPx().coerceAtMost(this.size.minDimension / 2f)
+        drawArc(
+            color = color,
+            startAngle = -45f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(stroke / 2f, stroke / 2f),
+            size = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+    }
 }

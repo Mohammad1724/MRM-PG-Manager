@@ -7,7 +7,9 @@ import com.mrm.pgmanager.data.model.BulkCreateResult
 import com.mrm.pgmanager.data.model.CountMetric
 import com.mrm.pgmanager.data.model.Group
 import com.mrm.pgmanager.data.model.GroupDetail
+import com.mrm.pgmanager.data.model.AdminRoleList
 import com.mrm.pgmanager.data.model.PanelAdmin
+import com.mrm.pgmanager.data.model.PanelAdminRole
 import com.mrm.pgmanager.data.model.NextPlan
 import com.mrm.pgmanager.data.model.NodeRealtime
 import com.mrm.pgmanager.data.model.PanelNode
@@ -26,6 +28,19 @@ import com.mrm.pgmanager.data.model.NodeTrafficPoint
 import com.mrm.pgmanager.data.model.OnlineIp
 import com.mrm.pgmanager.data.model.SubUpdate
 import com.mrm.pgmanager.data.model.SubUpdateList
+import com.mrm.pgmanager.data.model.UserRef
+import com.mrm.pgmanager.data.model.PanelGeneralSettings
+import com.mrm.pgmanager.data.model.OnHoldAction
+import com.mrm.pgmanager.data.model.ClientTemplate
+import com.mrm.pgmanager.data.model.PanelCore
+import com.mrm.pgmanager.data.model.PanelHost
+import com.mrm.pgmanager.data.model.PanelSettings
+import com.mrm.pgmanager.data.model.PanelApiKey
+import com.mrm.pgmanager.data.model.CreatedApiKey
+import com.mrm.pgmanager.data.model.PanelGeneralSection
+import com.mrm.pgmanager.data.model.PanelSubscriptionSection
+import com.mrm.pgmanager.data.model.PanelHwidSection
+import com.mrm.pgmanager.data.model.PanelNotificationSection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -37,6 +52,7 @@ import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import java.io.IOException
 
 /**
  * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
@@ -107,6 +123,52 @@ object PanelApi {
         }
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
+
+    /**
+     * کلاینتِ جریان‌ها (لاگِ زندهٔ نود).
+     *
+     * دو تفاوت با [client]، هر دو از روی همان سازنده تا یک منبعِ حقیقت بماند:
+     * `readTimeout = 0` چون لاگ می‌تواند دقایق ساکت بماند، و
+     * `retryOnConnectionFailure(false)` چون تلاشِ دوبارهٔ OkHttp روی پاسخِ
+     * نیمه‌کارهٔ streaming یعنی دو جریانِ هم‌زمان و خط‌های تکراری روی صفحه.
+     * interceptorها (نگاشتِ ۴۰۱ به [SessionExpiredException]، retryِ متدهای امن)
+     * سرِ جایشان می‌مانند.
+     */
+    private val streamClient: OkHttpClient by lazy {
+        client.newBuilder()
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .retryOnConnectionFailure(false)
+            .build()
+    }
+
+    /** بدنهٔ خالیِ JSON برای POSTهایی که پارامتر ندارند (مثلِ چرخشِ کلیدِ API). */
+    private const val EMPTY_JSON = "{}"
+
+    /**
+     * هدفِ «کاربرانِ بی‌فعال» — از PasarGuard **v5.5** به `ExpiredUsersQuery.target`
+     * اضافه شد و برخلافِ بقیه، فیلترِ `expired_before` را **الزامی** می‌کند.
+     *
+     * عمداً **قبل از** [CLEANUP_TARGETS] تعریف شده: در Kotlin ارجاعِ رو‌به‌جلو در
+     * مقداردهیِ اولیهٔ property مجاز نیست («Variable must be initialized») و
+     * همین ترتیب یک بار CI را سرخ کرد.
+     */
+    internal const val CLEANUP_INACTIVE = "inactive"
+
+    /** مقادیرِ مجازِ `target` برای پاک‌سازی — همان `ExpiredUsersQuery.target` پنل. */
+    internal val CLEANUP_TARGETS = listOf("expired", "limited", "on_hold", "disabled", CLEANUP_INACTIVE)
+
+    /** مقادیرِ مجازِ `on_hold_timeout_action` در پنل (`OnHoldTimeoutAction`، v5.5). */
+    internal val ON_HOLD_ACTIONS = listOf(OnHoldAction.ACTIVATE, OnHoldAction.DISABLE, OnHoldAction.DELETE)
+
+    /**
+     * سقفِ ثانیه‌ایِ پنل برای `next_plan.expire` و `on_hold_expire_duration`
+     * (`MAX_ON_HOLD_EXPIRE_DURATION_SECONDS = 2_147_483_647` در `app/models/validators.py`).
+     *
+     * از PasarGuard **v5.5** پنل این سقف را برای `next_plan` هم اعمال می‌کند
+     * (`UserWithValidator.validate_next_plan`). بدونِ کلمپ، یک ورودیِ بزرگ (مثلاً
+     * «۳۰۰۰۰۰ روز») به‌جای پیامِ روشن، ۴۲۲ خامِ pydantic می‌گرفت.
+     */
+    internal const val MAX_PLAN_SECONDS = 2_147_483_647L
 
     /**
      * فقط برای تست‌های واحد: MockWebServer روی `http://localhost` بالا می‌آید و مسیرِ
@@ -270,24 +332,9 @@ object PanelApi {
 
     internal fun parseAdminSelf(a: JSONObject): AdminSelf {
         val role = a.optJSONObject("role")
-        val permissions = mutableMapOf<String, Map<String, Int>>()
-        role?.optJSONObject("permissions")?.let { perms ->
-            perms.keys().forEach { resource ->
-                val actions = perms.optJSONObject(resource) ?: return@forEach
-                val map = mutableMapOf<String, Int>()
-                actions.keys().forEach { action ->
-                    val v = actions.opt(action)
-                    val scope = when (v) {
-                        is Boolean -> if (v) PermissionScope.ALL else PermissionScope.NONE
-                        is JSONObject -> v.optInt("scope", PermissionScope.NONE)
-                        is Number -> v.toInt()
-                        else -> PermissionScope.NONE
-                    }
-                    if (scope > PermissionScope.NONE) map[action] = scope
-                }
-                if (map.isNotEmpty()) permissions[resource] = map
-            }
-        }
+        // همان پارسرِ نقش‌ها: یک نگاشت، یک شکل — تفاوتِ دو پیاده‌سازی اینجا
+        // یعنی «چرا دکمه‌ام پنهان است» با «چرا برای همکارم پنهان است» یکی نباشد.
+        val permissions = parsePermissionMap(role?.optJSONObject("permissions"))
         val access = role?.optJSONObject("access")
         val features = role?.optJSONObject("features")
         val limits = role?.optJSONObject("limits")
@@ -492,6 +539,8 @@ object PanelApi {
             val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
                 ?: runCatching { org.json.JSONArray(body) }.getOrNull()
                 ?: return@withContext emptyList<PanelNode>()
+            // `sortedBy` پایدار است: نودهای بدونِ `sort_order` (همه `0`) ترتیبِ خودِ
+            // پاسخ را نگه می‌دارند و بقیه همان‌جای پنل می‌نشینند.
             List(arr.length()) { i ->
                 val n = arr.getJSONObject(i)
                 PanelNode(
@@ -502,10 +551,11 @@ object PanelApi {
                     message = if (n.isNull("message")) null else n.optString("message").takeIf { it.isNotBlank() },
                     xrayVersion = if (n.isNull("xray_version")) null else n.optString("xray_version").takeIf { it.isNotBlank() },
                     nodeVersion = if (n.isNull("node_version")) null else n.optString("node_version").takeIf { it.isNotBlank() },
+                    sortOrder = n.optInt("sort_order", 0),
                     uplink = n.optLong("uplink", 0L),
                     downlink = n.optLong("downlink", 0L)
                 )
-            }
+            }.sortedBy { it.sortOrder }
         }
     }
 
@@ -547,6 +597,46 @@ object PanelApi {
                 .post("".toRequestBody(jsonType)).build()
         )
     }
+
+    // ── جریانِ لاگِ نود (SSE) ──────────────────────────────────────────────
+    //
+    // پنل لاگ را با `EventSourceResponse` می‌دهد (`GET /api/node/{id}/logs`،
+    // مجوزِ `nodes.logs`)؛ خودِ نود ایجنتِ Go است و پنل لاگ را از آن می‌گیرد، پس
+    // اپ هرگز مستقیم با نود حرف نمی‌زند. چون پاسخ «جریان» است نه JSON، این مسیر
+    // کلاینتِ جدا و عمرِ مشخصی می‌خواهد (شرحش در `NodeLogStream.kt`).
+
+    /**
+     * بازکردنِ جریانِ لاگ — تا رسیدنِ پاسخ باز می‌ماند و بعد خواندنِ خط‌ها با
+     * [NodeLogConnection.nextEvent] انجام می‌شود.
+     *
+     * `Accept: text/event-stream` عمداً فرستاده می‌شود: sse-starlette بدونِ آن هم
+     * کار می‌کند، ولی با آن مطمئن می‌شویم هیچ واسطه‌ای (پروکسی/CDN) بدنه را
+     * buffer نمی‌کند. `Cache-Control: no-cache` همان کار را برای واسطه‌های
+     * بدجنس‌تر می‌کند — لاگِ کش‌شده یعنی دیدنِ دیروز به‌جای امروز.
+     *
+     * خطاها مثلِ بقیهٔ مسیرها `detail`ِ پنل را در message نگه می‌دارند تا
+     * `ApiErrorMapper` بتواند ۴۰۳ «مجوزِ nodes.logs نداری» را خوانا نشان بدهد.
+     */
+    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection =
+        withContext(Dispatchers.IO) {
+            val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
+                .header("Accept", "text/event-stream")
+                .header("Cache-Control", "no-cache")
+                .get().build()
+            val call = streamClient.newCall(request)
+            val response = try {
+                call.execute()
+            } catch (e: IOException) {
+                call.cancel()
+                throw e
+            }
+            if (!response.isSuccessful) {
+                val detail = errorDetail(response.body?.string())
+                response.close()
+                error("Node logs failed: ${response.code} $detail".trim())
+            }
+            NodeLogConnection(call, response)
+        }
 
     /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
     /**
@@ -789,7 +879,7 @@ object PanelApi {
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
         val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", gbToBytes(limitGb))
         if (onHold) {
-            body.put("on_hold_expire_duration", onHoldExpireSeconds)
+            body.put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // پنل عددِ صحیح را «ثانیه از الان» تعبیر می‌کند.
             if (onHoldTimeoutSeconds != null && onHoldTimeoutSeconds > 0L) body.put("on_hold_timeout", onHoldTimeoutSeconds)
         } else body.put("expire", expireValue(expireIso))
@@ -821,7 +911,7 @@ object PanelApi {
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
         val body = JSONObject().put("data_limit", gbToBytes(limitGb))
         if (onHold) {
-            body.put("status", "on_hold").put("on_hold_expire_duration", onHoldExpireSeconds)
+            body.put("status", "on_hold").put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
             onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
         } else {
@@ -874,7 +964,8 @@ object PanelApi {
         return JSONObject().apply {
             plan.templateId?.let { put("user_template_id", it) }
             plan.dataLimit?.let { put("data_limit", it) }
-            plan.expireSeconds?.let { put("expire", it) }
+            // کلمپ به سقفِ پنل (v5.5 این سقف را برای next_plan هم اعمال می‌کند).
+            plan.expireSeconds?.let { put("expire", it.coerceIn(0L, MAX_PLAN_SECONDS)) }
             put("add_remaining_traffic", plan.addRemainingTraffic)
         }
     }
@@ -957,7 +1048,10 @@ object PanelApi {
             onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
             onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" },
             dataLimitResetStrategy = if (user.isNull("data_limit_reset_strategy")) null else user.optString("data_limit_reset_strategy").takeIf { it.isNotBlank() && it != "null" },
-            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 }
+            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 },
+            // PasarGuard v5.5: تعداد دستگاه در خودِ پاسخِ لیست می‌آید (بدونِ درخواستِ جداگانهٔ HWID).
+            // `null` = عدد در دسترس نیست؛ صفر یک مقدارِ واقعی است («دستگاهی ثبت نشده»).
+            hwidCount = if (user.isNull("hwid_count")) null else user.optInt("hwid_count").takeIf { it >= 0 }
         )
     }
 
@@ -988,7 +1082,10 @@ object PanelApi {
                         usedTraffic = a.optLong("used_traffic", 0L),
                         dataLimit = if (a.isNull("data_limit")) null else a.optLong("data_limit").takeIf { it > 0L },
                         status = a.optString("status", "active"),
-                        isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false
+                        isOwner = a.optJSONObject("role")?.optBoolean("is_owner", false) ?: false,
+                        roleName = a.optJSONObject("role")?.optString("name").orEmpty(),
+                        isDisabled = a.optBoolean("is_disabled", false) || a.optString("status") == "disabled",
+                        isLimited = a.optBoolean("is_limited", false) || a.optString("status") == "limited"
                     )
                 }
             }
@@ -998,6 +1095,67 @@ object PanelApi {
             if (offset > 10_000) break
         }
         all
+    }
+
+    // ═══════════════════ نقش‌های ادمین (فازِ ۶.۲) ═══════════════════
+    //
+    // `GET /api/admin-roles?offset=&limit=` → `{"roles": [...], "total": N}`
+    // (مجوزِ `admin_roles.read`). هر نقش `permissions` را به‌شکلِ
+    // `resource → action → scope` می‌دهد؛ همان نگاشتی که هنگامِ بررسیِ
+    // `AdminAccess.can` استفاده می‌شود. اینجا فقط **خواندنی** است.
+
+    /**
+     * فهرستِ نقش‌ها — یک صفحهٔ ۱۰۰تایی کافی است (نقش‌ها در عمل زیرِ ۲۰ عددند)
+     * ولی `total` برگردانده می‌شود تا UI اگر جا ماند بگوید.
+     */
+    suspend fun adminRoles(session: Session, limit: Int = 100): AdminRoleList = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/admin-roles?offset=0&limit=$limit")
+            .get().build()
+        val body = executeJsonForBody(request)
+        val arr = body.optJSONArray("roles") ?: return@withContext AdminRoleList(emptyList(), 0)
+        val roles = List(arr.length()) { i -> parseAdminRole(arr.getJSONObject(i)) }
+        AdminRoleList(roles, body.optInt("total", roles.size))
+    }
+
+    private fun parseAdminRole(r: JSONObject): PanelAdminRole {
+        val limits = r.optJSONObject("limits")
+        return PanelAdminRole(
+            id = r.optInt("id"),
+            name = r.optString("name"),
+            isOwner = r.optBoolean("is_owner", false),
+            createdAt = optionalString(r, "created_at"),
+            permissions = parsePermissionMap(r.optJSONObject("permissions")),
+            maxUsers = limits?.let { if (it.isNull("max_users")) null else it.optInt("max_users") },
+            hwidMode = r.optJSONObject("hwid")?.let { optionalString(it, "mode") }
+        )
+    }
+
+    /**
+     * نگاشتِ `resource → action → scope` از آبجکتِ `permissions` پنل.
+     *
+     * مقدارِ هر اکشن در پنل سه شکل دارد: `true` (مجازِ کامل)،
+     * `{"scope": N}` (محدود) یا `null`/غایب (ممنوع). اکشن‌های ممنوع **حذف**
+     * می‌شوند تا UI فقط چیزی را نشان بدهد که واقعاً مجاز است و نگاشتِ خالی
+     * (نقشِ بی‌مجوز) هم بی‌دلیل کلید نسازد.
+     */
+    private fun parsePermissionMap(perms: JSONObject?): Map<String, Map<String, Int>> {
+        if (perms == null) return emptyMap()
+        val out = mutableMapOf<String, Map<String, Int>>()
+        perms.keys().forEach { resource ->
+            val actions = perms.optJSONObject(resource) ?: return@forEach
+            val map = mutableMapOf<String, Int>()
+            actions.keys().forEach { action ->
+                val scope = when (val v = actions.opt(action)) {
+                    is Boolean -> if (v) PermissionScope.ALL else PermissionScope.NONE
+                    is JSONObject -> v.optInt("scope", PermissionScope.NONE)
+                    is Number -> v.toInt()
+                    else -> PermissionScope.NONE
+                }
+                if (scope > PermissionScope.NONE) map[action] = scope
+            }
+            if (map.isNotEmpty()) out[resource] = map
+        }
+        return out
     }
 
     /**
@@ -1449,24 +1607,120 @@ object PanelApi {
 
     /**
      * کاربرانی که هدفِ پاک‌سازی‌اند — `GET /api/users/expired?target=…`.
-     * `target` یکی از expired / limited / on_hold / disabled. پاسخ آرایه‌ای از
-     * نام‌های کاربری است، پس می‌شود قبل از حذف نشانشان داد.
+     *
+     * `target` یکی از `expired` / `limited` / `on_hold` / `disabled` / **`inactive`**.
+     * `inactive` از **PasarGuard v5.5** اضافه شده و برخلافِ بقیه بر اساسِ «آخرین
+     * فعالیت» (online_at، و اگر هرگز آنلاین نشده created_at) فیلتر می‌کند؛ پنل برای
+     * همین حالت `expired_before` را **الزامی** کرده است
+     * (`ExpiredUsersQuery.validate_inactive_cutoff`) و بدونِ آن ۴۲۲ می‌دهد. پس همان
+     * قاعده را سمتِ اپ هم اعتبارسنجی می‌کنیم تا خطا پیش از رفتن به شبکه روشن باشد.
+     *
+     * پاسخ آرایه‌ای از نام‌های کاربری است، پس می‌شود قبل از حذف نشانشان داد.
      */
-    suspend fun cleanupCandidates(session: Session, target: String = "expired"): List<String> =
-        withContext(Dispatchers.IO) {
-            val request = requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").get().build()
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) error("Expired list failed: ${response.code}")
-                val arr = org.json.JSONArray(response.body?.string() ?: "[]")
-                List(arr.length()) { i -> arr.optString(i) }
+    suspend fun cleanupCandidates(
+        session: Session,
+        target: String = "expired",
+        expiredBefore: String? = null
+    ): List<String> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, cleanupUrl(session, target, expiredBefore)).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Expired list failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val arr = org.json.JSONArray(response.body?.string() ?: "[]")
+            List(arr.length()) { i -> arr.optString(i) }
+        }
+    }
+
+    /** حذفِ همان فهرست — `DELETE /api/users/expired?target=…` (همان قاعدهٔ `inactive`). */
+    suspend fun deleteCleanupCandidates(
+        session: Session,
+        target: String = "expired",
+        expiredBefore: String? = null
+    ) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, cleanupUrl(session, target, expiredBefore)).delete().build())
+    }
+
+    /** ساختِ URLِ پاک‌سازی با همان اعتبارسنجیِ پنل (`inactive` بدونِ مهلت = ۴۲۲). */
+    private fun cleanupUrl(session: Session, target: String, expiredBefore: String?): String {
+        require(target in CLEANUP_TARGETS) { "Unknown cleanup target: $target" }
+        val cutoff = expiredBefore?.trim()?.takeIf { it.isNotEmpty() }
+        require(target != CLEANUP_INACTIVE || cutoff != null) {
+            "expired_before is required for the inactive target"
+        }
+        return buildString {
+            append(session.baseUrl); append("/api/users/expired?target="); append(target)
+            if (cutoff != null) {
+                append("&expired_before="); append(URLEncoder.encode(cutoff, "UTF-8"))
             }
         }
+    }
 
-    /** حذفِ همان فهرست — `DELETE /api/users/expired?target=…`. */
-    suspend fun deleteCleanupCandidates(session: Session, target: String = "expired") = withContext(Dispatchers.IO) {
+    /**
+     * فهرستِ سبکِ کاربران — `GET /api/users/simple` (فقط `id` و `username`).
+     *
+     * برای جست‌وجوی «فقط یک نام» (بدهکارِ سررسیدشده در ورکر پس‌زمینه، یا پیدا کردنِ
+     * شناسهٔ یک نام) از `/api/users` با همهٔ فیلدهای سنگین‌اش استفاده نمی‌کنیم؛
+     * پنل برای همین کارکرد اندپوینتِ ارزان‌تر دارد و روی پنل‌های چند‌هزار‌کاربری
+     * تفاضلِ پارس/شبکه محسوس است.
+     */
+    suspend fun usersSimple(
+        session: Session,
+        search: String? = null,
+        offset: Int = 0,
+        limit: Int = 50
+    ): List<UserRef> = withContext(Dispatchers.IO) {
+        require(limit in 1..1000) { "limit must be between 1 and 1000" }
+        val url = buildString {
+            append(session.baseUrl); append("/api/users/simple?offset="); append(offset)
+            append("&limit="); append(limit)
+            search?.takeIf { it.isNotBlank() }?.let {
+                append("&search="); append(URLEncoder.encode(it, "UTF-8"))
+            }
+        }
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Simple users failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val arr = JSONObject(response.body?.string() ?: "{}").optJSONArray("users") ?: return@use emptyList()
+            List(arr.length()) { i ->
+                val u = arr.getJSONObject(i)
+                UserRef(id = u.optLong("id", 0L), username = u.optString("username"))
+            }
+        }
+    }
+
+    /**
+     * ذخیرهٔ ترتیبِ نمایشِ نودها — `PUT /api/nodes/order` (**PasarGuard v5.5**،
+     * مجوزِ `nodes.update`، بدنه `{"ordered_ids": [..]}`).
+     *
+     * پنل حداقل دو شناسه و بدونِ تکرار می‌خواهد (`ReorderRequest`)، پس همان قواعد
+     * سمتِ اپ بررسی می‌شوند تا درخواستِ بی‌معنا اصلاً نرود.
+     */
+    suspend fun reorderNodes(session: Session, orderedIds: List<Int>) = withContext(Dispatchers.IO) {
+        require(orderedIds.size >= 2) { "Reordering needs at least two nodes" }
+        require(orderedIds.size == orderedIds.distinct().size) { "Node ids must be unique" }
+        val body = JSONObject().put("ordered_ids", org.json.JSONArray(orderedIds))
         executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/users/expired?target=$target").delete().build()
+            requestBuilder(session, "${session.baseUrl}/api/nodes/order")
+                .put(body.toString().toRequestBody(jsonType)).build()
         )
+    }
+
+    /**
+     * تنظیماتِ عمومیِ پنل — `GET /api/settings/general` (مجوزِ `settings.read_general`).
+     * فقط برای خواندنِ `on_hold_timeout_action` استفاده می‌شود (v5.5)؛ اگر نقش مجوز
+     * نداشته باشد ۴۰۳ می‌دهد و صداکننده باید سکوت کند، نه اینکه خطا نشان دهد.
+     */
+    suspend fun generalSettings(session: Session): PanelGeneralSettings = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings/general").get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("General settings failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            val o = JSONObject(response.body?.string() ?: "{}")
+            val action = o.optString("on_hold_timeout_action", OnHoldAction.ACTIVATE)
+            PanelGeneralSettings(
+                defaultMethod = o.optString("default_method", ""),
+                // مقدارِ ناشناخته → پیش‌فرضِ پنل (`activate`) تا متنِ UI چیزی از خودش نسازد.
+                onHoldTimeoutAction = if (action in ON_HOLD_ACTIONS) action else OnHoldAction.ACTIVATE
+            )
+        }
     }
 
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
@@ -1476,6 +1730,461 @@ object PanelApi {
             if (note.isNotBlank()) put("note", note)
         }
         executeJson(requestBuilder(session, "${session.baseUrl}/api/users/bulk/apply_template").post(body.toString().toRequestBody(jsonType)).build())
+    }
+
+    // ═══════════════════ زیرساختِ پنل (فاز ۲) ═══════════════════
+    //
+    // سه گروهِ «دادهٔ سطحِ سرور» که تا امروز فقط از پنلِ وب قابلِ مدیریت بودند:
+    // هاست‌ها (سازندهٔ لینکِ اشتراک)، کورها (کانفیگِ Xray/WireGuard/MTProto/sing-box) و
+    // قالب‌های کلاینت (خروجیِ اشتراک). همه با مجوزِ خودِ پنل گیت شده‌اند و هر
+    // خطای ۴۰۳/۴۲۲ عیناً با `detail` به UI می‌رسد (نقش‌های محدود در v5.5
+    // سخت‌گیرانه‌تر شده‌اند).
+
+    /**
+     * فهرستِ هاست‌ها — `GET /api/hosts` (مجوزِ `hosts.read`).
+     *
+     * `limit=0` در پنل یعنی «همه»؛ هاست‌ها معمولاً چند ده‌تایی هستند و صفحه‌بندی
+     * برایشان معنا ندارد. پاسخ آرایهٔ خالص است، ولی پوششِ `{"hosts": […]}` هم
+     * تحمل می‌شود تا با فورک‌های پنل نشکند.
+     */
+    suspend fun hosts(session: Session): List<PanelHost> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/hosts?limit=0&offset=0").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load hosts failed: ${response.code} ${errorDetail(raw)}".trim())
+            val trimmed = raw.trim()
+            val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
+            else JSONObject(trimmed.ifBlank { "{}" }).optJSONArray("hosts") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseHost(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * ساختِ هاست — `POST /api/host/` (مجوزِ `hosts.create`).
+     *
+     * فقط کمینهٔ لازم فرستاده می‌شود: پنل بقیهٔ فیلدها را با پیش‌فرضِ خودش
+     * می‌سازد. `inbound_tag` باید در یکی از کورها موجود باشد، وگرنه پنل ۴۰۰
+     * با پیامِ روشن می‌دهد — همان پیام به کاربر نشان داده می‌شود.
+     */
+    suspend fun createHost(
+        session: Session,
+        remark: String,
+        addresses: List<String>,
+        inboundTag: String? = null,
+        port: Int? = null,
+        security: String = "inbound_default"
+    ): PanelHost = withContext(Dispatchers.IO) {
+        require(remark.isNotBlank()) { "Remark cannot be empty" }
+        val cleanAddresses = addresses.map { it.trim() }.filter { it.isNotEmpty() }
+        require(cleanAddresses.isNotEmpty()) { "At least one address is required" }
+        val body = JSONObject()
+            .put("remark", remark.trim())
+            .put("address", org.json.JSONArray(cleanAddresses))
+            .put("security", security)
+            .put("priority", 0)
+            .put("is_disabled", false)
+            .put("alpn", org.json.JSONArray())
+        if (!inboundTag.isNullOrBlank()) body.put("inbound_tag", inboundTag)
+        port?.let { body.put("port", it) }
+        val response = executeJsonForBody(
+            requestBuilder(session, "${session.baseUrl}/api/host/")
+                .post(body.toString().toRequestBody(jsonType)).build()
+        )
+        parseHost(response)
+    }
+
+    /**
+     * ویرایشِ هاست — `PUT /api/host/{id}` (مجوزِ `hosts.update`).
+     *
+     * پنل برای PUT **کلِ** بدنهٔ `CreateHost` را می‌خواهد؛ اگر فقط فیلدهای فرم را
+     * بفرستیم، بقیه (transport/mux/fragment/ECH/…) به پیش‌فرض برمی‌گردند و
+     * هاستی که با پنلِ وب ساخته شده بی‌سروصدا خراب می‌شود. پس بدنهٔ خامِ همان
+     * ردیف گرفته و فقط کلیدهای تغییرکرده رویش merge می‌شوند؛ مقدارِ `null`
+     * یعنی «کلید را بردار».
+     */
+    suspend fun modifyHost(session: Session, host: PanelHost, changes: Map<String, Any?>): PanelHost =
+        withContext(Dispatchers.IO) {
+            val body = runCatching { JSONObject(host.raw) }.getOrElse { JSONObject() }
+            changes.forEach { (key, value) ->
+                // `value == null` کافی نبود: فرم برای «این فیلد را پاک کن» مقدارِ
+                // `JSONObject.NULL` می‌فرستد (چون `Map<String, Any?>` است و برای
+                // رسیدن به کاتلینِ `null` باید کلید را حذف کنند) و نتیجه این بود که
+                // بدنه `"port": null` می‌گرفت — کلید همچنان *هست* و پنل آن را
+                // «صریحاً خالی» می‌فهمد، نه «پیش‌فرضِ inbound». حالا هر دو شکل
+                // یعنی «کلید را بردار».
+                if (value == null || value === JSONObject.NULL) body.remove(key) else body.put(key, value)
+            }
+            val response = executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/host/${host.id}")
+                    .put(body.toString().toRequestBody(jsonType)).build()
+            )
+            parseHost(response)
+        }
+
+    /** حذفِ هاست — `DELETE /api/host/{id}` (مجوزِ `hosts.update`، پاسخ ۲۰۴). */
+    suspend fun deleteHost(session: Session, hostId: Int) = withContext(Dispatchers.IO) {
+        executeJson(requestBuilder(session, "${session.baseUrl}/api/host/$hostId").delete().build())
+    }
+
+    /**
+     * فعال/غیرفعال‌کردنِ گروهیِ هاست‌ها — `POST /api/hosts/bulk/{enable|disable}`
+     * (مجوزِ `hosts.update`). پنل تعدادِ انجام‌شده را در `count` می‌دهد؛ همان
+     * برگردانده می‌شود تا UI «۳ هاست غیرفعال شد» بگوید، نه یک پیامِ کلی.
+     */
+    suspend fun setHostsDisabled(session: Session, ids: Set<Int>, disabled: Boolean): Int =
+        withContext(Dispatchers.IO) {
+            require(ids.isNotEmpty()) { "No hosts selected" }
+            val body = JSONObject().put("ids", org.json.JSONArray(ids.toList()))
+            val action = if (disabled) "disable" else "enable"
+            val response = executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/hosts/bulk/$action")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+            if (response.isNull("count")) ids.size else response.optInt("count", ids.size)
+        }
+
+    /**
+     * فهرستِ کورها — `GET /api/cores` (مجوزِ `cores.read`).
+     * بدونِ `limit` همه برمی‌گردند (`CoreListQuery.limit = None`).
+     */
+    suspend fun cores(session: Session): List<PanelCore> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/cores").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load cores failed: ${response.code} ${errorDetail(raw)}".trim())
+            val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("cores") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseCore(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * ویرایشِ کور — `PUT /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.update`).
+     *
+     * دو نکتهٔ قرارداد که اگر رعایت نشوند درخواست همیشه ۴۲۲ می‌گیرد:
+     *  ۱. `restart_nodes` یک query paramِ **الزامی** است (بدونِ مقدارِ پیش‌فرض در پنل)؛
+     *  ۲. بدنه باید `config` کامل را داشته باشد — پس [PanelCore.config] خام و
+     *     دست‌نخورده دوباره فرستاده می‌شود و فقط فیلدهای فرم عوض می‌شوند.
+     */
+    suspend fun modifyCore(
+        session: Session,
+        core: PanelCore,
+        name: String,
+        type: String?,
+        excludeInboundTags: List<String>,
+        fallbacksInboundTags: List<String>,
+        restartNodes: Boolean
+    ): PanelCore = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "Core name cannot be empty" }
+        val config = runCatching { JSONObject(core.config) }.getOrElse { JSONObject() }
+        require(config.length() > 0) { "Core config cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("config", config)
+            .put("exclude_inbound_tags", org.json.JSONArray(excludeInboundTags))
+            .put("fallbacks_inbound_tags", org.json.JSONArray(fallbacksInboundTags))
+        if (type.isNullOrBlank()) body.put("type", JSONObject.NULL) else body.put("type", type)
+        val url = "${session.baseUrl}/api/cores/${core.id}?restart_nodes=$restartNodes"
+        parseCore(
+            executeJsonForBody(
+                requestBuilder(session, url).put(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** ری‌استارتِ نودهای یک کور — `POST /api/cores/{id}/restart` (مجوزِ `cores.update`، ۲۰۴). */
+    suspend fun restartCore(session: Session, coreId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/cores/$coreId/restart")
+                .post("".toRequestBody(jsonType)).build()
+        )
+    }
+
+    /** حذفِ کور — `DELETE /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.delete`، ۲۰۴). */
+    suspend fun deleteCore(session: Session, coreId: Int, restartNodes: Boolean = false) =
+        withContext(Dispatchers.IO) {
+            executeJson(
+                requestBuilder(session, "${session.baseUrl}/api/cores/$coreId?restart_nodes=$restartNodes")
+                    .delete().build()
+            )
+        }
+
+    /**
+     * فهرستِ قالب‌های کلاینت — `GET /api/client_templates` (مجوزِ `client_templates.read`).
+     * برخلافِ `/api/user_templates` پاسخ **پوشیده** است: `{"count": n, "templates": […]}`
+     * (آن یکی آرایهٔ خالص بود) — همین تفاوت قبلاً منبعِ باگِ پارس بوده است.
+     */
+    suspend fun clientTemplates(session: Session): List<ClientTemplate> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/client_templates").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load client templates failed: ${response.code} ${errorDetail(raw)}".trim())
+            val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("templates") ?: org.json.JSONArray()
+            List(arr.length()) { i -> parseClientTemplate(arr.getJSONObject(i)) }
+        }
+    }
+
+    /** ساختِ قالبِ کلاینت — `POST /api/client_templates` (مجوزِ `client_templates.create`). */
+    suspend fun createClientTemplate(
+        session: Session,
+        name: String,
+        templateType: String,
+        content: String,
+        isDefault: Boolean = false
+    ): ClientTemplate = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "Template name cannot be empty" }
+        require(content.isNotBlank()) { "Template content cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("template_type", templateType)
+            .put("content", content)
+            .put("is_default", isDefault)
+        parseClientTemplate(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/client_templates")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /**
+     * ویرایشِ قالبِ کلاینت — `PUT /api/client_templates/{id}` (مجوزِ `client_templates.update`).
+     *
+     * `template_type` در پنل تغییرپذیر نیست (`ClientTemplateModify` فقط نام/محتوا/
+     * پیش‌فرض را می‌پذیرد)، پس انتخابِ نوع فقط در فرمِ «ساخت» دیده می‌شود.
+     */
+    suspend fun modifyClientTemplate(
+        session: Session,
+        templateId: Int,
+        name: String? = null,
+        content: String? = null,
+        isDefault: Boolean? = null
+    ): ClientTemplate = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+        name?.let { body.put("name", it.trim()) }
+        content?.let { body.put("content", it) }
+        isDefault?.let { body.put("is_default", it) }
+        require(body.length() > 0) { "Nothing to update" }
+        parseClientTemplate(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId")
+                    .put(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** حذفِ قالبِ کلاینت — `DELETE /api/client_templates/{id}` (پاسخ ۲۰۰/۲۰۴). */
+    suspend fun deleteClientTemplate(session: Session, templateId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/client_templates/$templateId").delete().build()
+        )
+    }
+
+    // ═══════════════════ کلیدهای API (فازِ ۵.۲) ═══════════════════
+    //
+    // مسیرها (PasarGuard 5.5.1): `GET /api/api_keys`، `POST /api/api_key`،
+    // `POST /api/api_key/{id}/revoke` (چرخش؛ متنِ تازه برمی‌گرداند)،
+    // `PATCH /api/api_key/{id}` (نام/یادداشت/وضعیت) و `DELETE /api/api_key/{id}`.
+    // متنِ کاملِ کلید فقط در پاسخِ ساخت/چرخش می‌آید و اینجا هم جایی ذخیره نمی‌شود.
+
+    /** فهرستِ کلیدهای API — `GET /api/api_keys` (مجوزِ `api_keys.read`). */
+    suspend fun apiKeys(session: Session, limit: Int = 200): List<PanelApiKey> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/api_keys?offset=0&limit=$limit")
+            .get().build()
+        val body = executeJsonForBody(request)
+        val arr = body.optJSONArray("api_keys") ?: return@withContext emptyList()
+        List(arr.length()) { i -> parseApiKey(arr.getJSONObject(i)) }
+    }
+
+    /**
+     * ساختِ کلید — `POST /api/api_key` (مجوزِ `api_keys.create`، پاسخ ۲۰۱).
+     *
+     * `expireDays = null` یعنی «بی‌انقضا» (`expire_date: null`). پنل تاریخِ گذشته را
+     * رد می‌کند و ارقامِ مثبت را می‌پذیرد.
+     */
+    suspend fun createApiKey(
+        session: Session,
+        name: String,
+        note: String = "",
+        expireDays: Long? = null
+    ): CreatedApiKey = withContext(Dispatchers.IO) {
+        require(name.isNotBlank()) { "API key name cannot be empty" }
+        val body = JSONObject()
+            .put("name", name.trim())
+            .put("note", note.trim().ifBlank { JSONObject.NULL })
+            .put("expire_date", expireDays?.let { DateLogic.isoFromNow(it) } ?: JSONObject.NULL)
+        parseCreatedApiKey(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/api_key")
+                    .post(body.toString().toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /**
+     * چرخشِ کلید — `POST /api/api_key/{id}/revoke`.
+     *
+     * اسمِ مسیر «revoke» است ولی رفتارش **چرخش** است: همان کلید با متنِ تازه
+     * برمی‌گردد و کلیدِ قبلی بی‌درنگ از کار می‌افتد. برای «غیرفعال‌کردن» از
+     * [setApiKeyDisabled] استفاده کنید.
+     */
+    suspend fun rotateApiKey(session: Session, keyId: Int): CreatedApiKey = withContext(Dispatchers.IO) {
+        parseCreatedApiKey(
+            executeJsonForBody(
+                requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId/revoke")
+                    .post(EMPTY_JSON.toRequestBody(jsonType)).build()
+            )
+        )
+    }
+
+    /** فعال/غیرفعال‌کردنِ کلید — `PATCH /api/api_key/{id}` با `status`. */
+    suspend fun setApiKeyDisabled(session: Session, keyId: Int, disabled: Boolean): PanelApiKey =
+        withContext(Dispatchers.IO) {
+            val body = JSONObject().put(
+                "status",
+                if (disabled) PanelApiKey.DISABLED else PanelApiKey.ACTIVE
+            )
+            parseApiKey(
+                executeJsonForBody(
+                    requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId")
+                        .patch(body.toString().toRequestBody(jsonType)).build()
+                )
+            )
+        }
+
+    /** حذفِ کلید — `DELETE /api/api_key/{id}` (پاسخ ۲۰۴). */
+    suspend fun deleteApiKey(session: Session, keyId: Int) = withContext(Dispatchers.IO) {
+        executeJson(
+            requestBuilder(session, "${session.baseUrl}/api/api_key/$keyId").delete().build()
+        )
+    }
+
+    private fun parseApiKey(o: JSONObject): PanelApiKey = PanelApiKey(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        trimmed = o.optString("api_key_trimmed"),
+        status = o.optString("status", PanelApiKey.ACTIVE),
+        note = optionalString(o, "note"),
+        adminId = o.optInt("admin_id"),
+        createdAt = optionalString(o, "created_at"),
+        expireDate = optionalString(o, "expire_date"),
+        isExpired = o.optBoolean("is_expired", false),
+        inheritPermissions = o.optBoolean("inherit_permissions", true)
+    )
+
+    private fun parseCreatedApiKey(o: JSONObject): CreatedApiKey =
+        CreatedApiKey(key = o.optString("api_key"), item = parseApiKey(o))
+
+    // ═══════════════════ تنظیماتِ پنل (فازِ ۵) ═══════════════════
+    //
+    // پنل تنظیماتش را در بخش‌های مستقل نگه می‌دارد و `PUT /api/settings` هر بخشِ
+    // فرستاده‌شده را **کامل** جایگزین می‌کند (`model_dump(exclude_none=True)`).
+    // پس هر تابعِ ذخیره، بخشِ کامل می‌فرستد و برای فیلدهای ناشناخته بدنهٔ خامِ
+    // قبلی را نگه می‌دارد (همان قاعدهٔ هاست‌ها در فاز ۲). مجوزها:
+    // `settings.read` برای خواندن و `settings.update` برای نوشتن؛ ۴۰۳ با `detail`
+    // خودِ پنل به UI می‌رسد.
+
+    /** بخش‌های مجازِ `PUT /api/settings` — نگهبانِ محلی برای اینکه کلیدِ اشتباه نرود. */
+    private val PANEL_SETTINGS_SECTIONS =
+        setOf("general", "subscription", "hwid", "notification_settings")
+
+    /** همهٔ تنظیماتِ پنل — `GET /api/settings` (مجوزِ `settings.read`). */
+    suspend fun panelSettings(session: Session): PanelSettings = withContext(Dispatchers.IO) {
+        PanelSettings.from(
+            executeJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
+        )
+    }
+
+    /**
+     * نوشتنِ یک بخش — `PUT /api/settings` با `{section: body}`.
+     *
+     * پاسخ، `SettingsSchema` کاملِ تازه است؛ همان را برمی‌گردانیم تا UI مقدارِ
+     * نرمال‌شدهٔ سرور را نشان بدهد (مثلاً `url_prefix` که پنل `/`های دو طرف را
+     * می‌بُرد، یا `custom_variables` که از `general` به `subscription` منتقل می‌شود).
+     */
+    private fun putPanelSection(session: Session, section: String, body: JSONObject): PanelSettings {
+        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section: $section" }
+        val payload = JSONObject().put(section, body)
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings")
+            .put(payload.toString().toRequestBody(jsonType)).build()
+        return PanelSettings.from(executeJsonForBody(request))
+    }
+
+    suspend fun savePanelGeneral(session: Session, section: PanelGeneralSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "general", section.toJson()) }
+
+    suspend fun savePanelSubscription(session: Session, section: PanelSubscriptionSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "subscription", section.toJson()) }
+
+    suspend fun savePanelHwid(session: Session, section: PanelHwidSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "hwid", section.toJson()) }
+
+    suspend fun savePanelNotifications(session: Session, section: PanelNotificationSection): PanelSettings =
+        withContext(Dispatchers.IO) { putPanelSection(session, "notification_settings", section.toJson()) }
+
+    // ── پارسِ زیرساخت ────────────────────────────────────────────────────
+
+    private fun parseHost(o: JSONObject): PanelHost = PanelHost(
+        id = o.optInt("id"),
+        remark = o.optString("remark"),
+        addresses = jsonStringList(o, "address"),
+        inboundTag = optionalString(o, "inbound_tag"),
+        port = if (o.isNull("port")) null else o.optInt("port"),
+        sni = jsonStringList(o, "sni"),
+        host = jsonStringList(o, "host"),
+        path = optionalString(o, "path"),
+        security = optionalString(o, "security") ?: "inbound_default",
+        alpn = jsonStringList(o, "alpn"),
+        fingerprint = optionalString(o, "fingerprint") ?: "none",
+        isDisabled = o.optBoolean("is_disabled", false),
+        priority = o.optInt("priority", 0),
+        status = jsonStringList(o, "status"),
+        useSniAsHost = o.optBoolean("use_sni_as_host", false),
+        randomUserAgent = o.optBoolean("random_user_agent", false),
+        raw = o.toString()
+    )
+
+    private fun parseCore(o: JSONObject): PanelCore = PanelCore(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        type = optionalString(o, "type"),
+        excludeInboundTags = jsonStringList(o, "exclude_inbound_tags"),
+        fallbacksInboundTags = jsonStringList(o, "fallbacks_inbound_tags"),
+        sortOrder = o.optInt("sort_order", 0),
+        // کانفیگ رشتهٔ خام می‌ماند تا PUT بعدی عیناً همان را برگرداند.
+        config = o.optJSONObject("config")?.toString() ?: "{}"
+    )
+
+    private fun parseClientTemplate(o: JSONObject): ClientTemplate = ClientTemplate(
+        id = o.optInt("id"),
+        name = o.optString("name"),
+        templateType = o.optString("template_type"),
+        content = o.optString("content"),
+        isDefault = o.optBoolean("is_default", false),
+        isSystem = o.optBoolean("is_system", false)
+    )
+
+    /**
+     * رشتهٔ اختیاری از JSON. `optString` برای مقدارِ null رشتهٔ `"null"` می‌دهد؛
+     * این تابع آن حالت و رشتهٔ خالی را به `null` تبدیل می‌کند (مثلِ `inbound_tag`).
+     */
+    private fun optionalString(o: JSONObject, key: String): String? =
+        o.optString(key).takeIf { it.isNotBlank() && it != "null" }
+
+    /** آرایهٔ رشته‌ها؛ کلیدِ غایب یا null → لیستِ خالی (نه خطا). */
+    private fun jsonStringList(o: JSONObject, key: String): List<String> {
+        val arr = o.optJSONArray(key) ?: return emptyList()
+        return List(arr.length()) { i -> arr.optString(i) }.filter { it.isNotBlank() && it != "null" }
+    }
+
+    /** مثلِ [executeJson] ولی بدنهٔ پاسخ را هم برمی‌گرداند (برای POST/PUT که آبجکت می‌دهند). */
+    private fun executeJsonForBody(request: Request): JSONObject {
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+            }
+            return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+        }
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()

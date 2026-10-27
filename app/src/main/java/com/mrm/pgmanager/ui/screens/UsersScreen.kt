@@ -538,6 +538,24 @@ fun UsersScreen(
                         RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
                         Text(stringResource(R.string.us_cleanup), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                     }
+                    // PasarGuard v5.5: پاک‌سازیِ کاربرانی که مدتی هیچ فعالیتی نداشته‌اند
+                    // (`target=inactive`). فقط روی پنلِ 5.5.1+ و برای نقشِ مجاز نشان داده
+                    // می‌شود؛ روی پنلِ قدیمی پنل با ۴۲۲ پاسخ می‌داد.
+                    if (com.mrm.pgmanager.data.PanelSupport.supportsInactiveCleanup) {
+                        Row(
+                            Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Sm).clip(DsRadius.Sm)
+                                .clickable { ui.inactiveCleanupOpen = true }
+                                .background(GlassAmber.copy(0.10f))
+                                .border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(0.26f)), DsRadius.Sm)
+                                .pressScale(0.98f)
+                                .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                        ) {
+                            RoundedAppIcon(AppIcon.Timer, tint = GlassAmber, size = 13.dp)
+                            Text(stringResource(R.string.us_cleanup_inactive), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = themeState.warningTextColor)
+                        }
+                    }
                 }
                 ui.offlineAt?.let { cachedAt ->
                     Row(
@@ -615,7 +633,12 @@ fun UsersScreen(
                         // (`require_scope_all("users","update")`)؛ برای ادمینِ محدود به
                         // کاربرانِ خودش این دو آیتم پنهان می‌شوند تا به ۴۰۳ نخورد.
                         showAddDays = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update"),
-                        showAddData = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update")
+                        showAddData = com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "update"),
+                        // اکشن‌های مخربِ گروهی — بدونِ مجوز پنهان می‌شوند (پنل ۴۰۳ می‌داد).
+                        canDelete = com.mrm.pgmanager.data.AdminAccess.can("users", "delete"),
+                        canToggle = com.mrm.pgmanager.data.AdminAccess.can("users", "update"),
+                        canResetUsage = com.mrm.pgmanager.data.AdminAccess.can("users", "reset_usage"),
+                        canRevokeSubs = com.mrm.pgmanager.data.AdminAccess.can("users", "revoke_sub")
                     )
                 }
             }

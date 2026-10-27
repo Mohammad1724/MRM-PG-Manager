@@ -37,18 +37,42 @@ class SessionStore(context: Context) {
          * MRMApp، تم، صفحهٔ اول). حالا هزینه فقط یک‌بار پرداخت می‌شود؛
          * `SharedPreferences` خودش thread-safe است و اشتراکش مشکلی ندارد.
          */
+        /**
+         * کارخانهٔ SharedPreferences. در تولید: نسخهٔ رمزنگاری‌شده با Keystore.
+         *
+         * چرا قلاب دارد: Robolectric (تست‌های JVM) `AndroidKeyStore` ندارد، پس هر
+         * تستی که صفحه‌ای را رندر کند روی `SessionStore(...)` با
+         * `KeyStoreException: AndroidKeyStore not found` می‌شکست — بدونِ اینکه
+         * خودِ تست غلط باشد. تست‌ها این را به یک SharedPreferencesِ ساده می‌دهند
+         * و منطقِ صفحه همان‌طور که هست سنجیده می‌شود. مقدارِ پیش‌فرض دست‌نخورده و
+         * رمزنگاری‌شده است.
+         */
+        @Volatile
+        internal var prefsFactory: (Context) -> android.content.SharedPreferences = ::encryptedPrefs
+
+        /** پایانِ تست: کارخانه و نمونهٔ کش‌شده به حالتِ تولید برمی‌گردند. */
+        internal fun resetPrefsForTests() {
+            cachedPrefs = null
+            prefsFactory = ::encryptedPrefs
+        }
+
+        private fun encryptedPrefs(context: Context): android.content.SharedPreferences {
+            val appContext = context.applicationContext ?: context
+            return EncryptedSharedPreferences.create(
+                appContext,
+                "mrm_pg_manager",
+                MasterKey.Builder(appContext).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        }
+
         private fun sharedPrefs(context: Context): android.content.SharedPreferences {
             cachedPrefs?.let { return it }
             synchronized(this) {
                 cachedPrefs?.let { return it }
                 val appContext = context.applicationContext ?: context
-                val created = EncryptedSharedPreferences.create(
-                    appContext,
-                    "mrm_pg_manager",
-                    MasterKey.Builder(appContext).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                )
+                val created = prefsFactory(appContext)
                 cachedPrefs = created
                 return created
             }

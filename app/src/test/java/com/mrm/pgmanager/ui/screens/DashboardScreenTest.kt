@@ -1,6 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.Session
 import okhttp3.mockwebserver.MockResponse
@@ -38,7 +39,10 @@ class DashboardScreenTest {
     private lateinit var server: MockWebServer
     private lateinit var session: Session
 
-    private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
+    // نسخهٔ قالبی هم لازم است: `chart_range_selector` یک آرگومانِ `%1$s` دارد و
+    // فراخوانیِ `str(R.string.x, "7d")` با امضای تک‌پارامتری کامپایل نمی‌شد.
+    private fun str(id: Int, vararg args: Any): String =
+        RuntimeEnvironment.getApplication().getString(id, *args)
 
     /**
      * ترتیب درخواست‌ها بین افکت لود و افکت بازه قطعی نیست؛ به‌جای صف FIFO،
@@ -65,6 +69,12 @@ class DashboardScreenTest {
     }
 
     @Before fun setUp() {
+        // Robolectric `AndroidKeyStore` ندارد و `SessionStore` (که داشبورد برای
+        // خواندنِ تنظیمات می‌سازد) با `KeyStoreException` می‌شکست. اینجا
+        // SharedPreferencesِ ساده جای رمزنگاری‌شده می‌نشیند؛ مسیرِ تولید همان
+        // رمزنگاری‌شده است و در `resetPrefsForTests` برمی‌گردد.
+        SessionStore.resetPrefsForTests()
+        SessionStore.prefsFactory = { ctx -> ctx.getSharedPreferences("mrm_pg_test", android.content.Context.MODE_PRIVATE) }
         server = MockWebServer()
         server.start()
         PanelApi.allowCleartextLoopbackForTests = true
@@ -73,9 +83,23 @@ class DashboardScreenTest {
     }
 
     @After fun tearDown() {
+        SessionStore.resetPrefsForTests()
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
         server.shutdown()
+    }
+
+    /**
+     * `waitUntil`ِ خالی وقتی شکست می‌خورد فقط «Condition still not satisfied after
+     * 15000 ms» می‌دهد و در CI هیچ عددی نمی‌رسد (یک چرخهٔ کاملِ دیگر برای کشفِ
+     * «چند کارت دیده شد؟»). این نسخه وضعیتِ مشاهده‌شده را هم در پیام می‌آورد.
+     */
+    private fun awaitCondition(what: String, observed: () -> String, condition: () -> Boolean) {
+        try {
+            rule.waitUntil(15_000, condition)
+        } catch (timeout: ComposeTimeoutException) {
+            throw AssertionError("$what پس از ۱۵ ثانیه محقق نشد؛ دیده‌شده: ${observed()}", timeout)
+        }
     }
 
     private fun render(onOpenStatistics: () -> Unit = {}) = rule.setContent {
@@ -94,9 +118,10 @@ class DashboardScreenTest {
 
         val label = str(R.string.db_open_statistics)
         // چهار کارت حلقه‌ای (CPU/RAM/دیسک/ترافیک) بعد از لود ظاهر می‌شوند.
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size == 4
-        }
+        awaitCondition(
+            what = "چهار کارتِ حلقه‌ای با شرحِ دسترس‌پذیریِ «$label»",
+            observed = { "کارت‌های دیده‌شده: " + rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size }
+        ) { rule.onAllNodesWithContentDescription(label).fetchSemanticsNodes().size == 4 }
         rule.onAllNodesWithContentDescription(label)[0].performClick()
         rule.waitForIdle()
         assertEquals(1, opens)
@@ -108,9 +133,15 @@ class DashboardScreenTest {
 
         // پیش‌فرض LAST_7D با برچسب "7d".
         val expected = str(R.string.chart_range_selector, "7d")
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithText(expected).fetchSemanticsNodes().isNotEmpty()
-        }
+        // انتخابگر بازه شرحِ دسترس‌پذیری می‌دهد، نه متنِ دیده‌شدنی؛ انتظار روی متن
+        // همیشه timeout می‌داد («گره با متن=0، گره با شرح=1»).
+        awaitCondition(
+            what = "انتخابگرِ بازه با شرحِ «$expected»",
+            observed = {
+                "گره با متن=" + rule.onAllNodesWithText(expected).fetchSemanticsNodes().size +
+                    "، گره با شرح=" + rule.onAllNodesWithContentDescription(expected).fetchSemanticsNodes().size
+            }
+        ) { rule.onAllNodesWithContentDescription(expected).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription(expected).assertExists()
     }
 
@@ -118,9 +149,11 @@ class DashboardScreenTest {
         installDispatcher()
         render()
 
-        rule.waitUntil(15_000) {
-            rule.onAllNodesWithText(str(R.string.no_trend)).fetchSemanticsNodes().isNotEmpty()
-        }
+        val noTrend = str(R.string.no_trend)
+        awaitCondition(
+            what = "متنِ «$noTrend»",
+            observed = { "requests=${server.requestCount}" }
+        ) { rule.onAllNodesWithText(noTrend).fetchSemanticsNodes().isNotEmpty() }
         assertTrue(server.requestCount > 0)
     }
 }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,6 +46,7 @@ import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.dialogs.CheckboxIcon
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
@@ -222,7 +222,7 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 when {
                     loading && groups.isEmpty() -> {
                         Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = theme.accentPrimary)
+                            MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
                         }
                     }
 

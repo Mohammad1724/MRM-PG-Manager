@@ -92,7 +92,16 @@ data class PanelUser(
      */
     val dataLimitResetStrategy: String? = null,
     /** حذفِ خودکار N روز پس از انقضا؛ null یعنی هرگز. */
-    val autoDeleteDays: Int? = null
+    val autoDeleteDays: Int? = null,
+    /**
+     * تعداد دستگاه‌های ثبت‌شده (HWID) — از **PasarGuard v5.5** در پاسخِ `/api/users`
+     * به‌صورتِ `hwid_count` می‌آید.
+     *
+     * `null` یعنی پنل عدد را نداده است (نسخهٔ قدیمی‌تر، یا نقشِ بدونِ مجوزِ
+     * `hwids.read`) — در این حالت هیچ بجی نشان داده نمی‌شود؛ عددِ صفر معنا‌دار است
+     * («دستگاهی ثبت نشده») و از `null` جدا نگه داشته می‌شود.
+     */
+    val hwidCount: Int? = null
 ) {
     /** مدت اعتبارِ on_hold به روز (گِرد به بالا)؛ null اگر کاربر on_hold نیست. */
     val onHoldDays: Int?
@@ -112,8 +121,47 @@ data class PanelAdmin(
     val usedTraffic: Long = 0L,
     val dataLimit: Long? = null,
     val status: String = "active",
-    val isOwner: Boolean = false
+    val isOwner: Boolean = false,
+    /** نامِ نقش (`role.name`) — پنل آن را درونِ همان آبجکتِ `role` می‌دهد. */
+    val roleName: String = "",
+    /**
+     * `is_disabled` / `is_limited` فیلدهای محاسبه‌شدهٔ پنل‌اند.
+     *
+     * چرا از `status` تنها کافی نیست: `status` فقط `active | disabled | limited`
+     * است، ولی پنل این دو پرچم را جدا هم می‌فرستد و بعضی نسخه‌ها یکی را
+     * به‌روز نمی‌کنند؛ خواندنِ پرچم‌ها همان چیزی است که خودِ پنل در احرازِ
+     * هویت بررسی می‌کند (ادمینِ `disabled` حتی با رمزِ درست ۴۰۳ می‌گیرد).
+     */
+    val isDisabled: Boolean = false,
+    val isLimited: Boolean = false
 )
+
+/**
+ * یک نقشِ ادمین — `GET /api/admin-roles` (مجوزِ `admin_roles.read`).
+ *
+ * نگاشتِ [permissions] همان `resource → action → scope` است که پنل برای
+ * تصمیم‌گیری استفاده می‌کند ([PermissionScope]): نبودنِ یک action یعنی ممنوع،
+ * `1` یعنی «فقط کاربرانِ خودش» و `2` یعنی «همه». داشتنِ همین جدول در اپ دو
+ * کار می‌کند: ادمین می‌فهمد چرا یک دکمه برای همکارش پنهان است، و می‌شود
+ * نقش‌ها را بدونِ باز کردنِ پنلِ وب مقایسه کرد.
+ */
+data class PanelAdminRole(
+    val id: Int,
+    val name: String,
+    val isOwner: Boolean = false,
+    val createdAt: String? = null,
+    val permissions: Map<String, Map<String, Int>> = emptyMap(),
+    /** `limits.max_users` — سقفِ کاربرانِ این نقش، `null` یعنی بی‌سقف. */
+    val maxUsers: Int? = null,
+    /** `hwid.mode` — `use_global` | `force_on` | `force_off` (نقش‌ها می‌توانند سراسری را رد کنند). */
+    val hwidMode: String? = null
+) {
+    /** شمارِ اکشن‌های مجاز — برای خلاصهٔ ردیف، بدونِ باز کردنِ جزئیات. */
+    val allowedActionCount: Int get() = permissions.values.sumOf { it.size }
+}
+
+/** پاسخِ فهرستِ نقش‌ها؛ `total` کلِ رکوردهای پنل است نه فقط همین صفحه. */
+data class AdminRoleList(val roles: List<PanelAdminRole>, val total: Int)
 
 data class SystemStats(
     val uptimeSeconds: Long = 0L,
@@ -161,6 +209,35 @@ data class NodeUsage(val nodeId: Int, val points: List<NodeTrafficPoint>) {
             return totals.map { TrafficPoint(it.key, it.value) }
         }
     }
+}
+
+/**
+ * ارجاعِ سبک به یک کاربر — پاسخِ `GET /api/users/simple` (فقط `id` و `username`).
+ *
+ * چرا جدا از [PanelUser]: این اندپوینت برای «پیدا کردنِ یک نام» ساخته شده
+ * (مثلاً یافتنِ کاربرِ بدهکار در ورکر پس‌زمینه) و پنل عمداً هیچ فیلدِ سنگینی
+ * برنمی‌گرداند؛ مدلِ سنگین‌تر فقط پارسِ بی‌مصرف بود.
+ */
+data class UserRef(val id: Long, val username: String)
+
+/**
+ * تنظیماتِ عمومیِ پنل — `GET /api/settings/general` (مجوزِ `settings.read_general`).
+ *
+ * تنها فیلدی که اپ لازم دارد `on_hold_timeout_action` است: از **PasarGuard v5.5**
+ * پنل هنگامِ پایانِ مهلتِ کاربرِ on_hold خودش یکی از سه کار را می‌کند
+ * (`activate` / `disable` / `delete`). متنِ راهنمای فرمِ کاربر باید همان را بگوید،
+ * وگرنه ادمین فکر می‌کند پنل همیشه «فعال» می‌کند.
+ */
+data class PanelGeneralSettings(
+    val defaultMethod: String = "",
+    val onHoldTimeoutAction: String = OnHoldAction.ACTIVATE
+)
+
+/** مقادیرِ مجازِ `on_hold_timeout_action` در پنل (`OnHoldTimeoutAction`). */
+object OnHoldAction {
+    const val ACTIVATE = "activate"
+    const val DISABLE = "disable"
+    const val DELETE = "delete"
 }
 
 data class Group(val id: Int, val name: String)
@@ -251,6 +328,12 @@ data class PanelNode(
     val message: String? = null,
     val xrayVersion: String? = null,
     val nodeVersion: String? = null,
+    /**
+     * ترتیبِ نمایش در پنل (v5.5+، `sort_order`). پنل نودها را با همین عدد مرتب
+     * می‌کند و `PUT /api/nodes/order` عوضش می‌کند؛ اپ هم همان ترتیب را نشان
+     * می‌دهد تا فهرستِ نودها با پنل یکی بماند. پیش‌فرض `0` = ترتیبِ خودِ پاسخ.
+     */
+    val sortOrder: Int = 0,
     val uplink: Long = 0L,
     val downlink: Long = 0L
 ) {
@@ -632,3 +715,160 @@ data class UserEditorValues(
     /** مهلت فعال‌سازی از الان (ثانیه)؛ 0 یعنی پاکش کن؛ null یعنی دست نزن. */
     val onHoldTimeoutSeconds: Long? = null
 )
+
+// ─────────────────────────── زیرساختِ پنل — PasarGuard v5 ───────────────────────────
+//
+// سه مفهومِ «سطحِ سرور» که تا امروز فقط در پنلِ وب قابلِ مدیریت بودند و اپ فقط
+// به‌صورتِ غیرمستقیم (از طریقِ گروه‌ها/کاربران/اشتراک) با آن‌ها کار می‌کرد:
+//
+//  • **host** — همان چیزی که لینکِ اشتراک را می‌سازد (آدرس/پورت/SNI/امنیت/ALPN).
+//  • **core** — کانفیگِ هستهٔ اجراییِ نود (Xray / WireGuard / MTProto / sing-box).
+//  • **client template** — قالبِ خروجیِ اشتراک برای کلاینت‌ها (Clash/Xray/sing-box…).
+//
+// مدل‌ها عمداً **کم‌فیلد** هستند: فقط چیزهایی که در یک صفحهٔ گوشی جا می‌شوند.
+// هر جا بدنهٔ اصلیِ JSON لازم است (ویرایشِ هاست/کور)، رشتهٔ خامش نگه داشته
+// می‌شود تا فیلدهای پیشرفته‌ای که فرمِ موبایل نمی‌شناسد (transport/mux/fragment/
+// ECH/…) با یک «ذخیره» بی‌سروصدا پاک نشوند. این مهم‌ترین تصمیمِ طراحیِ این بخش است.
+
+/**
+ * یک هاستِ اشتراک — `GET /api/hosts` (مجوزِ `hosts.read`).
+ *
+ * [raw] بدنهٔ کاملِ همان ردیف است؛ ویرایش با merge روی همین JSON انجام می‌شود،
+ * پس فرمِ موبایل لازم نیست (و نباید) همهٔ فیلدهای پنل را بشناسد.
+ */
+data class PanelHost(
+    val id: Int,
+    val remark: String,
+    val addresses: List<String> = emptyList(),
+    val inboundTag: String? = null,
+    val port: Int? = null,
+    val sni: List<String> = emptyList(),
+    val host: List<String> = emptyList(),
+    val path: String? = null,
+    /** `inbound_default` | `none` | `tls` — مقدارِ خامِ پنل (پیش‌فرض: پیش‌فرضِ inbound). */
+    val security: String = HostSecurity.INBOUND_DEFAULT,
+    val alpn: List<String> = emptyList(),
+    val fingerprint: String = "none",
+    val isDisabled: Boolean = false,
+    val priority: Int = 0,
+    /** وضعیت‌هایی که این هاست برایشان ساخته می‌شود (`active`/`disabled`/…). */
+    val status: List<String> = emptyList(),
+    val useSniAsHost: Boolean = false,
+    val randomUserAgent: Boolean = false,
+    val raw: String = "{}"
+)
+
+/**
+ * مقادیرِ مجازِ `security` — عیناً `ProxyHostSecurity` در `app/db/models.py` پنل:
+ * فقط `inbound_default`، `none` و `tls`.
+ *
+ * نکته: `reality` اینجا **نیست**؛ در PasarGuard، Reality در کانفیگِ inbound/core
+ * تعریف می‌شود نه روی هاست. فرستادنش ۴۲۲ می‌گیرد، پس عمداً در فهرست نیست.
+ */
+object HostSecurity {
+    const val INBOUND_DEFAULT = "inbound_default"
+    const val NONE = "none"
+    const val TLS = "tls"
+    val ALL = listOf(INBOUND_DEFAULT, NONE, TLS)
+}
+
+/**
+ * اعتبارسنجیِ فرمِ هاست، جدا از UI تا قابلِ تست باشد.
+ *
+ * قواعد از پنل (`CreateHost`): `remark` خالی مجاز نیست و پورت باید ۰..۶۵۵۳۵
+ * باشد؛ `address` هم حداقل یک مقدارِ غیرخالی می‌خواهد چون بدونِ آدرس، هاست
+ * هیچ لینکی تولید نمی‌کند و در پنل هم بی‌فایده است.
+ */
+object HostValidation {
+    const val ERR_REMARK = "remark"
+    const val ERR_ADDRESS = "address"
+    const val ERR_PORT = "port"
+
+    /** پیامِ خطای فرم، یا null اگر همه‌چیز درست است. `port` خالی = «پیش‌فرضِ inbound». */
+    fun validate(remark: String, addresses: List<String>, port: String): String? {
+        if (remark.trim().isEmpty()) return ERR_REMARK
+        if (addresses.none { it.isNotBlank() }) return ERR_ADDRESS
+        val p = port.trim()
+        if (p.isNotEmpty()) {
+            val n = p.toIntOrNull() ?: return ERR_PORT
+            if (n !in 0..65535) return ERR_PORT
+        }
+        return null
+    }
+}
+
+/**
+ * یک کور — `GET /api/cores` (مجوزِ `cores.read`).
+ *
+ * [config] عمداً رشتهٔ خام است: کانفیگِ Xray می‌تواند صدها کیلوبایت JSON باشد و
+ * پارس/دوباره‌سازی‌اش در فرمِ موبایل ریسکِ گم‌شدنِ کلیدها را دارد. فقط فیلدهای
+ * کوتاه (نام/تگ‌های استثنا/فالبک) در فرم ویرایش می‌شوند و کانفیگ دست‌نخورده
+ * دوباره فرستاده می‌شود — پنل هم PUT را کامل می‌خواهد.
+ */
+data class PanelCore(
+    val id: Int,
+    val name: String,
+    /** `xray` | `wg` | `mtproto` | `singbox` یا null (پنل از روی کانفیگ حدس می‌زند). */
+    val type: String? = null,
+    val excludeInboundTags: List<String> = emptyList(),
+    val fallbacksInboundTags: List<String> = emptyList(),
+    val sortOrder: Int = 0,
+    val config: String = "{}"
+)
+
+/**
+ * انواعِ کور — عیناً همان مقادیرِ `CoreType` در `app/db/models.py` پنل:
+ * `xray`، `wg`، `mtproto`، `singbox`. یک حرف اختلاف در این رشته‌ها یعنی ۴۲۲ در
+ * `PUT /api/cores/{id}`؛ پس نه «sing-box» (با خط تیره) و نه «mihomo» درست نیستند.
+ */
+object CoreType {
+    const val XRAY = "xray"
+    const val WG = "wg"
+    const val MTPROTO = "mtproto"
+    const val SING_BOX = "singbox"
+    val ALL = listOf(XRAY, WG, MTPROTO, SING_BOX)
+}
+
+/**
+ * قالبِ کلاینت — `GET /api/client_templates` (مجوزِ `client_templates.read`).
+ * برخلافِ «قالبِ کاربر» ([UserTemplateItem]) این یکی *محتوای* خروجیِ اشتراک است.
+ */
+data class ClientTemplate(
+    val id: Int,
+    val name: String,
+    /** `clash_subscription` | `xray_subscription` | `singbox_subscription` | `user_agent` | `grpc_user_agent`. */
+    val templateType: String,
+    val content: String,
+    val isDefault: Boolean = false,
+    /** قالبِ سیستمی را پنل اجازهٔ حذف نمی‌دهد (۴۰۳/۴۰۰) — دکمه‌اش را نشان نمی‌دهیم. */
+    val isSystem: Boolean = false
+)
+
+/** انواعِ قالبِ کلاینت (`ClientTemplateType`) با ترتیبِ نمایش. */
+object ClientTemplateType {
+    const val CLASH = "clash_subscription"
+    const val XRAY = "xray_subscription"
+    const val SING_BOX = "singbox_subscription"
+    const val USER_AGENT = "user_agent"
+    const val GRPC_USER_AGENT = "grpc_user_agent"
+    val ALL = listOf(CLASH, XRAY, SING_BOX, USER_AGENT, GRPC_USER_AGENT)
+}
+
+/**
+ * اعتبارسنجیِ قالبِ کلاینت — همان قواعدِ پنل (`ClientTemplateBase`):
+ * نام ≤ ۶۴ کاراکتر و غیرخالی، محتوا غیرخالی.
+ */
+object ClientTemplateValidation {
+    const val MAX_NAME = 64
+    const val ERR_NAME = "name"
+    const val ERR_NAME_LONG = "name_long"
+    const val ERR_CONTENT = "content"
+
+    fun validate(name: String, content: String): String? {
+        val n = name.trim()
+        if (n.isEmpty()) return ERR_NAME
+        if (n.length > MAX_NAME) return ERR_NAME_LONG
+        if (content.isBlank()) return ERR_CONTENT
+        return null
+    }
+}

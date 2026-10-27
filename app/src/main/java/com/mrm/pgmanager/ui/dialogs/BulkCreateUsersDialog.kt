@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +38,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -191,14 +191,16 @@ fun BulkCreateUsersDialog(
                         ) { useTemplate = it == 0 }
                         if (templatesLoading) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                                CircularProgressIndicator(modifier = Modifier.size(13.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
+                                MrmBusyIndicator(color = theme.accentPrimary, size = 13.dp, strokeWidth = 2.dp)
                                 Text(stringResource(R.string.bc_loading_templates), fontSize = 11.sp, color = theme.mutedColor)
                             }
                         } else if (useTemplate && templates.isEmpty()) {
                             Text(stringResource(R.string.bc_no_templates), fontSize = 11.sp, color = GlassRed)
                         }
                         if (useTemplate && templates.isNotEmpty()) {
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                            // نامِ تمپلیت‌ها معمولاً فارسیِ کش‌دار است و تعدادشان هم
+                            // ثابت نیست؛ همان دلیلی که چیپ‌ها را از اسکرولِ افقی درآوردیم.
+                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Sm, verticalGap = 0.dp) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
                                     Box(Modifier.padding(vertical = 5.dp).height(30.dp).clip(DsRadius.Sm).clickable { selectedTemplate = t.id }.primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
@@ -233,7 +235,7 @@ fun BulkCreateUsersDialog(
                     // نمای پیشرفت / نتیجه
                     SettingsCard(if (done) stringResource(R.string.bc_result) else stringResource(R.string.bc_creating), AppIcon.Users, accent = if (done) GlassGreen else theme.accentPrimary) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                            if (!done) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = theme.accentPrimary)
+                            if (!done) MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
                             Text(stringResource(R.string.bc_progress, progress, count), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
                         }
                         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(4.dp)).background(theme.searchBgColor)) {

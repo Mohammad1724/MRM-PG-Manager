@@ -5,12 +5,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +47,7 @@ import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.formatBytes
@@ -57,7 +56,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
+fun StatisticsScreen(
+    session: Session,
+    onOpenSettings: () -> Unit = {},
+    onOpenNodeLogs: (Int) -> Unit = {}
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val settingsLabel = stringResource(R.string.app_settings)
     val refreshLabel = stringResource(R.string.refresh)
@@ -90,6 +93,8 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     // خطای واکشی فهرست نودها (جدا از خطای system stats) تا خطای گذرا «نودی وجود ندارد» نگوییم.
     var nodesError by remember(session) { mutableStateOf<String?>(null) }
     var reconnecting by remember { mutableStateOf<Int?>(null) }
+    // ترتیبِ نودها (PasarGuard v5.5: `PUT /api/nodes/order`).
+    var orderDialogOpen by remember { mutableStateOf(false) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     // خطای بارگذاریِ اولیه — قبلاً کاملاً بلعیده می‌شد و صفحهٔ خالی بی‌توضیح می‌ماند.
     var loadError by remember(session) { mutableStateOf<String?>(null) }
@@ -106,7 +111,11 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }
-            .onSuccess { stats = it; loadError = null; PanelCache.put(statsKey, it) }
+            .onSuccess {
+                stats = it; loadError = null; PanelCache.put(statsKey, it)
+                // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5.
+                com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
+            }
             .onFailure { if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
@@ -285,9 +294,45 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                         .padding(DsSpacing.Card),
                     verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         RoundedAppIcon(AppIcon.Storage, tint = theme.accentPrimary, size = 14.dp)
-                        Text(stringResource(R.string.st_nodes_health), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                        Text(
+                            stringResource(R.string.st_nodes_health), fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold, color = theme.inkColor,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // ترتیبِ نودها: قابلیتِ PasarGuard v5.5 و نیازمندِ مجوزِ nodes.update.
+                        if (nodes.size >= 2 && AdminAccess.can("nodes", "update") &&
+                            com.mrm.pgmanager.data.PanelSupport.supportsNodeOrder
+                        ) {
+                            com.mrm.pgmanager.ui.dialogs.NodeOrderEntry(onClick = { orderDialogOpen = true })
+                        }
+                    }
+                    if (orderDialogOpen) {
+                        com.mrm.pgmanager.ui.dialogs.NodeOrderDialog(
+                            nodes = nodes,
+                            onDismiss = { orderDialogOpen = false },
+                            onSave = { ordered ->
+                                orderDialogOpen = false
+                                scope.launch {
+                                    runCatching { PanelApi.reorderNodes(session, ordered) }
+                                        .onSuccess {
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.st_node_order_saved))
+                                            load(true)
+                                        }
+                                        .onFailure {
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.error(
+                                                com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                                                detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
+                                            )
+                                        }
+                                }
+                            }
+                        )
                     }
                     if (nodes.isEmpty()) {
                         // N7: فهرست خالیِ خطازده با «نودی وجود ندارد» فرق دارد.
@@ -354,6 +399,24 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                         )
                                     }
                                 }
+                                // لاگِ زنده فقط از نودِ متصل معنا دارد (پنل هم در
+                                // انتخاب‌گرِ لاگش بقیه را نمی‌گذارد).
+                                if (n.isConnected && AdminAccess.can("nodes", "logs")) {
+                                    Box(
+                                        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm)
+                                            .clickable { onOpenNodeLogs(n.id) }
+                                            .background(theme.cardSurfaceColor)
+                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+                                            .pressScale(0.94f)
+                                            .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs)
+                                    ) {
+                                        Text(
+                                            stringResource(R.string.nl_open),
+                                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                            color = theme.accentTextColor, maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                             if (live != null) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -376,11 +439,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                     Text(it.take(90), fontSize = 11.sp, color = theme.mutedColor, maxLines = 2)
                                 }
                                 // اولین پاسخ realtime هنوز در راه است؛ اسپینر خنثی به‌جای برچسب خطا.
-                                !nodeStatsLoaded -> CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    strokeWidth = 1.6.dp,
-                                    color = theme.mutedColor
-                                )
+                                !nodeStatsLoaded -> MrmBusyIndicator(color = theme.mutedColor, size = 14.dp, strokeWidth = 1.6.dp)
                                 // پاسخ آمد ولی این نود در نقشه نبود: واقعاً آمار زنده ندارد.
                                 else -> Text(
                                     n.message?.take(90) ?: stringResource(R.string.st_node_unreachable),
@@ -395,7 +454,9 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    // چیپ‌ها به هم می‌چسبیدند و در عرضِ باریک (یا فونتِ بزرگ) آخری
+                    // نصفه بریده می‌شد؛ حالا خط می‌شکنند.
+                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
                             Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { trafficRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
@@ -434,7 +495,7 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
                             Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { countRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
@@ -449,7 +510,9 @@ fun StatisticsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
                                 }
                             }
                         }
-                        Spacer(Modifier.width(DsSpacing.Lg))
+                        // Spacerِ انتهایی برای فاصله‌یِ «چیپ‌ها ← منوی معیار» در Rowِ
+                        // قبلی بود؛ PGWrapRow خودش افستِ خط‌ها را می‌شمارد، پس اینجا
+                        // فقط جایِ یک چیپِ خالی را می‌گرفت.
                     }
                     Text(stringResource(R.string.count_during_period), fontSize = 11.sp, color = theme.mutedColor)
                     val peakCount = remember(countPoints) { countPoints.maxOfOrNull { it.totalTraffic } ?: 0L }
