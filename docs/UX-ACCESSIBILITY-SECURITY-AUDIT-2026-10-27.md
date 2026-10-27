@@ -69,6 +69,14 @@ These are source-level findings and risk hypotheses, not a penetration test or p
 - Locally re-running `testDebugUnitTest`, `lintDebug` and `assembleDebug` stopped before task execution at the Gradle 8.7 download with an SSL handshake error. No local SDK, emulator, `adb`, real rendering or Android build was available; GitHub CI results are recorded above.
 - Verify default, smaller and larger sizes across screens and nested windows, both locales and system font sizes (including 200%), persistence after process recreation, backup restore with and without settings, accessibility focus and clipping, and secure flags on the affected separate windows.
 
+## Text-size crash follow-up
+
+- A user reported that reducing text size closes the installed app. No device stack trace was available, so the exact exception on that device remains unconfirmed.
+- Source inspection found a likely crash path in the pinned Compose 1.7 runtime: changing `LocalDensity` visits pointer-kind nodes and casts the outer node to `PointerInputModifierNode`. `PressScaleNode` was a `DelegatingNode` with a pointer-input delegate but did not itself implement that interface; the settings header and other mounted controls use it.
+- `PressScaleNode` now implements and forwards pointer events, cancellation, density changes and view-configuration changes to its existing handler, without consuming clicks. Interrupted press feedback is reset. No saved settings, encryption, account data or font-size range are changed.
+- New regression tests exercise changing app/system font scale and display density with mounted press feedback, touch events in both modifier orders, and the settings-size flow with saved preferences in English and Persian. In CI push run [40473974947](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40473974947), commit `61e5c57` deliberately ran these tests against the unfixed code: both settings-language tests and the density tests on SDK 28 and 34 failed with the predicted `PressScaleNode` to `PointerInputModifierNode` `ClassCastException` when the app text size changed. This confirms a real Compose/Robolectric reproduction, not the exception from the reporting device.
+- A temporary Kotlin harness using the real node source and simulated Compose interfaces passed the modified forwarding checks; it is not an Android test. Local syntax parsing, all eleven static checks and two Python tests passed. Run the corrected code and full tests in CI, then verify the installed APK on the reporting device; do not assume the user-reported crash is fixed until that confirmation. The green CI run above predates this follow-up.
+
 ## Login keyboard follow-up
 
 - A user-provided screenshot from an older installed build shows the login form cut off with a blank band above the keyboard. It does not show the current working tree, so it cannot establish whether the newer code resolves the problem.
