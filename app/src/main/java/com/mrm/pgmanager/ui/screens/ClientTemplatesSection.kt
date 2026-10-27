@@ -89,7 +89,7 @@ private val CT_COLUMNS = listOf(
  *  • قالبِ سیستمی (`is_system`) حذف نمی‌شود — دکمهٔ حذف برایش نشان داده نمی‌شود.
  */
 @Composable
-internal fun ClientTemplatesSection(session: Session, pageHeader: @Composable () -> Unit) {
+internal fun ClientTemplatesSection(session: Session, sectionTabs: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -149,7 +149,7 @@ internal fun ClientTemplatesSection(session: Session, pageHeader: @Composable ()
         listTag = "infra_templates_list",
         header = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-                pageHeader()
+                sectionTabs()
                 InfraSectionHeader(
                     title = stringResource(R.string.ct_title),
                     subtitle = stringResource(R.string.ct_subtitle),

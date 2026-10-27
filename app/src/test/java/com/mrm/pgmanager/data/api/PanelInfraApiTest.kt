@@ -85,8 +85,27 @@ class PanelInfraApiTest {
 
         val second = hosts[1]
         assertNull("پورتِ null نباید 0 شود", second.port)
+        assertEquals(0, second.priority)
         assertTrue(second.isDisabled)
         assertEquals("inbound_default", second.security)
+    }
+
+    @Test fun `host priority preserves zero and negative values and distinguishes unknown values`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """[
+                {"id":1,"remark":"zero","priority":0},
+                {"id":2,"remark":"negative","priority":-2},
+                {"id":3,"remark":"missing"},
+                {"id":4,"remark":"null","priority":null},
+                {"id":5,"remark":"numeric string","priority":"3"},
+                {"id":6,"remark":"invalid","priority":"invalid"},
+                {"id":7,"remark":"fractional","priority":1.5}
+            ]"""
+        ))
+        val hosts = PanelApi.hosts(session)
+        assertEquals(listOf(0, -2, null, null, 3, null, null), hosts.map { it.priority })
+        assertTrue(JSONObject(hosts[0].raw).has("priority"))
+        assertFalse(JSONObject(hosts[2].raw).has("priority"))
     }
 
     @Test fun `create host posts the minimal CreateHost body`() = runBlocking {

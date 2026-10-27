@@ -57,7 +57,7 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * این‌ها `internal` هستند و بیرون از این پکیج استفاده نمی‌شوند.
  */
 
-/** A single scroll viewport for the page header, section controls and lazy rows. */
+/** A single scroll viewport for tabs, section controls and lazy rows. */
 @Composable
 internal fun InfraScrollableContent(
     listTag: String,
@@ -68,7 +68,7 @@ internal fun InfraScrollableContent(
         modifier = Modifier.fillMaxSize().testTag(listTag),
         contentPadding = PaddingValues(
             start = DsSpacing.Screen, end = DsSpacing.Screen,
-            top = DsSpacing.Md, bottom = DsSpacing.Xl
+            top = DsSpacing.Xs, bottom = DsSpacing.Xl
         ),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
     ) {

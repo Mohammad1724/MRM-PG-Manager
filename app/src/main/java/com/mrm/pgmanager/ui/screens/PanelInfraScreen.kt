@@ -1,12 +1,12 @@
 package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,35 +53,35 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
         R.string.infra_tab_templates
     )
 
-    // The active section places this header in its lazy list so the entire
-    // header, tabs, search and rows share one scroll viewport.
-    val pageHeader: @Composable () -> Unit = {
-        Column(
-            Modifier.fillMaxWidth().testTag("infra_page_header"),
-            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-        ) {
+    // Tabs and section controls share the section's scroll viewport; the page header does not.
+    val sectionTabs: @Composable () -> Unit = {
+        PGTabBar(
+            labels = tabs.map { stringResource(it) },
+            selectedIndex = tab,
+            onSelect = { tab = it },
+            modifier = Modifier.testTag("infra_scrollable_tabs"),
+            compact = true,
+            scrollWithParent = true
+        )
+    }
+
+    // Consume system-bar insets once around the fixed header and section viewport.
+    Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()) {
+        Box(Modifier.fillMaxWidth().padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Md)) {
             PGPageHeader(
                 title = stringResource(R.string.infra_title),
                 subtitle = stringResource(R.string.infra_subtitle),
                 onBack = onBack,
+                modifier = Modifier.testTag("infra_page_header"),
                 compact = true
             )
-            PGTabBar(
-                labels = tabs.map { stringResource(it) },
-                selectedIndex = tab,
-                onSelect = { tab = it },
-                compact = true,
-                scrollWithParent = true
-            )
         }
-    }
-
-    // Consume system-bar insets once around every section's scroll viewport.
-    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()) {
-        when (tab) {
-            0 -> HostsSection(session, pageHeader)
-            1 -> CoresSection(session, pageHeader)
-            else -> ClientTemplatesSection(session, pageHeader)
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            when (tab) {
+                0 -> HostsSection(session, sectionTabs)
+                1 -> CoresSection(session, sectionTabs)
+                else -> ClientTemplatesSection(session, sectionTabs)
+            }
         }
     }
 }

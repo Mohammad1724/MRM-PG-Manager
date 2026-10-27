@@ -106,6 +106,7 @@ class PanelInfraScrollTest {
     private fun render(
         target: Session = session,
         width: Dp = 320.dp,
+        height: Dp = 640.dp,
         direction: LayoutDirection = LayoutDirection.Ltr,
         fontScale: Float = 1f
     ) {
@@ -115,7 +116,7 @@ class PanelInfraScrollTest {
                 LocalDensity provides Density(density.density, fontScale),
                 LocalLayoutDirection provides direction
             ) {
-                Box(Modifier.size(width, 640.dp)) {
+                Box(Modifier.size(width, height)) {
                     PanelInfraScreen(target, onBack = { backs++ })
                 }
             }
@@ -126,18 +127,26 @@ class PanelInfraScrollTest {
         rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
     private fun checkSectionScroll(tag: String, item: String, searchLabel: Int) {
-        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertExists()
+        val before = titleBounds()
+        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("infra_scrollable_tabs", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(str(searchLabel)).assertExists()
         rule.onNodeWithTag(tag).performScrollToIndex(20)
-        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithContentDescription(str(R.string.cd_back)).assertIsDisplayed()
+        val after = titleBounds()
+        assertEquals("The page header must stay fixed", before.top, after.top, 1f)
+        assertEquals("The page header must keep its height", before.bottom, after.bottom, 1f)
+        rule.onNodeWithTag("infra_scrollable_tabs", useUnmergedTree = true).assertDoesNotExist()
         rule.onNodeWithContentDescription(str(searchLabel)).assertDoesNotExist()
         rule.onNodeWithText(item).assertIsDisplayed()
         rule.onNodeWithTag(tag).performScrollToIndex(0)
-        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("infra_scrollable_tabs", useUnmergedTree = true).assertExists()
         rule.onNodeWithContentDescription(str(searchLabel)).assertExists()
     }
 
-    @Test fun `all three tabs scroll the header and section controls away with the rows`() {
+    @Test fun `all three tabs keep the page header fixed while section controls scroll away`() {
         render()
         rule.onNodeWithContentDescription(str(R.string.cd_back))
             .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
@@ -151,14 +160,26 @@ class PanelInfraScrollTest {
         rule.runOnIdle { assertEquals(1, backs) }
     }
 
-    @Test fun `swiping on the header moves the same list`() {
+    @Test fun `swiping on the tabs moves the list without moving the page header`() {
         render()
-        val before = titleBounds()
-        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).performTouchInput {
+        val headerBefore = titleBounds()
+        val tabsBefore = rule.onNodeWithTag("infra_scrollable_tabs", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        rule.onNodeWithTag("infra_scrollable_tabs", useUnmergedTree = true).performTouchInput {
             swipeUp(startY = height * 0.8f, endY = 2f, durationMillis = 500)
         }
-        val headers = rule.onAllNodesWithTag("infra_page_header", useUnmergedTree = true).fetchSemanticsNodes()
-        assertTrue("The page header should move or leave the viewport", headers.isEmpty() || headers[0].boundsInRoot.top < before.top)
+        val tabsAfter = rule.onAllNodesWithTag("infra_scrollable_tabs", useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("Tabs should move with the list", tabsAfter.isEmpty() || tabsAfter[0].boundsInRoot.top < tabsBefore.top)
+        rule.onNodeWithTag("infra_page_header", useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(headerBefore.top, titleBounds().top, 1f)
+    }
+
+    @Test fun `back remains interactive while the list is scrolled`() {
+        render()
+        rule.onNodeWithTag("infra_hosts_list").performScrollToIndex(20)
+        rule.onNodeWithContentDescription(str(R.string.cd_back))
+            .assertIsDisplayed().assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp).performClick()
+        rule.runOnIdle { assertEquals(1, backs) }
     }
 
     @Test fun `search and clear still update the real host list`() {
@@ -203,7 +224,7 @@ class PanelInfraScrollTest {
 
     @Test
     @Config(qualifiers = "fa-rIR-w320dp-h800dp")
-    fun `RTL with large text still scrolls header and content together`() {
+    fun `RTL with large text keeps the header fixed while section content scrolls`() {
         render(direction = LayoutDirection.Rtl, fontScale = 2f)
         checkSectionScroll("infra_hosts_list", "Host 19", R.string.search_hosts)
         rule.onNodeWithText(str(R.string.infra_tab_cores)).performClick()
@@ -212,6 +233,19 @@ class PanelInfraScrollTest {
         checkSectionScroll("infra_templates_list", "Template 19", R.string.search_ct)
         rule.onNodeWithContentDescription(str(R.string.cd_back))
             .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "fa-rIR-w320dp-h800dp")
+    fun `short RTL viewport keeps navigation and scrolled content reachable at large text`() {
+        render(height = 320.dp, direction = LayoutDirection.Rtl, fontScale = 2f)
+        val before = titleBounds()
+        rule.onNodeWithTag("infra_hosts_list").performScrollToIndex(20)
+        rule.onNodeWithContentDescription(str(R.string.cd_back))
+            .assertIsDisplayed().assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp).performClick()
+        rule.onNodeWithText("Host 19").assertIsDisplayed()
+        assertEquals(before.top, titleBounds().top, 1f)
+        rule.runOnIdle { assertEquals(1, backs) }
     }
 
     @Test

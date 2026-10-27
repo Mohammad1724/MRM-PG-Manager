@@ -88,7 +88,7 @@ private val CORE_COLUMNS = listOf(
  * [PanelCore.config] رشتهٔ خام است و دست‌نخورده برگردانده می‌شود.
  */
 @Composable
-internal fun CoresSection(session: Session, pageHeader: @Composable () -> Unit) {
+internal fun CoresSection(session: Session, sectionTabs: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -151,7 +151,7 @@ internal fun CoresSection(session: Session, pageHeader: @Composable () -> Unit) 
         listTag = "infra_cores_list",
         header = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-                pageHeader()
+                sectionTabs()
                 InfraSectionHeader(
                     title = stringResource(R.string.cores_title),
                     subtitle = stringResource(R.string.cores_subtitle),

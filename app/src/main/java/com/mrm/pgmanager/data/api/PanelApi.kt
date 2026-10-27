@@ -2122,7 +2122,10 @@ object PanelApi {
         alpn = jsonStringList(o, "alpn"),
         fingerprint = optionalString(o, "fingerprint") ?: "none",
         isDisabled = o.optBoolean("is_disabled", false),
-        priority = o.optInt("priority", 0),
+        priority = when (val value = o.opt("priority")) {
+            is Number, is String -> value.toString().toIntOrNull()
+            else -> null
+        },
         status = jsonStringList(o, "status"),
         useSniAsHost = o.optBoolean("use_sni_as_host", false),
         randomUserAgent = o.optBoolean("random_user_agent", false),

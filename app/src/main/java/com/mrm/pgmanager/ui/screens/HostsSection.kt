@@ -104,7 +104,7 @@ internal data class HostDraft(
  * کلیدهای تغییرکرده را جایگزین می‌کند.
  */
 @Composable
-internal fun HostsSection(session: Session, pageHeader: @Composable () -> Unit) {
+internal fun HostsSection(session: Session, sectionTabs: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -178,7 +178,7 @@ internal fun HostsSection(session: Session, pageHeader: @Composable () -> Unit) 
             listTag = "infra_hosts_list",
             header = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-                    pageHeader()
+                    sectionTabs()
                     InfraSectionHeader(
                         title = stringResource(R.string.hosts_title),
                         subtitle = stringResource(R.string.hosts_subtitle),
@@ -350,7 +350,7 @@ internal fun HostRow(
         tag != null -> tag
         else -> explicitSecurity.ifEmpty { "—" }
     }
-    val priority = if (host.priority > 0) host.priority.toString() else "—"
+    val priority = host.priority?.toString() ?: "—"
     val actions = hostRowActions(host, onEdit, onToggle, onDelete)
     if (readable) {
         HostReadableRow(
@@ -403,7 +403,7 @@ private fun HostReadableRow(
             .clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .then(if (onEdit != null) Modifier.clickable { onEdit() } else Modifier)
-            .padding(start = DsSpacing.Card, end = DsSpacing.Card, top = DsSpacing.Xxs, bottom = DsSpacing.Md),
+            .padding(start = DsSpacing.Card, end = DsSpacing.Card, top = DsSpacing.Xxs, bottom = DsSpacing.Sm),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)
     ) {
         Row(
@@ -421,7 +421,7 @@ private fun HostReadableRow(
             }
             Text(
                 name, modifier = Modifier.weight(1f).testTag("host_readable_name"),
-                fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold,
                 color = if (disabled) theme.mutedColor else theme.inkColor,
                 textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
             )
@@ -442,17 +442,17 @@ private fun HostReadableRow(
 private fun HostInfoLine(label: String, value: String, tag: String) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm),
-        verticalAlignment = Alignment.Top
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
         Text(
-            "$label:", fontSize = 10.sp, color = theme.mutedColor,
-            modifier = Modifier.widthIn(min = 54.dp, max = 96.dp), maxLines = 2,
-            overflow = TextOverflow.Ellipsis, textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
+            "$label:", fontSize = 10.sp, lineHeight = 16.sp, color = theme.mutedColor,
+            modifier = Modifier.widthIn(min = 54.dp, max = 96.dp).alignByBaseline().testTag("${tag}_label"),
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+            textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
         )
         Text(
-            value, modifier = Modifier.weight(1f).testTag(tag), fontSize = 11.sp,
-            color = theme.inkColor,
+            value, modifier = Modifier.weight(1f).alignByBaseline().testTag(tag),
+            fontSize = 11.sp, lineHeight = 16.sp, color = theme.inkColor,
             style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
             textAlign = androidx.compose.ui.text.style.TextAlign.Left
         )

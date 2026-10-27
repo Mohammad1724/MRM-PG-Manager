@@ -750,7 +750,7 @@ data class PanelHost(
     val alpn: List<String> = emptyList(),
     val fingerprint: String = "none",
     val isDisabled: Boolean = false,
-    val priority: Int = 0,
+    val priority: Int? = null,
     /** وضعیت‌هایی که این هاست برایشان ساخته می‌شود (`active`/`disabled`/…). */
     val status: List<String> = emptyList(),
     val useSniAsHost: Boolean = false,

@@ -2,6 +2,7 @@ package com.mrm.pgmanager.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -10,12 +11,14 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
@@ -79,15 +82,17 @@ class HostResponsiveRowTest {
                 LocalLayoutDirection provides direction,
                 LocalThemeState provides theme
             ) {
-                Box(Modifier.width(320.dp)) {
-                    HostRow(
-                        host = value,
-                        readable = true,
-                        busy = busy,
-                        onEdit = if (editable) ({ edits++ }) else null,
-                        onToggle = if (editable) ({}) else null,
-                        onDelete = if (editable) ({}) else null
-                    )
+                MaterialTheme {
+                    Box(Modifier.width(320.dp)) {
+                        HostRow(
+                            host = value,
+                            readable = true,
+                            busy = busy,
+                            onEdit = if (editable) ({ edits++ }) else null,
+                            onToggle = if (editable) ({}) else null,
+                            onDelete = if (editable) ({}) else null
+                        )
+                    }
                 }
             }
         }
@@ -102,6 +107,20 @@ class HostResponsiveRowTest {
         node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         assertTrue("Text layout is available for $tag", results.isNotEmpty())
         assertFalse("Representative value must not be truncated: $tag", results[0].hasVisualOverflow)
+    }
+
+    private fun firstBaseline(tag: String): Float {
+        val node = rule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode()
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        assertTrue("Text layout is available for $tag", results.isNotEmpty())
+        return node.boundsInRoot.top + results[0].firstBaseline
+    }
+
+    private fun assertLabelBaselinesAligned() {
+        listOf("host_readable_address", "host_readable_inbound", "host_readable_priority").forEach { tag ->
+            assertEquals("Label and value should share a baseline for $tag", firstBaseline("${tag}_label"), firstBaseline(tag), 1f)
+        }
     }
 
     private fun assertSeparated(direction: LayoutDirection) {
@@ -133,8 +152,10 @@ class HostResponsiveRowTest {
         rule.onNodeWithContentDescription(str(R.string.act_more))
             .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
         assertSeparated(LayoutDirection.Ltr)
+        assertLabelBaselinesAligned()
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
+        assertTrue("A representative host card should fit within 120 dp", bounds("host_readable_row").height <= 120f * density)
         rule.onNodeWithTag("host_readable_name", useUnmergedTree = true).performTouchInput { click(center) }
         rule.runOnIdle { assertEquals(1, edits) }
     }
@@ -144,6 +165,8 @@ class HostResponsiveRowTest {
     fun `RTL and 200 percent text keep representative values legible and separated`() {
         render(direction = LayoutDirection.Rtl, fontScale = 2f)
         assertSeparated(LayoutDirection.Rtl)
+        assertLabelBaselinesAligned()
+        assertValueFits("host_readable_priority_label")
         assertValueFits("host_readable_name")
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
@@ -193,6 +216,37 @@ class HostResponsiveRowTest {
         assertValueFits("host_readable_inbound")
     }
 
+    @Test fun `an inbound tag containing status is displayed unchanged`() {
+        val tag = "TROJAN TCP TLS 2097 status"
+        render(value = host.copy(inboundTag = tag))
+        rule.onNodeWithTag("host_readable_inbound", useUnmergedTree = true).assertTextEquals(tag)
+        assertValueFits("host_readable_inbound")
+    }
+
+    @Test fun `zero priority remains visible in the readable row`() {
+        render(value = host.copy(priority = 0))
+        rule.onNodeWithTag("host_readable_priority", useUnmergedTree = true).assertTextEquals("0")
+        assertLabelBaselinesAligned()
+    }
+
+    @Test fun `negative priority remains visible in the readable row`() {
+        render(value = host.copy(priority = -2))
+        rule.onNodeWithTag("host_readable_priority", useUnmergedTree = true).assertTextEquals("-2")
+    }
+
+    @Test
+    @Config(qualifiers = "w900dp-h800dp")
+    fun `zero priority remains visible in the wide table`() {
+        rule.setContent {
+            MaterialTheme {
+                Box(Modifier.width(800.dp)) {
+                    HostRow(host.copy(priority = 0), readable = false, busy = false, onEdit = null, onToggle = null, onDelete = null)
+                }
+            }
+        }
+        rule.onNodeWithText("0", useUnmergedTree = true).assertIsDisplayed()
+    }
+
     @Test fun `dark rows keep the same readable geometry and actions`() {
         render(theme = ThemeState(isDark = true, amoledDark = true))
         assertSeparated(LayoutDirection.Ltr)
@@ -202,7 +256,7 @@ class HostResponsiveRowTest {
     }
 
     @Test fun `read-only rows do not expose the action menu`() {
-        render(value = host.copy(isDisabled = true, addresses = emptyList(), port = null, inboundTag = null, priority = 0), editable = false)
+        render(value = host.copy(isDisabled = true, addresses = emptyList(), port = null, inboundTag = null, priority = null), editable = false)
         rule.onNodeWithContentDescription(str(R.string.host_disabled_badge), useUnmergedTree = true).assertExists()
         rule.onNodeWithTag("host_readable_row").assertHasNoClickAction()
         rule.onNodeWithContentDescription(str(R.string.act_more)).assertDoesNotExist()
