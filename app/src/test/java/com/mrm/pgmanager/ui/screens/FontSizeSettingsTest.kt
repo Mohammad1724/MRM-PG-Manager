@@ -36,6 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -76,7 +77,9 @@ class FontSizeSettingsTest {
         rule.onNodeWithContentDescription(str(R.string.a11y_increase_value, label)).assertIsNotEnabled()
     }
 
-    @Test fun `text responds immediately without changing display density`() {
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `text responds immediately without changing display density`() {
         var percent by mutableIntStateOf(AppFontScale.DEFAULT_PERCENT)
         val deviceDensity = Density(density = 2f, fontScale = 1.25f)
         var observed: Density? = null
@@ -109,13 +112,17 @@ class FontSizeSettingsTest {
 
         rule.runOnIdle { assertSame(deviceDensity, observed) }
         val normalHeight = rule.onNodeWithTag("sample").fetchSemanticsNode().boundsInRoot.height
-        val normalMetrics = rule.runOnIdle { metrics() }
+        val normalMetrics = rule.runOnIdle {
+            assertEquals(1.25f, layoutScale, 0.001f)
+            metrics()
+        }
 
         rule.runOnIdle { percent = 80 }
         val smallHeight = rule.onNodeWithTag("sample").fetchSemanticsNode().boundsInRoot.height
         val smallMetrics = rule.runOnIdle {
             assertEquals(2f, observed!!.density, 0.001f)
             assertEquals(1f, observed!!.fontScale, 0.001f)
+            assertEquals(1f, layoutScale, 0.001f)
             metrics()
         }
 
@@ -124,6 +131,7 @@ class FontSizeSettingsTest {
         val largeMetrics = rule.runOnIdle {
             assertEquals(2f, observed!!.density, 0.001f)
             assertEquals(1.75f, observed!!.fontScale, 0.001f)
+            assertEquals(1.75f, layoutScale, 0.001f)
             metrics()
         }
         val details = "small=$smallHeight [$smallMetrics], normal=$normalHeight [$normalMetrics], large=$largeHeight [$largeMetrics]"
