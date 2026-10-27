@@ -35,7 +35,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.ui.designsystem.AppDialog
@@ -447,7 +446,6 @@ private fun HostInfoLine(label: String, value: String, tag: String) {
         Text(
             "$label:", fontSize = 10.sp, lineHeight = 16.sp, color = theme.mutedColor,
             modifier = Modifier.widthIn(min = 54.dp, max = 96.dp).alignByBaseline().testTag("${tag}_label"),
-            maxLines = 2, overflow = TextOverflow.Ellipsis,
             textAlign = com.mrm.pgmanager.ui.components.PGStartAlign()
         )
         Text(

@@ -106,7 +106,14 @@ class HostResponsiveRowTest {
         val results = mutableListOf<TextLayoutResult>()
         node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         assertTrue("Text layout is available for $tag", results.isNotEmpty())
-        assertFalse("Representative value must not be truncated: $tag", results[0].hasVisualOverflow)
+        val layout = results[0]
+        assertFalse(
+            "Representative text must not be truncated: $tag; text=${layout.layoutInput.text}; " +
+                "size=${layout.size}; constraints=${layout.layoutInput.constraints}; lines=${layout.lineCount}; " +
+                "widthOverflow=${layout.didOverflowWidth}; heightOverflow=${layout.didOverflowHeight}; " +
+                "ellipsized=${(0 until layout.lineCount).any { layout.isLineEllipsized(it) }}",
+            layout.hasVisualOverflow
+        )
     }
 
     private fun firstBaseline(tag: String): Float {
@@ -166,7 +173,8 @@ class HostResponsiveRowTest {
         render(direction = LayoutDirection.Rtl, fontScale = 2f)
         assertSeparated(LayoutDirection.Rtl)
         assertLabelBaselinesAligned()
-        assertValueFits("host_readable_priority_label")
+        listOf("host_readable_address_label", "host_readable_inbound_label", "host_readable_priority_label")
+            .forEach(::assertValueFits)
         assertValueFits("host_readable_name")
         assertValueFits("host_readable_address")
         assertValueFits("host_readable_inbound")
