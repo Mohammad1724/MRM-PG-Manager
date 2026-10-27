@@ -733,9 +733,7 @@ internal fun UsersScreenDialogs(
             onDismiss = { ui.devicesUser = null }
         )
     }
-    val diagnosticQrUser = ui.qrUser
-    android.util.Log.d("ShareFetchProbe", "dialogs; selected=${diagnosticQrUser != null}")
-    diagnosticQrUser?.let { user ->
+    ui.qrUser?.let { user ->
         SubscriptionQrDialog(user = user, onDismiss = { ui.qrUser = null })
     }
     ui.invoiceDialogUser?.let { u ->

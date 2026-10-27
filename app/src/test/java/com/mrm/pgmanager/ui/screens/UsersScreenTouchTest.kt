@@ -35,7 +35,6 @@ import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import com.mrm.pgmanager.ui.designsystem.ScreenSecurity
-import com.mrm.pgmanager.ui.feedback.AppFeedback
 import com.mrm.pgmanager.ui.theme.ThemeState
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -52,9 +51,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import org.robolectric.shadows.ShadowLog
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -114,13 +111,7 @@ class UsersScreenTouchTest {
 
     @Test fun `real screen share fetches the missing link and opens the existing sheet`() {
         val initialHolds = ScreenSecurity.holds
-        val fetchFailed = AtomicBoolean(false)
         rule.setContent {
-            LaunchedEffect(Unit) {
-                AppFeedback.events.collect { event ->
-                    if (event.message == str(R.string.ud_sub_failed)) fetchFailed.set(true)
-                }
-            }
             UsersScreen(
                 session = session,
                 onSessionExpired = {},
@@ -131,15 +122,14 @@ class UsersScreenTouchTest {
         rule.onNodeWithContentDescription(str(R.string.us_share_subscription, "sample_1"))
             .performTouchInput { click(center) }
         try {
+            // Reading semantics also drives Robolectric's separate sheet window to layout.
             rule.waitUntil(15_000) {
                 rule.onAllNodesWithText("QR sample_1").fetchSemanticsNodes().isNotEmpty()
             }
         } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
             throw AssertionError(
                 "Share did not open: detail requests=${detailRequests.get()}, " +
-                    "secure holds=${ScreenSecurity.holds}, initial holds=$initialHolds, " +
-                    "fetch failed=${fetchFailed.get()}, paths=$requestedPaths, " +
-                    "probe=${ShadowLog.getLogsForTag("ShareFetchProbe").map { it.msg }}",
+                    "secure holds=${ScreenSecurity.holds}, initial holds=$initialHolds, paths=$requestedPaths",
                 error
             )
         }
@@ -179,8 +169,7 @@ class UsersScreenTouchTest {
             rule.waitUntil(15_000) { observedLink.get() != null }
         } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
             throw AssertionError(
-                "Fetched state did not reach composition: paths=$requestedPaths, " +
-                    "probe=${ShadowLog.getLogsForTag("ShareFetchProbe").map { it.msg }}",
+                "Fetched state did not reach composition: detail requests=${detailRequests.get()}, paths=$requestedPaths",
                 error
             )
         }

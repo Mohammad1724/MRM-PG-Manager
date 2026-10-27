@@ -79,12 +79,7 @@ jobs:
       - name: Run unit tests
         run: |
           set -o pipefail
-          ./gradlew testDebugUnitTest --console=plain --tests '*UsersScreenTouchTest*' 2>&1 | tee build.log
-
-      - name: Stop after temporary focused diagnostics
-        run: |
-          echo '::error::Focused diagnostics are not a full CI run.'
-          exit 1
+          ./gradlew testDebugUnitTest --console=plain 2>&1 | tee build.log
 
       # شکستِ گامِ قبل را به annotation تبدیل می‌کند: نامِ تستِ شکست‌خورده یا
       # `e: file://…:line: msg` کامپایلر، مستقیم روی خطِ همان فایل در تبِ Checks.
