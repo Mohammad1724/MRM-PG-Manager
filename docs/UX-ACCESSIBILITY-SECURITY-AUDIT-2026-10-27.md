@@ -80,6 +80,12 @@ These are source-level findings and risk hypotheses, not a penetration test or p
 - With the correction in commit `d484e60`, pull-request [CI run 40474805769](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40474805769) passed `testDebugUnitTest`, including the new regressions, and built and uploaded both debug and signed release APKs. The user subsequently reported that the app works with the text set to 80%. No device stack trace or independent device inspection was supplied, and the later default-size changes still need separate verification.
 - A temporary Kotlin harness using the real node source and simulated Compose interfaces also passed the modified forwarding checks; it is not an Android test. Local syntax parsing, all eleven static checks and two Python tests passed.
 
+## Compact users controls follow-up
+
+- The user supplied a screenshot of the users screen and requested smaller header actions, filter/sort/group/view-mode controls, and the add-user button. The screenshot is the pre-change reference; no updated device screenshot has yet been reviewed.
+- On the users screen only, header actions and icon-only toolbar surfaces are 36 dp with 16 dp icons inside 48 dp touch targets; the group control also has a smaller visual surface but can grow for large text. View-mode controls retain independent 48 dp selectable targets. The add-user button has a 44 dp visual circle and a 20 dp icon inside a 48 dp touch target. Other screens keep the regular header/FAB appearance.
+- Added Compose tests for geometry, taps near the edges of each target, filter/sort/group/view callbacks, hidden FAB state, the unchanged regular FAB, and non-overlap in narrow RTL with large system text. Eleven static checks, two Python tests, Kotlin syntax parsing of the five changed/new files, and `git diff --check` passed locally. The Android/Compose tests and device rendering have not yet been verified for this follow-up; earlier CI runs predate it.
+
 ## Login keyboard follow-up
 
 - A user-provided screenshot from an older installed build shows the login form cut off with a blank band above the keyboard. It does not show the current working tree, so it cannot establish whether the newer code resolves the problem.

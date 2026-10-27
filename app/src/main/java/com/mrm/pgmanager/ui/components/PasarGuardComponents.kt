@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -157,7 +158,8 @@ fun PGScreenHeader(
     modifier: Modifier = Modifier,
     settingsLabel: String,
     refreshLabel: String,
-    badge: @Composable (() -> Unit)? = null
+    badge: @Composable (() -> Unit)? = null,
+    compactActions: Boolean = false
 ) {
     val t = LocalThemeState.current
     Row(
@@ -184,9 +186,9 @@ fun PGScreenHeader(
                 maxLines = 2, overflow = TextOverflow.Ellipsis
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-            PGHeaderAction(AppIcon.Refresh, refreshLabel, onRefresh, spinning = refreshing)
-            PGHeaderAction(AppIcon.Settings, settingsLabel, onOpenSettings)
+        Row(horizontalArrangement = Arrangement.spacedBy(if (compactActions) 0.dp else DsSpacing.Xs)) {
+            PGHeaderAction(AppIcon.Refresh, refreshLabel, onRefresh, spinning = refreshing, compact = compactActions)
+            PGHeaderAction(AppIcon.Settings, settingsLabel, onOpenSettings, compact = compactActions)
         }
     }
 }
@@ -255,21 +257,49 @@ fun PGTabBar(labels: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, 
 }
 
 @Composable
-private fun PGHeaderAction(icon: AppIcon, label: String, onClick: () -> Unit, spinning: Boolean = false) {
+private fun PGHeaderAction(
+    icon: AppIcon,
+    label: String,
+    onClick: () -> Unit,
+    spinning: Boolean = false,
+    compact: Boolean = false
+) {
     val theme = LocalThemeState.current
-    Box(
-        Modifier.size(DsComponent.MinTouchTarget).clip(DsRadius.Md)
-            .background(theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
-            .semantics { contentDescription = label }
-            .clickable(onClick = onClick)
-            .pressScale(0.92f),
-        contentAlignment = Alignment.Center
-    ) {
-        RoundedAppIcon(
-            icon, tint = if (spinning) theme.accentTextColor else theme.mutedColor,
-            size = 18.dp, modifier = Modifier.spinWhile(spinning)
-        )
+    if (compact) {
+        Box(
+            Modifier.size(DsComponent.MinTouchTarget)
+                .semantics { contentDescription = label }
+                .clickable(onClick = onClick)
+                .pressScale(0.92f),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(36.dp).testTag("header_action_visual_${icon.name}")
+                    .clip(DsRadius.Md).background(theme.searchBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md),
+                contentAlignment = Alignment.Center
+            ) {
+                RoundedAppIcon(
+                    icon, tint = if (spinning) theme.accentTextColor else theme.mutedColor,
+                    size = 16.dp, modifier = Modifier.testTag("header_action_icon_${icon.name}").spinWhile(spinning)
+                )
+            }
+        }
+    } else {
+        Box(
+            Modifier.size(DsComponent.MinTouchTarget).clip(DsRadius.Md)
+                .background(theme.searchBgColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+                .semantics { contentDescription = label }
+                .clickable(onClick = onClick)
+                .pressScale(0.92f),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(
+                icon, tint = if (spinning) theme.accentTextColor else theme.mutedColor,
+                size = 18.dp, modifier = Modifier.spinWhile(spinning)
+            )
+        }
     }
 }
 
@@ -443,8 +473,8 @@ fun PGDangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modif
 
 /** دکمهٔ شناورِ ساخت — همان پیاده‌سازی `MrmFab` با نامِ خانوادهٔ PG. */
 @Composable
-fun PGFAB(icon: AppIcon, contentDescription: String, modifier: Modifier = Modifier, visible: Boolean = true, onClick: () -> Unit) =
-    MrmFab(icon = icon, contentDescription = contentDescription, modifier = modifier, visible = visible, onClick = onClick)
+fun PGFAB(icon: AppIcon, contentDescription: String, modifier: Modifier = Modifier, visible: Boolean = true, compact: Boolean = false, onClick: () -> Unit) =
+    MrmFab(icon = icon, contentDescription = contentDescription, modifier = modifier, visible = visible, compact = compact, onClick = onClick)
 
 // ─────────────────────────────────────────────────────────────
 //  PGSearchBar — light gray bg, subtle border, rounded

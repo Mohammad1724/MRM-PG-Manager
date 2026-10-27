@@ -302,7 +302,8 @@ fun UsersScreen(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
                 modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs),
-                visible = fabVisible.value
+                visible = fabVisible.value,
+                compact = true
             ) { ui.createMenuOpen = true }
         }
     }) { padding ->

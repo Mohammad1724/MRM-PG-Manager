@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -164,6 +165,7 @@ fun MrmFab(
     contentDescription: String,
     modifier: Modifier = Modifier,
     visible: Boolean = true,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
@@ -187,24 +189,41 @@ fun MrmFab(
         },
         label = "fabShown"
     )
-    Box(
-        modifier
-            .size(56.dp)
-            .graphicsLayer {
-                scaleX = pressFactor * shown
-                scaleY = pressFactor * shown
-                alpha = shown
+    val animatedModifier = modifier
+        .size(if (compact) 48.dp else 56.dp)
+        .graphicsLayer {
+            scaleX = pressFactor * shown
+            scaleY = pressFactor * shown
+            alpha = shown
+        }
+    if (compact) {
+        Box(
+            animatedModifier.semantics { this.contentDescription = contentDescription }
+                .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(44.dp).testTag("compact_fab_visual")
+                    .shadow(elevation = if (pressed) 1.dp else 3.dp, shape = CircleShape, clip = false)
+                    .clip(CircleShape).background(theme.primaryFill)
+                    .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                RoundedAppIcon(icon, tint = theme.onPrimary, size = 20.dp, modifier = Modifier.testTag("compact_fab_icon"))
             }
-            .shadow(elevation = if (pressed) 1.dp else 3.dp, shape = CircleShape, clip = false)
-            .clip(CircleShape)
-            .background(theme.primaryFill)
-            .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape)
-            .semantics { this.contentDescription = contentDescription }
-            // وقتی دکمه محو است نباید لمس را بگیرد.
-            .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        RoundedAppIcon(icon, tint = theme.onPrimary, size = 24.dp)
+        }
+    } else {
+        Box(
+            animatedModifier
+                .shadow(elevation = if (pressed) 1.dp else 3.dp, shape = CircleShape, clip = false)
+                .clip(CircleShape).background(theme.primaryFill)
+                .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape)
+                .semantics { this.contentDescription = contentDescription }
+                .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(icon, tint = theme.onPrimary, size = 24.dp)
+        }
     }
 }
 

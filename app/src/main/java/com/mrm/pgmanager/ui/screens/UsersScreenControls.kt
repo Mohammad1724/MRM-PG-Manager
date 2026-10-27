@@ -50,6 +50,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -200,7 +201,8 @@ internal fun TopBarHeader(
         onRefresh = onRefresh,
         onOpenSettings = onOpenSettings,
         settingsLabel = stringResource(R.string.app_settings),
-        refreshLabel = stringResource(R.string.refresh)
+        refreshLabel = stringResource(R.string.refresh),
+        compactActions = true
     )
 }
 
@@ -255,7 +257,7 @@ internal fun FilterAndControlBar(
         UserSort.CREATED -> stringResource(R.string.created)
         UserSort.LAST_ONLINE -> stringResource(R.string.us_sort_last_online)
     }
-    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Md, verticalGap = DsSpacing.Sm) {
+    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xxs, verticalGap = DsSpacing.Sm) {
         // فیلتر و مرتب‌سازی فقط آیکون‌اند (درخواستِ کاربر): برچسبِ دوسطری در عرضِ کم
         // بریده می‌شد («Filte»، «مرتبس…»). اطلاعات حذف نشده:
         //   • مقدارِ فعلی در contentDescription می‌ماند (TalkBack آن را می‌خواند)،
@@ -277,24 +279,29 @@ internal fun FilterAndControlBar(
             var groupMenu by remember { mutableStateOf(false) }
             val selectedName = groups.firstOrNull { it.id == groupFilterId }?.name
             Box {
-                Row(
-                    Modifier.heightIn(min = 48.dp).clip(DsRadius.Sm).clickable { groupMenu = true }
-                        .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                        .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
-                        .pressScale(0.97f)
-                        
-                        .padding(horizontal = DsSpacing.Mid),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                Box(
+                    Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp)
+                        .clickable { groupMenu = true }.pressScale(0.97f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    RoundedAppIcon(AppIcon.Folder, tint = if (groupFilterId != null) theme.accentTextColor else theme.mutedColor, size = 16.dp)
-                    Text(
-                        selectedName ?: stringResource(R.string.us_group_filter),
-                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        color = if (groupFilterId != null) theme.accentTextColor else theme.mutedColor,
-                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 84.dp)
-                    )
+                    Row(
+                        Modifier.heightIn(min = 36.dp).testTag("users_group_visual")
+                            .clip(DsRadius.Sm)
+                            .background(if (groupFilterId != null) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+                            .border(BorderStroke(DsBorder.Hairline, if (groupFilterId != null) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
+                            .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+                    ) {
+                        RoundedAppIcon(AppIcon.Folder, tint = if (groupFilterId != null) theme.accentTextColor else theme.mutedColor, size = 14.dp, modifier = Modifier.testTag("users_group_icon"))
+                        Text(
+                            selectedName ?: stringResource(R.string.us_group_filter),
+                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                            color = if (groupFilterId != null) theme.accentTextColor else theme.mutedColor,
+                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 84.dp)
+                        )
+                    }
                 }
                 AppDropdownMenu(expanded = groupMenu, onDismissRequest = { groupMenu = false }) {
                     androidx.compose.material3.DropdownMenuItem(
@@ -311,10 +318,17 @@ internal fun FilterAndControlBar(
             }
         }
         // View modes wrap to a second line when the group filter needs the available width.
-        Row(Modifier.clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(DsSpacing.Xxs).selectableGroup()) {
-            ViewModeIcon(AppIcon.GridView, stringResource(R.string.us_view_grid), viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
-            ViewModeIcon(AppIcon.ListRows, stringResource(R.string.us_view_compact), viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
-            ViewModeIcon(AppIcon.DenseList, stringResource(R.string.us_view_micro), viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+        Box {
+            Box(
+                Modifier.matchParentSize().padding(6.dp).testTag("users_view_modes_background")
+                    .clip(DsRadius.Sm).background(theme.searchBgColor)
+                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
+            )
+            Row(Modifier.selectableGroup()) {
+                ViewModeIcon(AppIcon.GridView, stringResource(R.string.us_view_grid), viewMode == ViewMode.GRID) { onViewModeChange(ViewMode.GRID) }
+                ViewModeIcon(AppIcon.ListRows, stringResource(R.string.us_view_compact), viewMode == ViewMode.COMPACT_LIST) { onViewModeChange(ViewMode.COMPACT_LIST) }
+                ViewModeIcon(AppIcon.DenseList, stringResource(R.string.us_view_micro), viewMode == ViewMode.MICRO_LIST) { onViewModeChange(ViewMode.MICRO_LIST) }
+            }
         }
     }
     if (showFilterSheet) {
@@ -409,17 +423,21 @@ internal fun SortPill(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     Box(
-        Modifier
-            .heightIn(min = 48.dp)
-            .widthIn(min = 48.dp)
-            .clip(DsRadius.Sm)
+        Modifier.size(48.dp)
+            .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick)
-            .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-            .border(BorderStroke(DsBorder.Hairline, if (active) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm)
             .pressScale(0.97f),
         contentAlignment = Alignment.Center
     ) {
-        RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (active) theme.accentTextColor else theme.mutedColor, size = 18.dp)
+        Box(
+            Modifier.size(36.dp).testTag("users_bar_visual_${icon.name}")
+                .clip(DsRadius.Sm)
+                .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+                .border(BorderStroke(DsBorder.Hairline, if (active) theme.accentPrimary.copy(0.34f) else theme.borderColor), DsRadius.Sm),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(icon, tint = if (active) theme.accentTextColor else theme.mutedColor, size = 16.dp, modifier = Modifier.testTag("users_bar_icon_${icon.name}"))
+        }
     }
 }
 
@@ -427,8 +445,17 @@ private fun BarIconButton(icon: AppIcon, contentDescription: String, active: Boo
 internal fun ViewModeIcon(icon: AppIcon, contentDescription: String, selected: Boolean, onClick: () -> Unit) {
     val theme = LocalThemeState.current
     val shape = DsRadius.Sm
-    Box(modifier = Modifier.size(48.dp).clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent).selectable(selected = selected, role = Role.RadioButton, onClick = onClick), contentAlignment = Alignment.Center) {
-        RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 18.dp)
+    Box(
+        modifier = Modifier.size(48.dp).selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier.size(36.dp).testTag("users_view_visual_${icon.name}")
+                .clip(shape).primarySurface(theme, selected, shape, idle = Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(icon, contentDescription = contentDescription, tint = if (selected) theme.onPrimary else theme.mutedColor, size = 16.dp, modifier = Modifier.testTag("users_view_icon_${icon.name}"))
+        }
     }
 }
 
