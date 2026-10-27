@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
@@ -84,7 +85,10 @@ class FontSizeSettingsTest {
                 ProvideAppFontScale(percent) {
                     val current = LocalDensity.current
                     SideEffect { observed = current }
-                    Text("Sample text", fontSize = 16.sp, modifier = Modifier.testTag("sample"))
+                    // The root fills the viewport; Box lets the text measure at its natural height.
+                    Box {
+                        Text("Sample text", fontSize = 16.sp, modifier = Modifier.testTag("sample"))
+                    }
                 }
             }
         }
@@ -104,8 +108,8 @@ class FontSizeSettingsTest {
             assertEquals(2f, observed!!.density, 0.001f)
             assertEquals(1.75f, observed!!.fontScale, 0.001f)
         }
-        assertTrue("Smaller text should use less height", smallHeight < normalHeight)
-        assertTrue("Larger text should use more height", largeHeight > normalHeight)
+        assertTrue("Expected smaller text to use less height: $smallHeight < $normalHeight", smallHeight < normalHeight)
+        assertTrue("Expected larger text to use more height: $largeHeight > $normalHeight", largeHeight > normalHeight)
 
         rule.runOnIdle { percent = AppFontScale.DEFAULT_PERCENT }
         rule.runOnIdle { assertSame(deviceDensity, observed) }

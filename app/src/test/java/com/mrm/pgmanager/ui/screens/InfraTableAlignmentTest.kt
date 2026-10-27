@@ -5,10 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -16,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -84,6 +89,9 @@ class InfraTableAlignmentTest {
             "ارتفاعِ ردیف $h.dp نباید از ۵۲dp بگذرد (کارتِ قبلی ~۱۳۰dp بود)",
             h <= 52f + 0.5f
         )
+        val moreLabel = RuntimeEnvironment.getApplication().getString(R.string.act_more)
+        rule.onNodeWithContentDescription(moreLabel)
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
     }
 
     @Test

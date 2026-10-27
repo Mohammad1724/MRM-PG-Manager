@@ -246,7 +246,7 @@ internal fun InfraTableRow(
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .then(if (onEdit != null) Modifier.clickable { onEdit() } else Modifier)
             .heightIn(min = 44.dp)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Xs),
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
