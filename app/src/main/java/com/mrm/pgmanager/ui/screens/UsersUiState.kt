@@ -167,8 +167,15 @@ internal class UsersUiState(
 
     fun fetchSub(user: PanelUser, onResult: (PanelUser) -> Unit) {
         scope.launch {
-            runCatching { PanelApi.user(session, user) }.onSuccess(onResult)
-                .onFailure { com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.ud_sub_failed)) }
+            android.util.Log.d("ShareFetchProbe", "request started")
+            runCatching { PanelApi.user(session, user) }.onSuccess {
+                android.util.Log.d("ShareFetchProbe", "request succeeded")
+                onResult(it)
+                android.util.Log.d("ShareFetchProbe", "result applied")
+            }.onFailure {
+                android.util.Log.d("ShareFetchProbe", "request failed", it)
+                com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.ud_sub_failed))
+            }
         }
     }
 

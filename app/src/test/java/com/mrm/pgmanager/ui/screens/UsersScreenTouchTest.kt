@@ -46,6 +46,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowLog
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -58,6 +60,7 @@ class UsersScreenTouchTest {
     private lateinit var session: Session
     private var settingsClicks = 0
     private val detailRequests = AtomicInteger()
+    private val requestedPaths = ConcurrentLinkedQueue<String>()
     private fun str(id: Int, vararg args: Any) = RuntimeEnvironment.getApplication().getString(id, *args)
 
     @Before fun setUp() {
@@ -71,14 +74,17 @@ class UsersScreenTouchTest {
             .commit()
         server = MockWebServer()
         server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse = when {
-                request.path.orEmpty().startsWith("/api/groups") -> MockResponse().setBody("""{"groups":[]}""")
-                request.path.orEmpty().startsWith("/api/admins") -> MockResponse().setBody("""{"admins":[]}""")
-                request.path == "/api/user/by-id/1" -> {
-                    detailRequests.incrementAndGet()
-                    MockResponse().setBody("""{"id":1,"username":"sample_1","status":"active","subscription_url":"https://example.test/sub/sample_1"}""")
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                requestedPaths.add(request.path.orEmpty())
+                return when {
+                    request.path.orEmpty().startsWith("/api/groups") -> MockResponse().setBody("""{"groups":[]}""")
+                    request.path.orEmpty().startsWith("/api/admins") -> MockResponse().setBody("""{"admins":[]}""")
+                    request.path == "/api/user/by-id/1" -> {
+                        detailRequests.incrementAndGet()
+                        MockResponse().setBody("""{"id":1,"username":"sample_1","status":"active","subscription_url":"https://example.test/sub/sample_1"}""")
+                    }
+                    else -> MockResponse().setResponseCode(404)
                 }
-                else -> MockResponse().setResponseCode(404)
             }
         }
         server.start()
@@ -125,7 +131,8 @@ class UsersScreenTouchTest {
             throw AssertionError(
                 "Share did not open: detail requests=${detailRequests.get()}, " +
                     "secure holds=${ScreenSecurity.holds}, initial holds=$initialHolds, " +
-                    "fetch failed=${fetchFailed.get()}, total requests=${server.requestCount}",
+                    "fetch failed=${fetchFailed.get()}, paths=$requestedPaths, " +
+                    "probe=${ShadowLog.getLogsForTag("ShareFetchProbe").map { it.msg }}",
                 error
             )
         }
