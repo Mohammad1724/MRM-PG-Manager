@@ -102,10 +102,12 @@ fun ConfirmActionDialog(
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                         PGSecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                        // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد
+                        // (برچسبِ تأیید اینجا پویاست: «حذفِ <نام>» و طولانی‌ترین‌ها را می‌سازد).
                         if (danger) {
-                            PGDangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, modifier = Modifier.weight(1f), enabled = wordSatisfied)
+                            PGDangerButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.warn(context); onConfirm() }, enabled = wordSatisfied)
                         } else {
-                            PGPrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, modifier = Modifier.weight(1f), enabled = wordSatisfied)
+                            PGPrimaryButton(confirmLabel, onClick = { com.mrm.pgmanager.utils.Haptics.tick(context); onConfirm() }, enabled = wordSatisfied)
                         }
                     }
                 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -164,9 +163,13 @@ internal fun ClientTemplatesSection(session: Session) {
                 placeholder = stringResource(R.string.search_ct)
             )
             // فیلترِ نوع؛ «همه» با رشتهٔ خالی نشان داده می‌شود تا state ساده بماند.
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+            // هفت چیپ در ۳۶۰dp جا نمی‌شوند؛ با Row+horizontalScroll چیپِ آخر نصفه
+            // بریده می‌شد و هیچ سرنخی نبود که چیزِ بیشتری هست — همان ایرادی که برای
+            // برچسب‌هایِ هاست گزارش شد، پس اینجا هم PGWrapRow می‌شود.
+            PGWrapRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalGap = DsSpacing.Xs,
+                verticalGap = DsSpacing.Xxs
             ) {
                 val chips = listOf("" to stringResource(R.string.ct_filter_all)) +
                     ClientTemplateType.ALL.map { it to templateTypeLabel(it) }
