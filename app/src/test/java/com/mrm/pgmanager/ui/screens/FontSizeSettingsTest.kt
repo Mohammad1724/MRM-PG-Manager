@@ -80,6 +80,9 @@ class FontSizeSettingsTest {
         var percent by mutableIntStateOf(AppFontScale.DEFAULT_PERCENT)
         val deviceDensity = Density(density = 2f, fontScale = 1.25f)
         var observed: Density? = null
+        var layoutScale = Float.NaN
+        var layoutTextPx = Float.NaN
+        var layoutHeight = 0
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides deviceDensity) {
                 ProvideAppFontScale(percent) {
@@ -87,29 +90,45 @@ class FontSizeSettingsTest {
                     SideEffect { observed = current }
                     // The root fills the viewport; Box lets the text measure at its natural height.
                     Box {
-                        Text("Sample text", fontSize = 16.sp, modifier = Modifier.testTag("sample"))
+                        Text(
+                            "Sample text",
+                            fontSize = 16.sp,
+                            modifier = Modifier.testTag("sample"),
+                            onTextLayout = { result ->
+                                layoutScale = result.layoutInput.density.fontScale
+                                layoutTextPx = with(result.layoutInput.density) { 16.sp.toPx() }
+                                layoutHeight = result.size.height
+                            }
+                        )
                     }
                 }
             }
         }
+        fun metrics() = "providerPx=${with(observed!!) { 16.sp.toPx() }}, " +
+            "layoutScale=$layoutScale, layoutPx=$layoutTextPx, layoutHeight=$layoutHeight"
+
         rule.runOnIdle { assertSame(deviceDensity, observed) }
         val normalHeight = rule.onNodeWithTag("sample").fetchSemanticsNode().boundsInRoot.height
+        val normalMetrics = rule.runOnIdle { metrics() }
 
         rule.runOnIdle { percent = 80 }
         val smallHeight = rule.onNodeWithTag("sample").fetchSemanticsNode().boundsInRoot.height
-        rule.runOnIdle {
+        val smallMetrics = rule.runOnIdle {
             assertEquals(2f, observed!!.density, 0.001f)
             assertEquals(1f, observed!!.fontScale, 0.001f)
+            metrics()
         }
 
         rule.runOnIdle { percent = 140 }
         val largeHeight = rule.onNodeWithTag("sample").fetchSemanticsNode().boundsInRoot.height
-        rule.runOnIdle {
+        val largeMetrics = rule.runOnIdle {
             assertEquals(2f, observed!!.density, 0.001f)
             assertEquals(1.75f, observed!!.fontScale, 0.001f)
+            metrics()
         }
-        assertTrue("Expected smaller text to use less height: $smallHeight < $normalHeight", smallHeight < normalHeight)
-        assertTrue("Expected larger text to use more height: $largeHeight > $normalHeight", largeHeight > normalHeight)
+        val details = "small=$smallHeight [$smallMetrics], normal=$normalHeight [$normalMetrics], large=$largeHeight [$largeMetrics]"
+        assertTrue("Expected smaller text to use less height: $details", smallHeight < normalHeight)
+        assertTrue("Expected larger text to use more height: $details", largeHeight > normalHeight)
 
         rule.runOnIdle { percent = AppFontScale.DEFAULT_PERCENT }
         rule.runOnIdle { assertSame(deviceDensity, observed) }
