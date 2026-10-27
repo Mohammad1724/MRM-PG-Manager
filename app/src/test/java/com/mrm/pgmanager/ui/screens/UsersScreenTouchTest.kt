@@ -2,6 +2,7 @@ package com.mrm.pgmanager.ui.screens
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -28,6 +29,7 @@ import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import com.mrm.pgmanager.ui.designsystem.ScreenSecurity
+import com.mrm.pgmanager.ui.feedback.AppFeedback
 import com.mrm.pgmanager.ui.theme.ThemeState
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -44,6 +46,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
@@ -98,7 +101,13 @@ class UsersScreenTouchTest {
 
     @Test fun `real screen share fetches the missing link and opens the existing sheet`() {
         val initialHolds = ScreenSecurity.holds
+        val fetchFailed = AtomicBoolean(false)
         rule.setContent {
+            LaunchedEffect(Unit) {
+                AppFeedback.events.collect { event ->
+                    if (event.message == str(R.string.ud_sub_failed)) fetchFailed.set(true)
+                }
+            }
             UsersScreen(
                 session = session,
                 onSessionExpired = {},
@@ -109,12 +118,14 @@ class UsersScreenTouchTest {
         rule.onNodeWithContentDescription(str(R.string.us_share_subscription, "sample_1"))
             .performTouchInput { click(center) }
         try {
-            rule.waitUntil(15_000) { detailRequests.get() >= 1 && ScreenSecurity.holds > initialHolds }
+            rule.waitUntil(15_000) {
+                detailRequests.get() >= 1 && rule.runOnUiThread { ScreenSecurity.holds > initialHolds }
+            }
         } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
             throw AssertionError(
                 "Share did not open: detail requests=${detailRequests.get()}, " +
                     "secure holds=${ScreenSecurity.holds}, initial holds=$initialHolds, " +
-                    "total requests=${server.requestCount}",
+                    "fetch failed=${fetchFailed.get()}, total requests=${server.requestCount}",
                 error
             )
         }
@@ -128,6 +139,31 @@ class UsersScreenTouchTest {
                 .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             assertEquals("https://example.test/sub/sample_1", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
         }
+        rule.onNodeWithText(str(R.string.qr_close)).performClick()
+        rule.runOnIdle { assertEquals(initialHolds, ScreenSecurity.holds) }
+    }
+
+    @Test fun `real screen shares an existing link without fetching the user`() {
+        val user = PanelUser(
+            id = 1, username = "sample_1", status = "active", usedTraffic = 0, dataLimit = 0,
+            expire = null, createdAt = null, subUrl = "https://example.test/sub/sample_1"
+        )
+        PanelCache.put(PanelCache.usersKey(session.baseUrl), listOf(user))
+        val initialHolds = ScreenSecurity.holds
+        rule.setContent {
+            UsersScreen(
+                session = session,
+                onSessionExpired = {},
+                themeState = ThemeState(),
+                monitoringSettings = MonitoringSettings(notificationsEnabled = false, autoRefreshEnabled = false)
+            )
+        }
+        rule.onNodeWithContentDescription(str(R.string.us_share_subscription, user.username))
+            .performTouchInput { click(center) }
+        rule.onNodeWithText("QR sample_1").assertIsDisplayed()
+        rule.onNodeWithText(str(R.string.qr_send_card)).assertIsDisplayed()
+        rule.runOnIdle { assertEquals(initialHolds + 1, ScreenSecurity.holds) }
+        assertEquals(0, detailRequests.get())
         rule.onNodeWithText(str(R.string.qr_close)).performClick()
         rule.runOnIdle { assertEquals(initialHolds, ScreenSecurity.holds) }
     }
