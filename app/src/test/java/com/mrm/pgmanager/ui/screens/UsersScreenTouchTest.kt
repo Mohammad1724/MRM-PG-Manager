@@ -2,8 +2,13 @@ package com.mrm.pgmanager.ui.screens
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isDialog
@@ -50,6 +55,7 @@ import org.robolectric.shadows.ShadowLog
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-xhdpi")
@@ -148,6 +154,35 @@ class UsersScreenTouchTest {
         }
         rule.onNodeWithText(str(R.string.qr_close)).performClick()
         rule.runOnIdle { assertEquals(initialHolds, ScreenSecurity.holds) }
+    }
+
+    @Test fun `compose scope publishes fetched subscription to composition`() {
+        val observedLink = AtomicReference<String?>(null)
+        rule.setContent {
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+            val state = remember(session) {
+                UsersUiState(scope, context, session, SessionStore(context), MonitoringSettings(), {})
+            }
+            val user = PanelUser(
+                id = 1, username = "sample_1", status = "active", usedTraffic = 0, dataLimit = 0,
+                expire = null, createdAt = null
+            )
+            LaunchedEffect(Unit) { state.qrWithFetch(user) }
+            val selected = state.qrUser
+            SideEffect { observedLink.set(selected?.subUrl) }
+            Text(selected?.username ?: "Waiting")
+        }
+        try {
+            rule.waitUntil(15_000) { observedLink.get() != null }
+        } catch (error: androidx.compose.ui.test.ComposeTimeoutException) {
+            throw AssertionError(
+                "Fetched state did not reach composition: paths=$requestedPaths, " +
+                    "probe=${ShadowLog.getLogsForTag("ShareFetchProbe").map { it.msg }}",
+                error
+            )
+        }
+        assertEquals("https://example.test/sub/sample_1", observedLink.get())
     }
 
     @Test fun `real screen shares an existing link without fetching the user`() {
