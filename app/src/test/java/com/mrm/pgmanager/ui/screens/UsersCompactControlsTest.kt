@@ -46,6 +46,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -81,7 +82,9 @@ class UsersCompactControlsTest {
         }
     }
 
-    @Test fun `toolbar visuals are compact and all actions still work`() {
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `toolbar visuals are compact and all actions still work`() {
         var filter by mutableStateOf(UserFilter.ALL)
         var sort by mutableStateOf(UserSort.CREATED)
         var groupId by mutableStateOf<Int?>(null)
