@@ -546,6 +546,7 @@
     <string name="ue_save">Save changes</string>
     <!-- صفحهٔ کاربران — متن‌هایی که قبلاً در کد هاردکد بودند -->
     <string name="us_copy_sub_link">Copy subscription link</string>
+    <string name="us_share_subscription">Share subscription for %1$s</string>
     <string name="us_show_qr">Show QR code</string>
     <string name="us_copy">Copy</string>
     <string name="us_sub_copied">Subscription link copied</string>

@@ -546,6 +546,7 @@
     <string name="ue_save">ذخیره تغییرات</string>
     <!-- صفحهٔ کاربران — متن‌هایی که قبلاً در کد هاردکد بودند -->
     <string name="us_copy_sub_link">کپی لینک اشتراک</string>
+    <string name="us_share_subscription">اشتراک‌گذاری سرویس %1$s</string>
     <string name="us_show_qr">نمایش بارکد</string>
     <string name="us_copy">کپی</string>
     <string name="us_sub_copied">لینک اشتراک کپی شد</string>

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
@@ -26,6 +27,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Group
+import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.UserFilter
 import com.mrm.pgmanager.data.model.UserSort
 import com.mrm.pgmanager.data.model.ViewMode
@@ -79,7 +81,7 @@ private class SolidPressNode(private val source: InteractionSource) : Modifier.N
 class CompactPressIndicationTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
     private var density = 1f
-    private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
+    private fun str(id: Int, vararg args: Any) = RuntimeEnvironment.getApplication().getString(id, *args)
 
     @Before fun setUp() { MotionPrefs.reduceMotion = true }
     @After fun tearDown() { MotionPrefs.reduceMotion = false }
@@ -147,6 +149,32 @@ class CompactPressIndicationTest {
         )
         assertFeedbackIsClipped(rule.onNodeWithText(str(R.string.us_group_filter)), "users_group_visual")
         assertFeedbackIsClipped(rule.onNodeWithContentDescription(str(R.string.us_view_compact)), "users_view_visual_ListRows")
+    }
+
+    @Test fun `share indication stays in its surface when the expanded touch area is pressed`() {
+        val user = PanelUser(
+            id = 1L, username = "alpha", status = "active", usedTraffic = 0L, dataLimit = 0L,
+            expire = null, createdAt = null
+        )
+        rule.setContent {
+            density = LocalDensity.current.density
+            CompositionLocalProvider(LocalIndication provides SolidPressIndication) {
+                LuxuryMicroRow(user = user, onClick = {}, onShareSubscription = {})
+            }
+        }
+        val target = rule.onNodeWithContentDescription(str(R.string.us_share_subscription, user.username))
+        val bounds = target.fetchSemanticsNode().boundsInWindow
+        val outsideX = (bounds.left - 5f * density).roundToInt()
+        val y = bounds.center.y.roundToInt()
+        val before = bitmap()
+        target.performTouchInput { down(Offset(-5.dp.toPx(), center.y)) }
+        rule.waitForIdle()
+        val pressed = bitmap()
+        assertEquals(android.graphics.Color.RED, pressed.getPixel(bounds.center.x.roundToInt(), y))
+        assertEquals("The expanded touch area must not show rectangular feedback", before.getPixel(outsideX, y), pressed.getPixel(outsideX, y))
+        target.performTouchInput { cancel() }
+        before.recycle()
+        pressed.recycle()
     }
 
     @Test fun `detail refresh indication stays inside its visual surface`() {

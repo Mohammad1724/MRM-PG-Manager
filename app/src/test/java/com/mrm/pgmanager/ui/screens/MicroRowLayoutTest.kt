@@ -5,16 +5,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.PanelUser
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -35,7 +38,7 @@ import java.time.temporal.ChronoUnit
 class MicroRowLayoutTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
+    private fun str(id: Int, vararg args: Any) = RuntimeEnvironment.getApplication().getString(id, *args)
 
     private val worst = PanelUser(
         id = 1, username = "AliReza-Roosta", status = "active",
@@ -60,26 +63,27 @@ class MicroRowLayoutTest {
     private fun boundsByDesc(desc: String) =
         rule.onNodeWithContentDescription(desc).fetchSemanticsNode().boundsInRoot
 
-    @Test fun actionButtons_areCompact() {
+    @Test fun shareButton_isCompactAndReplacesBothActions() {
         render()
-        for (id in listOf(R.string.us_copy, R.string.us_show_qr)) {
-            rule.onNodeWithContentDescription(str(id))
-                .assertWidthIsEqualTo(MICRO_ACTION_SIZE).assertHeightIsEqualTo(MICRO_ACTION_SIZE)
-        }
-        // گزارشِ کاربر: «دکمه‌های کپی و QR فضای زیادی اشغال می‌کنند».
-        // ۲۶dp یعنی دو دکمه + فاصله = ۵۸dp از عرضِ ۳۶۰dp (قبلاً ۷۰dp).
-        assertTrue("دکمه‌ها باید از ۳۲dp قبلی کوچک‌تر باشند", MICRO_ACTION_SIZE <= 26.dp)
-        assertTrue("دکمه‌ها نباید از ۲۴dp کوچک‌تر شوند", MICRO_ACTION_SIZE >= 24.dp)
-        assertTrue("دکمه‌های ردیفِ compact هم باید سبک شوند", COMPACT_ACTION_SIZE <= 30.dp)
+        val description = str(R.string.us_share_subscription, worst.username)
+        rule.onAllNodesWithContentDescription(description).assertCountEquals(1)
+        rule.onNodeWithContentDescription(description)
+            .assertWidthIsEqualTo(MICRO_ACTION_SIZE).assertHeightIsEqualTo(MICRO_ACTION_SIZE)
+        rule.onAllNodesWithContentDescription(str(R.string.us_copy)).assertCountEquals(0)
+        rule.onAllNodesWithContentDescription(str(R.string.us_show_qr)).assertCountEquals(0)
+        assertTrue("The micro surface should remain compact", MICRO_ACTION_SIZE <= 26.dp)
+        assertTrue("The micro surface should stay legible", MICRO_ACTION_SIZE >= 24.dp)
+        assertTrue("The compact-list surface should stay compact", COMPACT_ACTION_SIZE <= 30.dp)
     }
 
-    /** مجموعِ عرضِ دو دکمه + فاصله نباید از ۶۰dp بگذرد (قبلاً ۷۰dp بود). */
-    @Test fun actionCluster_fitsBudget() {
+    @Test fun oneShareAction_freesHorizontalSpace() {
         render()
-        val copy = boundsByDesc(str(R.string.us_copy))
-        val qr = boundsByDesc(str(R.string.us_show_qr))
-        val span = (qr.right - copy.left) / density
-        assertTrue("گروهِ دکمه‌ها ${span}dp عرض گرفت (سقفِ ۶۰dp)", span <= 60f)
+        val share = boundsByDesc(str(R.string.us_share_subscription, worst.username))
+        val oldActionWidth = 2f * MICRO_ACTION_SIZE.value + 6f
+        val newActionWidth = share.width / density
+        assertTrue("The share surface must save at least 30dp", oldActionWidth - newActionWidth >= 30f)
+        val row = bounds("row_box")
+        assertTrue("The share action must remain inside its row", share.left >= row.left && share.right <= row.right)
     }
 
     /**
@@ -119,11 +123,12 @@ class MicroRowLayoutTest {
         assertTrue("ستونِ نام از ${nameLeftDp}dp شروع شد (باید ≤ ۵۰dp باشد)", nameLeftDp <= 50f)
     }
 
-    @Test fun usageBar_isNotSqueezed_andWiderThanName() {
+    @Test fun usageBar_keepsItsWidth_andNameGainsSpace() {
         render()
         node("micro_bar").assertWidthIsAtLeast(90.dp)
         val bar = bounds("micro_bar"); val name = bounds("micro_name")
-        assertTrue("نوار (${bar.width}px) باید از ستونِ نام (${name.width}px) عریض‌تر باشد", bar.width > name.width)
+        assertEquals(MICRO_USAGE_WIDTH.value, bar.width / density, 1f)
+        assertTrue("The name should benefit from the removed action", name.width / density >= 110f)
     }
 
     @Test fun usageText_isNeverEllipsized_forWorstCase() {

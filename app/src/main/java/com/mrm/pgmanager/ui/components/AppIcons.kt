@@ -53,6 +53,7 @@ import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.rounded.AccessibilityNew
@@ -75,7 +76,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder,
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Share, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder,
     // وضعیت کاربر
     StatusActive, StatusDisabled, StatusExpired, StatusLimited, StatusOnHold,
     // نوار ابزار
@@ -97,6 +98,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Users -> Icons.Rounded.Group
     AppIcon.Copy -> Icons.Rounded.ContentCopy
     AppIcon.Qr -> Icons.Rounded.QrCode2
+    AppIcon.Share -> Icons.Rounded.Share
     AppIcon.Refresh -> Icons.Rounded.Refresh
     AppIcon.Delete -> Icons.Rounded.DeleteOutline
     AppIcon.Edit -> Icons.Rounded.Edit

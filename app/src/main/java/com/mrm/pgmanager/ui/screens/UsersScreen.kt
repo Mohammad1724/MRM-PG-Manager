@@ -387,7 +387,7 @@ fun UsersScreen(
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
@@ -402,7 +402,7 @@ fun UsersScreen(
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item {
@@ -417,7 +417,7 @@ fun UsersScreen(
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item {

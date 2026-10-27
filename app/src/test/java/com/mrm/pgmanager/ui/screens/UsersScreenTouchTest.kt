@@ -1,13 +1,16 @@
 package com.mrm.pgmanager.ui.screens
 
+import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
@@ -24,6 +27,7 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.ViewMode
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
+import com.mrm.pgmanager.ui.designsystem.ScreenSecurity
 import com.mrm.pgmanager.ui.theme.ThemeState
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -40,6 +44,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-xhdpi")
@@ -49,7 +54,8 @@ class UsersScreenTouchTest {
     private lateinit var server: MockWebServer
     private lateinit var session: Session
     private var settingsClicks = 0
-    private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
+    private val detailRequests = AtomicInteger()
+    private fun str(id: Int, vararg args: Any) = RuntimeEnvironment.getApplication().getString(id, *args)
 
     @Before fun setUp() {
         MotionPrefs.reduceMotion = true
@@ -65,6 +71,10 @@ class UsersScreenTouchTest {
             override fun dispatch(request: RecordedRequest): MockResponse = when {
                 request.path.orEmpty().startsWith("/api/groups") -> MockResponse().setBody("""{"groups":[]}""")
                 request.path.orEmpty().startsWith("/api/admins") -> MockResponse().setBody("""{"admins":[]}""")
+                request.path == "/api/user/by-id/1" -> {
+                    detailRequests.incrementAndGet()
+                    MockResponse().setBody("""{"id":1,"username":"sample_1","status":"active","subscription_url":"https://example.test/sub/sample_1"}""")
+                }
                 else -> MockResponse().setResponseCode(404)
             }
         }
@@ -84,6 +94,32 @@ class UsersScreenTouchTest {
         PanelApi.allowCleartextLoopbackForTests = false
         PanelCache.clear()
         server.shutdown()
+    }
+
+    @Test fun `real screen share fetches the missing link and opens the existing sheet`() {
+        val initialHolds = ScreenSecurity.holds
+        rule.setContent {
+            UsersScreen(
+                session = session,
+                onSessionExpired = {},
+                themeState = ThemeState(),
+                monitoringSettings = MonitoringSettings(notificationsEnabled = false, autoRefreshEnabled = false)
+            )
+        }
+        rule.onNodeWithContentDescription(str(R.string.us_share_subscription, "sample_1"))
+            .performTouchInput { click(center) }
+        rule.waitUntil(15_000) { detailRequests.get() == 1 && ScreenSecurity.holds > initialHolds }
+        rule.onNodeWithText("QR sample_1").assertIsDisplayed()
+        rule.onNodeWithContentDescription("QR").assertIsDisplayed()
+        rule.onNodeWithText(str(R.string.qr_send_card)).assertIsDisplayed()
+        rule.onNodeWithText(str(R.string.qr_copy)).performClick()
+        rule.runOnIdle {
+            val clipboard = RuntimeEnvironment.getApplication()
+                .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            assertEquals("https://example.test/sub/sample_1", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+        rule.onNodeWithText(str(R.string.qr_close)).performClick()
+        rule.runOnIdle { assertEquals(initialHolds, ScreenSecurity.holds) }
     }
 
     @Test fun `real screen header does not open an obscured user after scrolling`() {

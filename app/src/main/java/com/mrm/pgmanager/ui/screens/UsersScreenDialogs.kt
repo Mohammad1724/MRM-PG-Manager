@@ -580,7 +580,7 @@ internal fun UsersScreenDialogs(
                 ) { PanelApi.setDisabled(session, u, nowDisabled) }
             },
             onCopySub = { ui.copySubWithFetch(u) },
-            onQr = { ui.qrUser = u },
+            onQr = { ui.qrWithFetch(u) },
             onEdit = { ui.selectedUser = u },
             onResetUsage = { ui.runOptimistic(
                 ids = setOf(u.id),
