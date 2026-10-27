@@ -37,4 +37,6 @@ A few rules that are not in code, so they are here:
 - Anything that writes to the panel is gated on the permission the endpoint requires, and a
   half-form that would only produce 422 is worse than a read-only screen.
 - Version bumps: `versionName` / `versionCode` in `app/build.gradle.kts` per landed phase, either
-  in the feature commit or as its own `chore(release):` commit.
+  in the feature commit or as its own `chore(release):` commit. **Every landed fix batch bumps as
+  well** (patch digit) — several builds of one release often sit on the phone at the same time and
+  a visual fix that cannot be identified by version cannot be verified either.
