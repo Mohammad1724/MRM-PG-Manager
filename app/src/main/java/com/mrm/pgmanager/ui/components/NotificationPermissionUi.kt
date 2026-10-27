@@ -26,10 +26,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
@@ -144,7 +144,7 @@ fun NotificationPermissionDialog(
 ) {
     val theme = LocalThemeState.current
     val title = stringResource(R.string.notif_perm_title)
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()

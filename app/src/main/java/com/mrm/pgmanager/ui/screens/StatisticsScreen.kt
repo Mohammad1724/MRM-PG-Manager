@@ -7,9 +7,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -21,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
@@ -165,7 +168,7 @@ fun StatisticsScreen(
                     Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 11.sp, color = theme.mutedColor) }
                     Box {
                         PGDropdown(value = selectedNode?.name ?: stringResource(R.string.all_nodes), onClick = { nodeMenuOpen = true })
-                        DropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
+                        AppDropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.all_nodes)) },
                                 onClick = { selectedNode = null; nodeMenuOpen = false }
@@ -456,12 +459,9 @@ fun StatisticsScreen(
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
                     // چیپ‌ها به هم می‌چسبیدند و در عرضِ باریک (یا فونتِ بزرگ) آخری
                     // نصفه بریده می‌شد؛ حالا خط می‌شکنند.
-                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                        StatsRange.entries.forEach { r ->
-                            val sel = r == trafficRange
-                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { trafficRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
-                            }
+                    PGWrapRow(modifier = Modifier.fillMaxWidth().selectableGroup(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
+                        StatsRange.entries.forEach { range ->
+                            StatsRangeChip(range.label, selected = range == trafficRange) { trafficRange = range }
                         }
                     }
                     Text(stringResource(R.string.usage_in_range), fontSize = 11.sp, color = theme.mutedColor)
@@ -495,16 +495,13 @@ fun StatisticsScreen(
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
-                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                        StatsRange.entries.forEach { r ->
-                            val sel = r == countRange
-                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { countRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
-                            }
+                    PGWrapRow(modifier = Modifier.fillMaxWidth().selectableGroup(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
+                        StatsRange.entries.forEach { range ->
+                            StatsRangeChip(range.label, selected = range == countRange) { countRange = range }
                         }
                         Box {
                             PGDropdown(value = stringResource(countMetric.labelRes), onClick = { metricMenuOpen = true })
-                            DropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
+                            AppDropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
                                 CountMetric.entries.forEach { m ->
                                     DropdownMenuItem(text = { Text(stringResource(m.labelRes)) }, onClick = { countMetric = m; metricMenuOpen = false })
                                 }
@@ -589,9 +586,25 @@ private fun NodeTrafficCard(
     }
 }
 
+@Composable
+private fun StatsRangeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        Modifier.heightIn(min = 48.dp).clip(shape)
+            .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) theme.onPrimary else theme.mutedColor)
+    }
+}
+
 @Composable private fun PGDropdown(value: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Row(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+    Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(value, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
         Text("▾", fontSize = 11.sp, color = theme.mutedColor)

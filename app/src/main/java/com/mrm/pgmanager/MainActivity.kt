@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.ProvideAppFontScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -99,13 +100,11 @@ class MainActivity : FragmentActivity() {
 
     override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
         if (overrideConfiguration != null) {
-            val uiMode = overrideConfiguration.uiMode
-            try {
-                overrideConfiguration.setTo(baseContext.resources.configuration)
-            } catch (e: Exception) {
-                // Safe guard during early initialization
+            // Do not replace the override: it carries font scale, orientation and window metrics.
+            runCatching {
+                val language = SessionStore(baseContext).readAppLanguage()
+                com.mrm.pgmanager.utils.LocaleHelper.applyLanguageToOverride(overrideConfiguration, language)
             }
-            overrideConfiguration.uiMode = uiMode
         }
         super.applyOverrideConfiguration(overrideConfiguration)
     }
@@ -353,7 +352,8 @@ fun MRMApp() {
         activity?.recreate()
     }
 
-    LiquidGlassTheme(themeState = effectiveTheme) {
+    ProvideAppFontScale(uiPrefs.fontScalePercent) {
+        LiquidGlassTheme(themeState = effectiveTheme) {
       // «کاهش انیمیشن»: قبل از رنگ‌آمیزیِ فریمِ بعد اعمال می‌شود تا هیچ حرکتی جا نماند.
       androidx.compose.runtime.SideEffect {
           com.mrm.pgmanager.ui.designsystem.MotionPrefs.reduceMotion = uiPrefs.reduceMotion
@@ -793,6 +793,7 @@ fun MRMApp() {
                 .navigationBarsPadding()
                 .padding(bottom = 96.dp)
         )
+        }
         }
     }
 }

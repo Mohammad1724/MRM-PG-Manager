@@ -26,10 +26,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGPageHeader
+import com.mrm.pgmanager.ui.components.PGTabBar
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.components.PGPrimaryButton
 import com.mrm.pgmanager.ui.components.NotificationPermissionCard
@@ -116,7 +119,6 @@ fun SettingsScreen(
     onDataRestored: () -> Unit = {}
 ) {
     val theme = LocalThemeState.current
-    val backLabel = stringResource(R.string.cd_back)
     // چهار بخش: «ظاهر ← اعلان‌ها و مانیتورینگ ← پیشرفته ← قفلِ برنامه».
     // «اتصال و حساب‌ها» در نسخهٔ ۰٫۱۲ به صفحهٔ «پنلِ من» منتقل شد.
     var section by rememberSaveable { mutableStateOf(SettingsSection.APPEARANCE) }
@@ -129,43 +131,18 @@ fun SettingsScreen(
         initialPage = sections.indexOf(section)
     ) { sections.size }
     LaunchedEffect(pagerState.currentPage) { section = sections[pagerState.currentPage] }
-    // نوارِ تب‌ها اسکرول‌شونده است؛ اگر با سوایپ به تبِ بیرون از دید برسیم باید
-    // خودش را بیاورد جلوی چشم.
-    val tabListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    LaunchedEffect(section) {
-        tabListState.animateScrollToItem(sections.indexOf(section).coerceAtLeast(0))
-    }
 
     Column(
-        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
+        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()
             .padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Screen, bottom = DsSpacing.Mid),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // ── سربرگ: دکمهٔ بازگشت + عنوان (هم‌سبکِ سربرگِ گروه‌ها و تمپلت‌ها)
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-        ) {
-            // با Alignment/padding نسبی، در فارسی خودکار سمت راست می‌نشیند.
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }.background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                    .semantics { contentDescription = backLabel }
-                    ,
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.settings_title), fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(stringResource(R.string.appearance_desc), fontSize = 11.sp, color = theme.mutedColor)
-            }
-        }
+        PGPageHeader(
+            title = stringResource(R.string.settings_title),
+            subtitle = stringResource(R.string.appearance_desc),
+            onBack = onBack
+        )
 
         // ── نوار بخش‌ها
         val tabs = listOf(
@@ -175,31 +152,11 @@ fun SettingsScreen(
             SettingsSection.DATA to stringResource(R.string.set_tab_data),
             SettingsSection.SECURITY to stringResource(R.string.set_tab_security)
         )
-        androidx.compose.foundation.lazy.LazyRow(
-            state = tabListState,
-            modifier = Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(DsSpacing.Xs),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-        ) {
-            items(tabs.size) { index ->
-                val (id, label) = tabs[index]
-                val selected = section == id
-                Box(
-                    Modifier.padding(vertical = 3.dp).height(34.dp).clip(DsRadius.Full).clickable { scope.launch { pagerState.animateScrollToPage(index) } }
-                        .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
-                        .pressScale(0.95f)
-                        
-                        .padding(horizontal = DsSpacing.Lg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        label, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1
-                    )
-                }
-            }
-        }
+        PGTabBar(
+            labels = tabs.map { it.second },
+            selectedIndex = sections.indexOf(section),
+            onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+        )
 
         // ── محتوای بخشِ انتخاب‌شده
         //
@@ -500,6 +457,11 @@ private fun AppearanceSection(
         Text(stringResource(R.string.language_desc), fontSize = 11.sp, color = theme.mutedColor)
     }
 
+    FontSizeSettings(
+        percent = uiPrefs.fontScalePercent,
+        onChange = { onUiPrefsChange(uiPrefs.copy(fontScalePercent = it)) }
+    )
+
     // ── دسترس‌پذیری و حریم خصوصی (فاز ۷)
     // این سه کلید دقیقاً سه یافتهٔ فاز ۷ هستند: کاهش حرکت، هپتیکِ اختیاری و
     // پنهان‌بودنِ محتوا در Recents. جای پیش‌فرضِ هر سه «بی‌آزار» انتخاب شده:
@@ -590,6 +552,31 @@ private fun AppearanceSection(
             }
             Text(stringResource(R.string.set_amoled_disabled), fontSize = 11.sp, color = theme.mutedColor)
         }
+    }
+}
+
+/** Text-size controls apply immediately and can return to the device default. */
+@Composable
+internal fun FontSizeSettings(percent: Int, onChange: (Int) -> Unit) {
+    val theme = LocalThemeState.current
+    val current = AppFontScale.normalize(percent)
+    SettingsCard(stringResource(R.string.set_font_size_title), AppIcon.Accessibility) {
+        Text(stringResource(R.string.set_font_size_description), fontSize = 11.sp, color = theme.mutedColor)
+        SettingsStepper(
+            label = stringResource(R.string.set_font_size_value),
+            value = current,
+            unit = stringResource(R.string.set_unit_percent).replace("%%", "%"),
+            range = AppFontScale.MIN_PERCENT..AppFontScale.MAX_PERCENT,
+            step = AppFontScale.STEP_PERCENT,
+            onChange = onChange
+        )
+        Text(stringResource(R.string.set_font_size_sample), fontSize = 14.sp, color = theme.inkColor)
+        PGSecondaryButton(
+            text = stringResource(R.string.set_font_size_reset),
+            onClick = { onChange(AppFontScale.DEFAULT_PERCENT) },
+            enabled = current != AppFontScale.DEFAULT_PERCENT,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

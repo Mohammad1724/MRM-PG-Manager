@@ -77,6 +77,7 @@ object BackupManager {
             put("follow_system", t.followSystem)
             put("amoled", t.amoledDark)
             put("custom", t.customColor?.value?.toLong() ?: -1L)
+            put("font_scale_percent", store.readUiPrefs().fontScalePercent)
         })
 
         // === قفل برنامه ===
@@ -327,6 +328,11 @@ object BackupManager {
                     followSystem = t.optBoolean("follow_system", false),
                     amoledDark = t.optBoolean("amoled", false)
                 ))
+                // Older backups do not include text size; keep the current preference in that case.
+                if (t.has("font_scale_percent") && !t.isNull("font_scale_percent")) {
+                    val current = store.readUiPrefs()
+                    store.saveUiPrefs(current.copy(fontScalePercent = t.optInt("font_scale_percent", current.fontScalePercent)))
+                }
                 restored++
             }
             // قفل برنامه — فقط اگر دستگاه بیومتریک/پین فعال دارد، قفل بازیابی شود

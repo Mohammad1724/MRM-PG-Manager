@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.SystemStats
@@ -493,12 +494,14 @@ class SessionStore(context: Context) {
     fun readUiPrefs() = com.mrm.pgmanager.data.model.UiPrefs(
         hapticsEnabled = prefs.getBoolean("ui_haptics", true),
         reduceMotion = prefs.getBoolean("ui_reduce_motion", false),
-        secureScreen = prefs.getBoolean("ui_secure_screen", false)
+        secureScreen = prefs.getBoolean("ui_secure_screen", false),
+        fontScalePercent = AppFontScale.normalize(prefs.getInt("ui_font_scale_percent", AppFontScale.DEFAULT_PERCENT))
     )
     fun saveUiPrefs(p: com.mrm.pgmanager.data.model.UiPrefs) = prefs.edit()
         .putBoolean("ui_haptics", p.hapticsEnabled)
         .putBoolean("ui_reduce_motion", p.reduceMotion)
         .putBoolean("ui_secure_screen", p.secureScreen)
+        .putInt("ui_font_scale_percent", AppFontScale.normalize(p.fontScalePercent))
         .apply()
 
     // === تنظیمات پشتیبان‌گیری ===

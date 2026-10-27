@@ -15,9 +15,11 @@ package com.mrm.pgmanager.data.model
  * @param secureScreen جلوگیری از عکسِ‌گرفتن/نمایشِ محتوا در Recents
  *   (`FLAG_SECURE`). پیش‌فرض **روشن** چون اپ توکنِ پنل و لینک‌های اشتراک را
  *   نشان می‌دهد؛ کاربر می‌تواند خاموشش کند.
+ * @param fontScalePercent App text size as a percentage of the device setting.
  */
 data class UiPrefs(
     val hapticsEnabled: Boolean = true,
     val reduceMotion: Boolean = false,
-    val secureScreen: Boolean = false
+    val secureScreen: Boolean = false,
+    val fontScalePercent: Int = AppFontScale.DEFAULT_PERCENT
 )

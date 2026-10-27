@@ -26,9 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.dialogs.paneTitle
@@ -64,7 +64,7 @@ fun BulkApplyTemplateDialog(
     var note by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(
                 Modifier.fillMaxWidth().paneTitle(stringResource(R.string.bt_title, selectedCount)).padding(horizontal = DsSpacing.Lg).clip(GlassShape).background(theme.dialogBgColor).border(BorderStroke(1.dp, theme.borderColor), GlassShape).padding(DsSpacing.Xxxl)

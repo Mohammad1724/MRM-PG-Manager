@@ -30,7 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
@@ -526,7 +526,7 @@ private fun TemplateEditorDialog(
         stringResource(R.string.tpl_reset_year)
     )
 
-    Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+    AppDialog(onDismissRequest = { if (!saving) onDismiss() }) {
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)

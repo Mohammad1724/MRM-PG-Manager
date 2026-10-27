@@ -9,11 +9,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -24,7 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.Layout
@@ -41,10 +58,13 @@ import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.designsystem.WcagContrast
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.ui.theme.primarySurface
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -89,7 +109,7 @@ fun PGStatCard(
     val iconTint = if (isGold) { t.accentPrimary } else resolvedAccent
     Column(
         modifier
-            .height(92.dp)
+            .heightIn(min = 92.dp)
             .clip(shape)
             .background(t.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), shape)
@@ -105,7 +125,7 @@ fun PGStatCard(
             ) {
                 RoundedAppIcon(icon, tint = iconTint, size = 15.dp)
             }
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = t.mutedColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             if (trailing != null) trailing()
         }
         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
@@ -145,7 +165,7 @@ fun PGScreenHeader(
             .border(BorderStroke(DsBorder.Hairline, t.borderColor), DsRadius.Lg)
             .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
         Column(Modifier.weight(1f)) {
             Row(
@@ -154,41 +174,102 @@ fun PGScreenHeader(
             ) {
                 Text(
                     title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = t.inkColor,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).semantics { heading() }
                 )
                 if (badge != null) badge()
             }
             Text(
-                subtitle, fontSize = 11.sp, color = t.mutedColor,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
+                subtitle, fontSize = 12.sp, color = t.mutedColor,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+            PGHeaderAction(AppIcon.Refresh, refreshLabel, onRefresh, spinning = refreshing)
+            PGHeaderAction(AppIcon.Settings, settingsLabel, onOpenSettings)
+        }
+    }
+}
+
+/** A shared detail-page header with a directional back action and optional trailing actions. */
+@Composable
+fun PGPageHeader(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    val theme = LocalThemeState.current
+    Row(
+        modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
+    ) {
+        PGHeaderAction(AppIcon.Prev, stringResource(R.string.cd_back), onBack)
+        Column(Modifier.weight(1f)) {
+            Text(
+                title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor,
+                maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() }
+            )
+            Text(subtitle, fontSize = 12.sp, color = theme.mutedColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        actions()
+    }
+}
+
+/** Tabs wrap, remain scrollable at large font scales, and expose their selected state. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun PGTabBar(labels: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val theme = LocalThemeState.current
+    PGWrapRow(
+        modifier = modifier.fillMaxWidth().heightIn(max = 176.dp).clip(DsRadius.Lg).background(theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
+            .verticalScroll(rememberScrollState()).padding(DsSpacing.Xs).selectableGroup(),
+        horizontalGap = DsSpacing.Xs,
+        verticalGap = DsSpacing.Xs
+    ) {
+        labels.forEachIndexed { index, label ->
+            val selected = index == selectedIndex
+            val bringIntoView = remember { BringIntoViewRequester() }
+            LaunchedEffect(selected) { if (selected) bringIntoView.bringIntoView() }
             Box(
-                Modifier.padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onRefresh).background(t.searchBgColor)
-                    .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
-                    .semantics { contentDescription = refreshLabel }
-                    .pressScale(0.92f)
-                    ,
+                Modifier.bringIntoViewRequester(bringIntoView).heightIn(min = DsComponent.MinTouchTarget).clip(DsRadius.Md)
+                    .primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
+                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
+                    .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
                 contentAlignment = Alignment.Center
             ) {
-                // آیکون خودش می‌چرخد؛ جایگزین‌کردنش با اسپینر پرش داشت.
-                RoundedAppIcon(
-                    AppIcon.Refresh,
-                    tint = if (refreshing) t.accentPrimary else t.mutedColor,
-                    size = 16.dp,
-                    modifier = Modifier.spinWhile(refreshing)
+                Text(
+                    label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (selected) theme.onPrimary else theme.mutedColor,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
             }
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onOpenSettings).background(t.searchBgColor)
-                    .border(BorderStroke(1.dp, t.borderColor), RoundedCornerShape(8.dp))
-                    .semantics { contentDescription = settingsLabel }
-                    .pressScale(0.92f)
-                    ,
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Settings, tint = t.mutedColor, size = 16.dp) }
         }
+    }
+}
+
+@Composable
+private fun PGHeaderAction(icon: AppIcon, label: String, onClick: () -> Unit, spinning: Boolean = false) {
+    val theme = LocalThemeState.current
+    Box(
+        Modifier.size(DsComponent.MinTouchTarget).clip(DsRadius.Md)
+            .background(theme.searchBgColor)
+            .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+            .semantics { contentDescription = label }
+            .clickable(onClick = onClick)
+            .pressScale(0.92f),
+        contentAlignment = Alignment.Center
+    ) {
+        RoundedAppIcon(
+            icon, tint = if (spinning) theme.accentTextColor else theme.mutedColor,
+            size = 18.dp, modifier = Modifier.spinWhile(spinning)
+        )
     }
 }
 
@@ -206,8 +287,12 @@ fun PGScreenHeader(
 fun PGBadge(text: String, color: Color = Color.Unspecified) {
     val t = LocalThemeState.current
     val resolvedColor = if (color == Color.Unspecified) t.accentPrimary else color
+    val badgeBackground = resolvedColor.copy(alpha = 0.12f).compositeOver(t.cardSurfaceColor)
+    val textColor = remember(resolvedColor, badgeBackground) {
+        Color(WcagContrast.forTextOn(resolvedColor.toArgb(), badgeBackground.toArgb()))
+    }
     Box(
-        Modifier.clip(RoundedCornerShape(6.dp)).background(resolvedColor.copy(0.12f))
+        Modifier.clip(RoundedCornerShape(6.dp)).background(badgeBackground)
             .border(BorderStroke(0.5.dp, resolvedColor.copy(0.18f)), RoundedCornerShape(6.dp))
             .padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xxs)
     ) {
@@ -215,7 +300,7 @@ fun PGBadge(text: String, color: Color = Color.Unspecified) {
             badgeLabel(text),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = resolvedColor,
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = PGStartAlign(),
@@ -368,8 +453,14 @@ fun PGFAB(icon: AppIcon, contentDescription: String, modifier: Modifier = Modifi
 fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = stringResource(R.string.search_cd), modifier: Modifier = Modifier) {
     val t = LocalThemeState.current
     val shape = DsRadius.Md
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val keyboard = LocalSoftwareKeyboardController.current
     Box(
-        modifier.fillMaxWidth().height(DsComponent.SearchBar).clip(shape).background(t.searchBgColor).border(BorderStroke(DsBorder.Hairline, t.controlBorderColor), shape).padding(horizontal = DsSpacing.FieldHorizontal),
+        modifier.fillMaxWidth().heightIn(min = DsComponent.SearchBar).clip(shape)
+            .background(t.searchBgColor)
+            .border(BorderStroke(if (focused) DsBorder.Focus else DsBorder.Hairline, if (focused) t.accentTextColor else t.controlBorderColor), shape)
+            .padding(start = DsSpacing.FieldHorizontal, end = DsSpacing.Xs),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
@@ -378,13 +469,29 @@ fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: Str
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
+                interactionSource = interaction,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, color = t.inkColor),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { contentDescription = placeholder },
                 decorationBox = { inner ->
-                    if (query.isEmpty()) Text(placeholder, fontSize = 13.sp, color = t.tertiaryColor)
-                    inner()
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        if (query.isEmpty()) Text(placeholder, fontSize = 13.sp, color = t.tertiaryColor)
+                        inner()
+                    }
                 }
             )
+            if (query.isNotEmpty()) {
+                val clearLabel = stringResource(R.string.clear_search)
+                Box(
+                    Modifier.size(DsComponent.MinTouchTarget).clip(DsRadius.Sm)
+                        .semantics { contentDescription = clearLabel }
+                        .clickable { onQueryChange("") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("×", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = t.mutedColor)
+                }
+            }
         }
     }
 }

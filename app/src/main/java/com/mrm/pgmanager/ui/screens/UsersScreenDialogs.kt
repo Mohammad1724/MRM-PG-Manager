@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -57,7 +58,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -121,7 +121,7 @@ fun DebtorEditDialog(
     var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
             Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                 Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
@@ -198,7 +198,7 @@ private fun InactiveCleanupDialog(ui: UsersUiState, session: Session) {
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     val invalidMsg = stringResource(R.string.us_cleanup_inactive_invalid)
-    Dialog(onDismissRequest = { if (!loading) ui.inactiveCleanupOpen = false }) {
+    AppDialog(onDismissRequest = { if (!loading) ui.inactiveCleanupOpen = false }) {
         Column(
             Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -322,7 +322,7 @@ internal fun UsersScreenDialogs(
         // کاربرِ بدونِ تاریخِ انقضا در «افزودن روز» و کاربرِ بی‌سقف در «افزودن حجم»
         // هدفِ معتبر نیستند؛ عددِ واقعی جلوی اشتباهِ ادمین را می‌گیرد.
         LaunchedEffect(kind, ids) { ui.loadBulkPreview(kind, ids) }
-        Dialog(onDismissRequest = { ui.bulkAmountKind = null }) {
+        AppDialog(onDismissRequest = { ui.bulkAmountKind = null }) {
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -467,7 +467,7 @@ internal fun UsersScreenDialogs(
     if (ui.bulkGroupPicker) {
         val ids = ui.selectedUserIds.toSet()
         val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { ui.bulkGroupPicker = false }) {
+        AppDialog(onDismissRequest = { ui.bulkGroupPicker = false }) {
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -675,7 +675,7 @@ internal fun UsersScreenDialogs(
         )
     }
     if (ui.createMenuOpen) {
-        Dialog(onDismissRequest = { ui.createMenuOpen = false }) {
+        AppDialog(onDismissRequest = { ui.createMenuOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { ui.createMenuOpen = false; ui.createUser = true }
@@ -688,7 +688,7 @@ internal fun UsersScreenDialogs(
         BulkCreateUsersDialog(session = session, onDismiss = { ui.bulkCreateOpen = false }, onFinished = { n -> ui.bulkCreateOpen = false; if (n > 0) ui.load(resetHeader = false, silent = true) })
     }
     if (ui.exportChooserOpen) {
-        Dialog(onDismissRequest = { ui.exportChooserOpen = false }) {
+        AppDialog(onDismissRequest = { ui.exportChooserOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_export_title, ui.selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text(stringResource(R.string.us_export_desc), fontSize = 11.sp, color = themeState.mutedColor)
@@ -705,7 +705,7 @@ internal fun UsersScreenDialogs(
     }, session = session)
     ui.deleteUser?.let { user ->
         val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { ui.deleteUser = null }) {
+        AppDialog(onDismissRequest = { ui.deleteUser = null }) {
             Box(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Xxxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                     Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)

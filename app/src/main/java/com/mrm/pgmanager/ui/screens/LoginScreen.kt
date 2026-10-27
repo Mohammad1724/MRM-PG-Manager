@@ -4,8 +4,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +42,7 @@ import com.mrm.pgmanager.ui.components.*
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
+import com.mrm.pgmanager.ui.dialogs.SegmentedControl
 import com.mrm.pgmanager.ui.theme.GlassRed
 import com.mrm.pgmanager.ui.theme.ThemeState
 import androidx.compose.ui.res.stringResource
@@ -113,8 +115,8 @@ fun LoginScreen(
     // باید همان کارِ دکمهٔ «بازگشت» را بکند، نه اینکه اپ را ببندد.
     if (onBack != null) androidx.activity.compose.BackHandler { onBack() }
 
-    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().imePadding()) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = DsSpacing.Screen).padding(top = DsSpacing.Lg, bottom = DsSpacing.Xxxl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
+    Box(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()) {
+        LoginFormViewport {
             // نوار بالا: فقط سوییچِ زبان. دکمهٔ تنظیمات حذف شد چون تنظیماتِ کامل
             // پس از ورود در دسترس است و اینجا فقط باعث شلوغی و ورودِ اتفاقی به
             // دیالوگِ قدیمی می‌شد.
@@ -145,20 +147,16 @@ fun LoginScreen(
                     }
                 }
 
-                // سوییچِ روشِ ورود: رمز عبور (JWT ۲۴ساعته) / کلید API (بدون انقضا).
-                Row(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderSubtle), DsRadius.Md).padding(DsSpacing.Xs), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
-                    @Composable fun ModeTab(selected: Boolean, label: String, onClick: () -> Unit) {
-                        Box(
-                            Modifier.padding(vertical = 5.dp).weight(1f).height(30.dp).clip(DsRadius.Sm).clickable(enabled = !loading) { onClick(); error = null; urlError = null; userError = null; passError = null; keyError = null }
-                                .background(if (selected) theme.cardSurfaceColor else Color.Transparent)
-                                .border(BorderStroke(DsBorder.Hairline, if (selected) theme.borderColor else Color.Transparent), DsRadius.Sm)
-                                ,
-                            contentAlignment = Alignment.Center
-                        ) { Text(label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, color = if (selected) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                // Authentication modes remain available while idle and expose their selected state.
+                SegmentedControl(
+                    options = listOf(stringResource(R.string.login_mode_password), stringResource(R.string.login_mode_api_key)),
+                    selectedIndex = if (useApiKey) 1 else 0,
+                    enabled = !loading,
+                    onSelect = { index ->
+                        useApiKey = index == 1
+                        error = null; urlError = null; userError = null; passError = null; keyError = null
                     }
-                    ModeTab(!useApiKey, stringResource(R.string.login_mode_password)) { useApiKey = false }
-                    ModeTab(useApiKey, stringResource(R.string.login_mode_api_key)) { useApiKey = true }
-                }
+                )
 
                 // منطقِ ورود اینجا تعریف می‌شود چون فیلدهای فرم (کلید Done) و دکمه هر دو به آن نیاز دارند (B1).
                 val submitLogin: () -> Unit = submit@{
@@ -370,6 +368,26 @@ fun LoginScreen(
     }
 }
 
+/** The scrollable login viewport applies the keyboard inset once, before scrolling. */
+@Composable
+internal fun LoginFormViewport(
+    keyboardInsets: WindowInsets = WindowInsets.ime,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(Modifier.fillMaxSize().windowInsetsPadding(keyboardInsets)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("login_form_viewport")
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = DsSpacing.Screen)
+                .padding(top = DsSpacing.Lg, bottom = DsSpacing.Xxxl),
+            verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl),
+            content = content
+        )
+    }
+}
+
 /**
  * سوییچِ زبان در صفحهٔ ورود.
  *
@@ -395,12 +413,11 @@ private fun LanguageToggle(
     val nextLabel = if (currentIsFa) stringResource(R.string.language_en) else stringResource(R.string.language_fa)
     val switchLabel = stringResource(R.string.cd_change_language)
     Row(
-        Modifier.padding(vertical = 2.dp).height(36.dp).clip(DsRadius.Sm).clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }
+        Modifier.heightIn(min = 48.dp).clip(DsRadius.Sm).clickable { onLanguageChange(if (currentIsFa) "en" else "fa") }
             .background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
             .semantics { contentDescription = switchLabel }
-            
-            .padding(horizontal = DsSpacing.Mid),
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
@@ -455,6 +472,8 @@ private fun PGField(
 ) {
     val theme = LocalThemeState.current
     var visible by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     val focusManager = LocalFocusManager.current
     // C1: گره‌ی Autofill عمومیِ Compose 1.7 — با focus/click از چارچوب Autofill
     // اندروید (و مدیرهای رمز عبور) درخواست پیشنهاد پرکردن می‌کنیم. onFill همیشه
@@ -486,14 +505,22 @@ private fun PGField(
     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (error != null) GlassRed else theme.inkColor)
         Box(
-            Modifier.fillMaxWidth().height(44.dp).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, if (error != null) GlassRed else theme.controlBorderColor), DsRadius.Md)
-                .padding(horizontal = DsSpacing.FieldHorizontal),
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                .border(
+                    BorderStroke(
+                        if (focused) DsBorder.Focus else DsBorder.Hairline,
+                        if (error != null) GlassRed else if (focused) theme.accentTextColor else theme.controlBorderColor
+                    ),
+                    DsRadius.Md
+                )
+                .padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 RoundedAppIcon(icon, tint = theme.mutedColor, size = 16.dp)
                 androidx.compose.foundation.text.BasicTextField(
                     value = value, onValueChange = onValueChange, singleLine = true,
+                    interactionSource = interaction,
                     visualTransformation = if (isPassword && !visible) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType, imeAction = imeAction),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
@@ -508,7 +535,8 @@ private fun PGField(
                     modifier = Modifier
                         .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
                         .weight(1f)
-                        .then(autofillModifier),
+                        .then(autofillModifier)
+                        .semantics { contentDescription = label },
                     // متنِ راهنما و متنِ ورودی روی هم و هر دو وسط‌چینِ عمودی؛
                     // قبلاً بدونِ Box کنارِ هم رها شده بودند و هم‌تراز نبودند.
                     decorationBox = { inner ->
@@ -524,7 +552,7 @@ private fun PGField(
                     }
                 )
                 if (isPassword) {
-                    Box(Modifier.padding(2.dp).size(36.dp).clip(DsRadius.Sm).clickable { visible = !visible }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(48.dp).clip(DsRadius.Sm).clickable { visible = !visible }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) {
                         PasswordEyeIcon(visible = visible)
                     }
                 }

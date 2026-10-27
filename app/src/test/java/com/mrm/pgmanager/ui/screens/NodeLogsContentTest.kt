@@ -1,6 +1,11 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -217,6 +222,25 @@ class NodeLogsContentTest {
         // همان قاعدهٔ تب‌های تنظیمات: چیپِ کوچکِ زیر ۴۰dp روی گوشی لمسِ از دست رفته است.
         rule.onNodeWithText(str(R.string.nl_level_error)).assertHeightIsAtLeast(40.dp)
         rule.onNodeWithText(str(R.string.nl_time_all)).assertHeightIsAtLeast(40.dp)
+    }
+
+    @Test fun `selected filters have accessible state and forty eight dp targets`() {
+        render(filter = NodeLogFilter(levels = setOf(NodeLogLevel.Error), windowMs = 3_600_000L))
+        rule.onNodeWithText(str(R.string.nl_level_error))
+            .assertHeightIsAtLeast(48.dp).assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+        rule.onNodeWithText(str(R.string.nl_time_1h))
+            .assertHeightIsAtLeast(48.dp).assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test fun `log rows expose severity and expanded state without relying on color`() {
+        render(lines = sample.take(1))
+        rule.onNodeWithText(str(R.string.nl_row_error)).assertExists()
+        val row = rule.onNodeWithText(sample[0].message)
+        row.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.nl_line_collapsed)))
+            .performClick()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.nl_line_expanded)))
     }
 
     @Test fun `no connected node says why and still offers a refresh`() {

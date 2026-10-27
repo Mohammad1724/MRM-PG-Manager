@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PGStartAlign
@@ -104,7 +104,7 @@ internal fun InfraSectionHeader(
     }
 }
 
-/** دکمهٔ آیکونیِ کوچک با ناحیهٔ لمسیِ ۴۰dp. */
+/** A labeled icon action with an explicit minimum touch target. */
 @Composable
 internal fun InfraIconButton(
     icon: AppIcon,
@@ -115,7 +115,7 @@ internal fun InfraIconButton(
 ) {
     val theme = LocalThemeState.current
     Box(
-        Modifier.size(40.dp).clip(DsRadius.Sm)
+        Modifier.size(48.dp).clip(DsRadius.Sm)
             .clickable(enabled = enabled) { onClick() }
             .background(theme.searchBgColor)
             .semantics { contentDescription = description },
@@ -188,7 +188,7 @@ internal class InfraRowAction(val labelRes: Int, val danger: Boolean = false, va
  * سرتیتر هم همین دو را رزرو می‌کند، وگرنه ستون‌ها از هم باز می‌شوند.
  */
 private val InfraDotSlot = 12.dp
-private val InfraActionSlot = 40.dp
+private val InfraActionSlot = 48.dp
 
 /** سرِ ستون‌ها — یک‌بار بالای لیست، بیرونِ LazyColumn (همیشه دیدنی). */
 @Composable
@@ -286,7 +286,7 @@ internal fun InfraTableRow(
                         tint = theme.inkColor,
                         onClick = { menuOpen.value = true }
                     )
-                    DropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
+                    AppDropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
                         actions.forEach { a ->
                             DropdownMenuItem(
                                 text = {
