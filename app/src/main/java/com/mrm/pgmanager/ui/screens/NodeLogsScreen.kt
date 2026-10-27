@@ -392,10 +392,11 @@ internal fun NodeLogsContent(
 
             else -> {
                 BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                    val filterMaxHeight = maxHeight * 0.58f
                     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                         // Keep the log viewport available when filters wrap or the keyboard is open.
                         Column(
-                            Modifier.fillMaxWidth().heightIn(max = maxHeight * 0.58f)
+                            Modifier.fillMaxWidth().heightIn(max = filterMaxHeight)
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
                         ) {
