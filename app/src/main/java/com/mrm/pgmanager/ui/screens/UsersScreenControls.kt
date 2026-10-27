@@ -15,7 +15,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -373,7 +372,9 @@ internal fun FilterAndControlBar(
                 // مالک (`admin=`) — فقط وقتی پنل بیش از یک ادمین دارد.
                 if (admins.size > 1) {
                     Text(stringResource(R.string.us_owner_filter), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.padding(top = DsSpacing.Xs))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                    // ردیفِ ادمین‌ها کران‌دار نیست (هر ادمین یک چیپ)؛ با اسکرولِ افقی
+                    // فقط دو-سه چیپ دیده می‌شد و هیچ نوارِ اسکرولی هم خبر نمی‌داد.
+                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Sm, verticalGap = 0.dp) {
                         FilterChipItem(stringResource(R.string.us_owner_all), ownerFilter == null) { onOwnerFilterChange(null) }
                         admins.forEach { a ->
                             FilterChipItem(a.username, ownerFilter == a.username) { onOwnerFilterChange(a.username) }

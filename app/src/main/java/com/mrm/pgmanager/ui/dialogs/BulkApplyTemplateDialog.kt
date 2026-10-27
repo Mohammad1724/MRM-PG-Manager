@@ -109,10 +109,11 @@ fun BulkApplyTemplateDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                     PGSecondaryButton(stringResource(R.string.bt_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
                     val pickFirstMsg = stringResource(R.string.bt_pick_first)
+                    // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد.
                     PGPrimaryButton(stringResource(R.string.bt_apply), onClick = {
                         if (selectedTemplateId == null) formError = pickFirstMsg
                         else onApply(selectedTemplateId!!, note)
-                    }, modifier = Modifier.weight(1f))
+                    })
                 }
             }
         }

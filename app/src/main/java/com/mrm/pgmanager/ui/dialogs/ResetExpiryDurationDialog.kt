@@ -57,6 +57,7 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 PGSecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد.
                 PGPrimaryButton(
                     text = stringResource(R.string.re_apply),
                     icon = AppIcon.Check,
@@ -65,8 +66,7 @@ fun ResetExpiryDurationDialog(onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
                         val n = normalized.toIntOrNull()?.takeIf { it > 0 }
                         if (n == null) error = invalidMsg
                         else onConfirm(n)
-                    },
-                    modifier = Modifier.weight(1f)
+                    }
                 )
             }
         }

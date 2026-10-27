@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -199,7 +198,9 @@ fun BulkCreateUsersDialog(
                             Text(stringResource(R.string.bc_no_templates), fontSize = 11.sp, color = GlassRed)
                         }
                         if (useTemplate && templates.isNotEmpty()) {
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
+                            // نامِ تمپلیت‌ها معمولاً فارسیِ کش‌دار است و تعدادشان هم
+                            // ثابت نیست؛ همان دلیلی که چیپ‌ها را از اسکرولِ افقی درآوردیم.
+                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Sm, verticalGap = 0.dp) {
                                 templates.forEach { t ->
                                     val picked = selectedTemplate == t.id
                                     Box(Modifier.padding(vertical = 5.dp).height(30.dp).clip(DsRadius.Sm).clickable { selectedTemplate = t.id }.primarySurface(theme, picked, DsRadius.Sm, idle = theme.searchBgColor, idleBorder = theme.borderColor).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {

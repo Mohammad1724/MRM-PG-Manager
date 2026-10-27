@@ -121,12 +121,12 @@ fun NodeOrderDialog(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 PGSecondaryButton(stringResource(R.string.re_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                // بی‌وزن تا متنِ دکمه بریده نشود؛ «لغو» باقیِ جا را می‌گیرد.
                 PGPrimaryButton(
                     text = stringResource(R.string.st_node_order_save),
                     icon = AppIcon.Check,
                     enabled = order.size >= 2 && dirty.value,
-                    onClick = { onSave(order.map { it.id }) },
-                    modifier = Modifier.weight(1f)
+                    onClick = { onSave(order.map { it.id }) }
                 )
             }
         }

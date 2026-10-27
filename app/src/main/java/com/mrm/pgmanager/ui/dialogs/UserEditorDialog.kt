@@ -279,7 +279,9 @@ fun UserEditorDialog(
                                     fontSize = 11.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
                                 )
                             }
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                            // خودِ چیپ‌ها padding هفت‌dpی دارند، پس فاصله‌ها صفر است؛
+                            // فقط به‌جای اسکرولِ افقی، خط می‌شکنند.
+                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = 0.dp, verticalGap = 0.dp) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
                                         Modifier.padding(7.dp).height(26.dp).clip(DsRadius.Full).clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }.background(theme.searchBgColor)

@@ -94,7 +94,8 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
                         PGSecondaryButton(stringResource(R.string.cal_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                        PGPrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, modifier = Modifier.weight(1f), icon = AppIcon.Check)
+                        // بی‌وزن تا «تایید» با آیکونِ تیک جا بماند؛ «انصراف» باقیِ جا را می‌گیرد.
+                        PGPrimaryButton(stringResource(R.string.cal_confirm), onClick = { onDateSelected(JalaliCalendar.Date(y, m, d).toString()); onDismiss() }, icon = AppIcon.Check)
                     }
                 }
             }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,11 +16,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +58,7 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmText
+import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.components.PGBadge
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.PGSearchBar
@@ -473,9 +473,10 @@ internal fun NodeLogsContent(
                     NodeLogLevel.Info to stringResource(R.string.nl_level_info),
                     NodeLogLevel.Debug to stringResource(R.string.nl_level_debug)
                 )
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                PGWrapRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalGap = DsSpacing.Sm,
+                    verticalGap = DsSpacing.Xxs
                 ) {
                     levelLabels.forEach { (level, label) ->
                         NodeLogFilterChip(

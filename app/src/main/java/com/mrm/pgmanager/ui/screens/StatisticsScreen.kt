@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -455,7 +454,9 @@ fun StatisticsScreen(
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.traffic_usage), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    // چیپ‌ها به هم می‌چسبیدند و در عرضِ باریک (یا فونتِ بزرگ) آخری
+                    // نصفه بریده می‌شد؛ حالا خط می‌شکنند.
+                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == trafficRange
                             Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { trafficRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
@@ -494,7 +495,7 @@ fun StatisticsScreen(
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
                         StatsRange.entries.forEach { r ->
                             val sel = r == countRange
                             Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { countRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
@@ -509,7 +510,9 @@ fun StatisticsScreen(
                                 }
                             }
                         }
-                        Spacer(Modifier.width(DsSpacing.Lg))
+                        // Spacerِ انتهایی برای فاصله‌یِ «چیپ‌ها ← منوی معیار» در Rowِ
+                        // قبلی بود؛ PGWrapRow خودش افستِ خط‌ها را می‌شمارد، پس اینجا
+                        // فقط جایِ یک چیپِ خالی را می‌گرفت.
                     }
                     Text(stringResource(R.string.count_during_period), fontSize = 11.sp, color = theme.mutedColor)
                     val peakCount = remember(countPoints) { countPoints.maxOfOrNull { it.totalTraffic } ?: 0L }
