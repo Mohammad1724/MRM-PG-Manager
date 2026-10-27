@@ -38,12 +38,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.SuspendingPointerInputModifierNode
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import kotlinx.coroutines.Job
@@ -55,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
 /**
@@ -335,10 +338,12 @@ private data class PressScaleElement(
     }
 }
 
+// Compose 1.7 treats a delegating pointer node as a PointerInputModifierNode when density
+// changes. Implement the interface here and forward to the gesture handler explicitly.
 private class PressScaleNode(
     private var pressedScale: Float,
     private var enabled: Boolean
-) : DelegatingNode(), DrawModifierNode {
+) : DelegatingNode(), DrawModifierNode, PointerInputModifierNode {
 
     private val current = Animatable(1f)
     private var animation: Job? = null
@@ -363,6 +368,30 @@ private class PressScaleNode(
             }
         }
     )
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        pointer.onPointerEvent(pointerEvent, pass, bounds)
+    }
+
+    override fun onCancelPointerInput() {
+        pointer.onCancelPointerInput()
+        resetPressFeedback()
+    }
+
+    override fun onDensityChange() {
+        pointer.onDensityChange()
+        resetPressFeedback()
+    }
+
+    override fun onViewConfigurationChange() {
+        pointer.onViewConfigurationChange()
+        resetPressFeedback()
+    }
+
+    private fun resetPressFeedback() {
+        animation?.cancel()
+        if (isAttached && current.value != 1f) animateTo(1f)
+    }
 
     fun update(scale: Float, enabled: Boolean) {
         pressedScale = scale

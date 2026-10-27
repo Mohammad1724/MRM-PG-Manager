@@ -131,6 +131,44 @@ class WcagContrastTest {
         )
     }
 
+    @Test fun `content on custom accents meets AA across the color cube`() {
+        val warmInk = argb(0x42, 0x20, 0x06)
+        for (r in 0..255 step 51) for (g in 0..255 step 51) for (b in 0..255 step 51) {
+            val accent = argb(r, g, b)
+            val content = WcagContrast.contentOnAccent(accent, warmInk)
+            assertTrue(
+                "Accent $r,$g,$b has insufficient content contrast: ${WcagContrast.ratio(content, accent)}",
+                WcagContrast.ratio(content, accent) >= WcagContrast.AA_TEXT
+            )
+        }
+    }
+
+    @Test fun `text on a midtone surface chooses the accessible direction`() {
+        val surface = argb(0x99, 0x99, 0x99)
+        val result = WcagContrast.forTextOn(argb(0x88, 0x88, 0x88), surface)
+        assertTrue(WcagContrast.ratio(result, surface) >= WcagContrast.AA_TEXT)
+    }
+
+    @Test fun `text contrast reaches AA on sampled opaque backgrounds`() {
+        val foregrounds = listOf(argb(0x88, 0x88, 0x88), argb(0xDC, 0x26, 0x26), argb(0xFA, 0xCC, 0x15))
+        for (r in 0..255 step 51) for (g in 0..255 step 51) for (b in 0..255 step 51) {
+            val surface = argb(r, g, b)
+            for (foreground in foregrounds) {
+                val result = WcagContrast.forTextOn(foreground, surface)
+                assertTrue("Surface $r,$g,$b must reach AA", WcagContrast.ratio(result, surface) >= WcagContrast.AA_TEXT)
+            }
+        }
+    }
+
+    @Test fun `danger button content contrasts with its light and dark surfaces`() {
+        val danger = argb(0xDC, 0x26, 0x26) // Matches GlassRed (DsSemantic.Danger).
+        for (surface in listOf(argb(0xFF, 0xFF, 0xFF), argb(0x19, 0x1A, 0x1E), argb(0x13, 0x13, 0x16))) {
+            val background = WcagContrast.mix(danger, surface, 0.12)
+            val content = WcagContrast.forTextOn(danger, background)
+            assertTrue("Danger content must contrast with its tinted surface", WcagContrast.ratio(content, background) >= WcagContrast.AA_TEXT)
+        }
+    }
+
     @Test fun `hsl round trip keeps the color`() {
         val c = argb(0x8B, 0x5C, 0xF6)
         val (h, s, l) = WcagContrast.toHsl(c)

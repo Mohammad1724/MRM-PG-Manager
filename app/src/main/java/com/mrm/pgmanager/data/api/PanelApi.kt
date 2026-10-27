@@ -52,7 +52,6 @@ import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
-import java.io.IOException
 
 /**
  * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
@@ -617,26 +616,13 @@ object PanelApi {
      * خطاها مثلِ بقیهٔ مسیرها `detail`ِ پنل را در message نگه می‌دارند تا
      * `ApiErrorMapper` بتواند ۴۰۳ «مجوزِ nodes.logs نداری» را خوانا نشان بدهد.
      */
-    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection =
-        withContext(Dispatchers.IO) {
-            val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
-                .header("Accept", "text/event-stream")
-                .header("Cache-Control", "no-cache")
-                .get().build()
-            val call = streamClient.newCall(request)
-            val response = try {
-                call.execute()
-            } catch (e: IOException) {
-                call.cancel()
-                throw e
-            }
-            if (!response.isSuccessful) {
-                val detail = errorDetail(response.body?.string())
-                response.close()
-                error("Node logs failed: ${response.code} $detail".trim())
-            }
-            NodeLogConnection(call, response)
-        }
+    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection {
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
+            .header("Accept", "text/event-stream")
+            .header("Cache-Control", "no-cache")
+            .get().build()
+        return connectNodeLog(streamClient.newCall(request), ::errorDetail)
+    }
 
     /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
     /**

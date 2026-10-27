@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import androidx.compose.ui.res.stringResource
@@ -526,7 +527,7 @@ fun DashboardScreen(
                                 Text(chartRange.label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                                 Text("▾", fontSize = 11.sp, color = theme.mutedColor)
                             }
-                            androidx.compose.material3.DropdownMenu(
+                            AppDropdownMenu(
                                 expanded = chartMenuOpen,
                                 onDismissRequest = { chartMenuOpen = false }
                             ) {

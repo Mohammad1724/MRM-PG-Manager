@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +34,8 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGPageHeader
+import com.mrm.pgmanager.ui.components.PGTabBar
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -62,7 +65,6 @@ import com.mrm.pgmanager.ui.theme.primarySurface
 @Composable
 fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
     val theme = LocalThemeState.current
-    val backLabel = stringResource(R.string.cd_back)
     // ایندکسِ تب با rememberSaveable نگه داشته می‌شود تا با چرخشِ صفحه یا
     // بازسازیِ activity (تغییرِ زبان) کاربر به تبِ اول برنگردد.
     var tab by rememberSaveable { mutableStateOf(0) }
@@ -73,7 +75,7 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
     )
 
     Column(
-        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
+        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()
             .padding(
                 start = DsSpacing.Screen, end = DsSpacing.Screen,
                 top = DsSpacing.Screen, bottom = DsSpacing.Mid
@@ -81,58 +83,18 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // ── سربرگ: برگشت + عنوان (هم‌سبکِ سربرگِ تنظیمات/گروه‌ها)
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-        ) {
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                    .semantics { contentDescription = backLabel },
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.infra_title), fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.infra_subtitle),
-                    fontSize = 11.sp, color = theme.mutedColor
-                )
-            }
-        }
+        PGPageHeader(
+            title = stringResource(R.string.infra_title),
+            subtitle = stringResource(R.string.infra_subtitle),
+            onBack = onBack
+        )
 
         // ── تب‌ها: سه گزینه، هم‌عرض، با ارتفاعِ لمسیِ ۴۰dp.
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(DsSpacing.Xs),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-        ) {
-            tabs.forEachIndexed { index, labelRes ->
-                val selected = tab == index
-                Box(
-                    Modifier.weight(1f).heightIn(min = 40.dp).clip(DsRadius.Full)
-                        .clickable { tab = index }
-                        .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
-                        .pressScale(0.96f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(labelRes), fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) theme.onPrimary else theme.mutedColor,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
+        PGTabBar(
+            labels = tabs.map { stringResource(it) },
+            selectedIndex = tab,
+            onSelect = { tab = it }
+        )
 
         Box(Modifier.fillMaxWidth().weight(1f)) {
             when (tab) {

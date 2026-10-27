@@ -39,7 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
@@ -49,6 +49,8 @@ import com.mrm.pgmanager.data.model.PanelAdminRole
 import com.mrm.pgmanager.data.model.PermissionScope
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGPageHeader
+import com.mrm.pgmanager.ui.components.PGTabBar
 import com.mrm.pgmanager.ui.components.MrmEmptyState
 import com.mrm.pgmanager.ui.components.MrmErrorState
 import com.mrm.pgmanager.ui.components.MrmText
@@ -92,7 +94,6 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
     val context = LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
-    val backLabel = stringResource(R.string.cd_back)
 
     val canReadRoles = AdminAccess.can("admin_roles", "read")
     var tab by rememberSaveable { mutableStateOf(0) }
@@ -138,31 +139,11 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
             ),
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
+        PGPageHeader(
+            title = stringResource(R.string.ar_title),
+            subtitle = stringResource(R.string.ar_subtitle),
+            onBack = onBack
         ) {
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                    .semantics { contentDescription = backLabel },
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.ar_title), fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.ar_subtitle),
-                    fontSize = 11.sp, color = theme.mutedColor, maxLines = 2
-                )
-            }
             InfraIconButton(
                 icon = AppIcon.Refresh,
                 description = stringResource(R.string.refresh),
@@ -171,30 +152,11 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
             )
         }
 
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(DsSpacing.Xs),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-        ) {
-            tabs.forEachIndexed { index, labelRes ->
-                val selected = tab == index
-                Box(
-                    Modifier.weight(1f).heightIn(min = 40.dp).clip(DsRadius.Full)
-                        .clickable { tab = index }
-                        .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
-                        .pressScale(0.96f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(labelRes), fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) theme.onPrimary else theme.mutedColor,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
+        PGTabBar(
+            labels = tabs.map { stringResource(it) },
+            selectedIndex = tab,
+            onSelect = { tab = it }
+        )
 
         loadError?.let { InfraBanner(text = it, success = false) { loadError = null } }
 
@@ -367,7 +329,7 @@ private fun RoleDetailsDialog(role: PanelAdminRole, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val resources = remember(role.id) { role.permissions.keys.sortedBy { resourceLabelOrder(it) } }
 
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         Column(
             Modifier.fillMaxWidth().heightIn(max = 520.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)

@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -273,6 +274,8 @@ fun UserDetailsDialog(
 
     val copiedMsg = stringResource(R.string.ud_copied)
     val closeLabel = stringResource(R.string.ud_close)
+    val copySubscriptionLabel = stringResource(R.string.us_copy_sub_link)
+    val showQrLabel = stringResource(R.string.us_show_qr)
     val subFailedMsg = stringResource(R.string.ud_sub_failed)
     val unlimitedLabel = stringResource(R.string.ud_unlimited)
     val revokedMsg = stringResource(R.string.ud_revoked)
@@ -310,7 +313,7 @@ fun UserDetailsDialog(
     // «کارت ← جزئیات ← ویرایش» همیشه حداکثر یک لایه باز باشد (معیار UX).
     if (!editOpen) {
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -339,7 +342,7 @@ fun UserDetailsDialog(
                             MrmText(lastSeenText(currentUser.onlineAt, currentUser.isOnline), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, isTechnical = true)
                         }
                     }
-                    Box(Modifier.padding(6.dp).size(28.dp).clip(CircleShape).clickable(onClick = onDismiss).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onDismiss).background(theme.searchBgColor).semantics { contentDescription = closeLabel }.pressScale(0.9f), contentAlignment = Alignment.Center) {
                         Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     }
                 }
@@ -368,8 +371,8 @@ fun UserDetailsDialog(
                             RoundedAppIcon(AppIcon.Link, tint = theme.mutedColor, size = 13.dp)
                             MrmText(currentUser.subUrl.ifBlank { "—" }, fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, isTechnical = true, modifier = Modifier.weight(1f))
                             Row {
-                                Box(Modifier.padding(7.dp).size(26.dp).clip(CircleShape).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }.background(theme.searchBgColor).pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 12.dp) }
-                                Box(Modifier.padding(7.dp).size(26.dp).clip(CircleShape).clickable { ensureSub { qrOpen = true } }.background(theme.searchBgColor).pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 12.dp) }
+                                Box(Modifier.size(48.dp).clip(CircleShape).clickable { ensureSub { url -> val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; cb.setPrimaryClip(android.content.ClipData.newPlainText("Sub", url)); com.mrm.pgmanager.ui.feedback.AppFeedback.success(copiedMsg) } }.background(theme.searchBgColor).semantics { contentDescription = copySubscriptionLabel }.pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Copy, tint = theme.inkColor, size = 16.dp) }
+                                Box(Modifier.size(48.dp).clip(CircleShape).clickable { ensureSub { qrOpen = true } }.background(theme.searchBgColor).semantics { contentDescription = showQrLabel }.pressScale(0.9f), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Qr, tint = theme.inkColor, size = 16.dp) }
                             }
                         }
                     }
@@ -524,7 +527,7 @@ private fun NotesSheetDialog(note: String, onDismiss: () -> Unit, onEdit: () -> 
     val context = LocalContext.current
     val copiedMsg = stringResource(R.string.ud_note_copied)
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),

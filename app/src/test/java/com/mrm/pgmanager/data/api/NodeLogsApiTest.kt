@@ -1,11 +1,19 @@
 package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.Session
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -109,6 +117,52 @@ class NodeLogsApiTest {
         // صفحه با همین تشخیص «نشست منقضی» را از «پنل در دسترس نیست» جدا می‌کند
         // (تبدیلِ خودِ نوع فقط در مسیرهای JSON اتفاق می‌افتد).
         assertTrue("۴۰۱ باید به SessionExpiredException تبدیل شود: $error", PanelApi.isUnauthorized(error))
+    }
+
+    @Test fun `natural stream eof reports ended before closing resources`() {
+        runBlocking {
+            server.enqueue(MockResponse().setBody("data: one\n\ndata: two\n\n"))
+            val connection = PanelApi.openNodeLogs(session, 9)
+            val received = mutableListOf<String>()
+
+            val result = readNodeLogEvents(connection) { received.add(it) }
+
+            assertEquals(listOf("one", "two"), received)
+            assertEquals(NodeLogReadResult.Ended, result)
+            assertTrue(connection.closed)
+        }
+    }
+
+    @Test fun `intentional close is not reported as a server eof`() {
+        runBlocking {
+            server.enqueue(MockResponse().setBody("data: one\n\n"))
+            val connection = PanelApi.openNodeLogs(session, 9)
+            connection.close()
+
+            val result = readNodeLogEvents(connection) { error("A closed stream must not emit events") }
+
+            assertEquals(NodeLogReadResult.Closed, result)
+        }
+    }
+
+    @Test fun `cancelling a connection waiting for response headers completes promptly`() = runBlocking {
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+        val opening = launch(Dispatchers.IO) { PanelApi.openNodeLogs(session, 9) }
+        assertNotNull(server.takeRequest(2, TimeUnit.SECONDS))
+
+        withTimeout(3_000) { opening.cancelAndJoin() }
+        assertTrue(opening.isCancelled)
+    }
+
+    @Test fun `cancelling a blocked stream reader closes the connection promptly`() = runBlocking {
+        server.enqueue(MockResponse().setBody("data: late\n\n").setBodyDelay(3, TimeUnit.SECONDS))
+        val connection = PanelApi.openNodeLogs(session, 9)
+        val reader = launch { readNodeLogEvents(connection) { } }
+        delay(100)
+
+        withTimeout(2_000) { reader.cancelAndJoin() }
+        assertTrue(reader.isCancelled)
+        assertTrue(connection.closed)
     }
 
     @Test fun `closing the stream ends the reader instead of throwing`() = runBlocking {

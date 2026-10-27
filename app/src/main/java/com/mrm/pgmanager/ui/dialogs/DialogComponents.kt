@@ -7,6 +7,9 @@ import com.mrm.pgmanager.R
 import android.content.Context
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -58,13 +62,11 @@ fun SettingsSwitchRow(
     onChange: (Boolean) -> Unit
 ) {
     val theme = LocalThemeState.current
-    // اعلامِ صریحِ وضعیت برای صفحه‌خوان (فاز ۷.۲): Switch در Compose وضعیتش را
-    // می‌گوید، ولی این ردیفِ کلیک‌پذیر است و کاربر ممکن است روی متن هم بزند.
     val stateText = stringResource(if (checked) R.string.a11y_switch_on else R.string.a11y_switch_off)
     Row(
-        Modifier.fillMaxWidth().clip(DsRadius.Lg)
-            .clickable(enabled = enabled) { onChange(!checked) }
-            .semantics { if (enabled) stateDescription = stateText }
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Lg)
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
+            .semantics { stateDescription = stateText }
             .padding(vertical = DsSpacing.Sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
@@ -73,7 +75,7 @@ fun SettingsSwitchRow(
             Text(title, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
             if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = theme.mutedColor)
         }
-        Switch(checked = checked, onCheckedChange = { if (enabled) onChange(it) }, enabled = enabled)
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 
@@ -89,26 +91,33 @@ fun SettingsStepper(
     onChange: (Int) -> Unit
 ) {
     val theme = LocalThemeState.current
+    val decreaseLabel = stringResource(R.string.a11y_decrease_value, label)
+    val increaseLabel = stringResource(R.string.a11y_increase_value, label)
+    val canDecrease = enabled && value > range.first
+    val canIncrease = enabled && value < range.last
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-        Text(label, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
+        Text(label, Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (enabled) theme.inkColor else theme.mutedColor)
         Box(
-            Modifier.padding(5.dp).size(30.dp).clip(DsRadius.Sm).clickable(enabled = enabled) { onChange((value - step).coerceIn(range)) }
-                .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
-                ,
+            Modifier.size(48.dp).clip(DsRadius.Sm)
+                .background(if (canDecrease) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
+                .semantics { contentDescription = decreaseLabel }
+                .clickable(enabled = canDecrease) { onChange((value - step).coerceIn(range)) },
             contentAlignment = Alignment.Center
-        ) { Text("−", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+        ) { Text("−", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (canDecrease) theme.inkColor else theme.disabledTextColor) }
         Box(
-            Modifier.width(66.dp).height(30.dp).clip(DsRadius.Sm)
+            Modifier.widthIn(min = 66.dp, max = 100.dp).heightIn(min = 40.dp).clip(DsRadius.Sm)
                 .background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Sm),
+                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Sm)
+                .padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Xs),
             contentAlignment = Alignment.Center
-        ) { Text("$value $unit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        ) { Text("$value $unit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         Box(
-            Modifier.padding(5.dp).size(30.dp).clip(DsRadius.Sm).clickable(enabled = enabled) { onChange((value + step).coerceIn(range)) }
-                .background(if (enabled) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
-                ,
+            Modifier.size(48.dp).clip(DsRadius.Sm)
+                .background(if (canIncrease) theme.accentPrimary.copy(.18f) else theme.searchBgColor)
+                .semantics { contentDescription = increaseLabel }
+                .clickable(enabled = canIncrease) { onChange((value + step).coerceIn(range)) },
             contentAlignment = Alignment.Center
-        ) { Text("+", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
+        ) { Text("+", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (canIncrease) theme.inkColor else theme.disabledTextColor) }
     }
 }
 
@@ -123,24 +132,26 @@ fun SegmentedControl(
 ) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Full)
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(DsRadius.Full)
             .background(theme.searchBgColor.copy(alpha = 0.6f))
             .border(BorderStroke(1.2.dp, theme.borderColor), DsRadius.Full)
             .padding(DsSpacing.Xs)
+            .selectableGroup()
             .graphicsLayer(alpha = if (enabled) 1f else 0.55f),
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
-                Modifier.weight(1f).fillMaxHeight().clip(DsRadius.Full)
+                Modifier.weight(1f).heightIn(min = 48.dp).clip(DsRadius.Full)
                     .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
-                    .clickable(enabled = enabled) { onSelect(index) },
+                    .selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = { onSelect(index) })
+                    .padding(horizontal = DsSpacing.Xs, vertical = DsSpacing.Sm),
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                     if (icons.getOrNull(index) != null) RoundedAppIcon(icons[index], tint = if (selected) theme.onPrimary else theme.mutedColor, size = 16.dp)
-                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = if (selected) theme.onPrimary else theme.mutedColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -295,7 +306,10 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
             .padding(6.dp)
             .size(18.dp)
             .clip(DsRadius.Xs)
-            .clickable { com.mrm.pgmanager.utils.Haptics.tick(context); onToggle() }
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = {
+                com.mrm.pgmanager.utils.Haptics.tick(context)
+                onToggle()
+            })
             .background(bg)
             .border(BorderStroke(DsBorder.Hairline, borderCol), DsRadius.Xs)
             .semantics { contentDescription = if (selected) unselectLabel else selectLabel },
@@ -310,14 +324,14 @@ fun CheckboxIcon(selected: Boolean, onToggle: () -> Unit, modifier: Modifier = M
             Canvas(Modifier.fillMaxSize()) {
                 val stroke = Stroke(width = size.minDimension * .14f, cap = StrokeCap.Round)
                 drawLine(
-                    color = Color.White,
+                    color = theme.onPrimary,
                     start = Offset(size.width * .23f, size.height * .52f),
                     end = Offset(size.width * .43f, size.height * .71f),
                     strokeWidth = stroke.width,
                     cap = stroke.cap
                 )
                 drawLine(
-                    color = Color.White,
+                    color = theme.onPrimary,
                     start = Offset(size.width * .43f, size.height * .71f),
                     end = Offset(size.width * .78f, size.height * .30f),
                     strokeWidth = stroke.width,
@@ -348,7 +362,6 @@ fun ChipSelector(
     selected: String?,
     onSelect: (String) -> Unit
 ) {
-    val theme = LocalThemeState.current
     // قبلاً یک Row + horizontalScroll بود: چیپِ آخر نصفه در نیمه بریده می‌شد و هیچ
     // نشانه‌ای نبود که «ادامه دارد» — گزارشِ کاربر: «اسکرول افقی اصلاً جالب نیست».
     // حالا چیپ‌ها در عرضِ موجود می‌شکنند (PGWrapRow) و لیستِ بلند یک «+N دیگر»
@@ -362,7 +375,7 @@ fun ChipSelector(
         else -> (0 until CHIP_SELECTOR_VISIBLE_LIMIT).toList()
     }
     val hiddenCount = values.size - visible.size
-    PGWrapRow(horizontalGap = DsSpacing.Sm, verticalGap = DsSpacing.Xs) {
+    PGWrapRow(modifier = Modifier.selectableGroup(), horizontalGap = DsSpacing.Sm, verticalGap = DsSpacing.Xs) {
         visible.forEach { i ->
             ChipSelectorItem(
                 label = labels.getOrElse(i) { values[i] },
@@ -375,6 +388,7 @@ fun ChipSelector(
                 label = stringResource(R.string.chip_more_fmt, hiddenCount),
                 active = false,
                 emphasized = true,
+                isOption = false,
                 onClick = { expanded = true }
             )
         }
@@ -382,28 +396,30 @@ fun ChipSelector(
             ChipSelectorItem(
                 label = stringResource(R.string.chip_show_less),
                 active = false,
+                isOption = false,
                 onClick = { expanded = false }
             )
         }
     }
 }
 
-/** یک چیپِ انتخاب — ارتفاعِ حداقلِ ۴۰dp برای ناحیهٔ لمسیِ قابل‌قبول. */
+/** A selectable chip; expansion actions remain ordinary buttons. */
 @Composable
 private fun ChipSelectorItem(
     label: String,
     active: Boolean,
     emphasized: Boolean = false,
+    isOption: Boolean = true,
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
     val tint = when {
-        active -> theme.accentPrimary
-        emphasized -> theme.accentPrimary
+        active -> theme.inkColor
+        emphasized -> theme.accentTextColor
         else -> theme.mutedColor
     }
     Box(
-        Modifier.heightIn(min = 40.dp).clip(DsRadius.Sm).clickable { onClick() }
+        Modifier.heightIn(min = 48.dp).clip(DsRadius.Sm)
             .background(
                 if (active) theme.accentPrimary.copy(0.16f)
                 else if (emphasized) theme.accentPrimary.copy(0.08f)
@@ -418,16 +434,25 @@ private fun ChipSelectorItem(
                 ),
                 DsRadius.Sm
             )
-            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md)
+            .then(
+                if (isOption) Modifier.selectable(selected = active, role = Role.RadioButton, onClick = onClick)
+                else Modifier.clickable(onClick = onClick)
+            )
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+        contentAlignment = Alignment.CenterStart
     ) {
-        Text(
-            label,
-            fontSize = 11.sp,
-            fontWeight = if (active || emphasized) FontWeight.SemiBold else FontWeight.Normal,
-            color = tint,
-            maxLines = 1,
-            textAlign = PGStartAlign()
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
+            if (active && isOption) RoundedAppIcon(AppIcon.Check, tint = tint, size = 14.dp)
+            Text(
+                label,
+                fontSize = 12.sp,
+                fontWeight = if (active || emphasized) FontWeight.SemiBold else FontWeight.Normal,
+                color = tint,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = PGStartAlign()
+            )
+        }
     }
 }
 
