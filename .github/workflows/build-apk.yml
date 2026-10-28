@@ -40,24 +40,54 @@ jobs:
           from pathlib import Path
           import re
 
-          files = sorted(Path('.ci-previous-report').rglob('*.html'))
-          count = 0
-          for path in files:
+          for path in sorted(Path('.ci-previous-report').rglob('*.html')):
               if path.parent.name != 'classes':
                   continue
               html = path.read_text(encoding='utf-8', errors='replace')
               for heading, raw in re.findall(r'<h3[^>]*>(.*?)</h3>.*?<pre[^>]*>(.*?)</pre>', html, re.S):
                   title = unescape(re.sub(r'<[^>]+>', '', heading))
-                  trace = unescape(re.sub(r'<[^>]+>', '', raw))
-                  lines = trace.splitlines()
-                  detail = '\n'.join(lines[:4] + [line for line in lines[4:] if 'com.mrm.' in line][:12])[:3500]
+                  if not any(word in title for word in ('creation only', 'status dropdown', 'labelled amount')):
+                      continue
+                  trace = unescape(re.sub(r'<[^>]+>', '', raw))[:3500]
                   def esc(text):
                       return text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print(f'::warning title={esc(path.stem + " - " + title)}::{esc(detail)}')
-                  count += 1
-          print(f'Annotated {count} previous failures from {len(files)} report files')
+                  print(f'::warning title={esc(path.stem + " - " + title)}::{esc(trace)}')
           PY
 
+      - name: Download previous screenshots (temporary)
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-screenshots
+          path: .ci-previous-screenshots
+          run-id: 40668945734
+          github-token: ${{ github.token }}
+
+      - name: List previous screenshots (temporary)
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path('.ci-previous-screenshots').rglob('*.png'):
+              print(f'::notice title=Screenshot::{path.name}: {path.stat().st_size} bytes')
+          PY
+
+
+  diagnose-dialog-idleness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Run focused dialog diagnostics (temporary)
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --tests '*WindowIdlenessDiagnosticTest' --console=plain 2>&1 | tee diagnostic.log
+      - name: Annotate focused failures (temporary)
+        if: failure()
+        run: python3 tools/ci-annotate.py diagnostic.log app/build/test-results/testDebugUnitTest
 
   build:
     runs-on: ubuntu-latest
