@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -39,7 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -243,7 +247,13 @@ fun PGTabBar(
         // An outer list should move the tabs as one item, including at large font scales.
         modifier = modifier.fillMaxWidth()
             .then(if (scrollWithParent) Modifier else Modifier.heightIn(max = 176.dp))
-            .clip(DsRadius.Lg).background(theme.searchBgColor)
+            // Clip the drawing, not pointer hit testing: every corner of a 48 dp tab remains tappable.
+            .drawWithCache {
+                val outline = DsRadius.Lg.createOutline(size, layoutDirection, this)
+                val path = Path().apply { addOutline(outline) }
+                onDrawWithContent { clipPath(path) { this@onDrawWithContent.drawContent() } }
+            }
+            .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .then(if (scrollWithParent) Modifier else Modifier.verticalScroll(scrollState))
             .padding(horizontal = DsSpacing.Xs, vertical = if (compact) 0.dp else DsSpacing.Xs)

@@ -21,29 +21,6 @@ permissions:
   contents: read
 
 jobs:
-  focused-ui-regressions:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: gradle/actions/setup-gradle@v3
-      - name: Run focused UI regressions (temporary)
-        run: |
-          set -o pipefail
-          chmod +x gradlew
-          ./gradlew testDebugUnitTest --console=plain \
-            --tests '*HostEditorComposeTest.status filter saves independently*' \
-            --tests '*HostEditorComposeTest.host inputs expose labels*' \
-            --tests '*HostEditorComposeTest.certificate verification*' \
-            --tests '*UserEditorChoiceDialogTest.creation only offers*' \
-            --tests '*DebtorEditFieldTest' 2>&1 | tee diagnostic.log
-      - name: Annotate focused failures (temporary)
-        if: failure()
-        run: python3 tools/ci-annotate.py diagnostic.log app/build/test-results/testDebugUnitTest
-
   build:
     runs-on: ubuntu-latest
 

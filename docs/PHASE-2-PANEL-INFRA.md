@@ -148,13 +148,22 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   This does not change the existing backup format or add authentication to AES-CBC.
 - For this follow-up, 55 existing standalone draft/state/API tests and four new pure
   choice-filter and password-transformation tests passed in the temporary JVM harness.
-  Resource, contrast, widget and Kotlin static validators passed. Host, user-editor,
-  tab, and password UI sources type-checked with Compose and dependency stubs; the
-  stubs include a Material3 menu signature, so this is not an Android build. New
-  Robolectric tests cover the dialogs, password input, backup, and RTL tab geometry,
-  but have not been run here. The preceding CI runs and screenshots validate older
-  commits only; these UI changes still need Android CI, real-device/IME and visual
-  verification in both languages and themes.
+  Resource, contrast, widget and Kotlin static validators passed. In Android CI, the
+  focused editor tests passed, and the full suite at `a88c8f9` had one remaining
+  failure at the outer corner of a compact tab touch target. The tab
+  container now clips drawing rather than pointer hit testing; the PR checks provide
+  the result for the current commit.
+- Robolectric could not reliably idle a native choice dialog window, including with a
+  paused test clock and explicit drawing. Host tests therefore render the same dialog
+  content through a test window host, and the debtor test renders its extracted content.
+  They exercise selection and save behavior but do not verify actual platform-window
+  back, focus or keyboard behavior. Production still uses the Android dialog.
+- Four SHA-256-verified screenshots from `c4398c7` were inspected: English and large
+  Persian RTL infrastructure tabs, the English Network section, and the dark Persian
+  status selector at 320 × 480 dp and 1.8× text. The clear label wraps on the small
+  screen. The Network screenshot predates the subsequent input touch-bounds fix. These
+  synthetic captures do not replace real-device, IME, TalkBack, real-panel, or broader
+  language and theme verification.
 
 ### Verification and limits for the preceding host-sheet work
 

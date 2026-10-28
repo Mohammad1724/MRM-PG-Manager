@@ -223,8 +223,15 @@ class SharedHeaderControlsTest {
         assertTrue("The selection must be inset from the top", visual.top - targetBounds.top >= 3f * pixelsPerDp)
         assertTrue("The selection must be inset from the bottom", targetBounds.bottom - visual.bottom >= 3f * pixelsPerDp)
         saveViewScreenshot(composeView, screenshot)
-        target.performTouchInput { click(Offset(1f, 1f)) }
-        rule.runOnIdle { assertEquals(0, clicked) }
+        val corners = listOf(
+            Offset(1f, 1f), Offset(targetBounds.width - 1f, 1f),
+            Offset(1f, targetBounds.height - 1f), Offset(targetBounds.width - 1f, targetBounds.height - 1f)
+        )
+        for (corner in corners) {
+            rule.runOnIdle { clicked = -1 }
+            target.performTouchInput { click(corner) }
+            rule.runOnIdle { assertEquals("The tab must accept touches at $corner", 0, clicked) }
+        }
     }
 
     private fun saveViewScreenshot(view: View, name: String) {
