@@ -116,7 +116,8 @@ class HostEditorComposeTest {
     @Config(qualifiers = "fa-rIR-w320dp-h800dp")
     fun `dirty editor asks before discarding in rtl with large dark text`() {
         render(direction = LayoutDirection.Rtl, fontScale = 1.8f, dark = true)
-        rule.onNodeWithTag("host_editor_remark").performTextClearance().performTextInput("Changed")
+        rule.onNodeWithTag("host_editor_remark").performTextClearance()
+        rule.onNodeWithTag("host_editor_remark").performTextInput("Changed")
         rule.onNodeWithContentDescription(str(R.string.cd_close)).performClick()
         rule.onNodeWithText(str(R.string.host_editor_discard_title)).assertIsDisplayed()
         rule.runOnIdle { assertFalse(dismissed) }
