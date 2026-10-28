@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.HostSecurity
+import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.dialogs.SettingsSwitchRow
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.normalizePersianDigits
@@ -34,6 +35,7 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
         DraftText(draft, "host", enabled, onChange, hint = commaHint, singleLine = false)
         DraftText(draft, "path", enabled, onChange)
         DraftSwitch(draft, "random_user_agent", enabled, onChange)
+        HostHttpHeadersEditor(draft, enabled, onChange)
     }
     HostEditorSection(stringResource(R.string.host_security), "security", enabled) {
         HostEditorSelect(
@@ -123,6 +125,47 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
         DraftText(draft, "wireguard_overrides.keepalive_seconds", enabled, onChange, number = true)
         DraftText(draft, "wireguard_overrides.reserved", enabled, onChange)
         DraftText(draft, "wireguard_overrides.dns", enabled, onChange, hint = commaHint, singleLine = false)
+    }
+}
+
+@Composable
+private fun HostHttpHeadersEditor(draft: HostDraft, enabled: Boolean, onChange: (HostDraft) -> Unit) {
+    val theme = LocalThemeState.current
+    Column(Modifier.fillMaxWidth().testTag("host_editor_http_headers"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.host_editor_http_headers), Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+            HostEditorSmallIconButton(
+                icon = AppIcon.Add, label = stringResource(R.string.host_editor_http_header_add),
+                enabled = enabled && draft.httpHeadersSupported, tag = "host_editor_http_header_add",
+                onClick = { onChange(draft.withHttpHeaders(draft.httpHeaders + HostHttpHeader("", ""))) }
+            )
+        }
+        if (!draft.httpHeadersSupported) {
+            Text(stringResource(R.string.host_editor_http_headers_unsupported), fontSize = 12.sp, color = theme.mutedColor)
+        } else {
+            Text(stringResource(R.string.host_editor_http_headers_hint), fontSize = 12.sp, color = theme.mutedColor)
+            draft.httpHeaders.forEachIndexed { index, header ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.host_editor_http_header_number, index + 1), Modifier.weight(1f),
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+                    HostEditorSmallIconButton(
+                        icon = AppIcon.Close, label = stringResource(R.string.host_editor_http_header_remove, index + 1),
+                        enabled = enabled, tag = "host_editor_http_header_remove_$index",
+                        onClick = { onChange(draft.withHttpHeaders(draft.httpHeaders.filterIndexed { i, _ -> i != index })) }
+                    )
+                }
+                HostEditorTextField(
+                    label = stringResource(R.string.host_editor_http_header_name, index + 1), value = header.name,
+                    enabled = enabled, tag = "host_editor_http_header_name_$index", technical = true,
+                    onChange = { value -> onChange(draft.withHttpHeaders(draft.httpHeaders.toMutableList().also { it[index] = header.copy(name = value) })) }
+                )
+                HostEditorTextField(
+                    label = stringResource(R.string.host_editor_http_header_value, index + 1), value = header.value,
+                    enabled = enabled, tag = "host_editor_http_header_value_$index", technical = true,
+                    onChange = { value -> onChange(draft.withHttpHeaders(draft.httpHeaders.toMutableList().also { it[index] = header.copy(value = value) })) }
+                )
+            }
+        }
     }
 }
 

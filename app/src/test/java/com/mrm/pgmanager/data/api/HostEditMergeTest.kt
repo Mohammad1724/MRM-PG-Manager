@@ -66,6 +66,24 @@ class HostEditMergeTest {
         }
     }
 
+    @Test fun `header maps conflict as a whole and never erase concurrent additions`() {
+        val first = JSONObject(original).put("http_headers", JSONObject().put("X-One", "one"))
+        val latest = JSONObject(first.toString()).put("priority", 4)
+        latest.getJSONObject("http_headers").put("X-Server", "added")
+        val mine = JSONObject().put("X-One", "edited")
+        val conflict = assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(first.toString(), latest.toString(), 7, listOf(HostFieldChange("http_headers", mine)))
+        }
+        assertEquals(listOf("http_headers"), conflict.fields)
+        val deletion = assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(first.toString(), latest.toString(), 7, listOf(HostFieldChange("http_headers", null)))
+        }
+        assertEquals(listOf("http_headers"), deletion.fields)
+        val otherEdit = HostEditMerge.merge(first.toString(), latest.toString(), 7, listOf(HostFieldChange("remark", "new")))
+        assertEquals("added", otherEdit.getJSONObject("http_headers").getString("X-Server"))
+        assertEquals(4, otherEdit.getInt("priority"))
+    }
+
     @Test fun `invalid snapshots and overlapping edits cannot produce a put body`() {
         assertThrows(IllegalArgumentException::class.java) {
             HostEditMerge.merge("{}", original, 7, listOf(HostFieldChange("remark", "mine")))

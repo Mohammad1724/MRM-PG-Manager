@@ -2,6 +2,8 @@ package com.mrm.pgmanager.data.api
 
 import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.ui.screens.HostDraft
+import com.mrm.pgmanager.ui.screens.HostHttpHeader
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -75,6 +77,36 @@ class HostEditorApiTest {
         }
         assertTrue(result.exceptionOrNull() is HostEditConflictException)
         assertEquals(listOf("remark"), (result.exceptionOrNull() as HostEditConflictException).fields)
+        assertEquals("GET", server.takeRequest().method)
+        assertNull(server.takeRequest(100, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun `http header draft goes through real guarded update and preserves unrelated fields`() = runBlocking {
+        val raw = """{"id":5,"remark":"old","address":["a"],"http_headers":{"X-Future":"keep","X-Remove":"old"}}"""
+        val host = existing(raw)
+        val draft = HostDraft.from(host).withHttpHeaders(listOf(HostHttpHeader("X-Future", "keep"), HostHttpHeader("X-New", "added")))
+        server.enqueue(MockResponse().setBody(JSONObject(raw).put("server_added", "preserved").toString()))
+        server.enqueue(MockResponse().setBody(raw))
+        PanelApi.modifyHostSafely(session, host, draft.changes(host))
+        assertEquals("GET", server.takeRequest().method)
+        val put = server.takeRequest()
+        assertEquals("PUT", put.method)
+        val body = JSONObject(put.body.readUtf8())
+        val headers = body.getJSONObject("http_headers")
+        assertEquals("keep", headers.getString("X-Future"))
+        assertEquals("added", headers.getString("X-New"))
+        assertFalse(headers.has("X-Remove"))
+        assertEquals("preserved", body.getString("server_added"))
+    }
+
+    @Test fun `concurrent server header changes stop the guarded put`() = runBlocking {
+        val raw = """{"id":5,"remark":"old","address":["a"],"http_headers":{"X-A":"one"}}"""
+        val latest = JSONObject(raw).apply { getJSONObject("http_headers").put("X-Server", "new") }
+        val host = existing(raw)
+        val draft = HostDraft.from(host).withHttpHeaders(listOf(HostHttpHeader("X-A", "mine")))
+        server.enqueue(MockResponse().setBody(latest.toString()))
+        val result = runCatching { PanelApi.modifyHostSafely(session, host, draft.changes(host)) }
+        assertTrue(result.exceptionOrNull() is HostEditConflictException)
         assertEquals("GET", server.takeRequest().method)
         assertNull(server.takeRequest(100, TimeUnit.MILLISECONDS))
     }

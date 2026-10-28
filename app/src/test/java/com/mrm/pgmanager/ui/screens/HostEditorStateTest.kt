@@ -38,6 +38,20 @@ class HostEditorStateTest {
         assertNull(state.notice)
     }
 
+    @Test fun `http header edits survive a failed save and cannot change while saving`() {
+        val state = HostEditorState()
+        state.open(account, host)
+        val requestId = requireNotNull(state.active).requestId
+        val edited = requireNotNull(state.active).draft.withHttpHeaders(listOf(HostHttpHeader("X-Client", "value")))
+        state.update(requestId, edited)
+        assertNotNull(state.beginSave(requestId))
+        state.update(requestId, edited.withHttpHeaders(emptyList()))
+        state.dismiss(requestId)
+        assertEquals(listOf(HostHttpHeader("X-Client", "value")), state.active?.draft?.httpHeaders)
+        state.failSave(requestId, "failed")
+        assertEquals(edited, state.active?.draft)
+    }
+
     @Test fun `opening another editor does not discard a pending list refresh`() {
         val state = HostEditorState()
         state.open(account, host)

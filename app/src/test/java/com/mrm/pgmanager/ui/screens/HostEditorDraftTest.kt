@@ -7,6 +7,7 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -47,6 +48,8 @@ class HostEditorDraftTest {
         assertEquals("future_status", values.getString(1))
         assertEquals("disabled", values.getString(2))
         assertFalse(draft.disabled)
+        val baseline = HostDraft.from(original)
+        assertFalse(baseline.copy(status = baseline.status.reversed()).isDirtyComparedTo(baseline))
     }
 
     @Test fun `template is only changed after an explicit selection`() {
@@ -149,6 +152,101 @@ class HostEditorDraftTest {
         val draft = HostDraft.from(original).withField("fragment_settings.sing_box.fragment_fallback_delay", "")
         val change = draft.changes(original).single()
         assertEquals("", change.value)
+    }
+
+    @Test fun `http headers are edited as a complete map and untouched values stay exact`() {
+        val raw = JSONObject(original.raw).put("http_headers", JSONObject()
+            .put("X-Future", " untouched ").put("User-Agent", "original"))
+        val host = original.copy(raw = raw.toString())
+        val draft = HostDraft.from(host)
+        assertTrue(draft.httpHeadersSupported)
+        assertTrue(draft.changes(host).isEmpty())
+        val reordered = draft.withHttpHeaders(draft.httpHeaders.reversed())
+        assertFalse(reordered.isDirtyComparedTo(draft))
+        assertTrue(reordered.changes(host).isEmpty())
+        val edited = draft.withHttpHeaders(draft.httpHeaders.map {
+            if (it.name == "User-Agent") it.copy(value = "new agent") else it
+        } + HostHttpHeader("X-New", ""))
+        assertNull(edited.validation(host))
+        val change = edited.changes(host).single()
+        assertEquals(listOf("http_headers"), change.path)
+        val headers = change.value as JSONObject
+        assertEquals(" untouched ", headers.getString("X-Future"))
+        assertEquals("new agent", headers.getString("User-Agent"))
+        assertEquals("", headers.getString("X-New"))
+        assertFalse(edited.toString().contains("new agent"))
+        val merged = HostEditMerge.merge(host.raw, host.raw, host.id, listOf(change))
+        assertEquals("keep", merged.getJSONObject("final_mask_settings").getString("unknown"))
+        assertEquals(" untouched ", merged.getJSONObject("http_headers").getString("X-Future"))
+    }
+
+    @Test fun `explicit header deletion uses null and undo preserves original empty representation`() {
+        val host = original.copy(raw = JSONObject(original.raw).put("http_headers", JSONObject().put("X-A", "a")).toString())
+        val draft = HostDraft.from(host)
+        val removed = draft.withHttpHeaders(emptyList())
+        assertNull(removed.validation(host))
+        assertNull(removed.changes(host).single().value)
+        assertTrue(HostEditMerge.merge(host.raw, host.raw, host.id, removed.changes(host)).isNull("http_headers"))
+        listOf(JSONObject.NULL, JSONObject()).forEach { existing ->
+            val emptyHost = original.copy(raw = JSONObject(original.raw).put("http_headers", existing).toString())
+            val emptyDraft = HostDraft.from(emptyHost)
+            val undo = emptyDraft.withHttpHeaders(listOf(HostHttpHeader("X-Test", "a"))).withHttpHeaders(emptyList())
+            assertTrue(undo.changes(emptyHost).isEmpty())
+            assertFalse(undo.isDirtyComparedTo(emptyDraft))
+        }
+    }
+
+    @Test fun `invalid header names duplicates and control characters block serialization`() {
+        val draft = HostDraft.from(original)
+        listOf("", "Bad Name", "Bad:Name", "caf\u00e9", "x\ny").forEach { name ->
+            val bad = draft.withHttpHeaders(listOf(HostHttpHeader(name, "ok")))
+            assertEquals("http_header_name", bad.validation(original)?.code)
+            assertThrows(IllegalArgumentException::class.java) { bad.changes(original) }
+        }
+        val duplicate = draft.withHttpHeaders(listOf(HostHttpHeader("X-Test", "a"), HostHttpHeader("x-test", "b")))
+        assertEquals("http_header_duplicate", duplicate.validation(original)?.code)
+        assertThrows(IllegalArgumentException::class.java) { duplicate.changes(original) }
+        listOf("bad\r\nvalue", "bad\u0000value", "bad\u007fvalue", "bad\u0085value").forEach { value ->
+            val bad = draft.withHttpHeaders(listOf(HostHttpHeader("X-Test", value)))
+            assertEquals("http_header_value", bad.validation(original)?.code)
+            assertThrows(IllegalArgumentException::class.java) { bad.changes(original) }
+        }
+        val valid = draft.withHttpHeaders(listOf(HostHttpHeader("X-Foo_1", "value\twith tab")))
+        assertNull(valid.validation(original))
+        assertEquals("value\twith tab", (valid.changes(original).single().value as JSONObject).getString("X-Foo_1"))
+        val tokenCharacters = "!#$%&'*+-.^_`|~"
+        tokenCharacters.forEach { character ->
+            assertNull(draft.withHttpHeaders(listOf(HostHttpHeader("X$character", "ok"))).validation(original))
+        }
+        (0..0x9f).map(Int::toChar).filter { it != '\t' && it.isISOControl() }.forEach { control ->
+            assertEquals("http_header_value", draft.withHttpHeaders(listOf(HostHttpHeader("X-Test", "a${control}b"))).validation(original)?.code)
+        }
+    }
+
+    @Test fun `unsupported header formats are read only and preserved when other fields change`() {
+        listOf(JSONObject().put("X-Future", 42), JSONArray(listOf("x")), "unexpected", 4).forEach { value ->
+            val host = original.copy(raw = JSONObject(original.raw).put("http_headers", value).toString())
+            val draft = HostDraft.from(host)
+            assertFalse(draft.httpHeadersSupported)
+            val changes = draft.copy(remark = "updated").changes(host)
+            assertEquals(listOf("remark"), changes.map { it.path.single() })
+            val merged = HostEditMerge.merge(host.raw, host.raw, host.id, changes)
+            assertEquals(JSONObject(host.raw).get("http_headers").toString(), merged.get("http_headers").toString())
+            val attempted = draft.withHttpHeaders(listOf(HostHttpHeader("X-A", "a")))
+            assertEquals("http_headers_unsupported", attempted.validation(host)?.code)
+            assertThrows(IllegalArgumentException::class.java) { attempted.changes(host) }
+        }
+    }
+
+    @Test fun `new host can send the real http headers map`() {
+        val blank = PanelHost(id = 0, remark = "")
+        val draft = HostDraft.from(blank).copy(remark = "new", addressesText = "example.com", inboundTag = "inbound")
+            .withHttpHeaders(listOf(HostHttpHeader("X-First", "one"), HostHttpHeader("X-Second", "two")))
+        assertNull(draft.validation(blank))
+        val body = JSONObject()
+        HostEditMerge.apply(body, draft.changes(blank))
+        assertEquals("one", body.getJSONObject("http_headers").getString("X-First"))
+        assertEquals("two", body.getJSONObject("http_headers").getString("X-Second"))
     }
 
     @Test fun `new hosts require an inbound while existing hosts are not silently changed`() {

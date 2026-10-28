@@ -1445,6 +1445,8 @@
     <string name="host_editor_basics">اطلاعات پایه</string>
     <string name="host_editor_user_status">وضعیت‌های مجاز کاربران</string>
     <string name="host_editor_status_hint">اگر هیچ گزینه‌ای انتخاب نشود، همهٔ وضعیت‌های کاربر مجازند. این فیلتر از روشن یا خاموش بودن خود هاست جداست.</string>
+    <string name="host_editor_status_done">پایان</string>
+    <string name="host_editor_status_clear">پاک کردن همهٔ انتخاب‌ها</string>
     <string name="host_editor_no_status">بدون فیلتر: همهٔ وضعیت‌های کاربران</string>
     <string name="host_editor_unknown_status">وضعیت ناشناخته: %1$s</string>
     <string name="host_editor_enabled">هاست فعال باشد</string>
@@ -1464,6 +1466,17 @@
     <string name="host_editor_conflict">یکی از فیلدهای ویرایش‌شده در سرور هم تغییر کرده است. تغییرات شما هنوز در فرم هستند؛ برای رفع تداخل، فرم را ببندید، فهرست را تازه کنید و هاست را دوباره باز کنید.</string>
     <string name="host_editor_invalid_field">مقدار «%1$s» را بررسی کنید.</string>
     <string name="host_editor_network">شبکه</string>
+    <string name="host_editor_http_headers">هدرهای HTTP</string>
+    <string name="host_editor_http_headers_hint">نام و مقدار هر هدر را وارد کنید. حروف نام هدر به بزرگی و کوچکی حساس نیستند؛ مقدار ممکن است محرمانه باشد.</string>
+    <string name="host_editor_http_headers_unsupported">قالب هدرهای ذخیره‌شده پشتیبانی نمی‌شود؛ این مقادیر بدون تغییر حفظ خواهند شد.</string>
+    <string name="host_editor_http_header_add">افزودن هدر HTTP</string>
+    <string name="host_editor_http_header_number">هدر %1$d</string>
+    <string name="host_editor_http_header_remove">حذف هدر HTTP شمارهٔ %1$d</string>
+    <string name="host_editor_http_header_name">نام هدر %1$d</string>
+    <string name="host_editor_http_header_value">مقدار هدر %1$d</string>
+    <string name="host_editor_http_header_invalid_name">نام هدر HTTP را بدون فاصله یا نویسهٔ نامعتبر وارد کنید.</string>
+    <string name="host_editor_http_header_duplicate">نام هدرهای HTTP باید بدون توجه به بزرگی حروف، یکتا باشد.</string>
+    <string name="host_editor_http_header_invalid_value">مقدار هدر HTTP نمی‌تواند خط جدید یا نویسهٔ کنترلی داشته باشد.</string>
     <string name="host_editor_network_host">هدر Host</string>
     <string name="host_editor_path">مسیر</string>
     <string name="host_editor_random_agent">عامل کاربری تصادفی</string>

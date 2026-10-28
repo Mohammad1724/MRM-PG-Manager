@@ -8,8 +8,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -17,8 +28,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.HostXrayTemplate
 import com.mrm.pgmanager.data.model.PanelHost
@@ -29,6 +43,7 @@ import com.mrm.pgmanager.ui.theme.ThemeState
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -51,6 +66,8 @@ class HostEditorComposeTest {
     private var current: HostDraft? = null
     private var saved: HostDraft? = null
     private var dismissed = false
+    private val saving = mutableStateOf(false)
+    private val serverError = mutableStateOf<String?>(null)
 
     @Before fun setUp() {
         MotionPrefs.reduceMotion = true
@@ -68,21 +85,22 @@ class HostEditorComposeTest {
         direction: LayoutDirection = LayoutDirection.Ltr,
         fontScale: Float = 1f,
         dark: Boolean = false,
-        inbounds: HostOptions<String> = HostOptions.Ready(listOf("VLESS-TLS"))
+        inbounds: HostOptions<String> = HostOptions.Ready(listOf("VLESS-TLS")),
+        initial: PanelHost = host
     ) {
         rule.setContent {
             val density = LocalDensity.current
-            var draft by remember { mutableStateOf(HostDraft.from(host)) }
+            var draft by remember { mutableStateOf(HostDraft.from(initial)) }
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale),
                 LocalLayoutDirection provides direction,
                 LocalThemeState provides ThemeState(isDark = dark)
             ) {
                 HostEditorContent(
-                    initial = host,
+                    initial = initial,
                     draft = draft,
-                    saving = false,
-                    error = null,
+                    saving = saving.value,
+                    error = serverError.value,
                     onDraftChange = { draft = it; current = it },
                     inbounds = inbounds,
                     templates = HostOptions.Ready<HostXrayTemplate>(emptyList()),
@@ -97,12 +115,59 @@ class HostEditorComposeTest {
 
     @Test fun `status filter saves independently of host enabled state`() {
         render()
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_status_limited").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_done").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_save").performClick()
         rule.runOnIdle {
             assertEquals(listOf("limited"), saved?.status)
             assertEquals(false, saved?.disabled)
         }
+    }
+
+    @Test fun `status dropdown supports multiple choices unknown values and clear all`() {
+        val initial = host.copy(
+            status = listOf("active", "future_status"),
+            raw = """{"id":3,"remark":"Example","address":["example.com"],"status":["active","future_status"]}"""
+        )
+        render(initial = initial)
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_active").performScrollTo().assertIsOn()
+        rule.onNodeWithTag("host_editor_status_future_status").performScrollTo().assertIsOn()
+        rule.onNodeWithTag("host_editor_status_limited").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(listOf("active", "future_status", "limited"), current?.status) }
+        rule.onNodeWithTag("host_editor_status_clear").performScrollTo().performClick()
+        rule.runOnIdle {
+            assertEquals(emptyList<String>(), current?.status)
+            assertEquals(false, current?.disabled)
+        }
+        rule.onNodeWithTag("host_editor_status_done").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle { assertEquals(emptyList<String>(), saved?.status) }
+    }
+
+    @Test fun `http header rows add edit save and delete actual draft values`() {
+        render()
+        rule.onNodeWithTag("host_editor_section_network").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_http_header_add").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_http_header_name_0").performScrollTo().performTextInput("X-Client")
+        rule.onNodeWithTag("host_editor_http_header_value_0").performScrollTo().performTextInput("my-client")
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle { assertEquals(listOf(HostHttpHeader("X-Client", "my-client")), saved?.httpHeaders) }
+        rule.onNodeWithTag("host_editor_http_header_remove_0").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_save").assertIsNotEnabled()
+        rule.runOnIdle {
+            assertEquals(emptyList<HostHttpHeader>(), current?.httpHeaders)
+            assertTrue(requireNotNull(current).changes(host).isEmpty())
+        }
+    }
+
+    @Test fun `unsupported saved http headers cannot be edited`() {
+        val initial = host.copy(raw = """{"id":3,"remark":"Example","address":["example.com"],"http_headers":{"X-Future":42}}""")
+        render(initial = initial)
+        rule.onNodeWithTag("host_editor_section_network").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_http_headers_unsupported)).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_http_header_add").performScrollTo().assertIsNotEnabled()
     }
 
     @Test fun `inbound can be entered manually when its options cannot be loaded`() {
@@ -120,6 +185,106 @@ class HostEditorComposeTest {
             assertEquals("false", current?.field("allowinsecure"))
             assertEquals(false, current?.changes(host)?.single()?.value)
         }
+    }
+
+    private fun assertActionsWithinEditor() {
+        val window = rule.onNodeWithTag("host_editor_window").fetchSemanticsNode().boundsInRoot
+        val actionsNode = rule.onNodeWithTag("host_editor_actions").assertIsDisplayed().fetchSemanticsNode()
+        val actions = actionsNode.boundsInRoot
+        assertEquals(actionsNode.size.width.toFloat(), actions.width, 1f)
+        assertEquals(actionsNode.size.height.toFloat(), actions.height, 1f)
+        assertTrue(actions.left >= window.left && actions.right <= window.right)
+        assertTrue(actions.top >= window.top && actions.bottom <= window.bottom)
+        listOf("host_editor_cancel", "host_editor_save").forEach { tag ->
+            val node = rule.onNodeWithTag(tag).assertIsDisplayed()
+                .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).fetchSemanticsNode()
+            val button = node.boundsInRoot
+            assertEquals(node.size.width.toFloat(), button.width, 1f)
+            assertEquals(node.size.height.toFloat(), button.height, 1f)
+            assertTrue(button.left >= actions.left && button.right <= actions.right)
+            assertTrue(button.top >= actions.top && button.bottom <= actions.bottom)
+        }
+    }
+
+    @Test fun `sheet keeps compact close touch target and fixed actions while content scrolls`() {
+        render()
+        rule.onNodeWithTag("host_editor_drag_handle", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_close").assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+        rule.onNodeWithTag("host_editor_close_visual", useUnmergedTree = true)
+            .assertWidthIsEqualTo(32.dp).assertHeightIsEqualTo(32.dp)
+        rule.onNodeWithTag("host_editor_close_icon", useUnmergedTree = true)
+            .assertWidthIsEqualTo(18.dp).assertHeightIsEqualTo(18.dp)
+        assertActionsWithinEditor()
+        val before = rule.onNodeWithTag("host_editor_actions").fetchSemanticsNode().boundsInRoot
+        rule.onNodeWithTag("host_editor_section_wireguard").performScrollTo()
+        assertActionsWithinEditor()
+        val after = rule.onNodeWithTag("host_editor_actions").fetchSemanticsNode().boundsInRoot
+        assertEquals(before.top, after.top, 1f)
+        assertEquals(before.bottom, after.bottom, 1f)
+        rule.onNodeWithTag("host_editor_cancel").performClick()
+        rule.runOnIdle { assertTrue(dismissed) }
+    }
+
+    @Test
+    @Config(qualifiers = "fa-rIR-w320dp-h480dp")
+    fun `short rtl sheet keeps actions reachable with large text and a long error`() {
+        serverError.value = "A long server error. ".repeat(30)
+        render(direction = LayoutDirection.Rtl, fontScale = 1.8f, dark = true)
+        rule.onNodeWithTag("host_editor_close").assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_close_icon", useUnmergedTree = true)
+            .assertWidthIsEqualTo(18.dp).assertHeightIsEqualTo(18.dp)
+        rule.onNodeWithTag("host_editor_error").assertIsDisplayed()
+        assertActionsWithinEditor()
+        rule.onNodeWithTag("host_editor_section_wireguard").performScrollTo()
+        assertActionsWithinEditor()
+    }
+
+    @Test fun `dragging a dirty sheet requests confirmation without discarding the draft`() {
+        render()
+        rule.onNodeWithTag("host_editor_remark").performTextClearance()
+        rule.onNodeWithTag("host_editor_remark").performTextInput("Edited")
+        rule.onNodeWithTag("host_editor_drag_handle", useUnmergedTree = true).performTouchInput {
+            swipeDown(startY = 8.dp.toPx(), endY = 400.dp.toPx(), durationMillis = 250)
+        }
+        rule.onNodeWithText(str(R.string.host_editor_discard_title)).assertIsDisplayed()
+        rule.runOnIdle {
+            assertFalse(dismissed)
+            assertEquals("Edited", current?.remark)
+        }
+        rule.onNodeWithText(str(R.string.host_editor_discard)).performClick()
+        rule.runOnIdle { assertTrue(dismissed) }
+    }
+
+    @Test fun `canceling discard keeps the draft and allows saving`() {
+        render()
+        rule.onNodeWithTag("host_editor_remark").performTextClearance()
+        rule.onNodeWithTag("host_editor_remark").performTextInput("Edited")
+        rule.onNodeWithTag("host_editor_cancel").performClick()
+        val title = str(R.string.host_editor_discard_title)
+        rule.onNodeWithText(title).assertIsDisplayed()
+        val confirmation = SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, title)
+        rule.onNode(hasText(str(R.string.cancel)) and hasAnyAncestor(confirmation)).performClick()
+        rule.onNodeWithText(title).assertDoesNotExist()
+        rule.onNodeWithTag("host_editor_remark").assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle {
+            assertFalse(dismissed)
+            assertEquals("Edited", saved?.remark)
+        }
+    }
+
+    @Test fun `saving prevents all dismissal actions and sheet gestures`() {
+        render()
+        rule.runOnIdle { saving.value = true }
+        rule.onNodeWithTag("host_editor_close").assertIsNotEnabled()
+        rule.onNodeWithTag("host_editor_cancel").assertIsNotEnabled()
+        rule.onNodeWithTag("host_editor_save").assertIsNotEnabled()
+        rule.onNodeWithTag("host_editor_drag_handle", useUnmergedTree = true).performTouchInput {
+            swipeDown(startY = 8.dp.toPx(), endY = 400.dp.toPx(), durationMillis = 250)
+        }
+        rule.onNodeWithTag("host_editor_window").assertIsDisplayed()
+        rule.onNodeWithText(str(R.string.host_editor_discard_title)).assertDoesNotExist()
+        rule.runOnIdle { assertFalse(dismissed) }
     }
 
     @Test

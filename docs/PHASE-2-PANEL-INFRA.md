@@ -95,19 +95,30 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 ## Host editor update (2026-10-28)
 
-- The mobile editor now uses a full-height, scrollable dialog with a fixed header and
-  actions, editable basics and priority, separate host enablement and user-status
-  filters, a searchable inbound selector, and a searchable Xray subscription-template
-  selector. The selectors use the actual `/api/inbounds` (`system.read`) and
+- The mobile editor uses a bottom sheet with a scrollable body, fixed header and
+  actions, editable basics and priority, separate host enablement and a multiselect
+  user-status dropdown, a searchable inbound selector, and a searchable Xray
+  subscription-template selector. The selectors use the actual `/api/inbounds` (`system.read`) and
   `/api/client_templates/simple` (`client_templates.read_simple`) responses; failures
   remain visible and do not clear existing values. Creating a host requires an inbound;
   manual tag entry is available if the list is empty or cannot be loaded.
-- The expandable editors cover network, TLS certificate-verification inheritance,
-  ECH, parts of XHTTP/gRPC/WebSocket, Xray and sing-box fragmentation, selected mux
-  settings, VLESS routing and WireGuard overrides. This is **not full parity** with
-  the web editor: HTTP headers, noise, final masks, additional transport/mux controls,
-  and other unsupported fields are not editable here. Untouched values are carried
-  forward from the fresh response, subject to the receiving server's behavior.
+- The expandable editors cover network (including HTTP header name/value pairs), TLS
+  certificate-verification inheritance, ECH, parts of XHTTP/gRPC/WebSocket, Xray and
+  sing-box fragmentation, selected mux settings, VLESS routing and WireGuard overrides.
+  This is **not full parity** with the web editor: noise, final masks, additional
+  transport/mux controls, and other unsupported fields are not editable here. Untouched
+  values are carried forward from the fresh response, subject to the receiving server's
+  behavior.
+- HTTP headers use the panel's `dict[str, str] | null` contract. Edits validate token
+  names, case-insensitive duplicates and control characters; removing every entry sends
+  null. The entire header map is a conflict unit so a concurrent addition or deletion
+  prevents a guarded PUT instead of being overwritten. Unsupported stored formats are
+  read-only and preserved. Header values remain in the in-memory draft and are redacted
+  from the new header object's string representation; they are not saved in a Bundle.
+- Dismissing a dirty bottom sheet by close, cancel, back, scrim or drag is intended to
+  request confirmation, and dismissal is blocked while saving. The visible close surface
+  is 32dp inside a 48dp touch target. The status dropdown preserves unknown selections
+  until explicitly removed or cleared; no selection means all user statuses.
 - `allowinsecure` is tri-state: null inherits from the inbound, false verifies
   certificates, and true disables verification. Priority defaults to zero on creation;
   smaller numbers normally come first, but randomized ordering may override that.
@@ -122,7 +133,15 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 ### Verification and limits
 
-- 46 standalone JUnit tests passed using the actual API, models, OkHttp, Okio and
+- The bottom-sheet and HTTP-header changes have 55 passing standalone JVM tests across
+  draft, state, merge, API and infrastructure, using the actual API implementation and
+  MockWebServer with a temporary compiler harness. Kotlin-generated HTTP-header map
+  and null-deletion payloads were also accepted by the upstream `CreateHost` Pydantic
+  model with some dependencies stubbed. The Compose UI sources compile in the harness
+  with dependency stubs. The new Robolectric/Compose tests and the full Android Gradle
+  build have **not** been run for these changes; the previous CI results
+  below predate them and do not validate the updated sheet.
+- Before the bottom-sheet change, 46 standalone JUnit tests passed using the actual API, models, OkHttp, Okio and
   MockWebServer, including the state/draft/merge suite. An upstream Pydantic model accepted a
   Kotlin-generated request with 19 field assertions, with some dependencies stubbed.
   These are not a real server, device test, or an Android Gradle build.

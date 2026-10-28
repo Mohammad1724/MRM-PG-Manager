@@ -1446,6 +1446,8 @@
     <string name="host_editor_basics">Basic information</string>
     <string name="host_editor_user_status">Allowed user statuses</string>
     <string name="host_editor_status_hint">Leave all unchecked to include every user status. This is separate from the host enabled switch.</string>
+    <string name="host_editor_status_done">Done</string>
+    <string name="host_editor_status_clear">Clear all selections</string>
     <string name="host_editor_no_status">No filter: all user statuses</string>
     <string name="host_editor_unknown_status">Unknown status: %1$s</string>
     <string name="host_editor_enabled">Host enabled</string>
@@ -1465,6 +1467,17 @@
     <string name="host_editor_conflict">This host changed on the server in a field you edited. Your edits are still here; close the editor, refresh the list and reopen the host to resolve the conflict.</string>
     <string name="host_editor_invalid_field">Check the value of %1$s.</string>
     <string name="host_editor_network">Network</string>
+    <string name="host_editor_http_headers">HTTP headers</string>
+    <string name="host_editor_http_headers_hint">Add name and value pairs. Names are case-insensitive; values may be sensitive.</string>
+    <string name="host_editor_http_headers_unsupported">These saved headers use an unsupported format. They will be kept unchanged.</string>
+    <string name="host_editor_http_header_add">Add HTTP header</string>
+    <string name="host_editor_http_header_number">Header %1$d</string>
+    <string name="host_editor_http_header_remove">Remove HTTP header %1$d</string>
+    <string name="host_editor_http_header_name">Header %1$d name</string>
+    <string name="host_editor_http_header_value">Header %1$d value</string>
+    <string name="host_editor_http_header_invalid_name">Enter a valid HTTP header name without spaces or invalid characters.</string>
+    <string name="host_editor_http_header_duplicate">HTTP header names must be unique, ignoring case.</string>
+    <string name="host_editor_http_header_invalid_value">HTTP header values cannot contain line breaks or control characters.</string>
     <string name="host_editor_network_host">Host header</string>
     <string name="host_editor_path">Path</string>
     <string name="host_editor_random_agent">Random user agent</string>

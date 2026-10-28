@@ -5,6 +5,7 @@ import com.mrm.pgmanager.data.model.HostValidation
 import com.mrm.pgmanager.data.model.PanelHost
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 internal enum class HostFieldType { TEXT, SET, LIST, INTEGER, BOOLEAN, NULLABLE_BOOLEAN, CHOICE }
 
@@ -132,6 +133,15 @@ internal val HOST_EDITABLE_FIELDS = listOf(
 )
 
 internal data class HostDraftProblem(val code: String, val field: String? = null)
+internal data class HostHttpHeader(val name: String, val value: String) {
+    override fun toString(): String = "HostHttpHeader(name=$name, value=<redacted>)"
+}
+
+private fun validHeaderName(name: String): Boolean = name.isNotEmpty() && name.all {
+    it in 'A'..'Z' || it in 'a'..'z' || it in '0'..'9' || it in "!#$%&'*+-.^_`|~"
+}
+
+private fun validHeaderValue(value: String): Boolean = value.all { it == '\t' || !it.isISOControl() }
 
 /** In-memory draft; the editor state holder retains it across activity recreation. */
 internal data class HostDraft(
@@ -144,6 +154,9 @@ internal data class HostDraft(
     val status: List<String>,
     val templateId: Int?,
     val templateTouched: Boolean,
+    val httpHeaders: List<HostHttpHeader>,
+    val httpHeadersSupported: Boolean,
+    val httpHeadersTouched: Boolean,
     val fields: Map<String, String>
 ) {
     val addresses: List<String> get() = hostStringValues(addressesText)
@@ -151,11 +164,37 @@ internal data class HostDraft(
 
     fun field(key: String): String = fields[key].orEmpty()
     fun withField(key: String, value: String): HostDraft = copy(fields = fields + (key to value))
+    fun withHttpHeaders(headers: List<HostHttpHeader>): HostDraft = copy(httpHeaders = headers, httpHeadersTouched = true)
+
+    private fun sameHttpHeaders(original: HostDraft): Boolean =
+        httpHeaders.size == original.httpHeaders.size &&
+            httpHeaders.associate { it.name to it.value } == original.httpHeaders.associate { it.name to it.value }
+
+    fun isDirtyComparedTo(original: HostDraft): Boolean {
+        val sameHeaders = sameHttpHeaders(original)
+        return copy(
+            status = if (status.toSet() == original.status.toSet()) original.status else status,
+            httpHeaders = if (sameHeaders) original.httpHeaders else httpHeaders,
+            httpHeadersTouched = if (sameHeaders) original.httpHeadersTouched else httpHeadersTouched
+        ) != original
+    }
+
+    private fun httpHeadersProblem(original: HostDraft): String? {
+        if (!httpHeadersTouched) return null
+        if (!httpHeadersSupported || !original.httpHeadersSupported) return "http_headers_unsupported"
+        if (sameHttpHeaders(original)) return null
+        if (httpHeaders.any { !validHeaderName(it.name) }) return "http_header_name"
+        val names = httpHeaders.map { it.name.lowercase(Locale.ROOT) }
+        if (names.distinct().size != names.size) return "http_header_duplicate"
+        if (httpHeaders.any { !validHeaderValue(it.value) }) return "http_header_value"
+        return null
+    }
 
     fun validation(initial: PanelHost): HostDraftProblem? {
         HostValidation.validate(remark, addresses, portText)?.let { return HostDraftProblem(it) }
         if (initial.id == 0 && inboundTag.isNullOrBlank()) return HostDraftProblem("inbound")
         val original = from(initial)
+        httpHeadersProblem(original)?.let { return HostDraftProblem(it, "http_headers") }
         HOST_EDITABLE_FIELDS.forEach { spec ->
             val value = field(spec.key)
             if (!spec.isSame(value, original.field(spec.key)) && !spec.isValid(value)) {
@@ -185,6 +224,16 @@ internal data class HostDraft(
         if (templateTouched && (templateId != original.templateId || hasUnrecognizedTemplate(initial.raw))) {
             changes += HostFieldChange(listOf("subscription_templates", "xray"), templateId)
         }
+        if (httpHeadersTouched) {
+            require(httpHeadersProblem(original) == null) { "Invalid HTTP headers" }
+            val current = httpHeaders.associate { it.name to it.value }
+            val previous = original.httpHeaders.associate { it.name to it.value }
+            if (current != previous) {
+                val body = if (current.isEmpty()) null else JSONObject().apply { current.forEach { (key, value) -> put(key, value) } }
+                // The whole map is a conflict unit so concurrent additions cannot be silently lost.
+                changes += HostFieldChange("http_headers", body)
+            }
+        }
         val fragment = HOST_EDITABLE_FIELDS.filter { it.key.startsWith("fragment_settings.xray.") }
         val clearFragment = fragment.all { field(it.key).isBlank() } &&
             fragment.any { !it.isSame(field(it.key), original.field(it.key)) }
@@ -200,7 +249,15 @@ internal data class HostDraft(
 
     companion object {
         fun from(host: PanelHost): HostDraft {
-            val raw = runCatching { JSONObject(host.raw) }.getOrElse { JSONObject() }
+            val parsed = runCatching { JSONObject(host.raw) }.getOrNull()
+            val raw = parsed ?: JSONObject()
+            val savedHeaders = raw.opt("http_headers")
+            val headerObject = savedHeaders as? JSONObject
+            val headersSupported = parsed != null && (savedHeaders == null || savedHeaders === JSONObject.NULL ||
+                headerObject != null && headerObject.keys().asSequence().all { headerObject.opt(it) is String })
+            val headers = if (headersSupported && headerObject != null) {
+                headerObject.keys().asSequence().map { HostHttpHeader(it, headerObject.getString(it)) }.toList()
+            } else emptyList()
             val xray = raw.optJSONObject("subscription_templates")?.opt("xray")
             val templateId = when (xray) {
                 is Number -> xray.toString().toIntOrNull()?.takeIf { it > 0 }
@@ -217,6 +274,9 @@ internal data class HostDraft(
                 status = host.status.distinct(),
                 templateId = templateId,
                 templateTouched = false,
+                httpHeaders = headers,
+                httpHeadersSupported = headersSupported,
+                httpHeadersTouched = false,
                 fields = HOST_EDITABLE_FIELDS.associate { it.key to it.read(raw) }
             )
         }

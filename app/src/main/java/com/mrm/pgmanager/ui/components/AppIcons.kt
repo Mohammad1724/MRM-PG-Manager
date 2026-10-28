@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MoreVert
@@ -82,7 +83,7 @@ enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Share, 
     // نوار ابزار
     Sort, Filter,
     // ناوبری
-    Menu, More, Add, ChevronUp, ChevronDown,
+    Menu, More, Add, Close, ChevronUp, ChevronDown,
     // جریانِ لاگ (فاز ۷) — « Pause/Play»؛ خودِ آیکونِ لاگ لازم نشد،
     // DenseList (ViewHeadline) همان چند خطِ متنی است که صفحهٔ لاگ نشان می‌دهد.
     Pause, Play,
@@ -158,6 +159,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Pause -> Icons.Rounded.Pause
     AppIcon.Play -> Icons.Rounded.PlayArrow
     AppIcon.Add -> Icons.Rounded.Add
+    AppIcon.Close -> Icons.Rounded.Close
     AppIcon.ChevronUp -> Icons.Rounded.KeyboardArrowUp
     AppIcon.ChevronDown -> Icons.Rounded.KeyboardArrowDown
 }

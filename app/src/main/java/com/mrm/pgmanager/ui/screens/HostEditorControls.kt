@@ -5,6 +5,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -22,16 +26,22 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -42,6 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
@@ -59,6 +71,38 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 internal data class HostEditorChoice(val value: String, val label: String)
 
+/** Compact visual surface with a full-sized accessible touch target. */
+@Composable
+internal fun HostEditorSmallIconButton(
+    icon: AppIcon,
+    label: String,
+    enabled: Boolean,
+    tag: String,
+    onClick: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        Modifier.size(48.dp).testTag(tag)
+            .semantics { contentDescription = label }
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            Modifier.size(32.dp).testTag("${tag}_visual").clip(DsRadius.Md)
+                .background(theme.searchBgColor)
+                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+                .indication(interaction, LocalIndication.current),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(
+                icon, tint = if (enabled) theme.inkColor else theme.mutedColor, size = 18.dp,
+                modifier = Modifier.testTag("${tag}_icon")
+            )
+        }
+    }
+}
+
 @Composable
 internal fun HostEditorTextField(
     label: String,
@@ -68,7 +112,8 @@ internal fun HostEditorTextField(
     hint: String = "",
     singleLine: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
-    tag: String = ""
+    tag: String = "",
+    technical: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
@@ -81,8 +126,10 @@ internal fun HostEditorTextField(
         maxLines = if (singleLine) 1 else 5,
         keyboardOptions = KeyboardOptions(
             keyboardType = keyboardType,
+            autoCorrect = !technical,
             imeAction = if (singleLine) ImeAction.Next else ImeAction.Default
         ),
+        textStyle = if (technical) LocalTextStyle.current.copy(textDirection = TextDirection.Ltr) else LocalTextStyle.current,
         modifier = Modifier.fillMaxWidth().then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier)
     )
 }
@@ -93,9 +140,11 @@ internal fun HostEditorPickerField(
     value: String,
     enabled: Boolean,
     tag: String,
+    expanded: Boolean? = null,
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
+    val expandedState = expanded?.let { stringResource(if (it) R.string.host_editor_expanded else R.string.host_editor_collapsed) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
         Row(
@@ -103,12 +152,16 @@ internal fun HostEditorPickerField(
                 .background(theme.searchBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-                .semantics(mergeDescendants = true) { contentDescription = "$label: $value" }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$label: $value"
+                    if (expandedState != null) stateDescription = expandedState
+                }
                 .testTag(tag).padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(value, Modifier.weight(1f), fontSize = 14.sp, color = if (enabled) theme.inkColor else theme.mutedColor)
+            Text(value, Modifier.weight(1f), fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                color = if (enabled) theme.inkColor else theme.mutedColor)
             RoundedAppIcon(AppIcon.ChevronDown, tint = theme.mutedColor, size = 18.dp)
         }
     }
@@ -183,6 +236,9 @@ internal fun HostEditorOptionsDialog(
 @Composable
 internal fun HostStatusFilter(selected: List<String>, enabled: Boolean, onChange: (List<String>) -> Unit) {
     val theme = LocalThemeState.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var anchorWidth by remember { mutableIntStateOf(0) }
+    LaunchedEffect(enabled) { if (!enabled) expanded = false }
     val statuses = listOf(
         "active" to stringResource(R.string.active),
         "disabled" to stringResource(R.string.disabled),
@@ -191,24 +247,51 @@ internal fun HostStatusFilter(selected: List<String>, enabled: Boolean, onChange
         "on_hold" to stringResource(R.string.on_hold)
     )
     val known = statuses.map { it.first }.toSet()
-    val unknown = selected.filterNot { it in known }.map { it to stringResource(R.string.host_editor_unknown_status, it) }
-    Column(Modifier.fillMaxWidth().testTag("host_editor_status_filter")) {
-        Text(stringResource(R.string.host_editor_user_status), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = theme.inkColor)
-        Text(stringResource(R.string.host_editor_status_hint), fontSize = 12.sp, color = theme.mutedColor)
-        if (selected.isEmpty()) Text(stringResource(R.string.host_editor_no_status), fontSize = 12.sp, color = theme.mutedColor)
-        (statuses + unknown).forEach { (value, label) ->
-            val checked = value in selected
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                    .toggleable(value = checked, enabled = enabled, role = Role.Checkbox) {
-                        onChange(if (it) selected + value else selected.filterNot { old -> old == value })
-                    }.testTag("host_editor_status_$value").padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+    val unknown = selected.distinct().filterNot { it in known }
+        .map { it to stringResource(R.string.host_editor_unknown_status, it) }
+    val options = statuses + unknown
+    val summary = if (selected.isEmpty()) {
+        stringResource(R.string.host_editor_no_status)
+    } else {
+        selected.distinct().joinToString(", ") { status -> options.firstOrNull { it.first == status }?.second ?: status }
+    }
+    Column(Modifier.fillMaxWidth().testTag("host_editor_status_filter"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(Modifier.fillMaxWidth().onSizeChanged { anchorWidth = it.width }) {
+            HostEditorPickerField(
+                label = stringResource(R.string.host_editor_user_status), value = summary,
+                enabled = enabled, tag = "host_editor_status_dropdown", expanded = expanded
+            ) { expanded = true }
+            AppDropdownMenu(
+                expanded = expanded && enabled,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.width(with(LocalDensity.current) { anchorWidth.toDp() }).heightIn(max = 320.dp)
             ) {
-                Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
-                Text(label, Modifier.weight(1f), fontSize = 13.sp, color = if (enabled) theme.inkColor else theme.mutedColor)
+                options.forEach { (value, label) ->
+                    val checked = value in selected
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox) {
+                                onChange(if (it) selected + value else selected.filterNot { old -> old == value })
+                            }.testTag("host_editor_status_$value").padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
+                        Text(label, Modifier.weight(1f), fontSize = 13.sp, color = if (enabled) theme.inkColor else theme.mutedColor)
+                    }
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.host_editor_status_clear), color = theme.inkColor) },
+                    onClick = { onChange(emptyList()) }, enabled = enabled && selected.isNotEmpty(),
+                    modifier = Modifier.testTag("host_editor_status_clear")
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.host_editor_status_done), color = theme.inkColor) },
+                    onClick = { expanded = false },
+                    modifier = Modifier.testTag("host_editor_status_done")
+                )
             }
         }
+        Text(stringResource(R.string.host_editor_status_hint), fontSize = 12.sp, color = theme.mutedColor)
     }
 }
 
