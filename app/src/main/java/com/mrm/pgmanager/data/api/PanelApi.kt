@@ -1245,25 +1245,33 @@ object PanelApi {
     }
 
     /** تگ‌های inbound موجود در پنل — برای انتخاب در فرمِ گروه. */
-    suspend fun inboundTags(session: Session): List<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<String>()
-                val raw = res.body?.string().orEmpty()
-                // پنل list[str] برمی‌گرداند؛ ولی برای مقاومت، حالتِ آبجکت هم پوشش داده شده.
-                val trimmed = raw.trim()
-                val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
-                else JSONObject(trimmed.ifBlank { "{}" }).optJSONArray("inbounds") ?: org.json.JSONArray()
-                (0 until arr.length()).mapNotNull { i ->
-                    when (val item = arr.opt(i)) {
-                        is String -> item.takeIf { it.isNotBlank() }
-                        is JSONObject -> item.optString("tag").takeIf { it.isNotBlank() }
-                        else -> null
-                    }
-                }.distinct()
-            }
-        }.getOrDefault(emptyList())
+    suspend fun inboundTags(session: Session): List<String> = try {
+        inboundTagsStrict(session)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptyList()
+    }
+
+    /** Keep network, permission and malformed-response errors distinct from a genuinely empty list. */
+    suspend fun inboundTagsStrict(session: Session): List<String> = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
+        client.newCall(req).execute().use { res ->
+            val raw = res.body?.string().orEmpty()
+            if (!res.isSuccessful) error("Load inbounds failed: ${res.code} ${errorDetail(raw)}".trim())
+            val trimmed = raw.trim()
+            val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
+            else JSONObject(trimmed).getJSONArray("inbounds")
+            (0 until arr.length()).map { i ->
+                val tag = when (val item = arr.opt(i)) {
+                    is String -> item
+                    is JSONObject -> item.opt("tag") as? String ?: error("Invalid inbound tag")
+                    else -> error("Invalid inbound entry")
+                }
+                require(tag.isNotBlank()) { "Invalid inbound tag" }
+                tag
+            }.distinct()
+        }
     }
 
     /** ساخت گروه. پنل حداقل یک inbound tag می‌خواهد. */
@@ -1745,6 +1753,18 @@ object PanelApi {
         }
     }
 
+    /** Fetch a complete host immediately before a guarded edit. */
+    internal suspend fun host(session: Session, hostId: Int): PanelHost = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/host/$hostId").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load host failed: ${response.code} ${errorDetail(raw)}".trim())
+            val body = JSONObject(raw)
+            require(body.has("id") && body.optInt("id", -1) == hostId) { "Invalid host response" }
+            parseHost(body)
+        }
+    }
+
     /**
      * ساختِ هاست — `POST /api/host/` (مجوزِ `hosts.create`).
      *
@@ -1759,6 +1779,16 @@ object PanelApi {
         inboundTag: String? = null,
         port: Int? = null,
         security: String = "inbound_default"
+    ): PanelHost = createHostWithChanges(session, remark, addresses, inboundTag, port, security, emptyList())
+
+    internal suspend fun createHostWithChanges(
+        session: Session,
+        remark: String,
+        addresses: List<String>,
+        inboundTag: String?,
+        port: Int?,
+        security: String,
+        changes: List<HostFieldChange>
     ): PanelHost = withContext(Dispatchers.IO) {
         require(remark.isNotBlank()) { "Remark cannot be empty" }
         val cleanAddresses = addresses.map { it.trim() }.filter { it.isNotEmpty() }
@@ -1772,6 +1802,7 @@ object PanelApi {
             .put("alpn", org.json.JSONArray())
         if (!inboundTag.isNullOrBlank()) body.put("inbound_tag", inboundTag)
         port?.let { body.put("port", it) }
+        HostEditMerge.apply(body, changes)
         val response = executeJsonForBody(
             requestBuilder(session, "${session.baseUrl}/api/host/")
                 .post(body.toString().toRequestBody(jsonType)).build()
@@ -1806,6 +1837,25 @@ object PanelApi {
             )
             parseHost(response)
         }
+
+    /**
+     * Read the latest complete body and merge only intentional edits. Do not fall back to
+     * a cached body when the GET fails: doing so could silently erase newer settings.
+     */
+    internal suspend fun modifyHostSafely(
+        session: Session,
+        initial: PanelHost,
+        changes: List<HostFieldChange>
+    ): PanelHost = withContext(Dispatchers.IO) {
+        require(changes.isNotEmpty()) { "No host changes" }
+        val latest = host(session, initial.id)
+        val body = HostEditMerge.merge(initial.raw, latest.raw, initial.id, changes)
+        val response = executeJsonForBody(
+            requestBuilder(session, "${session.baseUrl}/api/host/${initial.id}")
+                .put(body.toString().toRequestBody(jsonType)).build()
+        )
+        parseHost(response)
+    }
 
     /** حذفِ هاست — `DELETE /api/host/{id}` (مجوزِ `hosts.update`، پاسخ ۲۰۴). */
     suspend fun deleteHost(session: Session, hostId: Int) = withContext(Dispatchers.IO) {
@@ -1906,6 +1956,26 @@ object PanelApi {
             if (!response.isSuccessful) error("Load client templates failed: ${response.code} ${errorDetail(raw)}".trim())
             val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("templates") ?: org.json.JSONArray()
             List(arr.length()) { i -> parseClientTemplate(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * The host editor needs names and ids, not template contents. This endpoint uses
+     * client_templates.read_simple, matching the web panel's least-privilege selector.
+     */
+    internal suspend fun hostXrayTemplates(session: Session): List<HostXrayTemplate> = withContext(Dispatchers.IO) {
+        val url = "${session.baseUrl}/api/client_templates/simple?template_type=xray_subscription&all=true"
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load templates failed: ${response.code} ${errorDetail(raw)}".trim())
+            val templates = JSONObject(raw).getJSONArray("templates")
+            (0 until templates.length()).mapNotNull { index ->
+                val item = templates.getJSONObject(index)
+                val id = item.getInt("id")
+                if (id <= 0 || item.optBoolean("is_default") || item.optString("template_type") != "xray_subscription") null
+                else HostXrayTemplate(id, item.getString("name"))
+            }.distinctBy { it.id }
         }
     }
 
