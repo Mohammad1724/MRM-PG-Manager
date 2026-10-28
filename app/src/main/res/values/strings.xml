@@ -1016,6 +1016,7 @@
     <string name="ue_next_plan">Next plan</string>
     <string name="ue_next_plan_desc">Applied automatically when this plan runs out</string>
     <string name="ue_next_plan_none">None</string>
+    <string name="ue_next_plan_custom">Current custom plan</string>
     <string name="ue_next_plan_carry">Carry over leftover traffic</string>
     <string name="us_bulk_days">Add days</string>
     <string name="us_bulk_data">Add data</string>
@@ -1455,6 +1456,7 @@
     <string name="host_editor_xray_template">Xray template</string>
     <string name="host_editor_template_unknown">Template #%1$d</string>
     <string name="host_editor_template_unrecognized">Unrecognized saved template; it will be kept unless changed.</string>
+    <string name="host_editor_search_statuses">Search user statuses</string>
     <string name="host_editor_search_inbounds">Search inbound tags</string>
     <string name="host_editor_search_templates">Search Xray templates</string>
     <string name="host_editor_loading_options">Loading options…</string>

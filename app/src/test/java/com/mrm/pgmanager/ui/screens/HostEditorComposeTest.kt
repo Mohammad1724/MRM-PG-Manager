@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.screens
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.activity.ComponentDialog
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -27,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -119,8 +122,10 @@ class HostEditorComposeTest {
     @Test fun `status filter saves independently of host enabled state`() {
         render()
         rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
-        rule.onNodeWithTag("host_editor_status_limited").performScrollTo().performClick()
-        rule.onNodeWithTag("host_editor_status_done").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_clear").assertIsNotEnabled()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(2)
+        rule.onNodeWithTag("host_editor_status_limited").performClick()
+        rule.onNodeWithTag("host_editor_status_done").performClick()
         rule.onNodeWithTag("host_editor_save").performClick()
         rule.runOnIdle {
             assertEquals(listOf("limited"), saved?.status)
@@ -135,23 +140,85 @@ class HostEditorComposeTest {
         )
         render(initial = initial)
         rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
-        rule.onNodeWithTag("host_editor_status_active").performScrollTo().assertIsOn()
-        rule.onNodeWithTag("host_editor_status_future_status").performScrollTo().assertIsOn()
-        rule.onNodeWithTag("host_editor_status_limited").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(0)
+        rule.onNodeWithTag("host_editor_status_active").assertIsOn()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(5)
+        rule.onNodeWithTag("host_editor_status_future_status").assertIsOn()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(2)
+        rule.onNodeWithTag("host_editor_status_limited").performClick()
         rule.runOnIdle { assertEquals(listOf("active", "future_status", "limited"), current?.status) }
-        rule.onNodeWithTag("host_editor_status_clear").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_clear").performClick()
         rule.runOnIdle {
             assertEquals(emptyList<String>(), current?.status)
             assertEquals(false, current?.disabled)
         }
-        rule.onNodeWithTag("host_editor_status_done").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_done").performClick()
         rule.onNodeWithTag("host_editor_save").performClick()
         rule.runOnIdle { assertEquals(emptyList<String>(), saved?.status) }
+    }
+
+    @Test fun `status search filters choices without discarding selections`() {
+        val initial = host.copy(
+            status = listOf("active", "future_status"),
+            raw = """{"id":3,"remark":"Example","address":["example.com"],"status":["active","future_status"]}"""
+        )
+        render(initial = initial)
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_dialog").assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, str(R.string.host_editor_user_status)))
+        val search = rule.onNodeWithContentDescription(str(R.string.host_editor_search_statuses))
+        search.performTextInput(str(R.string.limited))
+        rule.onNodeWithTag("host_editor_status_active").assertDoesNotExist()
+        rule.onNodeWithTag("host_editor_status_limited").performClick()
+        rule.runOnIdle { assertEquals(listOf("active", "future_status", "limited"), current?.status) }
+        search.performTextClearance()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(0)
+        rule.onNodeWithTag("host_editor_status_active").assertIsOn()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(5)
+        rule.onNodeWithTag("host_editor_status_future_status").assertIsOn()
+        rule.onNodeWithTag("host_editor_status_done").performClick()
+        rule.onNodeWithTag("host_editor_status_dialog").assertDoesNotExist()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle { assertEquals(listOf("active", "future_status", "limited"), saved?.status) }
+    }
+
+    @Test fun `back closes status dialog without undoing changes already made`() {
+        render()
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(2)
+        rule.onNodeWithTag("host_editor_status_limited").performClick()
+        rule.runOnIdle {
+            (requireNotNull(ShadowDialog.getLatestDialog()) as ComponentDialog).onBackPressedDispatcher.onBackPressed()
+        }
+        rule.onNodeWithTag("host_editor_status_dialog").assertDoesNotExist()
+        rule.onNodeWithTag("host_editor_window").assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle { assertEquals(listOf("limited"), saved?.status) }
+    }
+
+    @Test fun `host inputs expose labels preserve editing and disable during saving`() {
+        render()
+        val remark = rule.onNodeWithTag("host_editor_remark")
+            .assertHeightIsAtLeast(48.dp)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(str(R.string.host_remark))))
+        remark.performTextClearance()
+        remark.performTextInput("Updated remark")
+        rule.onNodeWithTag("host_editor_addresses").performScrollTo().assertHeightIsAtLeast(48.dp)
+            .performTextInput(", second.example")
+        rule.runOnIdle {
+            assertEquals("Updated remark", current?.remark)
+            assertTrue(current?.addressesText?.contains("second.example") == true)
+            saving.value = true
+        }
+        remark.assertIsNotEnabled()
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().assertIsNotEnabled()
     }
 
     @Test fun `http header rows add edit save and delete actual draft values`() {
         render()
         rule.onNodeWithTag("host_editor_section_network").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_field_host").performScrollTo().assertIsDisplayed()
+        saveSheetScreenshot("host_editor_network_en")
         rule.onNodeWithTag("host_editor_http_header_add").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_http_header_name_0").performScrollTo().performTextInput("X-Client")
         rule.onNodeWithTag("host_editor_http_header_value_0").performScrollTo().performTextInput("my-client")
@@ -264,6 +331,34 @@ class HostEditorComposeTest {
         saveSheetScreenshot("host_editor_sheet_rtl_short")
         rule.onNodeWithTag("host_editor_section_wireguard").performScrollTo()
         assertActionsWithinEditor()
+    }
+
+    @Test
+    @Config(qualifiers = "fa-rIR-w320dp-h480dp")
+    fun `status dialog keeps fixed actions accessible on a short RTL screen`() {
+        val initial = host.copy(
+            status = listOf("active", "future_status"),
+            raw = """{"id":3,"remark":"Example","address":["example.com"],"status":["active","future_status"]}"""
+        )
+        render(direction = LayoutDirection.Rtl, fontScale = 1.8f, dark = true, initial = initial)
+        rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
+        val frame = rule.onNodeWithTag("host_editor_status_dialog").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val clear = rule.onNodeWithTag("host_editor_status_clear").assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        val done = rule.onNodeWithTag("host_editor_status_done").assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        assertTrue(clear.top >= frame.top && clear.bottom <= frame.bottom)
+        assertTrue(done.top >= frame.top && done.bottom <= frame.bottom)
+        assertTrue(clear.right <= done.left || done.right <= clear.left)
+        saveSheetScreenshot("host_editor_status_rtl_short")
+        rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(5)
+        rule.onNodeWithTag("host_editor_status_future_status").assertIsOn()
+        val after = rule.onNodeWithTag("host_editor_status_done").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals(done.top, after.top, 1f)
+        assertEquals(done.bottom, after.bottom, 1f)
+        rule.onNodeWithTag("host_editor_status_done").performClick()
+        assertActionsWithinEditor()
+        rule.runOnIdle { assertEquals(null, current) }
     }
 
     @Test fun `dragging a dirty sheet requests confirmation without discarding the draft`() {

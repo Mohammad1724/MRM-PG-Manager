@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.designsystem
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -12,8 +13,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 /**
  * A dialog or popup owns a separate Compose view, which supplies its own density.
@@ -40,7 +43,16 @@ internal fun AppDropdownMenu(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val parentDensity = LocalDensity.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest, modifier = modifier) {
+    val theme = LocalThemeState.current
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier,
+        shape = DsRadius.Xxl,
+        containerColor = theme.dialogBgColor,
+        tonalElevation = 0.dp,
+        border = BorderStroke(DsBorder.Hairline, theme.borderColor)
+    ) {
         val menuScope = this
         CompositionLocalProvider(LocalDensity provides parentDensity) {
             menuScope.content()

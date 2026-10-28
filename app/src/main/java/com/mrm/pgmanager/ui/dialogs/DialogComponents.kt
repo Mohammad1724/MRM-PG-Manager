@@ -13,16 +13,21 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
@@ -46,6 +51,7 @@ import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.ui.designsystem.DsAnim
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.pressScale
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 
 /** رنگ خاکستریِ واضح برای کادرِ کاشی‌ها (تمایز بهتر در حالت روشن/تیره). */
@@ -247,6 +253,10 @@ fun SettingsInfoRow(label: String, value: String, copyable: Boolean = false) {
 }
 
 /** فیلد متنی کوچک کپسولی مخصوص دیالوگ‌ها. */
+internal fun compactFieldVisualTransformation(keyboardType: KeyboardType): VisualTransformation =
+    if (keyboardType == KeyboardType.Password || keyboardType == KeyboardType.NumberPassword)
+        PasswordVisualTransformation() else VisualTransformation.None
+
 @Composable
 fun CompactGlassField(
     value: String,
@@ -259,24 +269,27 @@ fun CompactGlassField(
     fieldHeight: androidx.compose.ui.unit.Dp = 42.dp
 ) {
     val theme = LocalThemeState.current
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     Box(
-        modifier = modifier.fillMaxWidth().height(fieldHeight).clip(DsRadius.Md)
-            .background(if (theme.isDark) Color.White.copy(.10f) else theme.searchBgColor)
-            .border(BorderStroke(1.dp, theme.borderColor), DsRadius.Md)
+        modifier = modifier.fillMaxWidth().heightIn(min = fieldHeight).pgFieldSurface(theme, focused)
             .padding(horizontal = DsSpacing.Mid),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
             if (leadingAppIcon != null) RoundedAppIcon(leadingAppIcon, tint = theme.mutedColor, size = 16.dp) else if (leading.isNotEmpty()) Text(leading, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
             Box(Modifier.weight(1f)) {
-                if (value.isEmpty()) Text(placeholder, color = theme.mutedColor.copy(0.55f), fontSize = 12.sp)
+                if (value.isEmpty()) Text(placeholder, color = theme.tertiaryColor, fontSize = 12.sp)
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
+                    interactionSource = interaction,
                     keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    visualTransformation = compactFieldVisualTransformation(keyboardType),
+                    cursorBrush = SolidColor(theme.inkColor),
                     textStyle = TextStyle(color = theme.inkColor, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = placeholder }
                 )
             }
             if (value.isNotEmpty()) Box(

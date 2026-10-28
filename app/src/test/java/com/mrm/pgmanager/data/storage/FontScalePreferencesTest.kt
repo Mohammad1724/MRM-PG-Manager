@@ -103,6 +103,20 @@ class FontScalePreferencesTest {
         assertEquals(90, store.readUiPrefs().fontScalePercent)
     }
 
+    @Test fun `encrypted backup restores with a password longer than the old field limit`() {
+        val password = "a".repeat(70) + "-suffix"
+        store.saveUiPrefs(store.readUiPrefs().copy(fontScalePercent = 130))
+        val output = ByteArrayOutputStream()
+        val info = BackupManager.createBackup(context, output, password = password)
+        assertEquals(true, info.encrypted)
+        store.saveUiPrefs(store.readUiPrefs().copy(fontScalePercent = 100))
+        BackupManager.restoreBackup(
+            context = context, input = output.toByteArray().inputStream(), password = password,
+            restoreAccounts = false, restoreDebtors = false, restoreSettings = true, restoreInvoice = false
+        )
+        assertEquals(130, store.readUiPrefs().fontScalePercent)
+    }
+
     @Test fun `restoring a new backup keeps other ui preferences`() {
         val current = UiPrefs(hapticsEnabled = false, reduceMotion = true, secureScreen = true, fontScalePercent = 80)
         store.saveUiPrefs(current)

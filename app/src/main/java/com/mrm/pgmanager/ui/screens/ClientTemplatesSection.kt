@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,14 +33,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.ui.designsystem.AppDialog
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
@@ -370,6 +377,9 @@ private fun ClientTemplateEditorDialog(
     var saving by remember { mutableStateOf(false) }
     var touched by remember { mutableStateOf(false) }
     var serverError by remember(initial.id) { mutableStateOf<String?>(null) }
+    val contentInteraction = remember { MutableInteractionSource() }
+    val contentFocused by contentInteraction.collectIsFocusedAsState()
+    val contentLabel = stringResource(R.string.ct_content)
 
     val errorKey = ClientTemplateValidation.validate(name, content)
     val errName = stringResource(R.string.err_ct_name)
@@ -441,9 +451,7 @@ private fun ClientTemplateEditorDialog(
             }
             Box(
                 Modifier.fillMaxWidth().heightIn(min = 150.dp, max = 220.dp)
-                    .clip(DsRadius.Md)
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                    .pgFieldSurface(theme, contentFocused)
                     .padding(DsSpacing.Mid)
             ) {
                 androidx.compose.foundation.text.BasicTextField(
@@ -451,14 +459,17 @@ private fun ClientTemplateEditorDialog(
                     onValueChange = { content = it; touched = true; serverError = null },
                     textStyle = TextStyle(
                         color = theme.inkColor, fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = FontFamily.Monospace, textDirection = TextDirection.Ltr
                     ),
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    interactionSource = contentInteraction,
+                    cursorBrush = SolidColor(theme.inkColor),
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .semantics { contentDescription = contentLabel },
                     enabled = !saving
                 )
                 if (content.isEmpty()) Text(
                     stringResource(R.string.ct_content_hint),
-                    fontSize = 11.sp, color = theme.mutedColor.copy(0.6f)
+                    fontSize = 11.sp, color = theme.tertiaryColor
                 )
             }
 

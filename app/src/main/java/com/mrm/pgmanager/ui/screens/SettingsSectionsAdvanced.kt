@@ -822,7 +822,7 @@ internal fun BackupSection(
         Text(stringResource(R.string.set_bk_enc_desc), fontSize = 11.sp, color = theme.mutedColor)
         CompactGlassField(
             value = backupPassword,
-            onValueChange = { v -> backupPassword = v.take(64); store.saveBackupPassword(v) },
+            onValueChange = { value -> backupPassword = value; store.saveBackupPassword(value) },
             placeholder = stringResource(R.string.set_bk_password),
             leadingAppIcon = AppIcon.Lock,
             keyboardType = KeyboardType.Password

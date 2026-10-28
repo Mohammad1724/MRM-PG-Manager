@@ -5,20 +5,18 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -26,7 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
@@ -92,6 +89,9 @@ fun UserEditorDialog(
     // اگر ادمین به «پلنِ بعدی» دست نزند، همان پلنِ فعلیِ کاربر (حتی نوعِ بدونِ قالب با حجم/مدتِ دستی) عیناً برمی‌گردد.
     var nextPlanDirty by remember { mutableStateOf(false) }
     var nextPlanMenu by remember { mutableStateOf(false) }
+    val customPlanPreserved = !nextPlanDirty && initial?.nextPlan?.let {
+        it.templateId == null && (it.dataLimit != null || it.expireSeconds != null || it.addRemainingTraffic)
+    } == true
     // از مقادیرِ فعلیِ کاربر پیش‌پر می‌شوند؛ قبلاً همیشه no_reset/خالی بودند و ذخیرهٔ هر
     // ویرایشی راهبردِ ریستِ کاربر را بی‌صدا به no_reset برمی‌گرداند.
     val initialResetStrategy = initial?.dataLimitResetStrategy?.takeIf { it in TemplateOptions.RESET_STRATEGIES } ?: TemplateOptions.RESET_NO_RESET
@@ -103,6 +103,7 @@ fun UserEditorDialog(
     var editorStatus by remember {
         mutableStateOf(when (initial?.status) { "disabled" -> "disabled"; "on_hold" -> "on_hold"; else -> "active" })
     }
+    var statusMenuExpanded by remember { mutableStateOf(false) }
     val isOnHold = editorStatus == "on_hold"
     // مهلت فعال‌سازی (on_hold_timeout) به روز؛ فقط اگر کاربر دست بزند فرستاده می‌شود.
     var onHoldTimeoutDays by remember { mutableStateOf(initial?.onHoldTimeout?.let { DateLogic.remainingDays(it)?.coerceAtLeast(0L)?.toString() } ?: "") }
@@ -221,12 +222,13 @@ fun UserEditorDialog(
                             }
                             Column(Modifier.weight(0.40f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                 FieldLabel(stringResource(R.string.ue_status))
-                                var statusMenuExpanded by remember { mutableStateOf(false) }
                                 val statusColor = when (editorStatus) { "active" -> GlassGreen; "on_hold" -> DsSemantic.Violet; else -> GlassRed }
                                 val statusLabel = when (editorStatus) { "active" -> R.string.active; "on_hold" -> R.string.on_hold; else -> R.string.disabled }
                                 Box {
                                     Row(
-                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md).clickable { statusMenuExpanded = true }.background(statusColor.copy(0.10f))
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md)
+                                            .clickable(role = Role.Button) { statusMenuExpanded = true }.testTag("user_editor_status")
+                                            .background(statusColor.copy(0.10f))
                                             .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.25f)), DsRadius.Md).pressScale(0.96f)
                                             .padding(horizontal = DsSpacing.Md),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
@@ -234,12 +236,6 @@ fun UserEditorDialog(
                                         Box(Modifier.size(5.dp).clip(RoundedCornerShape(50)).background(statusColor))
                                         Text(stringResource(statusLabel), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
-                                    }
-                                    AppDropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = theme.successTextColor, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; daysDirty = true; statusMenuExpanded = false })
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; daysDirty = true; statusMenuExpanded = false })
-                                        // پنل اجازهٔ ساختِ کاربرِ غیرفعال نمی‌دهد (UserStatusCreate = active | on_hold).
-                                        if (!isCreating) DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "disabled"; statusMenuExpanded = false })
                                     }
                                 }
                             }
@@ -391,18 +387,21 @@ fun UserEditorDialog(
                                 Text(stringResource(R.string.ue_next_plan_desc), fontSize = 11.sp, color = theme.mutedColor)
                                 Box {
                                     Row(
-                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md).clickable { nextPlanMenu = true }.background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).pressScale(0.98f)
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme)
+                                            .clickable(role = Role.Button) { nextPlanMenu = true }.testTag("user_editor_next_plan")
+                                            .pressScale(0.98f)
                                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                                     ) {
                                         RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 12.dp)
-                                        Text(templates.firstOrNull { it.id == nextPlanTemplate }?.name ?: stringResource(R.string.ue_next_plan_none), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        val planLabel = when {
+                                            nextPlanTemplate != null -> templates.firstOrNull { it.id == nextPlanTemplate }?.name
+                                                ?: stringResource(R.string.host_editor_template_unknown, nextPlanTemplate!!)
+                                            customPlanPreserved -> stringResource(R.string.ue_next_plan_custom)
+                                            else -> stringResource(R.string.ue_next_plan_none)
+                                        }
+                                        Text(planLabel, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null || customPlanPreserved) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                         Text("▾", fontSize = 11.sp, color = theme.mutedColor)
-                                    }
-                                    AppDropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanDirty = true; nextPlanMenu = false })
-                                        templates.forEach { t -> DropdownMenuItem(text = { Text(t.name, fontSize = 11.sp) }, onClick = { nextPlanTemplate = t.id; nextPlanDirty = true; nextPlanMenu = false }) }
                                     }
                                 }
                                 if (nextPlanTemplate != null) {
@@ -449,7 +448,7 @@ fun UserEditorDialog(
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_note))
-                                        UserFormTextField(value = note, onValueChange = { note = it.take(500) }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.height(52.dp))
+                                        UserFormTextField(value = note, onValueChange = { note = it.take(500) }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.heightIn(min = 52.dp))
                                     }
                                 }
                             }
@@ -504,6 +503,50 @@ fun UserEditorDialog(
         }
     }
 
+    if (statusMenuExpanded) {
+        val statusChoices = listOf(
+            PGChoiceOption("active", stringResource(R.string.active)),
+            PGChoiceOption("on_hold", stringResource(R.string.on_hold))
+        ) + if (isCreating) emptyList() else listOf(PGChoiceOption("disabled", stringResource(R.string.disabled)))
+        PGSingleChoiceDialog(
+            title = stringResource(R.string.ue_status),
+            searchLabel = stringResource(R.string.search_cd),
+            choices = statusChoices,
+            selected = editorStatus,
+            onDismiss = { statusMenuExpanded = false },
+            onSelect = {
+                editorStatus = it
+                if (it != "disabled") daysDirty = true
+                statusMenuExpanded = false
+            },
+            tag = "user_editor_status_dialog"
+        )
+    }
+    if (nextPlanMenu) {
+        val customValue = "__current_custom_plan__"
+        val unknownId = nextPlanTemplate?.takeIf { id -> templates.none { it.id == id } }
+        val currentChoice = when {
+            customPlanPreserved -> listOf(PGChoiceOption(customValue, stringResource(R.string.ue_next_plan_custom)))
+            unknownId != null -> listOf(PGChoiceOption(unknownId.toString(), stringResource(R.string.host_editor_template_unknown, unknownId)))
+            else -> emptyList()
+        }
+        PGSingleChoiceDialog(
+            title = stringResource(R.string.ue_next_plan),
+            searchLabel = stringResource(R.string.search_cd),
+            choices = listOf(PGChoiceOption("", stringResource(R.string.ue_next_plan_none))) +
+                currentChoice + templates.map { PGChoiceOption(it.id.toString(), it.name) },
+            selected = if (customPlanPreserved) customValue else nextPlanTemplate?.toString().orEmpty(),
+            onDismiss = { nextPlanMenu = false },
+            onSelect = {
+                if (it != customValue && it != unknownId?.toString()) {
+                    nextPlanTemplate = it.toIntOrNull()
+                    nextPlanDirty = true
+                }
+                nextPlanMenu = false
+            },
+            tag = "user_editor_next_plan_dialog"
+        )
+    }
     if (showCalendar) {
         ShamsiCalendarPickerDialog(initialDateShamsi = JalaliCalendar.todayJalali().toString(), onDismiss = { showCalendar = false }) { shamsi ->
             days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("")
@@ -553,21 +596,9 @@ private fun PickerRow(icon: AppIcon, label: String, selected: Boolean, onClick: 
 
 @Composable
 private fun UserFormTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, keyboardType: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, leading: AppIcon? = null) {
-    val theme = LocalThemeState.current
-    var isFocused by remember { mutableStateOf(false) }
-    val borderColor by androidx.compose.animation.animateColorAsState(targetValue = if (isFocused) theme.inkColor.copy(0.3f) else theme.borderColor, animationSpec = DsAnim.fast(), label = "fieldBorder")
-    val fieldStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
-    Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = if (singleLine) 48.dp else 0.dp).clip(DsRadius.Md).background(theme.searchBgColor)
-            .border(BorderStroke(if (isFocused) 1.dp else DsBorder.Hairline, borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Mid, vertical = if (singleLine) 0.dp else DsSpacing.Md),
-        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-    ) {
-        if (leading != null) RoundedAppIcon(leading, tint = theme.mutedColor, size = 12.dp)
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = singleLine,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType), textStyle = fieldStyle, cursorBrush = SolidColor(theme.inkColor),
-            modifier = Modifier.weight(1f).onFocusChanged { isFocused = it.isFocused },
-            decorationBox = { inner -> Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) { if (value.isEmpty()) Text(placeholder, style = fieldStyle.copy(color = theme.mutedColor.copy(0.5f)), maxLines = if (singleLine) 1 else 2, overflow = TextOverflow.Ellipsis); inner() } }
-        )
-    }
+    PGFormInput(
+        value = value, onValueChange = onValueChange, label = placeholder, placeholder = placeholder,
+        modifier = modifier, singleLine = singleLine, keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        leading = leading, textStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
+    )
 }

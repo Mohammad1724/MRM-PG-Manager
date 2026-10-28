@@ -1,7 +1,10 @@
 package com.mrm.pgmanager.ui.dialogs
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -22,11 +25,14 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.PGPageHeader
 import com.mrm.pgmanager.ui.components.PGSearchBar
 import com.mrm.pgmanager.ui.components.PGTabBar
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -91,6 +97,56 @@ class CommonControlsAccessibilityTest {
         rule.onNodeWithContentDescription(str(R.string.clear_search))
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
         assertEquals("", query)
+    }
+
+    @Test fun `themed action menu opens invokes its action and closes`() {
+        var expanded by mutableStateOf(false)
+        var clicks = 0
+        rule.setContent {
+            Box {
+                Text("More actions", Modifier.clickable { expanded = true })
+                AppDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text("Edit item") }, onClick = { clicks++; expanded = false })
+                }
+            }
+        }
+        rule.onNodeWithText("More actions").performClick()
+        rule.onNodeWithText("Edit item").performClick()
+        rule.runOnIdle { assertEquals(1, clicks) }
+        rule.onNodeWithText("Edit item").assertDoesNotExist()
+    }
+
+    @Test fun `password fields mask the displayed text without changing the value`() {
+        var password by mutableStateOf("")
+        rule.setContent {
+            CompactGlassField(
+                value = password, onValueChange = { password = it },
+                placeholder = "Backup password", keyboardType = KeyboardType.Password
+            )
+        }
+        val field = rule.onNodeWithContentDescription("Backup password")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))
+        field.performTextInput("secret-42")
+        val displayed = field.fetchSemanticsNode().config[SemanticsProperties.EditableText].text
+        rule.runOnIdle {
+            assertEquals("secret-42", password)
+            assertEquals("•".repeat(password.length), displayed)
+        }
+    }
+
+    @Test fun `ordinary compact fields do not mask their values`() {
+        var text by mutableStateOf("")
+        rule.setContent {
+            CompactGlassField(value = text, onValueChange = { text = it }, placeholder = "Description")
+        }
+        val field = rule.onNodeWithContentDescription("Description")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
+        field.performTextInput("example")
+        val displayed = field.fetchSemanticsNode().config[SemanticsProperties.EditableText].text
+        rule.runOnIdle {
+            assertEquals("example", text)
+            assertEquals("example", displayed)
+        }
     }
 
     @Test fun `stepper actions have labels and disable at the limits`() {

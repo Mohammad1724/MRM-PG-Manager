@@ -1,5 +1,8 @@
 package com.mrm.pgmanager.ui.screens
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,10 +24,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
@@ -59,6 +64,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -185,6 +191,70 @@ class SharedHeaderControlsTest {
         rule.onNodeWithText("Compact tab").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
     }
 
+    private fun assertCompactTabInset(direction: LayoutDirection, fontScale: Float, screenshot: String) {
+        var clicked = -1
+        var pixelsPerDp = 1f
+        val labels = listOf(str(R.string.infra_tab_hosts), str(R.string.infra_tab_cores), str(R.string.infra_tab_templates))
+        lateinit var composeView: View
+        rule.setContent {
+            val density = LocalDensity.current
+            composeView = LocalView.current
+            pixelsPerDp = density.density
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+                LocalLayoutDirection provides direction
+            ) {
+                PGTabBar(
+                    labels, selectedIndex = 0,
+                    onSelect = { clicked = it }, modifier = Modifier.width(320.dp).testTag("tab_container"),
+                    compact = true, scrollWithParent = true
+                )
+            }
+        }
+        val container = rule.onNodeWithTag("tab_container").fetchSemanticsNode().boundsInRoot
+        val target = rule.onNodeWithText(labels[0]).assertIsSelected()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        val targetBounds = target.fetchSemanticsNode().boundsInRoot
+        val visualNode = rule.onNodeWithTag("pg_tab_visual_0", useUnmergedTree = true).fetchSemanticsNode()
+        val visual = visualNode.boundsInRoot
+        assertEquals(visualNode.size.height.toFloat(), visual.height, 1f)
+        assertTrue(targetBounds.top >= container.top && targetBounds.bottom <= container.bottom)
+        assertTrue(visual.left >= targetBounds.left && visual.right <= targetBounds.right)
+        assertTrue("The selection must be inset from the top", visual.top - targetBounds.top >= 3f * pixelsPerDp)
+        assertTrue("The selection must be inset from the bottom", targetBounds.bottom - visual.bottom >= 3f * pixelsPerDp)
+        saveViewScreenshot(composeView, screenshot)
+        target.performTouchInput { click(Offset(1f, 1f)) }
+        rule.runOnIdle { assertEquals(0, clicked) }
+    }
+
+    private fun saveViewScreenshot(view: View, name: String) {
+        rule.runOnIdle {
+            require(view.width > 0 && view.height > 0) { "The Compose view has no layout" }
+            val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(image))
+            val pixels = IntArray(image.width * image.height)
+            image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+            val visibleColors = mutableSetOf<Int>()
+            for (pixel in pixels) {
+                if (pixel ushr 24 != 0) visibleColors.add(pixel)
+                if (visibleColors.size >= 4) break
+            }
+            check(visibleColors.size >= 4) { "The tab screenshot is blank" }
+            val directory = File("build/test-screens").apply { mkdirs() }
+            File(directory, "$name.png").outputStream().use { check(image.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        }
+    }
+
+    @Test fun `compact tab visual is inset while its entire target is clickable`() {
+        assertCompactTabInset(LayoutDirection.Ltr, 1f, "infra_tabs_ltr")
+    }
+
+    @Test
+    @Config(qualifiers = "fa-rIR-w320dp-h800dp")
+    fun `compact tab visual remains inset in RTL with large text`() {
+        assertCompactTabInset(LayoutDirection.Rtl, 1.8f, "infra_tabs_rtl_large")
+    }
+
     @Test fun `parent scrolling keeps wrapped tabs visible without relocating the list`() {
         lateinit var listState: LazyListState
         lateinit var scope: CoroutineScope
@@ -217,6 +287,21 @@ class SharedHeaderControlsTest {
             assertEquals(0, listState.firstVisibleItemIndex)
             assertEquals("Recomposing the selected tab must not scroll the parent", offset, listState.firstVisibleItemScrollOffset)
         }
+    }
+
+    @Test fun `more action matches refresh visual while keeping a full touch target`() {
+        var clicks = 0
+        rule.setContent {
+            InfraIconButton(icon = AppIcon.More, description = "More actions", tint = Color.Blue, onClick = { clicks++ })
+        }
+        rule.onNodeWithTag("infra_more_visual", useUnmergedTree = true)
+            .assertWidthIsEqualTo(36.dp).assertHeightIsEqualTo(36.dp)
+        rule.onNodeWithTag("infra_more_icon", useUnmergedTree = true)
+            .assertWidthIsEqualTo(16.dp).assertHeightIsEqualTo(16.dp)
+        rule.onNodeWithContentDescription("More actions")
+            .assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+            .performTouchInput { click(Offset(1f, 1f)) }
+        rule.runOnIdle { assertEquals(1, clicks) }
     }
 
     @Test fun `other infrastructure actions retain their previous size`() {

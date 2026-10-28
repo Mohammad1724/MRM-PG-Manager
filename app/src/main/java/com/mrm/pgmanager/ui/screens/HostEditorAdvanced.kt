@@ -208,7 +208,8 @@ private fun DraftText(
         singleLine = singleLine,
         // The panel accepts signed values for some transport and mux settings.
         keyboardType = if (number) KeyboardType.Ascii else KeyboardType.Text,
-        tag = "host_editor_field_$key"
+        tag = "host_editor_field_$key",
+        technical = true
     )
 }
 

@@ -62,6 +62,7 @@ import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.designsystem.WcagContrast
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.spinWhile
 import com.mrm.pgmanager.ui.theme.LocalThemeState
@@ -257,19 +258,37 @@ fun PGTabBar(
             LaunchedEffect(selected, scrollWithParent) {
                 if (selected && !scrollWithParent) bringIntoView.bringIntoView()
             }
-            Box(
-                Modifier.bringIntoViewRequester(bringIntoView).heightIn(min = DsComponent.MinTouchTarget)
-                    .then(if (compact) Modifier.widthIn(min = DsComponent.MinTouchTarget) else Modifier)
-                    .clip(DsRadius.Md).primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
-                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
-                    .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
-                contentAlignment = Alignment.Center
-            ) {
+            val labelContent: @Composable () -> Unit = {
                 Text(
                     label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                     color = if (selected) theme.onPrimary else theme.mutedColor,
                     maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
+            }
+            if (compact) {
+                val interaction = remember { MutableInteractionSource() }
+                Box(
+                    Modifier.bringIntoViewRequester(bringIntoView)
+                        .heightIn(min = DsComponent.MinTouchTarget).widthIn(min = DsComponent.MinTouchTarget)
+                        .selectable(selected = selected, interactionSource = interaction, indication = null, role = Role.Tab, onClick = { onSelect(index) }),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        Modifier.padding(vertical = DsSpacing.Xs).heightIn(min = 40.dp)
+                            .clip(DsRadius.Md).primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
+                            .indication(interaction, LocalIndication.current).testTag("pg_tab_visual_$index")
+                            .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
+                        contentAlignment = Alignment.Center
+                    ) { labelContent() }
+                }
+            } else {
+                Box(
+                    Modifier.bringIntoViewRequester(bringIntoView).heightIn(min = DsComponent.MinTouchTarget)
+                        .clip(DsRadius.Md).primarySurface(theme, selected, DsRadius.Md, idle = Color.Transparent)
+                        .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
+                        .padding(horizontal = DsSpacing.Lg, vertical = DsSpacing.Md),
+                    contentAlignment = Alignment.Center
+                ) { labelContent() }
             }
         }
     }
@@ -512,14 +531,12 @@ fun PGFAB(icon: AppIcon, contentDescription: String, modifier: Modifier = Modifi
 @Composable
 fun PGSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String = stringResource(R.string.search_cd), modifier: Modifier = Modifier) {
     val t = LocalThemeState.current
-    val shape = DsRadius.Md
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     val keyboard = LocalSoftwareKeyboardController.current
     Box(
-        modifier.fillMaxWidth().heightIn(min = DsComponent.SearchBar).clip(shape)
-            .background(t.searchBgColor)
-            .border(BorderStroke(if (focused) DsBorder.Focus else DsBorder.Hairline, if (focused) t.accentTextColor else t.controlBorderColor), shape)
+        modifier.fillMaxWidth().heightIn(min = DsComponent.SearchBar)
+            .pgFieldSurface(t, focused)
             .padding(start = DsSpacing.FieldHorizontal, end = DsSpacing.Xs),
         contentAlignment = Alignment.CenterStart
     ) {

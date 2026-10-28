@@ -490,8 +490,7 @@ fun BulkActionsBar(
                 }
                 AppDropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(theme.cardSurfaceColor)
+                    onDismissRequest = { expanded = false }
                 ) {
                     if (canToggle) {
                         DropdownMenuItem(

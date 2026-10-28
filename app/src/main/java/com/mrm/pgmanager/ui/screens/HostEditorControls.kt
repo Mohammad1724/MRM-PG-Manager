@@ -15,24 +15,17 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,15 +33,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -58,15 +49,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
-import com.mrm.pgmanager.ui.components.PGSearchBar
+import com.mrm.pgmanager.ui.components.PGChoiceDialogFrame
+import com.mrm.pgmanager.ui.components.PGChoiceOption
+import com.mrm.pgmanager.ui.components.PGFormInput
+import com.mrm.pgmanager.ui.components.PGPrimaryButton
+import com.mrm.pgmanager.ui.components.PGSingleChoiceDialog
+import com.mrm.pgmanager.ui.components.PGStartAlign
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
-import com.mrm.pgmanager.ui.designsystem.AppDialog
-import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
-import com.mrm.pgmanager.ui.dialogs.paneTitle
-import com.mrm.pgmanager.ui.theme.LiquidGlassTheme
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 internal data class HostEditorChoice(val value: String, val label: String)
@@ -115,23 +108,28 @@ internal fun HostEditorTextField(
     tag: String = "",
     technical: Boolean = false
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text(label) },
-        placeholder = { if (hint.isNotEmpty()) Text(hint) },
-        enabled = enabled,
-        singleLine = singleLine,
-        minLines = 1,
-        maxLines = if (singleLine) 1 else 5,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = keyboardType,
-            autoCorrect = !technical,
-            imeAction = if (singleLine) ImeAction.Next else ImeAction.Default
-        ),
-        textStyle = if (technical) LocalTextStyle.current.copy(textDirection = TextDirection.Ltr) else LocalTextStyle.current,
-        modifier = Modifier.fillMaxWidth().then(if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier)
-    )
+    val theme = LocalThemeState.current
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+        PGFormInput(
+            value = value,
+            onValueChange = onChange,
+            label = label,
+            placeholder = hint,
+            enabled = enabled,
+            singleLine = singleLine,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                autoCorrect = !technical,
+                imeAction = if (singleLine) ImeAction.Next else ImeAction.Default
+            ),
+            textStyle = TextStyle(
+                fontSize = 14.sp, lineHeight = 20.sp,
+                textDirection = if (technical) TextDirection.Ltr else TextDirection.Content
+            ),
+            modifier = if (tag.isNotEmpty()) Modifier.testTag(tag) else Modifier
+        )
+    }
 }
 
 @Composable
@@ -148,9 +146,7 @@ internal fun HostEditorPickerField(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(DsRadius.Md)
-                .background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
+            Modifier.fillMaxWidth().heightIn(min = 52.dp).pgFieldSurface(theme)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
                 .semantics(mergeDescendants = true) {
                     contentDescription = "$label: $value"
@@ -161,7 +157,7 @@ internal fun HostEditorPickerField(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(value, Modifier.weight(1f), fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                color = if (enabled) theme.inkColor else theme.mutedColor)
+                color = if (enabled) theme.inkColor else theme.mutedColor, textAlign = PGStartAlign())
             RoundedAppIcon(AppIcon.ChevronDown, tint = theme.mutedColor, size = 18.dp)
         }
     }
@@ -195,49 +191,21 @@ internal fun HostEditorOptionsDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    val theme = LocalThemeState.current
-    var query by rememberSaveable(title) { mutableStateOf("") }
-    val filtered = choices.filter { it.label.contains(query.trim(), ignoreCase = true) }
-    AppDialog(onDismissRequest = onDismiss) {
-        LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Column(
-                Modifier.fillMaxWidth().imePadding().heightIn(max = 500.dp).clip(DsRadius.Xxl)
-                    .background(theme.dialogBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                    .padding(16.dp).paneTitle(title).testTag("host_editor_picker"),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(title, modifier = Modifier.semantics { heading() }, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = theme.inkColor)
-                PGSearchBar(query = query, onQueryChange = { query = it }, placeholder = searchLabel)
-                if (filtered.isEmpty()) {
-                    Text(stringResource(R.string.no_results), fontSize = 13.sp, color = theme.mutedColor, modifier = Modifier.padding(8.dp))
-                } else {
-                    LazyColumn(Modifier.weight(1f, fill = false).testTag("host_editor_picker_list")) {
-                        items(filtered, key = { it.value }) { choice ->
-                            Row(
-                                Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                                    .selectable(selected = choice.value == selected, role = Role.RadioButton) { onSelect(choice.value) }
-                                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(choice.label, Modifier.weight(1f), fontSize = 14.sp, color = theme.inkColor)
-                                if (choice.value == selected) RoundedAppIcon(AppIcon.Check, tint = theme.accentPrimary, size = 18.dp)
-                            }
-                        }
-                    }
-                }
-                PGSecondaryButton(stringResource(R.string.cancel), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
+    PGSingleChoiceDialog(
+        title = title,
+        searchLabel = searchLabel,
+        choices = choices.map { PGChoiceOption(it.value, it.label) },
+        selected = selected,
+        onDismiss = onDismiss,
+        onSelect = onSelect,
+        tag = "host_editor_picker"
+    )
 }
 
 @Composable
 internal fun HostStatusFilter(selected: List<String>, enabled: Boolean, onChange: (List<String>) -> Unit) {
     val theme = LocalThemeState.current
     var expanded by rememberSaveable { mutableStateOf(false) }
-    var anchorWidth by remember { mutableIntStateOf(0) }
     LaunchedEffect(enabled) { if (!enabled) expanded = false }
     val statuses = listOf(
         "active" to stringResource(R.string.active),
@@ -256,42 +224,75 @@ internal fun HostStatusFilter(selected: List<String>, enabled: Boolean, onChange
         selected.distinct().joinToString(", ") { status -> options.firstOrNull { it.first == status }?.second ?: status }
     }
     Column(Modifier.fillMaxWidth().testTag("host_editor_status_filter"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(Modifier.fillMaxWidth().onSizeChanged { anchorWidth = it.width }) {
-            HostEditorPickerField(
-                label = stringResource(R.string.host_editor_user_status), value = summary,
-                enabled = enabled, tag = "host_editor_status_dropdown", expanded = expanded
-            ) { expanded = true }
-            AppDropdownMenu(
-                expanded = expanded && enabled,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.width(with(LocalDensity.current) { anchorWidth.toDp() }).heightIn(max = 320.dp)
-            ) {
-                options.forEach { (value, label) ->
+        HostEditorPickerField(
+            label = stringResource(R.string.host_editor_user_status), value = summary,
+            enabled = enabled, tag = "host_editor_status_dropdown", expanded = expanded
+        ) { expanded = true }
+        Text(stringResource(R.string.host_editor_status_hint), fontSize = 12.sp, color = theme.mutedColor)
+    }
+    if (expanded && enabled) {
+        HostStatusDialog(
+            options = options,
+            selected = selected,
+            onChange = onChange,
+            onDismiss = { expanded = false }
+        )
+    }
+}
+
+/** Changes apply immediately, as in the previous multiselect menu. */
+@Composable
+private fun HostStatusDialog(
+    options: List<Pair<String, String>>,
+    selected: List<String>,
+    onChange: (List<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val theme = LocalThemeState.current
+    var query by rememberSaveable { mutableStateOf("") }
+    val filtered = options.filter { it.second.contains(query.trim(), ignoreCase = true) }
+    PGChoiceDialogFrame(
+        title = stringResource(R.string.host_editor_user_status),
+        searchLabel = stringResource(R.string.host_editor_search_statuses),
+        query = query,
+        onQueryChange = { query = it },
+        onDismiss = onDismiss,
+        tag = "host_editor_status_dialog"
+    ) {
+        if (filtered.isEmpty()) {
+            Text(stringResource(R.string.no_results), fontSize = 13.sp, color = theme.mutedColor, modifier = Modifier.padding(8.dp))
+        } else {
+            LazyColumn(Modifier.weight(1f, fill = false).testTag("host_editor_status_list")) {
+                items(filtered, key = { it.first }) { (value, label) ->
                     val checked = value in selected
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox) {
+                            .toggleable(value = checked, role = Role.Checkbox) {
                                 onChange(if (it) selected + value else selected.filterNot { old -> old == value })
-                            }.testTag("host_editor_status_$value").padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            }.testTag("host_editor_status_$value").padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
-                        Text(label, Modifier.weight(1f), fontSize = 13.sp, color = if (enabled) theme.inkColor else theme.mutedColor)
+                        Text(label, Modifier.weight(1f), fontSize = 14.sp, color = theme.inkColor, textAlign = PGStartAlign())
+                        Checkbox(checked = checked, onCheckedChange = null)
                     }
                 }
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.host_editor_status_clear), color = theme.inkColor) },
-                    onClick = { onChange(emptyList()) }, enabled = enabled && selected.isNotEmpty(),
-                    modifier = Modifier.testTag("host_editor_status_clear")
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.host_editor_status_done), color = theme.inkColor) },
-                    onClick = { expanded = false },
-                    modifier = Modifier.testTag("host_editor_status_done")
-                )
             }
         }
-        Text(stringResource(R.string.host_editor_status_hint), fontSize = 12.sp, color = theme.mutedColor)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            PGSecondaryButton(
+                text = stringResource(R.string.host_editor_status_clear),
+                onClick = { onChange(emptyList()) },
+                enabled = selected.isNotEmpty(),
+                modifier = Modifier.weight(1f).testTag("host_editor_status_clear")
+            )
+            PGPrimaryButton(
+                text = stringResource(R.string.host_editor_status_done),
+                onClick = onDismiss,
+                icon = null,
+                modifier = Modifier.weight(1f).testTag("host_editor_status_done")
+            )
+        }
     }
 }
 
@@ -336,22 +337,21 @@ internal fun HostEditorSelect(
     tag: String,
     onChange: (String) -> Unit
 ) {
-    val theme = LocalThemeState.current
     var expanded by rememberSaveable(tag) { mutableStateOf(false) }
-    val current = choices.firstOrNull { it.value == value }?.label ?: value
-    Box {
-        HostEditorPickerField(label, current, enabled, tag) { expanded = true }
-        AppDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 360.dp)) {
-            if (choices.none { it.value == value }) {
-                DropdownMenuItem(text = { Text(value, color = theme.inkColor) }, onClick = { expanded = false })
-            }
-            choices.forEach { choice ->
-                DropdownMenuItem(
-                    text = { Text(choice.label, color = theme.inkColor) },
-                    onClick = { onChange(choice.value); expanded = false }
-                )
-            }
-        }
+    LaunchedEffect(enabled) { if (!enabled) expanded = false }
+    val unknownLabel = if (value.isEmpty()) stringResource(R.string.host_editor_inherit) else value
+    val current = choices.firstOrNull { it.value == value }?.label ?: unknownLabel
+    HostEditorPickerField(label, current, enabled, tag, expanded = expanded) { expanded = true }
+    if (expanded && enabled) {
+        val options = if (choices.any { it.value == value }) choices else listOf(HostEditorChoice(value, unknownLabel)) + choices
+        HostEditorOptionsDialog(
+            title = label,
+            searchLabel = stringResource(R.string.search_cd),
+            choices = options,
+            selected = value,
+            onDismiss = { expanded = false },
+            onSelect = { onChange(it); expanded = false }
+        )
     }
 }
 

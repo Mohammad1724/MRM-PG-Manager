@@ -97,7 +97,7 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 - The mobile editor uses a bottom sheet with a scrollable body, fixed header and
   actions, editable basics and priority, separate host enablement and a multiselect
-  user-status dropdown, a searchable inbound selector, and a searchable Xray
+  user-status dialog, a searchable inbound selector, and a searchable Xray
   subscription-template selector. The selectors use the actual `/api/inbounds` (`system.read`) and
   `/api/client_templates/simple` (`client_templates.read_simple`) responses; failures
   remain visible and do not clear existing values. Creating a host requires an inbound;
@@ -117,8 +117,9 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   from the new header object's string representation; they are not saved in a Bundle.
 - Dismissing a dirty bottom sheet by close, cancel, back, scrim or drag is intended to
   request confirmation, and dismissal is blocked while saving. The visible close surface
-  is 32dp inside a 48dp touch target. The status dropdown preserves unknown selections
-  until explicitly removed or cleared; no selection means all user statuses.
+  is 32dp inside a 48dp touch target. The searchable status dialog applies selections
+  immediately and preserves unknown values until explicitly removed or cleared; no
+  selection means all user statuses.
 - `allowinsecure` is tri-state: null inherits from the inbound, false verifies
   certificates, and true disables verification. Priority defaults to zero on creation;
   smaller numbers normally come first, but randomized ordering may override that.
@@ -131,7 +132,31 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   request model expects `xudp_concurrency` and `xudp_proxy_udp_443`. The guarded PUT
   includes compatible aliases and rejects conflicting pairs rather than guessing.
 
-### Verification and limits
+### UI consistency follow-up (2026-10-28)
+
+- Host and user form fields now share the search-field surface and focus treatment;
+  technical host values and template content are displayed left-to-right. Host status,
+  advanced host choices, and user-editor status/next-plan choices use the same
+  searchable dialog shell as inbound selection. Toolbar and row action menus remain
+  anchored menus, with a shared theme-matched surface. Existing custom or unknown next
+  plans remain unchanged unless the administrator explicitly chooses a replacement.
+- Compact infrastructure tabs retain a 48dp target while the selected surface is
+  inset; the More and Refresh icons use the same visual and touch dimensions.
+- Backup and restore password fields now mask their contents. Backup settings also
+  keep the complete entered password in both the form and persistent preferences,
+  avoiding different passwords for manual and scheduled backups after a long paste.
+  This does not change the existing backup format or add authentication to AES-CBC.
+- For this follow-up, 55 existing standalone draft/state/API tests and four new pure
+  choice-filter and password-transformation tests passed in the temporary JVM harness.
+  Resource, contrast, widget and Kotlin static validators passed. Host, user-editor,
+  tab, and password UI sources type-checked with Compose and dependency stubs; the
+  stubs include a Material3 menu signature, so this is not an Android build. New
+  Robolectric tests cover the dialogs, password input, backup, and RTL tab geometry,
+  but have not been run here. The preceding CI runs and screenshots validate older
+  commits only; these UI changes still need Android CI, real-device/IME and visual
+  verification in both languages and themes.
+
+### Verification and limits for the preceding host-sheet work
 
 - The bottom-sheet and HTTP-header changes have 55 passing standalone JVM tests across
   draft, state, merge, API and infrastructure, using the actual API implementation and

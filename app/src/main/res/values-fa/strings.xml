@@ -1015,6 +1015,7 @@
     <string name="ue_next_plan">پلن بعدی</string>
     <string name="ue_next_plan_desc">وقتی این پلن تمام شود خودکار اعمال می‌شود</string>
     <string name="ue_next_plan_none">ندارد</string>
+    <string name="ue_next_plan_custom">پلن سفارشی فعلی</string>
     <string name="ue_next_plan_carry">انتقال حجم باقی‌مانده</string>
     <string name="us_bulk_days">افزودن روز</string>
     <string name="us_bulk_data">افزودن حجم</string>
@@ -1454,6 +1455,7 @@
     <string name="host_editor_xray_template">قالب Xray</string>
     <string name="host_editor_template_unknown">قالب شمارهٔ %1$d</string>
     <string name="host_editor_template_unrecognized">قالب ذخیره‌شده شناسایی نشد؛ تا وقتی تغییرش ندهید حفظ می‌شود.</string>
+    <string name="host_editor_search_statuses">جست‌وجوی وضعیت کاربران</string>
     <string name="host_editor_search_inbounds">جست‌وجوی اینباند</string>
     <string name="host_editor_search_templates">جست‌وجوی قالب‌های Xray</string>
     <string name="host_editor_loading_options">در حال دریافت گزینه‌ها…</string>

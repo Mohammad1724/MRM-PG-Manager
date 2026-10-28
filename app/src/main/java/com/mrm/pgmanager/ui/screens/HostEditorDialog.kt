@@ -261,21 +261,21 @@ internal fun HostEditorContent(
                             label = stringResource(R.string.host_address),
                             hint = stringResource(R.string.host_editor_comma_list),
                             value = draft.addressesText, onChange = { update(draft.copy(addressesText = it)) },
-                            enabled = !saving, singleLine = false, tag = "host_editor_addresses"
+                            enabled = !saving, singleLine = false, tag = "host_editor_addresses", technical = true
                         )
                         HostEditorTextField(
                             label = stringResource(R.string.host_port),
                             hint = stringResource(R.string.host_port_hint),
                             value = draft.portText,
                             onChange = { update(draft.copy(portText = com.mrm.pgmanager.utils.normalizePersianDigits(it))) },
-                            enabled = !saving, keyboardType = KeyboardType.Number, tag = "host_editor_port"
+                            enabled = !saving, keyboardType = KeyboardType.Number, tag = "host_editor_port", technical = true
                         )
                         HostEditorTextField(
                             label = stringResource(R.string.col_priority),
                             hint = stringResource(R.string.host_editor_priority_default),
                             value = draft.field("priority"),
                             onChange = { update(draft.withField("priority", com.mrm.pgmanager.utils.normalizePersianDigits(it))) },
-                            enabled = !saving, keyboardType = KeyboardType.Ascii, tag = "host_editor_priority"
+                            enabled = !saving, keyboardType = KeyboardType.Ascii, tag = "host_editor_priority", technical = true
                         )
                         Text(stringResource(R.string.host_editor_priority_hint), fontSize = 12.sp, color = theme.mutedColor)
 
@@ -293,7 +293,7 @@ internal fun HostEditorContent(
                                 label = stringResource(R.string.host_editor_inbound_manual),
                                 value = draft.inboundTag.orEmpty(),
                                 onChange = { update(draft.copy(inboundTag = it.ifBlank { null })) },
-                                enabled = !saving, tag = "host_editor_inbound_manual"
+                                enabled = !saving, tag = "host_editor_inbound_manual", technical = true
                             )
                         }
 

@@ -145,9 +145,11 @@ internal fun InfraIconButton(
 ) {
     val theme = LocalThemeState.current
     val iconTint = if (enabled) tint else theme.mutedColor.copy(0.5f)
-    if (icon == AppIcon.Refresh) {
-        // Match the main headers without shrinking the accessible target.
+    if (icon == AppIcon.Refresh || icon == AppIcon.More) {
+        // Match compact header actions without shrinking the accessible target.
         val interaction = remember { MutableInteractionSource() }
+        val visualTag = if (icon == AppIcon.Refresh) "infra_refresh_visual" else "infra_more_visual"
+        val iconTag = if (icon == AppIcon.Refresh) "infra_refresh_icon" else "infra_more_icon"
         Box(
             Modifier.size(48.dp)
                 .clickable(enabled = enabled, interactionSource = interaction, indication = null) { onClick() }
@@ -155,12 +157,12 @@ internal fun InfraIconButton(
             contentAlignment = Alignment.Center
         ) {
             Box(
-                Modifier.size(36.dp).testTag("infra_refresh_visual")
+                Modifier.size(36.dp).testTag(visualTag)
                     .clip(DsRadius.Sm).background(theme.searchBgColor)
                     .indication(interaction, LocalIndication.current),
                 contentAlignment = Alignment.Center
             ) {
-                RoundedAppIcon(icon, tint = iconTint, size = 16.dp, modifier = Modifier.testTag("infra_refresh_icon"))
+                RoundedAppIcon(icon, tint = iconTint, size = 16.dp, modifier = Modifier.testTag(iconTag))
             }
         }
     } else {
