@@ -22,13 +22,9 @@ permissions:
   actions: read
 
 jobs:
-  build:
+  inspect-previous-report:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
       - name: Download previous test report (temporary)
         uses: actions/download-artifact@v4
         with:
@@ -61,6 +57,14 @@ jobs:
                   count += 1
           print(f'Annotated {count} previous failures from {len(files)} report files')
           PY
+
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v4
