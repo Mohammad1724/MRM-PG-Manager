@@ -98,22 +98,39 @@ jobs:
           if-no-files-found: ignore
 
       # Temporary diagnostic for viewing synthetic test captures in restricted sandboxes.
-      - name: Inspect host sheet test captures
+      - name: Prepare host sheet capture inspection
         if: always()
         run: |
-          python3 - <<'PY'
+          cat > "$RUNNER_TEMP/host-sheet-preview.py" <<'PY'
           import base64
           import pathlib
-          for name in ('host_editor_sheet_en', 'host_editor_sheet_rtl_short'):
-              image = pathlib.Path('app/build/test-screens') / (name + '.png')
-              if not image.is_file():
-                  print('::notice title=Host sheet preview::Missing ' + name)
-                  continue
-              data = base64.b64encode(image.read_bytes()).decode('ascii')
-              chunks = [data[i:i + 16000] for i in range(0, len(data), 16000)]
-              for index, chunk in enumerate(chunks):
-                  print(f'::notice title=Host sheet preview::SHEETIMG:{name}:{index}:{len(chunks)}:{chunk}')
+          import sys
+          name, parity = sys.argv[1], int(sys.argv[2])
+          image = pathlib.Path('app/build/test-screens') / (name + '.png')
+          if not image.is_file():
+              print('::notice title=Host sheet preview::Missing ' + name)
+              sys.exit(0)
+          data = base64.b64encode(image.read_bytes()).decode('ascii')
+          chunks = [data[i:i + 3900] for i in range(0, len(data), 3900)]
+          for index in range(parity, len(chunks), 2):
+              print(f'::notice title=Host sheet preview::SHEETIMG:{name}:{index}:{len(chunks)}:{chunks[index]}')
           PY
+
+      - name: Inspect English sheet capture part one
+        if: always()
+        run: python3 "$RUNNER_TEMP/host-sheet-preview.py" host_editor_sheet_en 0
+
+      - name: Inspect English sheet capture part two
+        if: always()
+        run: python3 "$RUNNER_TEMP/host-sheet-preview.py" host_editor_sheet_en 1
+
+      - name: Inspect RTL sheet capture part one
+        if: always()
+        run: python3 "$RUNNER_TEMP/host-sheet-preview.py" host_editor_sheet_rtl_short 0
+
+      - name: Inspect RTL sheet capture part two
+        if: always()
+        run: python3 "$RUNNER_TEMP/host-sheet-preview.py" host_editor_sheet_rtl_short 1
 
       - name: Upload test report on failure
         if: failure()
