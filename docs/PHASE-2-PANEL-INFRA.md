@@ -137,10 +137,27 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   draft, state, merge, API and infrastructure, using the actual API implementation and
   MockWebServer with a temporary compiler harness. Kotlin-generated HTTP-header map
   and null-deletion payloads were also accepted by the upstream `CreateHost` Pydantic
-  model with some dependencies stubbed. The Compose UI sources compile in the harness
-  with dependency stubs. The new Robolectric/Compose tests and the full Android Gradle
-  build have **not** been run for these changes; the previous CI results
-  below predate them and do not validate the updated sheet.
+  model with some dependencies stubbed. The Compose UI sources also compile locally
+  in the harness with dependency stubs; those checks are not a full Android build.
+- [PR CI run 40645788030](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40645788030)
+  and [push CI run 40645780918](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40645780918)
+  passed the complete Android unit suite, including the new Compose/Robolectric sheet,
+  dropdown, draft-protection and header tests, and built debug and signed release APKs
+  at `663965d`. The [signed release APK](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40645788030/artifacts/12797722101)
+  is available for device testing.
+- [PR CI run 40648098243](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40648098243)
+  and [push CI run 40648093044](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40648093044)
+  also passed at `b895100`, including a new check that the captured images are not blank.
+  The [Robolectric screenshots](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40648098243/artifacts/12798521844)
+  could not be downloaded directly in this sandbox. A temporary CI diagnostic enabled
+  inspection of the full Persian RTL, dark-theme, 320 × 480 dp image with 1.8× text and
+  a long error: both actions and the close icon were visible. Only the upper 767 of 800
+  pixels of the English image could be recovered because a diagnostic annotation was
+  masked; its footer was not fully inspected visually. These synthetic screenshots are
+  not a substitute for observing the real app or its keyboard.
+- The first sheet CI runs failed on an invalid test-only `onNode` import. The import
+  validator was corrected and regression-tested while preserving the UI assertions;
+  a superseded push run was cancelled by the workflow's concurrency policy.
 - Before the bottom-sheet change, 46 standalone JUnit tests passed using the actual API, models, OkHttp, Okio and
   MockWebServer, including the state/draft/merge suite. An upstream Pydantic model accepted a
   Kotlin-generated request with 19 field assertions, with some dependencies stubbed.
