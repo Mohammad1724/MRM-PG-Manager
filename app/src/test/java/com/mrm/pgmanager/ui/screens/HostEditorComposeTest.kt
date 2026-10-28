@@ -197,6 +197,14 @@ class HostEditorComposeTest {
             require(view.width > 0 && view.height > 0) { "The sheet window has no layout" }
             val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
             view.draw(Canvas(image))
+            val pixels = IntArray(image.width * image.height)
+            image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+            val visibleColors = mutableSetOf<Int>()
+            for (pixel in pixels) {
+                if (pixel ushr 24 != 0) visibleColors.add(pixel)
+                if (visibleColors.size >= 4) break
+            }
+            check(visibleColors.size >= 4) { "The sheet screenshot is blank" }
             val directory = File("build/test-screens").apply { mkdirs() }
             File(directory, "$name.png").outputStream().use {
                 check(image.compress(Bitmap.CompressFormat.PNG, 100, it))

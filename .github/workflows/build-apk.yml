@@ -97,6 +97,24 @@ jobs:
           path: app/build/test-screens/
           if-no-files-found: ignore
 
+      # Temporary diagnostic for viewing synthetic test captures in restricted sandboxes.
+      - name: Inspect host sheet test captures
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import base64
+          import pathlib
+          for name in ('host_editor_sheet_en', 'host_editor_sheet_rtl_short'):
+              image = pathlib.Path('app/build/test-screens') / (name + '.png')
+              if not image.is_file():
+                  print('::notice title=Host sheet preview::Missing ' + name)
+                  continue
+              data = base64.b64encode(image.read_bytes()).decode('ascii')
+              chunks = [data[i:i + 16000] for i in range(0, len(data), 16000)]
+              for index, chunk in enumerate(chunks):
+                  print(f'::notice title=Host sheet preview::SHEETIMG:{name}:{index}:{len(chunks)}:{chunk}')
+          PY
+
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
