@@ -1,6 +1,9 @@
 package com.mrm.pgmanager.ui.components
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.view.View
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +26,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowDialog
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -75,6 +80,23 @@ class WindowIdlenessDiagnosticTest {
         startChoice()
         rule.mainClock.autoAdvance = false
         rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithTag("diagnostic_choice").assertIsDisplayed()
+    }
+
+    @Test fun `choice window idles after an explicit layout and draw`() {
+        startChoice()
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeByFrame()
+        rule.runOnUiThread {
+            val view = requireNotNull(ShadowDialog.getLatestDialog()?.window).decorView
+            val metrics = RuntimeEnvironment.getApplication().resources.displayMetrics
+            val width = view.width.takeIf { it > 0 } ?: metrics.widthPixels
+            val height = view.height.takeIf { it > 0 } ?: metrics.heightPixels
+            view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+            view.layout(0, 0, width, height)
+            view.draw(Canvas(Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)))
+        }
         rule.onNodeWithTag("diagnostic_choice").assertIsDisplayed()
     }
 }

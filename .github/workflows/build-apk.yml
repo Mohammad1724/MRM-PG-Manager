@@ -62,23 +62,40 @@ jobs:
           run-id: 40668945734
           github-token: ${{ github.token }}
 
-      - name: Export selected screenshots (temporary)
+      - name: Prepare screenshot exporter (temporary)
         run: |
-          python3 - <<'PY'
+          cat > /tmp/export-ci-screenshot.py <<'PY'
           import base64
           import hashlib
+          import sys
           from pathlib import Path
-          wanted = {'infra_tabs_ltr.png', 'infra_tabs_rtl_large.png', 'host_editor_network_en.png', 'host_editor_status_rtl_short.png'}
-          for path in sorted(Path('.ci-previous-screenshots').rglob('*.png')):
-              if path.name not in wanted:
-                  continue
-              data = path.read_bytes()
-              encoded = base64.b64encode(data).decode('ascii')
-              chunks = [encoded[i:i + 3900] for i in range(0, len(encoded), 3900)]
-              digest = hashlib.sha256(data).hexdigest()
-              for index, chunk in enumerate(chunks):
-                  print(f'::notice title=PNG-{path.name}-{index + 1:03d}-of-{len(chunks):03d}-{digest}::{chunk}')
+          name, first, last = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+          path = next(Path('.ci-previous-screenshots').rglob(name))
+          data = path.read_bytes()
+          encoded = base64.b64encode(data).decode('ascii')
+          chunks = [encoded[i:i + 3900] for i in range(0, len(encoded), 3900)]
+          digest = hashlib.sha256(data).hexdigest()
+          for index, chunk in enumerate(chunks, start=1):
+              if first <= index <= last:
+                  print(f'::notice title=PNG-{path.name}-{index:03d}-of-{len(chunks):03d}-{digest}::{chunk}')
           PY
+
+      - name: Export tab screenshots (temporary)
+        run: |
+          python3 /tmp/export-ci-screenshot.py infra_tabs_ltr.png 1 10
+          python3 /tmp/export-ci-screenshot.py infra_tabs_rtl_large.png 1 10
+
+      - name: Export network screenshot part 1 (temporary)
+        run: python3 /tmp/export-ci-screenshot.py host_editor_network_en.png 1 8
+
+      - name: Export network screenshot part 2 (temporary)
+        run: python3 /tmp/export-ci-screenshot.py host_editor_network_en.png 9 16
+
+      - name: Export status screenshot part 1 (temporary)
+        run: python3 /tmp/export-ci-screenshot.py host_editor_status_rtl_short.png 1 6
+
+      - name: Export status screenshot part 2 (temporary)
+        run: python3 /tmp/export-ci-screenshot.py host_editor_status_rtl_short.png 7 12
 
 
   diagnose-dialog-idleness:
