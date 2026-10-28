@@ -62,12 +62,22 @@ jobs:
           run-id: 40668945734
           github-token: ${{ github.token }}
 
-      - name: List previous screenshots (temporary)
+      - name: Export selected screenshots (temporary)
         run: |
           python3 - <<'PY'
+          import base64
+          import hashlib
           from pathlib import Path
-          for path in Path('.ci-previous-screenshots').rglob('*.png'):
-              print(f'::notice title=Screenshot::{path.name}: {path.stat().st_size} bytes')
+          wanted = {'infra_tabs_ltr.png', 'infra_tabs_rtl_large.png', 'host_editor_network_en.png', 'host_editor_status_rtl_short.png'}
+          for path in sorted(Path('.ci-previous-screenshots').rglob('*.png')):
+              if path.name not in wanted:
+                  continue
+              data = path.read_bytes()
+              encoded = base64.b64encode(data).decode('ascii')
+              chunks = [encoded[i:i + 3900] for i in range(0, len(encoded), 3900)]
+              digest = hashlib.sha256(data).hexdigest()
+              for index, chunk in enumerate(chunks):
+                  print(f'::notice title=PNG-{path.name}-{index + 1:03d}-of-{len(chunks):03d}-{digest}::{chunk}')
           PY
 
 

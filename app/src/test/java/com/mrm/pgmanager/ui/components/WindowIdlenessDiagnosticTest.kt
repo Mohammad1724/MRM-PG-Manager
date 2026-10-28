@@ -14,7 +14,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.espresso.IdlingPolicies
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import java.util.concurrent.TimeUnit
@@ -31,16 +30,22 @@ import org.robolectric.annotation.Config
 class WindowIdlenessDiagnosticTest {
     @get:Rule val rule = createComposeRule()
 
+    private fun idleTimeout(seconds: Long) {
+        Class.forName("androidx.test.espresso.IdlingPolicies")
+            .getMethod("setMasterPolicyTimeout", java.lang.Long.TYPE, TimeUnit::class.java)
+            .invoke(null, seconds, TimeUnit.SECONDS)
+    }
+
     @Before fun setUp() {
         MotionPrefs.reduceMotion = true
         SessionStore.resetPrefsForTests()
         SessionStore.prefsFactory = { it.getSharedPreferences("window_idleness_diagnostic", Context.MODE_PRIVATE) }
-        IdlingPolicies.setMasterPolicyTimeout(12, TimeUnit.SECONDS)
+        idleTimeout(12)
     }
 
     @After fun tearDown() {
         rule.mainClock.autoAdvance = true
-        IdlingPolicies.setMasterPolicyTimeout(60, TimeUnit.SECONDS)
+        idleTimeout(60)
         SessionStore.resetPrefsForTests()
         MotionPrefs.reduceMotion = false
     }
