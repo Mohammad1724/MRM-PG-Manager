@@ -94,8 +94,11 @@ class UserEditorChoiceDialogTest {
             }
         }
         if (withTemplates) {
-            rule.waitUntil(15_000) {
-                rule.onAllNodesWithTag("user_editor_next_plan").fetchSemanticsNodes().isNotEmpty()
+            rule.waitUntil(15_000) { server.requestCount >= 2 }
+            val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(15)
+            while (rule.onAllNodesWithTag("user_editor_next_plan").fetchSemanticsNodes().isEmpty()) {
+                check(System.nanoTime() < deadline) { "The template choices did not load" }
+                Thread.sleep(25)
             }
         }
     }

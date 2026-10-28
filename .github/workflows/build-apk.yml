@@ -19,6 +19,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
@@ -27,6 +28,39 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+
+      - name: Download previous test report (temporary)
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-report
+          path: .ci-previous-report
+          run-id: 40668945734
+          github-token: ${{ github.token }}
+
+      - name: Annotate previous test failures (temporary)
+        run: |
+          python3 - <<'PY'
+          from html import unescape
+          from pathlib import Path
+          import re
+
+          files = sorted(Path('.ci-previous-report').rglob('*.html'))
+          count = 0
+          for path in files:
+              if path.parent.name != 'classes':
+                  continue
+              html = path.read_text(encoding='utf-8', errors='replace')
+              for heading, raw in re.findall(r'<h3[^>]*>(.*?)</h3>.*?<pre[^>]*>(.*?)</pre>', html, re.S):
+                  title = unescape(re.sub(r'<[^>]+>', '', heading))
+                  trace = unescape(re.sub(r'<[^>]+>', '', raw))
+                  lines = trace.splitlines()
+                  detail = '\n'.join(lines[:4] + [line for line in lines[4:] if 'com.mrm.' in line][:12])[:3500]
+                  def esc(text):
+                      return text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print(f'::warning title={esc(path.stem + " - " + title)}::{esc(detail)}')
+                  count += 1
+          print(f'Annotated {count} previous failures from {len(files)} report files')
+          PY
 
       - name: Setup Java
         uses: actions/setup-java@v4

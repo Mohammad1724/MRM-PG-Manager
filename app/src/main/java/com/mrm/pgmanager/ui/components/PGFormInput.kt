@@ -59,11 +59,11 @@ internal fun PGFormInput(
         cursorBrush = SolidColor(theme.inkColor),
         modifier = modifier.fillMaxWidth().heightIn(min = DsComponent.Field)
             .pgFieldSurface(theme, focused)
-            .padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Md)
             .semantics { contentDescription = label },
         decorationBox = { inner ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
             ) {
