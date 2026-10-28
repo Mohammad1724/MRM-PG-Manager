@@ -3,12 +3,14 @@ package com.mrm.pgmanager.ui.screens
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import androidx.activity.ComponentDialog
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -41,6 +43,8 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.HostXrayTemplate
 import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.ui.components.LocalChoiceWindow
+import com.mrm.pgmanager.ui.components.TestChoiceWindow
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.ThemeState
@@ -64,6 +68,7 @@ import java.io.File
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HostEditorComposeTest {
     @get:Rule val rule = createComposeRule()
+    private val choiceWindow = TestChoiceWindow()
 
     private val host = PanelHost(
         id = 3, remark = "Example", addresses = listOf("example.com"),
@@ -100,21 +105,25 @@ class HostEditorComposeTest {
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale),
                 LocalLayoutDirection provides direction,
-                LocalThemeState provides ThemeState(isDark = dark)
+                LocalThemeState provides ThemeState(isDark = dark),
+                LocalChoiceWindow provides choiceWindow
             ) {
-                HostEditorContent(
-                    initial = initial,
-                    draft = draft,
-                    saving = saving.value,
-                    error = serverError.value,
-                    onDraftChange = { draft = it; current = it },
-                    inbounds = inbounds,
-                    templates = HostOptions.Ready<HostXrayTemplate>(emptyList()),
-                    onRetryInbounds = {},
-                    onRetryTemplates = {},
-                    onDismiss = { dismissed = true },
-                    onSave = { saved = draft }
-                )
+                Box(Modifier.fillMaxSize()) {
+                    HostEditorContent(
+                        initial = initial,
+                        draft = draft,
+                        saving = saving.value,
+                        error = serverError.value,
+                        onDraftChange = { draft = it; current = it },
+                        inbounds = inbounds,
+                        templates = HostOptions.Ready<HostXrayTemplate>(emptyList()),
+                        onRetryInbounds = {},
+                        onRetryTemplates = {},
+                        onDismiss = { dismissed = true },
+                        onSave = { saved = draft }
+                    )
+                    choiceWindow.Overlay()
+                }
             }
         }
     }
@@ -182,14 +191,12 @@ class HostEditorComposeTest {
         rule.runOnIdle { assertEquals(listOf("active", "future_status", "limited"), saved?.status) }
     }
 
-    @Test fun `back closes status dialog without undoing changes already made`() {
+    @Test fun `dismiss request closes status dialog without undoing changes already made`() {
         render()
         rule.onNodeWithTag("host_editor_status_dropdown").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(2)
         rule.onNodeWithTag("host_editor_status_limited").performClick()
-        rule.runOnIdle {
-            (requireNotNull(ShadowDialog.getLatestDialog()) as ComponentDialog).onBackPressedDispatcher.onBackPressed()
-        }
+        rule.runOnIdle { choiceWindow.dismiss() }
         rule.onNodeWithTag("host_editor_status_dialog").assertDoesNotExist()
         rule.onNodeWithTag("host_editor_window").assertIsDisplayed()
         rule.onNodeWithTag("host_editor_save").performClick()
@@ -350,7 +357,7 @@ class HostEditorComposeTest {
         assertTrue(clear.top >= frame.top && clear.bottom <= frame.bottom)
         assertTrue(done.top >= frame.top && done.bottom <= frame.bottom)
         assertTrue(clear.right <= done.left || done.right <= clear.left)
-        saveSheetScreenshot("host_editor_status_rtl_short")
+        // This host test renders the dialog content without a native window.
         rule.onNodeWithTag("host_editor_status_list").performScrollToIndex(5)
         rule.onNodeWithTag("host_editor_status_future_status").assertIsOn()
         val after = rule.onNodeWithTag("host_editor_status_done").assertIsDisplayed().fetchSemanticsNode().boundsInRoot

@@ -1,7 +1,10 @@
 package com.mrm.pgmanager.ui.dialogs
 
 import android.content.Context
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -21,6 +24,8 @@ import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserEditorValues
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.ui.components.LocalChoiceWindow
+import com.mrm.pgmanager.ui.components.TestChoiceWindow
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -44,6 +49,7 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class UserEditorChoiceDialogTest {
     @get:Rule val rule = createComposeRule()
+    private val choiceWindow = TestChoiceWindow()
 
     private lateinit var server: MockWebServer
     private var saved: UserEditorValues? = null
@@ -89,8 +95,14 @@ class UserEditorChoiceDialogTest {
         val session = if (withTemplates) Session(server.url("/").toString().trimEnd('/'), "test-token", "admin") else null
         rule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                UserEditorDialog(initial = initial, onDismiss = {}, onSave = { values, _ -> saved = values }, onToggle = {}, session = session)
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+                LocalChoiceWindow provides choiceWindow
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    UserEditorDialog(initial = initial, onDismiss = {}, onSave = { values, _ -> saved = values }, onToggle = {}, session = session)
+                    choiceWindow.Overlay()
+                }
             }
         }
         if (withTemplates) {

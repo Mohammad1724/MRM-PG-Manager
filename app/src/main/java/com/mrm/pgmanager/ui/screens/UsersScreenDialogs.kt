@@ -121,6 +121,20 @@ fun DebtorEditDialog(
     onSave: (amount: Long, notes: String) -> Unit,
     onClear: () -> Unit
 ) {
+    AppDialog(onDismissRequest = onDismiss) {
+        DebtorEditContent(user, existing, currency, onDismiss, onSave, onClear)
+    }
+}
+
+@Composable
+internal fun DebtorEditContent(
+    user: PanelUser,
+    existing: DebtorInfo?,
+    currency: String,
+    onDismiss: () -> Unit,
+    onSave: (amount: Long, notes: String) -> Unit,
+    onClear: () -> Unit
+) {
     val theme = LocalThemeState.current
     var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
@@ -131,69 +145,67 @@ fun DebtorEditDialog(
     val amountLabel = stringResource(R.string.us_debt_amount_hint)
     val notesLabel = stringResource(R.string.us_debt_note_hint)
     val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
-    AppDialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
-            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
-                Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                if (existing != null) {
-                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
-                }
-                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme, amountFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
-                        Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = amountText,
-                            onValueChange = { raw ->
-                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
-                                amountText = n.filter { c -> c.isDigit() }
-                            },
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            interactionSource = amountInteraction,
-                            cursorBrush = SolidColor(theme.inkColor),
-                            textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold, textDirection = TextDirection.Ltr),
-                            modifier = Modifier.weight(1f).semantics { contentDescription = amountLabel },
-                            decorationBox = { inner ->
-                                Box(contentAlignment = Alignment.CenterStart) {
-                                    if (amountText.isEmpty()) Text(amountLabel, color = theme.tertiaryColor, fontSize = 12.sp)
-                                    inner()
-                                }
-                            }
-                        )
-                    }
-                }
-                Box(Modifier.fillMaxWidth().heightIn(min = 48.dp, max = 120.dp).pgFieldSurface(theme, notesFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
+    Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
+            Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+            if (existing != null) {
+                Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
+            }
+            Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme, amountFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
+                    Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
                     androidx.compose.foundation.text.BasicTextField(
-                        value = notes,
-                        onValueChange = { notes = it.take(200) },
-                        singleLine = false,
-                        interactionSource = notesInteraction,
+                        value = amountText,
+                        onValueChange = { raw ->
+                            val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                            amountText = n.filter { c -> c.isDigit() }
+                        },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        interactionSource = amountInteraction,
                         cursorBrush = SolidColor(theme.inkColor),
-                        textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
-                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = notesLabel },
+                        textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold, textDirection = TextDirection.Ltr),
+                        modifier = Modifier.weight(1f).semantics { contentDescription = amountLabel },
                         decorationBox = { inner ->
                             Box(contentAlignment = Alignment.CenterStart) {
-                                if (notes.isEmpty()) Text(notesLabel, color = theme.tertiaryColor, fontSize = 11.sp)
+                                if (amountText.isEmpty()) Text(amountLabel, color = theme.tertiaryColor, fontSize = 12.sp)
                                 inner()
                             }
                         }
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                    PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                    if (existing != null) {
-                        PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
-                    } else {
-                        Box(Modifier.weight(1f))
+            }
+            Box(Modifier.fillMaxWidth().heightIn(min = 48.dp, max = 120.dp).pgFieldSurface(theme, notesFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
+                androidx.compose.foundation.text.BasicTextField(
+                    value = notes,
+                    onValueChange = { notes = it.take(200) },
+                    singleLine = false,
+                    interactionSource = notesInteraction,
+                    cursorBrush = SolidColor(theme.inkColor),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = notesLabel },
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (notes.isEmpty()) Text(notesLabel, color = theme.tertiaryColor, fontSize = 11.sp)
+                            inner()
+                        }
                     }
-                }
-                PGPrimaryButton(
-                    text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
-                    enabled = amountLong > 0L,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onSave(amountLong, notes) }
                 )
             }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                if (existing != null) {
+                    PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
+                } else {
+                    Box(Modifier.weight(1f))
+                }
+            }
+            PGPrimaryButton(
+                text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
+                enabled = amountLong > 0L,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onSave(amountLong, notes) }
+            )
         }
     }
 }

@@ -24,7 +24,7 @@ class DebtorEditFieldTest {
         val user = PanelUser(id = 3L, username = "alpha", status = "active", usedTraffic = 0L, dataLimit = 0L, expire = null, createdAt = null)
         var saved: Pair<Long, String>? = null
         rule.setContent {
-            DebtorEditDialog(user = user, existing = null, currency = "USD", onDismiss = {},
+            DebtorEditContent(user = user, existing = null, currency = "USD", onDismiss = {},
                 onSave = { amount, notes -> saved = amount to notes }, onClear = {})
         }
         val context = RuntimeEnvironment.getApplication()

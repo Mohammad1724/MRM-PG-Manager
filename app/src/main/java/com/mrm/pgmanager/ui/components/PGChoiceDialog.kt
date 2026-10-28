@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +43,21 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 internal data class PGChoiceOption(val value: String, val label: String)
 
+/** Keeps the choice content independent of its platform window for previews and host tests. */
+internal interface PGChoiceWindow {
+    @Composable
+    fun Show(onDismiss: () -> Unit, content: @Composable () -> Unit)
+}
+
+private object PlatformChoiceWindow : PGChoiceWindow {
+    @Composable
+    override fun Show(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+        AppDialog(onDismissRequest = onDismiss, content = content)
+    }
+}
+
+internal val LocalChoiceWindow = staticCompositionLocalOf<PGChoiceWindow> { PlatformChoiceWindow }
+
 internal fun filterChoiceOptions(choices: List<PGChoiceOption>, query: String): List<PGChoiceOption> =
     choices.distinctBy { it.value }.filter { it.label.contains(query.trim(), ignoreCase = true) }
 
@@ -57,7 +73,7 @@ internal fun PGChoiceDialogFrame(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalThemeState.current
-    AppDialog(onDismissRequest = onDismiss) {
+    LocalChoiceWindow.current.Show(onDismiss = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Column(
                 Modifier.fillMaxWidth().imePadding().heightIn(max = 500.dp).clip(DsRadius.Xxl)

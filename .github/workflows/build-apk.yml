@@ -19,86 +19,9 @@ concurrency:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
-  inspect-previous-report:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download previous test report (temporary)
-        uses: actions/download-artifact@v4
-        with:
-          name: unit-test-report
-          path: .ci-previous-report
-          run-id: 40668945734
-          github-token: ${{ github.token }}
-
-      - name: Annotate previous test failures (temporary)
-        run: |
-          python3 - <<'PY'
-          from html import unescape
-          from pathlib import Path
-          import re
-
-          for path in sorted(Path('.ci-previous-report').rglob('*.html')):
-              if path.parent.name != 'classes':
-                  continue
-              html = path.read_text(encoding='utf-8', errors='replace')
-              for heading, raw in re.findall(r'<h3[^>]*>(.*?)</h3>.*?<pre[^>]*>(.*?)</pre>', html, re.S):
-                  title = unescape(re.sub(r'<[^>]+>', '', heading))
-                  if not any(word in title for word in ('creation only', 'status dropdown', 'labelled amount')):
-                      continue
-                  trace = unescape(re.sub(r'<[^>]+>', '', raw))[:3500]
-                  def esc(text):
-                      return text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-                  print(f'::warning title={esc(path.stem + " - " + title)}::{esc(trace)}')
-          PY
-
-      - name: Download previous screenshots (temporary)
-        uses: actions/download-artifact@v4
-        with:
-          name: ui-screenshots
-          path: .ci-previous-screenshots
-          run-id: 40668945734
-          github-token: ${{ github.token }}
-
-      - name: Prepare screenshot exporter (temporary)
-        run: |
-          cat > /tmp/export-ci-screenshot.py <<'PY'
-          import base64
-          import hashlib
-          import sys
-          from pathlib import Path
-          name, first, last = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-          path = next(Path('.ci-previous-screenshots').rglob(name))
-          data = path.read_bytes()
-          encoded = base64.b64encode(data).decode('ascii')
-          chunks = [encoded[i:i + 3900] for i in range(0, len(encoded), 3900)]
-          digest = hashlib.sha256(data).hexdigest()
-          for index, chunk in enumerate(chunks, start=1):
-              if first <= index <= last:
-                  print(f'::notice title=PNG-{path.name}-{index:03d}-of-{len(chunks):03d}-{digest}::{chunk}')
-          PY
-
-      - name: Export tab screenshots (temporary)
-        run: |
-          python3 /tmp/export-ci-screenshot.py infra_tabs_ltr.png 1 10
-          python3 /tmp/export-ci-screenshot.py infra_tabs_rtl_large.png 1 10
-
-      - name: Export network screenshot part 1 (temporary)
-        run: python3 /tmp/export-ci-screenshot.py host_editor_network_en.png 1 8
-
-      - name: Export network screenshot part 2 (temporary)
-        run: python3 /tmp/export-ci-screenshot.py host_editor_network_en.png 9 16
-
-      - name: Export status screenshot part 1 (temporary)
-        run: python3 /tmp/export-ci-screenshot.py host_editor_status_rtl_short.png 1 6
-
-      - name: Export status screenshot part 2 (temporary)
-        run: python3 /tmp/export-ci-screenshot.py host_editor_status_rtl_short.png 7 12
-
-
-  diagnose-dialog-idleness:
+  focused-ui-regressions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,11 +30,16 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v3
-      - name: Run focused dialog diagnostics (temporary)
+      - name: Run focused UI regressions (temporary)
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew testDebugUnitTest --tests '*WindowIdlenessDiagnosticTest' --console=plain 2>&1 | tee diagnostic.log
+          ./gradlew testDebugUnitTest --console=plain \
+            --tests '*HostEditorComposeTest.status filter saves independently*' \
+            --tests '*HostEditorComposeTest.host inputs expose labels*' \
+            --tests '*HostEditorComposeTest.certificate verification*' \
+            --tests '*UserEditorChoiceDialogTest.creation only offers*' \
+            --tests '*DebtorEditFieldTest' 2>&1 | tee diagnostic.log
       - name: Annotate focused failures (temporary)
         if: failure()
         run: python3 tools/ci-annotate.py diagnostic.log app/build/test-results/testDebugUnitTest
