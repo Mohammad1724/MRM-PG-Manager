@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
+import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.HostXrayTemplate
 import com.mrm.pgmanager.data.model.PanelHost
+import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.designsystem.MotionPrefs
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.ThemeState
@@ -50,8 +52,16 @@ class HostEditorComposeTest {
     private var saved: HostDraft? = null
     private var dismissed = false
 
-    @Before fun setUp() { MotionPrefs.reduceMotion = true }
-    @After fun tearDown() { MotionPrefs.reduceMotion = false }
+    @Before fun setUp() {
+        MotionPrefs.reduceMotion = true
+        SessionStore.resetPrefsForTests()
+        SessionStore.prefsFactory = { it.getSharedPreferences("host_editor_compose_test", Context.MODE_PRIVATE) }
+    }
+
+    @After fun tearDown() {
+        SessionStore.resetPrefsForTests()
+        MotionPrefs.reduceMotion = false
+    }
     private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
 
     private fun render(

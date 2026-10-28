@@ -105,13 +105,17 @@ internal fun HostsSection(session: Session, sectionTabs: @Composable () -> Unit)
 
     suspend fun load() {
         try {
-            hosts = PanelApi.hosts(session)
-            loadError = null
-            PanelCache.put(hostsKey, hosts)
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+            try {
+                hosts = PanelApi.hosts(session)
+                loadError = null
+                PanelCache.put(hostsKey, hosts)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+            }
+            // Keep the shared inbound cache warm for the other infrastructure sections.
+            PanelCache.put(PanelCache.inboundsKey(session.baseUrl), PanelApi.inboundTags(session))
         } finally {
             loading = false
         }
