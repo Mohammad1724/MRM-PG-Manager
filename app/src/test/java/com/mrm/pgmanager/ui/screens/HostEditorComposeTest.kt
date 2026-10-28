@@ -1,6 +1,8 @@
 package com.mrm.pgmanager.ui.screens
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +53,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp")
@@ -186,6 +190,20 @@ class HostEditorComposeTest {
         }
     }
 
+    private fun saveSheetScreenshot(name: String) {
+        rule.runOnIdle {
+            val window = requireNotNull(ShadowDialog.getLatestDialog()?.window)
+            val view = window.decorView
+            require(view.width > 0 && view.height > 0) { "The sheet window has no layout" }
+            val image = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            view.draw(Canvas(image))
+            val directory = File("build/test-screens").apply { mkdirs() }
+            File(directory, "$name.png").outputStream().use {
+                check(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+            }
+        }
+    }
+
     private fun assertActionsWithinEditor() {
         val window = rule.onNodeWithTag("host_editor_window").fetchSemanticsNode().boundsInRoot
         val actionsNode = rule.onNodeWithTag("host_editor_actions").assertIsDisplayed().fetchSemanticsNode()
@@ -214,6 +232,7 @@ class HostEditorComposeTest {
         rule.onNodeWithTag("host_editor_close_icon", useUnmergedTree = true)
             .assertWidthIsEqualTo(18.dp).assertHeightIsEqualTo(18.dp)
         assertActionsWithinEditor()
+        saveSheetScreenshot("host_editor_sheet_en")
         val before = rule.onNodeWithTag("host_editor_actions").fetchSemanticsNode().boundsInRoot
         rule.onNodeWithTag("host_editor_section_wireguard").performScrollTo()
         assertActionsWithinEditor()
@@ -234,6 +253,7 @@ class HostEditorComposeTest {
             .assertWidthIsEqualTo(18.dp).assertHeightIsEqualTo(18.dp)
         rule.onNodeWithTag("host_editor_error").assertIsDisplayed()
         assertActionsWithinEditor()
+        saveSheetScreenshot("host_editor_sheet_rtl_short")
         rule.onNodeWithTag("host_editor_section_wireguard").performScrollTo()
         assertActionsWithinEditor()
     }
