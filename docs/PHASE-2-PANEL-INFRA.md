@@ -126,10 +126,16 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   MockWebServer, including the state/draft/merge suite. An upstream Pydantic model accepted a
   Kotlin-generated request with 19 field assertions, with some dependencies stubbed.
   These are not a real server, device test, or an Android Gradle build.
-- Four UI source files were compiled with a temporary Compose compiler setup and
-  project dependency stubs; this checks compilation against those approximated
-  dependencies, not layout, runtime behavior or the release APK. Compose behavior
-  tests were added but have not been run in this environment.
-- The full Android build remains unverified here because the Gradle distribution
-  download failed during TLS negotiation; no local SDK/emulator was available. Prior
-  CI results belong to earlier commits and do not validate this uncommitted editor.
+- [PR CI run 40636160519](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40636160519)
+  and [push CI run 40636153723](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40636153723)
+  passed `testDebugUnitTest`, including the new Robolectric/Compose editor tests and
+  existing infrastructure tests, and built debug and signed release APKs at `1d097cf`.
+  The [signed release APK](https://github.com/Mohammad1724/MRM-PG-Manager/actions/runs/40636160519/artifacts/12794026158)
+  is available for device testing.
+- Initial CI failures exposed a Compose test compilation mistake, missing test-only
+  preferences setup, and a regression in the shared inbound-cache refresh. Those were
+  corrected without removing the existing assertions. Local Gradle download still
+  fails during TLS negotiation, and no local SDK/emulator is available.
+- The Compose checks exercise selected controls in Robolectric; they are not visual
+  sign-off or real-device validation. Activity recreation, keyboard/insets, TalkBack,
+  real-panel behavior, the non-atomic GET/PUT race and `lintDebug` remain unverified.
