@@ -36,6 +36,7 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.ClientTemplate
 import com.mrm.pgmanager.data.model.ClientTemplateType
 import com.mrm.pgmanager.data.model.PanelCore
@@ -70,6 +71,7 @@ class PanelInfraScrollTest {
     @Before fun setUp() {
         MotionPrefs.reduceMotion = true
         AdminAccess.reset()
+        runBlocking { AdminAccess.refreshWith(session) { AdminSelf(id = 1, username = session.username, isOwner = true) } }
         PanelCache.clear()
         PanelCache.clock = { 1_000L }
         seed(session)
@@ -262,6 +264,14 @@ class PanelInfraScrollTest {
         rule.onNodeWithText(str(R.string.col_address)).assertExists()
         rule.runOnIdle { scale = 2f }
         assertTrue(rule.onAllNodesWithTag("host_readable_row", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test fun `core cache stays hidden while permissions are unknown`() {
+        AdminAccess.reset()
+        render()
+        rule.onNodeWithText(str(R.string.infra_tab_cores)).performClick()
+        rule.onNodeWithText("Core 0").assertDoesNotExist()
+        rule.onNodeWithContentDescription(str(R.string.search_cores)).assertDoesNotExist()
     }
 
     @Test fun `read-only permissions still hide host and template mutations`() {

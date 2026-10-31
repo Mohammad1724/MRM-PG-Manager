@@ -107,7 +107,10 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             if (request == loadRequest) {
                 val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e)
-                if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN || kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) cores = emptyList()
+                if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN || kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
+                    cores = emptyList()
+                    PanelCache.invalidate(coresKey)
+                }
                 loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             }
         } finally {
@@ -117,8 +120,15 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
 
     LaunchedEffect(session, canRead) {
         editor.bind(session)
-        loading = canRead
-        load()
+        if (!canRead) {
+            load()
+        } else {
+            // Only restore cached data after this session's read permission is verified.
+            val cached = PanelCache.get<List<PanelCore>>(coresKey)
+            cores = cached ?: emptyList()
+            loading = cached == null
+            if (cached == null || !PanelCache.isFresh(coresKey)) load()
+        }
     }
 
     LaunchedEffect(saveNotice) {
