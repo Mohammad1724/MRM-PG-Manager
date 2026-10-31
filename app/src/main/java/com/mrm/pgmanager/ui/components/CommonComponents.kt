@@ -21,7 +21,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,10 +33,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +49,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.ui.theme.GlassRed
@@ -57,9 +60,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.material3.ripple
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
@@ -73,6 +74,7 @@ import com.mrm.pgmanager.ui.designsystem.DsFont
 import com.mrm.pgmanager.ui.designsystem.DsGlass
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
+import com.mrm.pgmanager.ui.designsystem.WcagContrast
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier, height: Dp = 24.dp) {
@@ -125,7 +127,7 @@ fun PGIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isRed: Boolean = false,
-    size: Dp = 44.dp,
+    size: Dp = DsComponent.MinTouchTarget,
     contentDescription: String? = null
 ) {
     val theme = LocalThemeState.current
@@ -156,21 +158,14 @@ fun PGIconButton(
     ) { icon() }
 }
 
-/**
- * دکمهٔ شناورِ مشترکِ صفحه‌ها (کاربران، گروه‌ها، قالب‌ها).
- *
- * دایرهٔ ۵۶dp با همان زبانِ دکمهٔ اصلی: گرادیانِ سطحِ اصلی، لبهٔ سفیدِ نیمه‌شفاف،
- * برقِ بالا و هالهٔ نور. با [visible] هنگامِ اسکرول محو می‌شود و در اولین
- * نمایش با یک جهشِ کوچک می‌آید.
- *
- * ⚙️ **موتور**: بیرون از ui/components مستقیم صدا نزنید — از [PGFAB] استفاده کنید.
- */
+/** Shared floating action button with a solid accent and restrained elevation. */
 @Composable
 fun MrmFab(
     icon: AppIcon,
     contentDescription: String,
     modifier: Modifier = Modifier,
     visible: Boolean = true,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
@@ -194,51 +189,43 @@ fun MrmFab(
         },
         label = "fabShown"
     )
-    val glow = theme.primaryGlow
-    Box(
-        modifier
-            .size(56.dp)
-            .graphicsLayer {
-                scaleX = pressFactor * shown
-                scaleY = pressFactor * shown
-                alpha = shown
+    val animatedModifier = modifier
+        .size(if (compact) 48.dp else 56.dp)
+        .graphicsLayer {
+            scaleX = pressFactor * shown
+            scaleY = pressFactor * shown
+            alpha = shown
+        }
+    if (compact) {
+        Box(
+            animatedModifier.semantics { this.contentDescription = contentDescription }
+                .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(44.dp).testTag("compact_fab_visual")
+                    .shadow(elevation = if (pressed) 1.dp else 3.dp, shape = CircleShape, clip = false)
+                    .clip(CircleShape).background(theme.primaryFill)
+                    .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                RoundedAppIcon(icon, tint = theme.onPrimary, size = 20.dp, modifier = Modifier.testTag("compact_fab_icon"))
             }
-            .shadow(
-                elevation = if (pressed) 6.dp else 12.dp, shape = CircleShape, clip = false,
-                ambientColor = glow.copy(alpha = 0.40f),
-                spotColor = glow.copy(alpha = 0.70f)
-            )
-            .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(theme.primaryStart, theme.primaryEnd)))
-            .glassGloss(CircleShape, pressed)
-            .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape)
-            .semantics { this.contentDescription = contentDescription }
-            // وقتی دکمه محو است نباید لمس را بگیرد.
-            .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        RoundedAppIcon(icon, tint = theme.onPrimary, size = 24.dp)
+        }
+    } else {
+        Box(
+            animatedModifier
+                .shadow(elevation = if (pressed) 1.dp else 3.dp, shape = CircleShape, clip = false)
+                .clip(CircleShape).background(theme.primaryFill)
+                .border(BorderStroke(1.dp, theme.primaryEdge), CircleShape)
+                .semantics { this.contentDescription = contentDescription }
+                .clickable(enabled = visible, interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            RoundedAppIcon(icon, tint = theme.onPrimary, size = 24.dp)
+        }
     }
 }
-
-/**
- * برقِ شیشه‌ای روی سطحِ اصلی: نیمهٔ بالا کمی روشن‌تر (نورِ محیط)، و هنگامِ فشار
- * یک لایهٔ سفیدِ کم‌رنگ روی کل سطح. بعد از background و پیشِ محتوا کشیده می‌شود
- * (drawBehind) تا متن و آیکون شسته نشوند؛ فقط فازِ draw — بدونِ recomposition.
- */
-private fun Modifier.glassGloss(shape: androidx.compose.ui.graphics.Shape, pressed: Boolean): Modifier =
-    drawBehind {
-        val outline = shape.createOutline(size, layoutDirection, this)
-        drawOutline(
-            outline = outline,
-            brush = Brush.verticalGradient(
-                0f to Color.White.copy(alpha = DsGlass.GlossTopAlpha),
-                0.55f to Color.White.copy(alpha = DsGlass.GlossBottomAlpha),
-                1f to Color.Transparent
-            )
-        )
-        if (pressed) drawOutline(outline = outline, color = Color.White.copy(alpha = DsGlass.PressedOverlayAlpha))
-    }
 
 sealed class MrmButtonStyle {
     object Primary : MrmButtonStyle()
@@ -248,16 +235,8 @@ sealed class MrmButtonStyle {
 }
 
 /**
- * دکمهٔ استانداردِ اپ — کپسولِ کامل.
- *
- * سبکِ Primary همان «دکمهٔ شیشه‌ای»ِ مرجعِ کاربر است: گرادیانِ سطحِ اصلی
- * ([ThemeState.primaryBrush])، لبهٔ سفیدِ نیمه‌شفاف، برقِ بالای سطح، هالهٔ نورِ
- * هم‌رنگ، و اگر [icon] داده شود یک «سکه»ی گرد در ابتدا و فلشِ کوچک در انتها.
- * در حالتِ [loading] اسپینر داخلِ همان سکه می‌چرخد. سبک‌های دیگر (Secondary/
- * Danger/Glass) تخت‌اند ولی هم‌شکل، تا کنارِ هم بنشینند.
- *
- * ⚙️ **موتور**: صفحه‌ها/دیالوگ‌ها مستقیم صدا نزنند — از [PGPrimaryButton] / [PGSecondaryButton] /
- * [PGDangerButton] استفاده کنند (`tools/kt-family.py` در CI اجبار می‌کند).
+ * Shared button engine. Screens use the PG button family instead of calling this directly.
+ * Controls have a minimum touch target and can grow when labels use larger fonts.
  */
 @Composable
 fun MrmButton(
@@ -284,6 +263,8 @@ fun MrmButton(
 
     val shape = DsRadius.Full
     val isPrimary = style == MrmButtonStyle.Primary
+    val dangerSurface = remember(theme.cardSurfaceColor) { GlassRed.copy(alpha = 0.12f).compositeOver(theme.cardSurfaceColor) }
+    val dangerContent = remember(dangerSurface) { Color(WcagContrast.forTextOn(GlassRed.toArgb(), dangerSurface.toArgb())) }
     val (backgroundBrush, contentColor, borderStroke) = when (style) {
         MrmButtonStyle.Primary -> Triple(
             theme.primaryBrush,
@@ -296,9 +277,9 @@ fun MrmButton(
             BorderStroke(DsBorder.Hairline, theme.controlBorderColor)
         )
         MrmButtonStyle.Danger -> Triple(
-            Brush.verticalGradient(listOf(GlassRed.copy(0.16f), GlassRed.copy(0.07f))),
-            GlassRed,
-            BorderStroke(DsBorder.Default, GlassRed.copy(0.38f))
+            Brush.verticalGradient(listOf(dangerSurface, dangerSurface)),
+            dangerContent,
+            BorderStroke(DsBorder.Default, dangerContent.copy(0.38f))
         )
         MrmButtonStyle.Glass -> Triple(
             Brush.verticalGradient(listOf(Color.White.copy(0.14f), Color.White.copy(0.04f))),
@@ -314,25 +295,15 @@ fun MrmButton(
     Box(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale, alpha = contentAlpha)
-            .height(height)
-            .let {
-                if (isPrimary && enabled) {
-                    // هالهٔ نورِ هم‌رنگ؛ هنگامِ فشار پررنگ‌تر (حالتِ «فعال» در مرجع).
-                    it.shadow(
-                        elevation = if (isPressed) 12.dp else 8.dp,
-                        shape = shape,
-                        clip = false,
-                        ambientColor = theme.primaryGlow.copy(alpha = 0.35f),
-                        spotColor = theme.primaryGlow.copy(alpha = 0.60f)
-                    )
-                } else it
-            }
+            .heightIn(min = height)
             .clip(shape)
             .background(backgroundBrush)
-            .let { if (isPrimary) it.glassGloss(shape, isPressed && active) else it }
             .border(borderStroke, shape)
             .clickable(interactionSource = interactionSource, indication = ripple(color = contentColor.copy(DsGlass.RippleContentAlpha), bounded = true), enabled = active, onClick = onClick)
-            .padding(horizontal = if (showCoin) (DsSpacing.Sm) else (if (compact) DsSpacing.Screen else DsSpacing.Xxl)),
+            .padding(
+                horizontal = if (showCoin) DsSpacing.Sm else if (compact) DsSpacing.Screen else DsSpacing.Xxl,
+                vertical = DsSpacing.Sm
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (showCoin) {
@@ -357,7 +328,7 @@ fun MrmButton(
                 color = contentColor,
                 fontWeight = DsFont.Bold,
                 fontSize = if (compact) 12.sp else 14.sp,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
                 // متن بینِ سکه و فلش وسط‌چین می‌شود (نه وسطِ کلِ کپسول) — مثلِ مرجع.
@@ -384,7 +355,8 @@ fun MrmButton(
                         color = contentColor,
                         fontWeight = DsFont.Bold,
                         fontSize = if (compact) 12.sp else 14.sp,
-                        maxLines = 1,
+                        maxLines = 2,
+                        textAlign = TextAlign.Center,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -516,10 +488,9 @@ fun BulkActionsBar(
                 IconButton(onClick = { expanded = true }, modifier = Modifier.size(40.dp)) {
                     Text("•••", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor, textAlign = TextAlign.Center)
                 }
-                DropdownMenu(
+                AppDropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(theme.cardSurfaceColor)
+                    onDismissRequest = { expanded = false }
                 ) {
                     if (canToggle) {
                         DropdownMenuItem(

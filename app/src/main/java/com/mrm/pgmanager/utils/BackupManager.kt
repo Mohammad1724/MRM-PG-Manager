@@ -4,6 +4,7 @@ import com.mrm.pgmanager.R
 
 import android.content.Context
 import android.net.Uri
+import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.storage.SessionStore
 import org.json.JSONArray
 import org.json.JSONObject
@@ -77,6 +78,9 @@ object BackupManager {
             put("follow_system", t.followSystem)
             put("amoled", t.amoledDark)
             put("custom", t.customColor?.value?.toLong() ?: -1L)
+            val fontScale = store.readUiPrefs().fontScalePercent
+            put("font_scale_percent", AppFontScale.toLegacyPercent(fontScale))
+            put("font_scale_percent_v2", fontScale)
         })
 
         // === قفل برنامه ===
@@ -327,6 +331,20 @@ object BackupManager {
                     followSystem = t.optBoolean("follow_system", false),
                     amoledDark = t.optBoolean("amoled", false)
                 ))
+                // The original field was relative to the device; v2 is relative to the app default.
+                // Backups without either field leave the current preference unchanged.
+                val current = store.readUiPrefs()
+                val fontPercent = when {
+                    t.has("font_scale_percent_v2") && !t.isNull("font_scale_percent_v2") ->
+                        t.optInt("font_scale_percent_v2", current.fontScalePercent)
+                    t.has("font_scale_percent") && !t.isNull("font_scale_percent") -> {
+                        val legacy = t.optInt("font_scale_percent", Int.MIN_VALUE)
+                        if (legacy == Int.MIN_VALUE) current.fontScalePercent
+                        else AppFontScale.fromLegacyPercent(legacy)
+                    }
+                    else -> null
+                }
+                if (fontPercent != null) store.saveUiPrefs(current.copy(fontScalePercent = fontPercent))
                 restored++
             }
             // قفل برنامه — فقط اگر دستگاه بیومتریک/پین فعال دارد، قفل بازیابی شود

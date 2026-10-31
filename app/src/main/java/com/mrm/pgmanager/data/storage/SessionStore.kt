@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.model.MonitoringSettings
 import com.mrm.pgmanager.data.model.PanelUser
 import com.mrm.pgmanager.data.model.SystemStats
@@ -22,6 +23,10 @@ class SessionStore(context: Context) {
     internal val prefs: android.content.SharedPreferences = sharedPrefs(context)
 
     companion object {
+        private const val FONT_SCALE_KEY = "ui_font_scale_percent_v2"
+        private const val LEGACY_FONT_SCALE_KEY = "ui_font_scale_percent"
+        private val offlineCacheLock = Any()
+
         // کلیدهای نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری)
         const val HINT_LONG_PRESS = "hint_long_press"
         const val HINT_MULTI_SELECT = "hint_multi_select"
@@ -322,7 +327,7 @@ class SessionStore(context: Context) {
     }
 
     // === کش آفلاین: آخرین داده‌های موفق دریافتی (کل لیستِ لودشده، بدون محدودیت ۴۰۰تایی) ===
-    fun saveUsersCache(users: List<PanelUser>) {
+    fun saveUsersCache(session: Session, users: List<PanelUser>) {
         val arr = org.json.JSONArray()
         users.forEach { u ->
             arr.put(org.json.JSONObject().apply {
@@ -338,14 +343,26 @@ class SessionStore(context: Context) {
                 put("group_ids", org.json.JSONArray(u.groupIds)); put("group_names", org.json.JSONArray(u.groupNames))
             })
         }
-        prefs.edit().putString("users_cache", arr.toString()).putLong("users_cache_ts", System.currentTimeMillis()).apply()
+        synchronized(offlineCacheLock) {
+            prefs.edit().putString("users_cache", arr.toString())
+                .putLong("users_cache_ts", System.currentTimeMillis())
+                .putString("users_cache_owner", offlineCacheOwner(session)).apply()
+        }
     }
 
-    /** سنِ کشِ کاربران (میلی‌ثانیه) بدونِ پارسِ خودِ فهرست؛ null یعنی کشی نیست. */
-    fun usersCacheAgeMs(): Long? {
+    /** Invalidate only the specified credential's offline data after access is denied. */
+    fun invalidateUsersCache(session: Session) = synchronized(offlineCacheLock) {
+        if (prefs.getString("users_cache_owner", null) == offlineCacheOwner(session)) {
+            prefs.edit().remove("users_cache").remove("users_cache_ts").remove("users_cache_owner").apply()
+        }
+    }
+
+    /** Age of the current credential's cache, without parsing the list. */
+    fun usersCacheAgeMs(session: Session): Long? = synchronized(offlineCacheLock) {
+        if (prefs.getString("users_cache_owner", null) != offlineCacheOwner(session)) return@synchronized null
         val ts = prefs.getLong("users_cache_ts", 0L)
-        if (ts <= 0L || !prefs.contains("users_cache")) return null
-        return (System.currentTimeMillis() - ts).coerceAtLeast(0L)
+        if (ts <= 0L || !prefs.contains("users_cache")) return@synchronized null
+        (System.currentTimeMillis() - ts).coerceAtLeast(0L)
     }
 
     /**
@@ -356,10 +373,14 @@ class SessionStore(context: Context) {
      * false باشد — قبلاً با هر بازیابیِ کش، نشانگرِ آنلاینِ همهٔ کاربران خاموش
      * می‌شد حتی اگر لحظهٔ ذخیرهٔ کش واقعاً آنلاین بوده باشند.
      */
-    fun readUsersCache(): Pair<List<PanelUser>, Long>? {
-        val raw = prefs.getString("users_cache", null) ?: return null
-        val ts = prefs.getLong("users_cache_ts", 0L)
-        if (ts <= 0L) return null
+    fun readUsersCache(session: Session): Pair<List<PanelUser>, Long>? {
+        val (raw, ts) = synchronized(offlineCacheLock) {
+            if (prefs.getString("users_cache_owner", null) != offlineCacheOwner(session)) return null
+            val value = prefs.getString("users_cache", null) ?: return null
+            val timestamp = prefs.getLong("users_cache_ts", 0L)
+            if (timestamp <= 0L) return null
+            value to timestamp
+        }
         val list = runCatching {
             val arr = org.json.JSONArray(raw)
             (0 until arr.length()).mapNotNull { i ->
@@ -374,34 +395,49 @@ class SessionStore(context: Context) {
                     usedTraffic = o.optLong("used_traffic"), dataLimit = o.optLong("data_limit"),
                     expire = o.optString("expire").ifBlank { null }, createdAt = o.optString("created_at").ifBlank { null },
                     subUrl = o.optString("sub_url"), onlineAt = onlineAt, isOnline = wasOnline,
-                    note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit") && !o.isNull("hwid_limit")) o.optInt("hwid_limit").takeIf { it > 0 } else null,
+                    note = o.optString("note").ifBlank { null }, hwidLimit = if (o.has("hwid_limit") && !o.isNull("hwid_limit")) o.optInt("hwid_limit").takeIf { it >= 0 } else null,
                     groupIds = o.optJSONArray("group_ids")?.let { a -> (0 until a.length()).map { a.optInt(it) } } ?: emptyList(),
                     groupNames = o.optJSONArray("group_names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
                     onHoldExpireDuration = if (o.has("on_hold_expire_duration") && !o.isNull("on_hold_expire_duration")) o.optLong("on_hold_expire_duration").takeIf { it > 0L } else null,
                     onHoldTimeout = o.optString("on_hold_timeout").ifBlank { null },
                     dataLimitResetStrategy = o.optString("data_limit_reset_strategy").ifBlank { null },
-                    autoDeleteDays = if (o.has("auto_delete_in_days") && !o.isNull("auto_delete_in_days")) o.optInt("auto_delete_in_days").takeIf { it > 0 } else null
+                    autoDeleteDays = if (o.has("auto_delete_in_days") && !o.isNull("auto_delete_in_days")) o.optInt("auto_delete_in_days") else null
                 )
             }
         }.getOrDefault(emptyList())
         return if (list.isEmpty()) null else list to ts
     }
 
-    fun saveStatsCache(s: SystemStats) {
-        prefs.edit().putString("stats_cache", org.json.JSONObject().apply {
+    fun saveStatsCache(session: Session, s: SystemStats) {
+        val raw = org.json.JSONObject().apply {
             put("uptime_seconds", s.uptimeSeconds); put("mem_total", s.memTotal); put("mem_used", s.memUsed)
             put("disk_total", s.diskTotal); put("disk_used", s.diskUsed); put("cpu_cores", s.cpuCores); put("cpu_usage", s.cpuUsage.toDouble())
             put("total_users", s.totalUsers); put("online_users", s.onlineUsers); put("active_users", s.activeUsers)
             put("expired_users", s.expiredUsers); put("limited_users", s.limitedUsers); put("disabled_users", s.disabledUsers); put("on_hold_users", s.onHoldUsers)
             put("incoming_bandwidth", s.incomingBandwidth); put("outgoing_bandwidth", s.outgoingBandwidth)
             put("version", s.version)
-        }.toString()).putLong("stats_cache_ts", System.currentTimeMillis()).apply()
+        }.toString()
+        synchronized(offlineCacheLock) {
+            prefs.edit().putString("stats_cache", raw)
+                .putLong("stats_cache_ts", System.currentTimeMillis())
+                .putString("stats_cache_owner", offlineCacheOwner(session)).apply()
+        }
     }
 
-    fun readStatsCache(): Pair<SystemStats, Long>? {
-        val raw = prefs.getString("stats_cache", null) ?: return null
-        val ts = prefs.getLong("stats_cache_ts", 0L)
-        if (ts <= 0L) return null
+    fun invalidateStatsCache(session: Session) = synchronized(offlineCacheLock) {
+        if (prefs.getString("stats_cache_owner", null) == offlineCacheOwner(session)) {
+            prefs.edit().remove("stats_cache").remove("stats_cache_ts").remove("stats_cache_owner").apply()
+        }
+    }
+
+    fun readStatsCache(session: Session): Pair<SystemStats, Long>? {
+        val (raw, ts) = synchronized(offlineCacheLock) {
+            if (prefs.getString("stats_cache_owner", null) != offlineCacheOwner(session)) return null
+            val value = prefs.getString("stats_cache", null) ?: return null
+            val timestamp = prefs.getLong("stats_cache_ts", 0L)
+            if (timestamp <= 0L) return null
+            value to timestamp
+        }
         return runCatching {
             val o = org.json.JSONObject(raw)
             SystemStats(
@@ -490,15 +526,27 @@ class SessionStore(context: Context) {
     fun saveInvoiceSeller(name: String) = prefs.edit().putString("invoice_seller", name).apply()
 
     // === ترجیحاتِ دسترس‌پذیری/حریم خصوصی (فاز ۷) ===
+    // Keep old saved sizes on upgrade; never reinterpret an already-written v2 value.
+    private fun readFontScalePercent(): Int = when {
+        prefs.contains(FONT_SCALE_KEY) ->
+            AppFontScale.normalize(prefs.getInt(FONT_SCALE_KEY, AppFontScale.DEFAULT_PERCENT))
+        prefs.contains(LEGACY_FONT_SCALE_KEY) ->
+            AppFontScale.fromLegacyPercent(prefs.getInt(LEGACY_FONT_SCALE_KEY, 100))
+        else -> AppFontScale.DEFAULT_PERCENT
+    }
+
     fun readUiPrefs() = com.mrm.pgmanager.data.model.UiPrefs(
         hapticsEnabled = prefs.getBoolean("ui_haptics", true),
         reduceMotion = prefs.getBoolean("ui_reduce_motion", false),
-        secureScreen = prefs.getBoolean("ui_secure_screen", false)
+        secureScreen = prefs.getBoolean("ui_secure_screen", false),
+        fontScalePercent = readFontScalePercent()
     )
     fun saveUiPrefs(p: com.mrm.pgmanager.data.model.UiPrefs) = prefs.edit()
         .putBoolean("ui_haptics", p.hapticsEnabled)
         .putBoolean("ui_reduce_motion", p.reduceMotion)
         .putBoolean("ui_secure_screen", p.secureScreen)
+        .putInt(FONT_SCALE_KEY, AppFontScale.normalize(p.fontScalePercent))
+        .putInt(LEGACY_FONT_SCALE_KEY, AppFontScale.toLegacyPercent(p.fontScalePercent))
         .apply()
 
     // === تنظیمات پشتیبان‌گیری ===

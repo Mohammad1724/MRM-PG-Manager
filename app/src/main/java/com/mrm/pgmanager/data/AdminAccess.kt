@@ -7,45 +7,61 @@ import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PermissionScope
 import com.mrm.pgmanager.data.model.Session
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 
-/**
- * مجوزهای ادمینِ واردشده (RBAC پنل v5) — یک‌بار پس از ورود از `GET /api/admin` گرفته می‌شود.
- *
- * صفحه‌ها با [can]/[scopeAll] تصمیم می‌گیرند دکمه‌ای را نشان بدهند یا نه، تا ادمینِ
- * محدود (مثلاً نقشِ operator) با دکمه‌هایی روبه‌رو نشود که در نهایت ۴۰۳ می‌گیرند.
- *
- * وقتی مجوزها را *نمی‌دانیم* (خطای شبکه، پنلِ قدیمی) همه‌چیز مجاز فرض می‌شود؛ پنل
- * خودش آخرین حرف را می‌زند و خطای ۴۰۳ با پیامِ خوانا نشان داده می‌شود. این‌طور هیچ
- * قابلیتی بی‌دلیل پنهان نمی‌شود.
- *
- * `current` یک State کامپوز است؛ هر کامپوزبلی که [can] را صدا بزند، با رسیدنِ پاسخِ
- * پنل خودکار دوباره ترسیم می‌شود.
- */
+internal enum class AdminAccessState { Unknown, Loading, Ready, Unavailable }
+
+/** The panel is authoritative; unknown permissions must not be presented as granted. */
 object AdminAccess {
     var current: AdminSelf? by mutableStateOf(null)
         private set
+    internal var state: AdminAccessState by mutableStateOf(AdminAccessState.Unknown)
+        private set
 
-    /** نشستی که مجوزهای فعلی برای آن گرفته شده؛ با سوئیچِ حساب باید دوباره خوانده شود. */
-    private var loadedFor: String? = null
+    private var loadedFor: Session? = null
+    private var generation = 0L
 
     fun reset() {
+        generation++
         current = null
         loadedFor = null
+        state = AdminAccessState.Unknown
     }
 
-    /** مجوزها را برای این نشست می‌گیرد (اگر قبلاً برای همین نشست گرفته شده، کاری نمی‌کند). */
+    /** A stale or cancelled request cannot install permissions from a different account. */
     suspend fun refresh(session: Session, force: Boolean = false) {
-        val key = "${session.baseUrl}|${session.username}|${session.token.hashCode()}"
-        if (!force && loadedFor == key) return
-        val admin = runCatching { PanelApi.currentAdmin(session) }.getOrNull()
-        current = admin
-        loadedFor = if (admin != null) key else null
+        refreshWith(session, force, PanelApi::currentAdmin)
     }
 
-    /** آیا `resource.action` مجاز است؟ نامعلوم = مجاز. */
-    fun can(resource: String, action: String): Boolean = current?.can(resource, action) ?: true
+    internal suspend fun refreshWith(session: Session, force: Boolean = false, load: suspend (Session) -> AdminSelf) {
+        if (!force && loadedFor == session && current != null) return
+        val request = ++generation
+        current = null
+        loadedFor = null
+        state = AdminAccessState.Loading
+        try {
+            val admin = load(session)
+            currentCoroutineContext().ensureActive()
+            if (request == generation) {
+                current = admin
+                loadedFor = session
+                state = AdminAccessState.Ready
+            }
+        } catch (error: CancellationException) {
+            if (request == generation) state = AdminAccessState.Unknown
+            throw error
+        } catch (_: Exception) {
+            val active = currentCoroutineContext().isActive
+            if (request == generation) state = if (active) AdminAccessState.Unavailable else AdminAccessState.Unknown
+            currentCoroutineContext().ensureActive()
+        }
+    }
 
-    /** آیا `resource.action` با دامنهٔ «همهٔ کاربران» مجاز است (نه فقط کاربرانِ خودِ ادمین)؟ */
+    fun can(resource: String, action: String): Boolean = current?.can(resource, action) ?: false
+
     fun scopeAll(resource: String, action: String): Boolean =
-        (current?.scope(resource, action) ?: PermissionScope.ALL) >= PermissionScope.ALL
+        (current?.scope(resource, action) ?: PermissionScope.NONE) >= PermissionScope.ALL
 }

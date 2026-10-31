@@ -10,6 +10,7 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
@@ -81,6 +82,7 @@ class ApiKeysScreenTest {
         // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
         MotionPrefs.reduceMotion = true
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
+        runBlocking { AdminAccess.refreshWith(session) { AdminSelf(id = 1, username = session.username, isOwner = true) } }
     }
 
     @After fun tearDown() {

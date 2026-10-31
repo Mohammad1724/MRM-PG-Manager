@@ -5,29 +5,26 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
@@ -39,7 +36,6 @@ import com.mrm.pgmanager.ui.designsystem.*
 import com.mrm.pgmanager.ui.theme.*
 import com.mrm.pgmanager.utils.*
 import java.time.LocalDate
-import java.util.Locale
 
 /* ──────────────────────────────────────────────────────────────────────────
  *  ویرایش کاربر — نسخه فشرده داشبوردی v0.8.2
@@ -57,7 +53,6 @@ fun UserEditorDialog(
     initial: PanelUser?,
     onDismiss: () -> Unit,
     onSave: (UserEditorValues, String) -> Unit,
-    onToggle: (() -> Unit)?,
     onSaveWithTemplate: ((username: String, templateId: Int, note: String) -> Unit)? = null,
     onApplyTemplateToUser: ((templateId: Int, note: String) -> Unit)? = null,
     session: Session? = null
@@ -69,12 +64,10 @@ fun UserEditorDialog(
 
     var username by remember { mutableStateOf(initial?.username ?: "") }
     val usernameErrorKey = if (initial == null) UsernameValidation.validate(username) else null
-    var limitGb by remember {
-        mutableStateOf(
-            if (initial == null || initial.dataLimit == 0L) ""
-            else "%.2f".format(Locale.US, initial.dataLimit / 1073741824.0).trimEnd('0').trimEnd('.')
-        )
-    }
+    var limitGb by remember { mutableStateOf(UserEditorFields.formatDataLimit(initial?.dataLimit ?: 0L)) }
+    var limitDirty by remember { mutableStateOf(false) }
+    var templateLimitBytes by remember { mutableStateOf<Long?>(null) }
+    var templateDurationSeconds by remember { mutableStateOf<Long?>(null) }
     var days by remember {
         mutableStateOf(
             initial?.onHoldDays?.toString()
@@ -84,14 +77,20 @@ fun UserEditorDialog(
     }
     // تا وقتی ادمین به زمان دست نزده، `expire` فرستاده نمی‌شود (نگاه کنید به UserEditorValues.keepExpire).
     var daysDirty by remember { mutableStateOf(false) }
+    var durationEdited by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf(initial?.note ?: "") }
+    var noteDirty by remember { mutableStateOf(false) }
     var hwid by remember { mutableStateOf(initial?.hwidLimit?.toString() ?: "") }
+    var hwidDirty by remember { mutableStateOf(false) }
     var groupIds by remember { mutableStateOf(initial?.groupIds ?: emptyList()) }
     var nextPlanTemplate by remember { mutableStateOf(initial?.nextPlan?.templateId) }
     var nextPlanCarry by remember { mutableStateOf(initial?.nextPlan?.addRemainingTraffic ?: false) }
     // اگر ادمین به «پلنِ بعدی» دست نزند، همان پلنِ فعلیِ کاربر (حتی نوعِ بدونِ قالب با حجم/مدتِ دستی) عیناً برمی‌گردد.
     var nextPlanDirty by remember { mutableStateOf(false) }
     var nextPlanMenu by remember { mutableStateOf(false) }
+    val customPlanPreserved = !nextPlanDirty && initial?.nextPlan?.let {
+        it.templateId == null && (it.dataLimit != null || it.expireSeconds != null || it.addRemainingTraffic)
+    } == true
     // از مقادیرِ فعلیِ کاربر پیش‌پر می‌شوند؛ قبلاً همیشه no_reset/خالی بودند و ذخیرهٔ هر
     // ویرایشی راهبردِ ریستِ کاربر را بی‌صدا به no_reset برمی‌گرداند.
     val initialResetStrategy = initial?.dataLimitResetStrategy?.takeIf { it in TemplateOptions.RESET_STRATEGIES } ?: TemplateOptions.RESET_NO_RESET
@@ -103,6 +102,7 @@ fun UserEditorDialog(
     var editorStatus by remember {
         mutableStateOf(when (initial?.status) { "disabled" -> "disabled"; "on_hold" -> "on_hold"; else -> "active" })
     }
+    var statusMenuExpanded by remember { mutableStateOf(false) }
     val isOnHold = editorStatus == "on_hold"
     // مهلت فعال‌سازی (on_hold_timeout) به روز؛ فقط اگر کاربر دست بزند فرستاده می‌شود.
     var onHoldTimeoutDays by remember { mutableStateOf(initial?.onHoldTimeout?.let { DateLogic.remainingDays(it)?.coerceAtLeast(0L)?.toString() } ?: "") }
@@ -140,9 +140,17 @@ fun UserEditorDialog(
     val filteredGroups = remember(groups, groupSearchQuery) {
         if (groupSearchQuery.isBlank()) groups else groups.filter { it.name.contains(groupSearchQuery, ignoreCase = true) }
     }
+    val durationSeconds = templateDurationSeconds ?: UserEditorFields.onHoldSeconds(
+        initial?.takeIf { it.status == "on_hold" }?.onHoldExpireDuration,
+        durationEdited, normalizePersianDigits(days).toIntOrNull()
+    )
+    val timeoutSeconds = UserEditorFields.timeoutSeconds(normalizePersianDigits(onHoldTimeoutDays))
+    val unsupportedTimeoutClear = isOnHold && onHoldTimeoutDirty && initial?.onHoldTimeout != null && timeoutSeconds == 0L
+    val unsupportedHoldActivation = editorStatus == "active" &&
+        (initial?.status == "on_hold" || (initial?.status == "disabled" && initial.onHoldExpireDuration != null))
 
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -170,7 +178,7 @@ fun UserEditorDialog(
                         Text(stringResource(if (isCreating) R.string.ue_create_sub else R.string.ue_edit_sub), fontSize = 11.sp, color = theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Box(
-                        Modifier.padding(6.dp).size(28.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onDismiss).background(theme.searchBgColor)
+                        Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).clickable(onClick = onDismiss).background(theme.searchBgColor)
                             .semantics { contentDescription = closeLabel }.pressScale(0.9f),
                         contentAlignment = Alignment.Center
                     ) { Text("×", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor) }
@@ -190,7 +198,7 @@ fun UserEditorDialog(
                                     if (isCreating) {
                                         UserFormTextField(value = username, onValueChange = { username = it.trim() }, placeholder = stringResource(R.string.ue_username_hint), modifier = Modifier.weight(1f))
                                         Box(
-                                            Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Md).clickable { username = store.readUsernamePattern().randomName() }.background(theme.searchBgColor)
+                                            Modifier.size(48.dp).clip(DsRadius.Md).clickable { username = store.readUsernamePattern().randomName() }.background(theme.searchBgColor)
                                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                                 .semantics { contentDescription = randomLabel }.pressScale(0.92f)
                                                 ,
@@ -198,7 +206,7 @@ fun UserEditorDialog(
                                         ) { RoundedAppIcon(AppIcon.Random, tint = theme.mutedColor, size = 14.dp) }
                                     } else {
                                         Row(
-                                            Modifier.weight(1f).height(32.dp).clip(DsRadius.Md).background(theme.searchBgColor)
+                                            Modifier.weight(1f).heightIn(min = 48.dp).clip(DsRadius.Md).background(theme.searchBgColor)
                                                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Mid),
                                             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                                         ) {
@@ -221,12 +229,13 @@ fun UserEditorDialog(
                             }
                             Column(Modifier.weight(0.40f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                 FieldLabel(stringResource(R.string.ue_status))
-                                var statusMenuExpanded by remember { mutableStateOf(false) }
                                 val statusColor = when (editorStatus) { "active" -> GlassGreen; "on_hold" -> DsSemantic.Violet; else -> GlassRed }
                                 val statusLabel = when (editorStatus) { "active" -> R.string.active; "on_hold" -> R.string.on_hold; else -> R.string.disabled }
                                 Box {
                                     Row(
-                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { statusMenuExpanded = true }.background(statusColor.copy(0.10f))
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md)
+                                            .clickable(role = Role.Button) { statusMenuExpanded = true }.testTag("user_editor_status")
+                                            .background(statusColor.copy(0.10f))
                                             .border(BorderStroke(DsBorder.Hairline, statusColor.copy(0.25f)), DsRadius.Md).pressScale(0.96f)
                                             .padding(horizontal = DsSpacing.Md),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
@@ -235,14 +244,11 @@ fun UserEditorDialog(
                                         Text(stringResource(statusLabel), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.weight(1f), maxLines = 1)
                                         RoundedAppIcon(AppIcon.ChevronDown, tint = statusColor, size = 11.dp)
                                     }
-                                    DropdownMenu(expanded = statusMenuExpanded, onDismissRequest = { statusMenuExpanded = false }, modifier = Modifier.background(theme.cardSurfaceColor)) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.active), color = theme.successTextColor, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "active"; daysDirty = true; statusMenuExpanded = false })
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.on_hold), color = DsSemantic.Violet, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "on_hold"; daysDirty = true; statusMenuExpanded = false })
-                                        // پنل اجازهٔ ساختِ کاربرِ غیرفعال نمی‌دهد (UserStatusCreate = active | on_hold).
-                                        if (!isCreating) DropdownMenuItem(text = { Text(stringResource(R.string.disabled), color = GlassRed, fontWeight = FontWeight.Bold, fontSize = 12.sp) }, onClick = { editorStatus = "disabled"; statusMenuExpanded = false })
-                                    }
                                 }
                             }
+                        }
+                        if (unsupportedHoldActivation) {
+                            Text(stringResource(R.string.ue_on_hold_activation_unavailable), fontSize = 11.sp, color = GlassRed)
                         }
                     }
 
@@ -252,39 +258,42 @@ fun UserEditorDialog(
                             FieldLabel(stringResource(R.string.ue_data_limit))
                             UserFormTextField(
                                 value = limitGb,
-                                onValueChange = { raw -> val normalized = normalizePersianDigits(raw); limitGb = normalized.filter { c -> c.isDigit() || c == '.' } },
+                                onValueChange = { raw -> limitGb = normalizePersianDigits(raw); limitDirty = true; templateLimitBytes = null },
                                 placeholder = stringResource(R.string.ue_data_limit_hint),
                                 keyboardType = KeyboardType.Decimal, leading = AppIcon.Storage
                             )
+                            if ((isCreating || limitDirty) && templateLimitBytes == null &&
+                                UserEditorFields.parseDataLimit(normalizePersianDigits(limitGb)) == null) {
+                                Text(stringResource(R.string.ue_data_limit_invalid), fontSize = 11.sp, color = GlassRed)
+                            }
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                             FieldLabel(stringResource(if (isOnHold) R.string.ue_on_hold_duration else R.string.ue_expiry))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 UserFormTextField(
-                                    value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() }; daysDirty = true },
+                                    value = days, onValueChange = { raw -> val normalized = normalizePersianDigits(raw); days = normalized.filter { c -> c.isDigit() }; daysDirty = true; durationEdited = true; templateDurationSeconds = null },
                                     placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Timer, modifier = Modifier.weight(1f)
                                 )
                                 // تقویم فقط برای تاریخِ انقضای مطلق معنا دارد؛ on_hold مدت نسبی است.
                                 if (!isOnHold) Box(
-                                    Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Md).clickable { showCalendar = true }.background(theme.searchBgColor)
+                                    Modifier.size(48.dp).clip(DsRadius.Md).clickable { showCalendar = true }.background(theme.searchBgColor)
                                         .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
                                         .semantics { contentDescription = pickDateLabel }.pressScale(0.92f),
                                     contentAlignment = Alignment.Center
                                 ) { RoundedAppIcon(AppIcon.Calendar, tint = theme.mutedColor, size = 14.dp) }
                             }
                             if (isOnHold) {
-                                val onHoldDaysValue = normalizePersianDigits(days).toIntOrNull() ?: 0
+                                val validDuration = durationSeconds != null && durationSeconds in 1L..UserEditorFields.MaxDurationSeconds
                                 Text(
-                                    stringResource(if (onHoldDaysValue > 0) R.string.ue_on_hold_hint else R.string.ue_on_hold_days_required),
-                                    fontSize = 11.sp, color = if (onHoldDaysValue > 0) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
+                                    stringResource(if (validDuration) R.string.ue_on_hold_hint else R.string.ue_on_hold_days_required),
+                                    fontSize = 11.sp, color = if (validDuration) theme.mutedColor else GlassRed, fontWeight = FontWeight.Medium
                                 )
                             }
-                            // خودِ چیپ‌ها padding هفت‌dpی دارند، پس فاصله‌ها صفر است؛
-                            // فقط به‌جای اسکرولِ افقی، خط می‌شکنند.
-                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = 0.dp, verticalGap = 0.dp) {
+                            // Preset actions wrap while retaining a full touch target.
+                            PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xs) {
                                 listOf(7, 30, 60, 90, 180, 365).forEach { value ->
                                     Box(
-                                        Modifier.padding(7.dp).height(26.dp).clip(DsRadius.Full).clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true }.background(theme.searchBgColor)
+                                        Modifier.heightIn(min = 48.dp).widthIn(min = 48.dp).clip(DsRadius.Full).clickable { val cur = normalizePersianDigits(days).toIntOrNull() ?: 0; days = (cur + value).toString(); daysDirty = true; durationEdited = true; templateDurationSeconds = null }.background(theme.searchBgColor)
                                             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full).pressScale(0.93f)
                                             
                                             .padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center
@@ -296,10 +305,15 @@ fun UserEditorDialog(
                             FieldLabel(stringResource(R.string.ue_on_hold_timeout))
                             UserFormTextField(
                                 value = onHoldTimeoutDays,
-                                onValueChange = { raw -> val normalized = normalizePersianDigits(raw); onHoldTimeoutDays = normalized.filter { c -> c.isDigit() }; onHoldTimeoutDirty = true },
+                                onValueChange = { raw -> onHoldTimeoutDays = normalizePersianDigits(raw); onHoldTimeoutDirty = true },
                                 placeholder = stringResource(R.string.ue_expiry_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Calendar
                             )
                             Text(stringResource(R.string.ue_on_hold_timeout_hint), fontSize = 11.sp, color = theme.mutedColor, fontWeight = FontWeight.Medium)
+                            if (unsupportedTimeoutClear) {
+                                Text(stringResource(R.string.ue_on_hold_timeout_clear_unavailable), fontSize = 11.sp, color = GlassRed)
+                            } else if (onHoldTimeoutDirty && timeoutSeconds == null) {
+                                Text(stringResource(R.string.ue_on_hold_timeout_invalid), fontSize = 11.sp, color = GlassRed)
+                            }
                             // اقدامِ پنل پس از پایانِ مهلت (v5.5) — فقط وقتی خوانده شده باشد.
                             onHoldAction?.let { action ->
                                 val actionText = when (action) {
@@ -367,8 +381,13 @@ fun UserEditorDialog(
                                             val picked = selectedTemplate == t.id
                                             PickerRow(icon = AppIcon.Template, label = t.name, selected = picked, onClick = {
                                                 selectedTemplate = t.id
-                                                t.dataLimit?.let { limitGb = "%.2f".format(Locale.US, it / 1073741824.0).trimEnd('0').trimEnd('.') }
-                                                t.expireDuration?.let { days = (it / 86400L).toString(); daysDirty = true }
+                                                t.dataLimit?.let { limitGb = UserEditorFields.formatDataLimit(it); templateLimitBytes = it; limitDirty = true }
+                                                t.expireDuration?.let {
+                                                    days = if (it > 0L) ((it - 1L) / 86_400L + 1L).toString() else "0"
+                                                    templateDurationSeconds = it
+                                                    daysDirty = true
+                                                    durationEdited = true
+                                                }
                                             }) {
                                                 androidx.compose.animation.AnimatedVisibility(visible = picked, enter = androidx.compose.animation.scaleIn(DsAnim.bouncy()) + androidx.compose.animation.fadeIn(DsAnim.fast()), exit = androidx.compose.animation.scaleOut(DsAnim.exit()) + androidx.compose.animation.fadeOut(DsAnim.exit())) {
                                                     Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(theme.inkColor), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Check, tint = theme.cardSurfaceColor, size = 10.dp) }
@@ -392,18 +411,21 @@ fun UserEditorDialog(
                                 Text(stringResource(R.string.ue_next_plan_desc), fontSize = 11.sp, color = theme.mutedColor)
                                 Box {
                                     Row(
-                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { nextPlanMenu = true }.background(theme.searchBgColor)
-                                            .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).pressScale(0.98f)
+                                        Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme)
+                                            .clickable(role = Role.Button) { nextPlanMenu = true }.testTag("user_editor_next_plan")
+                                            .pressScale(0.98f)
                                             .padding(horizontal = DsSpacing.Md, vertical = DsSpacing.Sm),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                                     ) {
                                         RoundedAppIcon(AppIcon.Template, tint = theme.mutedColor, size = 12.dp)
-                                        Text(templates.firstOrNull { it.id == nextPlanTemplate }?.name ?: stringResource(R.string.ue_next_plan_none), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                                        val planLabel = when {
+                                            nextPlanTemplate != null -> templates.firstOrNull { it.id == nextPlanTemplate }?.name
+                                                ?: stringResource(R.string.host_editor_template_unknown, nextPlanTemplate!!)
+                                            customPlanPreserved -> stringResource(R.string.ue_next_plan_custom)
+                                            else -> stringResource(R.string.ue_next_plan_none)
+                                        }
+                                        Text(planLabel, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (nextPlanTemplate != null || customPlanPreserved) theme.inkColor else theme.mutedColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                                         Text("▾", fontSize = 11.sp, color = theme.mutedColor)
-                                    }
-                                    DropdownMenu(expanded = nextPlanMenu, onDismissRequest = { nextPlanMenu = false }) {
-                                        DropdownMenuItem(text = { Text(stringResource(R.string.ue_next_plan_none), fontSize = 11.sp) }, onClick = { nextPlanTemplate = null; nextPlanDirty = true; nextPlanMenu = false })
-                                        templates.forEach { t -> DropdownMenuItem(text = { Text(t.name, fontSize = 11.sp) }, onClick = { nextPlanTemplate = t.id; nextPlanDirty = true; nextPlanMenu = false }) }
                                     }
                                 }
                                 if (nextPlanTemplate != null) {
@@ -424,7 +446,7 @@ fun UserEditorDialog(
                             verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                         ) {
                             Row(
-                                Modifier.padding(vertical = 4.dp).fillMaxWidth().height(32.dp).clip(DsRadius.Md).clickable { advancedOpen = !advancedOpen }.pressScale(0.985f).padding(horizontal = DsSpacing.Md),
+                                Modifier.padding(vertical = 4.dp).fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md).clickable { advancedOpen = !advancedOpen }.pressScale(0.985f).padding(horizontal = DsSpacing.Md),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
                             ) {
                                 RoundedAppIcon(AppIcon.Tune, tint = theme.mutedColor, size = 13.dp)
@@ -436,8 +458,11 @@ fun UserEditorDialog(
                                 Column(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Xs, vertical = DsSpacing.Xxs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_hwid))
-                                        UserFormTextField(value = hwid, onValueChange = { raw -> val n = normalizePersianDigits(raw); hwid = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.ue_hwid_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Device)
+                                        UserFormTextField(value = hwid, onValueChange = { raw -> hwid = normalizePersianDigits(raw); hwidDirty = true }, placeholder = stringResource(R.string.ue_hwid_hint), keyboardType = KeyboardType.Number, leading = AppIcon.Device)
                                         Text(stringResource(R.string.ue_hwid_help), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = DsSpacing.Xxs))
+                                        if (!UserEditorFields.validHwidLimit(normalizePersianDigits(hwid))) {
+                                            Text(stringResource(R.string.ue_hwid_invalid), fontSize = 11.sp, color = GlassRed)
+                                        }
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_reset_strategy))
@@ -445,12 +470,18 @@ fun UserEditorDialog(
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_auto_delete))
-                                        UserFormTextField(value = autoDeleteDays, onValueChange = { raw -> val n = normalizePersianDigits(raw); autoDeleteDays = n.filter { c -> c.isDigit() } }, placeholder = stringResource(R.string.tpl_unlimited), keyboardType = KeyboardType.Number, leading = AppIcon.Delete)
-                                        Text(stringResource(R.string.ue_auto_delete_hint), fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = DsSpacing.Xxs))
+                                        UserFormTextField(value = autoDeleteDays, onValueChange = { raw -> autoDeleteDays = normalizePersianDigits(raw) },
+                                            placeholder = stringResource(R.string.ue_auto_delete_default), keyboardType = KeyboardType.Number,
+                                            leading = AppIcon.Delete, enabled = isCreating)
+                                        Text(stringResource(if (isCreating) R.string.ue_auto_delete_hint else R.string.ue_auto_delete_edit_unavailable),
+                                            fontSize = 11.sp, color = theme.mutedColor, modifier = Modifier.padding(start = DsSpacing.Xxs))
+                                        if (isCreating && autoDeleteDays.isNotBlank() && autoDeleteDays.toIntOrNull() == null) {
+                                            Text(stringResource(R.string.ue_auto_delete_invalid), fontSize = 11.sp, color = GlassRed)
+                                        }
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)) {
                                         FieldLabel(stringResource(R.string.ue_note))
-                                        UserFormTextField(value = note, onValueChange = { note = it.take(500) }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.height(52.dp))
+                                        UserFormTextField(value = note, onValueChange = { note = it.take(500); noteDirty = true }, placeholder = stringResource(R.string.ue_note_hint), singleLine = false, modifier = Modifier.heightIn(min = 52.dp))
                                     }
                                 }
                             }
@@ -464,7 +495,13 @@ fun UserEditorDialog(
                     PGPrimaryButton(
                         text = stringResource(if (isCreating) R.string.ue_create else R.string.ue_save), modifier = Modifier.weight(0.65f),
                         icon = if (isCreating) AppIcon.UserAdd else AppIcon.Check,
-                        enabled = !(isCreating && usernameErrorKey != null) && !(isOnHold && (normalizePersianDigits(days).toIntOrNull() ?: 0) <= 0),
+                        enabled = !(isCreating && usernameErrorKey != null) && !unsupportedHoldActivation &&
+                            (!isOnHold || (durationSeconds != null && durationSeconds in 1L..UserEditorFields.MaxDurationSeconds &&
+                                (!onHoldTimeoutDirty || timeoutSeconds != null) && !unsupportedTimeoutClear)) &&
+                            ((!isCreating && !limitDirty) || templateLimitBytes != null ||
+                                UserEditorFields.parseDataLimit(normalizePersianDigits(limitGb)) != null) &&
+                            UserEditorFields.validHwidLimit(normalizePersianDigits(hwid)) &&
+                            (!isCreating || autoDeleteDays.isBlank() || autoDeleteDays.toIntOrNull() != null),
                         onClick = {
                             val normalizedDays = normalizePersianDigits(days)
                             val normalizedLimit = normalizePersianDigits(limitGb)
@@ -475,29 +512,42 @@ fun UserEditorDialog(
                             val keepsOnHoldDuration = isOnHold || (initial?.status == "on_hold" && editorStatus == "disabled")
                             val expire = if (keepsOnHoldDuration) "" else daysValue?.let { LocalDate.now().plusDays(it.toLong()).toString() } ?: ""
                             // ویرایشِ بدونِ دست‌زدن به زمان → expire فرستاده نمی‌شود (کاربرِ منقضی دوباره زنده نمی‌شود).
-                            val keepExpire = !isCreating && !daysDirty && !keepsOnHoldDuration && initial?.status != "on_hold"
-                            val hwidValue = normalizedHwid.toIntOrNull() ?: 0
+                            val transitioningFromHold = initial?.status == "on_hold" && editorStatus == "active"
+                            val keepExpire = !isCreating && (
+                                (initial?.status == "on_hold" && editorStatus == "disabled") ||
+                                    (!daysDirty && !transitioningFromHold)
+                                )
+                            val parsedHwid = normalizedHwid.toIntOrNull()
+                            val hwidValue = if (isCreating || (hwidDirty && parsedHwid != initial?.hwidLimit)) parsedHwid else null
+                            val clearHwidLimit = !isCreating && hwidDirty && normalizedHwid.isBlank() && initial?.hwidLimit != null
                             // `status` فقط برای رفتن به on_hold یا بیرون‌آمدن از آن فرستاده می‌شود؛ غیرفعال‌کردن از مسیر /disabled می‌رود.
                             val statusToSend = when {
-                                isOnHold -> "on_hold"
-                                editorStatus == "active" && initial?.status == "on_hold" -> "active"
+                                isOnHold && (isCreating || initial?.status != "on_hold" || durationEdited) -> "on_hold"
+                                transitioningFromHold -> "active"
+                                !isCreating && editorStatus == "disabled" && initial?.status != "disabled" -> "disabled"
+                                !isCreating && editorStatus == "active" && initial?.status == "disabled" -> "active"
                                 else -> null
                             }
-                            val onHoldSeconds = if (isOnHold) (daysValue ?: 0) * 86_400L else null
-                            val timeoutSeconds = if (isOnHold && onHoldTimeoutDirty) (normalizePersianDigits(onHoldTimeoutDays).toLongOrNull() ?: 0L) * 86_400L else null
-                            // راهبردِ ریست فقط وقتی تغییر کرده (یا در ساخت) فرستاده می‌شود؛ حذفِ خودکار: خالی‌کردنِ مقدارِ قبلی یعنی «بردار» (0).
+                            val onHoldSeconds = if (statusToSend == "on_hold") durationSeconds else null
+                            val editedTimeoutSeconds = if (isOnHold && onHoldTimeoutDirty && timeoutSeconds != 0L) timeoutSeconds else null
+                            // Panel 5.5.1 ignores auto-delete changes on user updates; allow it only on creation.
                             val resetToSend = if (isCreating || resetStrategy != initialResetStrategy) resetStrategy else null
-                            val autoDeleteToSend = normalizedAutoDelete.toIntOrNull() ?: if (initial?.autoDeleteDays != null) 0 else null
-                            val planToSend = if (isCreating || nextPlanDirty) NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry) else (initial?.nextPlan ?: NextPlan())
-                            val values = UserEditorValues(username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds, resetStrategy = resetToSend, autoDeleteDays = autoDeleteToSend, keepExpire = keepExpire, nextPlan = planToSend, status = statusToSend, onHoldExpireSeconds = onHoldSeconds, onHoldTimeoutSeconds = timeoutSeconds)
+                            val autoDeleteToSend = if (isCreating) normalizedAutoDelete.toIntOrNull() else null
+                            val planToSend = if (isCreating || nextPlanDirty) NextPlan(templateId = nextPlanTemplate, addRemainingTraffic = nextPlanCarry) else null
+                            val values = UserEditorValues(
+                                username, normalizedLimit.toDoubleOrNull() ?: 0.0, note, hwidValue, groupIds,
+                                resetStrategy = resetToSend, autoDeleteDays = autoDeleteToSend, keepExpire = keepExpire,
+                                nextPlan = planToSend, status = statusToSend, onHoldExpireSeconds = onHoldSeconds,
+                                onHoldTimeoutSeconds = editedTimeoutSeconds,
+                                dataLimitBytes = templateLimitBytes ?: UserEditorFields.parseDataLimit(normalizedLimit),
+                                keepDataLimit = !isCreating && !limitDirty,
+                                clearHwidLimit = clearHwidLimit,
+                                keepNote = !isCreating && !noteDirty,
+                                keepGroupIds = !isCreating && groupIds.toSet() == initial?.groupIds?.toSet()
+                            )
                             if (activeTab == 1 && selectedTemplate != null && isCreating && onSaveWithTemplate != null) onSaveWithTemplate(username, selectedTemplate!!, note)
                             else if (activeTab == 1 && selectedTemplate != null && !isCreating && onApplyTemplateToUser != null) onApplyTemplateToUser(selectedTemplate!!, note)
-                            else {
-                                onSave(values, expire)
-                                // on_hold/active در بدنهٔ PUT می‌روند؛ /disabled فقط برای غیرفعال‌کردن یا فعال‌کردنِ دوبارهٔ کاربرِ غیرفعال.
-                                val wasDisabled = initial?.status == "disabled"
-                                if (initial != null && wasDisabled != (editorStatus == "disabled") && statusToSend == null) onToggle?.invoke()
-                            }
+                            else onSave(values, expire)
                         }
                     )
                 }
@@ -505,10 +555,55 @@ fun UserEditorDialog(
         }
     }
 
+    if (statusMenuExpanded) {
+        val statusChoices = listOf(
+            PGChoiceOption("active", stringResource(R.string.active)),
+            PGChoiceOption("on_hold", stringResource(R.string.on_hold))
+        ) + if (isCreating) emptyList() else listOf(PGChoiceOption("disabled", stringResource(R.string.disabled)))
+        PGSingleChoiceDialog(
+            title = stringResource(R.string.ue_status),
+            searchLabel = stringResource(R.string.search_cd),
+            choices = statusChoices,
+            selected = editorStatus,
+            onDismiss = { statusMenuExpanded = false },
+            onSelect = {
+                editorStatus = it
+                statusMenuExpanded = false
+            },
+            tag = "user_editor_status_dialog"
+        )
+    }
+    if (nextPlanMenu) {
+        val customValue = "__current_custom_plan__"
+        val unknownId = nextPlanTemplate?.takeIf { id -> templates.none { it.id == id } }
+        val currentChoice = when {
+            customPlanPreserved -> listOf(PGChoiceOption(customValue, stringResource(R.string.ue_next_plan_custom)))
+            unknownId != null -> listOf(PGChoiceOption(unknownId.toString(), stringResource(R.string.host_editor_template_unknown, unknownId)))
+            else -> emptyList()
+        }
+        PGSingleChoiceDialog(
+            title = stringResource(R.string.ue_next_plan),
+            searchLabel = stringResource(R.string.search_cd),
+            choices = listOf(PGChoiceOption("", stringResource(R.string.ue_next_plan_none))) +
+                currentChoice + templates.map { PGChoiceOption(it.id.toString(), it.name) },
+            selected = if (customPlanPreserved) customValue else nextPlanTemplate?.toString().orEmpty(),
+            onDismiss = { nextPlanMenu = false },
+            onSelect = {
+                if (it != customValue && it != unknownId?.toString()) {
+                    nextPlanTemplate = it.toIntOrNull()
+                    nextPlanDirty = true
+                }
+                nextPlanMenu = false
+            },
+            tag = "user_editor_next_plan_dialog"
+        )
+    }
     if (showCalendar) {
         ShamsiCalendarPickerDialog(initialDateShamsi = JalaliCalendar.todayJalali().toString(), onDismiss = { showCalendar = false }) { shamsi ->
             days = runCatching { java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(JalaliCalendar.shamsiToIso(shamsi).take(10))).coerceAtLeast(0L).toString() }.getOrDefault("")
             daysDirty = true
+            durationEdited = true
+            templateDurationSeconds = null
         }
     }
 }
@@ -542,7 +637,7 @@ private fun EmptyHint(text: String) {
 private fun PickerRow(icon: AppIcon, label: String, selected: Boolean, onClick: () -> Unit, trailing: @Composable () -> Unit) {
     val theme = LocalThemeState.current
     Row(
-        Modifier.padding(vertical = 2.dp).fillMaxWidth().height(36.dp).clip(DsRadius.Md).clickable(onClick = onClick).background(if (selected) theme.inkColor.copy(0.06f) else theme.searchBgColor)
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(DsRadius.Md).clickable(onClick = onClick).background(if (selected) theme.inkColor.copy(0.06f) else theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, if (selected) theme.inkColor.copy(0.15f) else theme.borderColor), DsRadius.Md).pressScale(0.98f).padding(horizontal = DsSpacing.Mid),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)
     ) {
@@ -553,22 +648,10 @@ private fun PickerRow(icon: AppIcon, label: String, selected: Boolean, onClick: 
 }
 
 @Composable
-private fun UserFormTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, keyboardType: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, leading: AppIcon? = null) {
-    val theme = LocalThemeState.current
-    var isFocused by remember { mutableStateOf(false) }
-    val borderColor by androidx.compose.animation.animateColorAsState(targetValue = if (isFocused) theme.inkColor.copy(0.3f) else theme.borderColor, animationSpec = DsAnim.fast(), label = "fieldBorder")
-    val fieldStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
-    Row(
-        modifier = modifier.fillMaxWidth().height(if (singleLine) 32.dp else Dp.Unspecified).clip(DsRadius.Md).background(theme.searchBgColor)
-            .border(BorderStroke(if (isFocused) 1.dp else DsBorder.Hairline, borderColor), DsRadius.Md).padding(horizontal = DsSpacing.Mid, vertical = if (singleLine) 0.dp else DsSpacing.Md),
-        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-    ) {
-        if (leading != null) RoundedAppIcon(leading, tint = theme.mutedColor, size = 12.dp)
-        BasicTextField(
-            value = value, onValueChange = onValueChange, singleLine = singleLine,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType), textStyle = fieldStyle, cursorBrush = SolidColor(theme.inkColor),
-            modifier = Modifier.weight(1f).onFocusChanged { isFocused = it.isFocused },
-            decorationBox = { inner -> Box(contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart) { if (value.isEmpty()) Text(placeholder, style = fieldStyle.copy(color = theme.mutedColor.copy(0.5f)), maxLines = if (singleLine) 1 else 2, overflow = TextOverflow.Ellipsis); inner() } }
-        )
-    }
+private fun UserFormTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier, keyboardType: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, leading: AppIcon? = null, enabled: Boolean = true) {
+    PGFormInput(
+        value = value, onValueChange = onValueChange, label = placeholder, placeholder = placeholder,
+        modifier = modifier, enabled = enabled, singleLine = singleLine, keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        leading = leading, textStyle = TextStyle(fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
+    )
 }

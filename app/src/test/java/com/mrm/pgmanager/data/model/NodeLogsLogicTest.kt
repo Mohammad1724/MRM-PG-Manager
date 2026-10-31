@@ -231,4 +231,19 @@ class NodeLogsLogicTest {
         assertEquals(listOf(0L, 1L, 2L), (a + b).map { it.id })
         assertTrue("کلیدِ تکراری یعنی ردیف‌های لیست جابه‌جا می‌شوند", (a + b).map { it.id }.distinct().size == 3)
     }
+
+    @Test fun `discarded label-only lines cannot duplicate the next event id`() {
+        val first = NodeLogs.parse("alpha\n[Info]\nomega", 0L)
+        val second = NodeLogs.parse("next", first.size.toLong())
+        assertEquals(listOf(0L, 1L, 2L), (first + second).map { it.id })
+        assertEquals(listOf("alpha", "omega", "next"), (first + second).map { it.message })
+    }
+
+    @Test fun `trimmed buffer does not retain or depend on the oversized source list`() {
+        val source = (0 until 1_000).map { line("row $it", id = it.toLong()) }.toMutableList()
+        val retained = NodeLogs.appendTrim(emptyList(), source, max = 3)
+        source[999] = line("changed", id = 999L)
+        source.clear()
+        assertEquals(listOf("row 997", "row 998", "row 999"), retained.map { it.message })
+    }
 }

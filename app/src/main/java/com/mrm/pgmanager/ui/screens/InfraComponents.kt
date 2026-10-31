@@ -4,16 +4,22 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PGStartAlign
@@ -48,6 +56,28 @@ import com.mrm.pgmanager.ui.theme.LocalThemeState
  * نسخهٔ خودش را می‌داشت، بعد از اولین تغییرِ سبک، سه ظاهرِ کمی متفاوت می‌شد.
  * این‌ها `internal` هستند و بیرون از این پکیج استفاده نمی‌شوند.
  */
+
+/** A single scroll viewport for tabs, section controls and lazy rows. */
+@Composable
+internal fun InfraScrollableContent(
+    listTag: String,
+    header: @Composable () -> Unit,
+    content: LazyListScope.() -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag(listTag),
+        contentPadding = PaddingValues(
+            start = DsSpacing.Screen, end = DsSpacing.Screen,
+            top = DsSpacing.Xs, bottom = DsSpacing.Xl
+        ),
+        verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
+    ) {
+        item(key = "infra_header") {
+            Box(Modifier.fillMaxWidth().padding(bottom = DsSpacing.Xs)) { header() }
+        }
+        content()
+    }
+}
 
 /**
  * سرِبخشِ «زیرساختِ پنل»: عنوان + توضیح + شمارش + تازه‌سازی + ساخت.
@@ -104,7 +134,7 @@ internal fun InfraSectionHeader(
     }
 }
 
-/** دکمهٔ آیکونیِ کوچک با ناحیهٔ لمسیِ ۴۰dp. */
+/** A labeled icon action with an explicit minimum touch target. */
 @Composable
 internal fun InfraIconButton(
     icon: AppIcon,
@@ -114,13 +144,36 @@ internal fun InfraIconButton(
     enabled: Boolean = true
 ) {
     val theme = LocalThemeState.current
-    Box(
-        Modifier.size(40.dp).clip(DsRadius.Sm)
-            .clickable(enabled = enabled) { onClick() }
-            .background(theme.searchBgColor)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center
-    ) { RoundedAppIcon(icon, tint = if (enabled) tint else theme.mutedColor.copy(0.5f), size = 16.dp) }
+    val iconTint = if (enabled) tint else theme.mutedColor.copy(0.5f)
+    if (icon == AppIcon.Refresh || icon == AppIcon.More) {
+        // Match compact header actions without shrinking the accessible target.
+        val interaction = remember { MutableInteractionSource() }
+        val visualTag = if (icon == AppIcon.Refresh) "infra_refresh_visual" else "infra_more_visual"
+        val iconTag = if (icon == AppIcon.Refresh) "infra_refresh_icon" else "infra_more_icon"
+        Box(
+            Modifier.size(48.dp)
+                .clickable(enabled = enabled, interactionSource = interaction, indication = null) { onClick() }
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                Modifier.size(36.dp).testTag(visualTag)
+                    .clip(DsRadius.Sm).background(theme.searchBgColor)
+                    .indication(interaction, LocalIndication.current),
+                contentAlignment = Alignment.Center
+            ) {
+                RoundedAppIcon(icon, tint = iconTint, size = 16.dp, modifier = Modifier.testTag(iconTag))
+            }
+        }
+    } else {
+        Box(
+            Modifier.size(48.dp).clip(DsRadius.Sm)
+                .clickable(enabled = enabled) { onClick() }
+                .background(theme.searchBgColor)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center
+        ) { RoundedAppIcon(icon, tint = iconTint, size = 16.dp) }
+    }
 }
 
 /** برچسبِ کوچکِ بالای فیلدهای فرم (هم‌سبکِ بقیهٔ دیالوگ‌های اپ). */
@@ -188,9 +241,9 @@ internal class InfraRowAction(val labelRes: Int, val danger: Boolean = false, va
  * سرتیتر هم همین دو را رزرو می‌کند، وگرنه ستون‌ها از هم باز می‌شوند.
  */
 private val InfraDotSlot = 12.dp
-private val InfraActionSlot = 40.dp
+private val InfraActionSlot = 48.dp
 
-/** سرِ ستون‌ها — یک‌بار بالای لیست، بیرونِ LazyColumn (همیشه دیدنی). */
+/** Column headings share the same widths and scroll with the infrastructure controls. */
 @Composable
 internal fun InfraTableHeader(columns: List<InfraColumn>) {
     val theme = LocalThemeState.current
@@ -240,13 +293,12 @@ internal fun InfraTableRow(
     onEdit: (() -> Unit)? = null
 ) {
     val theme = LocalThemeState.current
-    val menuOpen = remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
             .then(if (onEdit != null) Modifier.clickable { onEdit() } else Modifier)
             .heightIn(min = 44.dp)
-            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Xs),
+            .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Xxs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
     ) {
@@ -275,30 +327,38 @@ internal fun InfraTableRow(
                 modifier = Modifier.weight(c.weight)
             )
         }
-        Box(Modifier.size(InfraActionSlot), contentAlignment = Alignment.Center) {
-            if (busy) {
-                MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
-            } else if (actions.isNotEmpty()) {
-                Box {
-                    InfraIconButton(
-                        icon = AppIcon.More,
-                        description = stringResource(R.string.act_more),
-                        tint = theme.inkColor,
-                        onClick = { menuOpen.value = true }
-                    )
-                    DropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
-                        actions.forEach { a ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(a.labelRes),
-                                        fontSize = 12.sp,
-                                        color = if (a.danger) DsSemantic.Danger else theme.inkColor
-                                    )
-                                },
-                                onClick = { menuOpen.value = false; a.run() }
-                            )
-                        }
+        InfraRowActions(busy = busy, actions = actions)
+    }
+}
+
+/** Preserve the same menu and busy slot in both table and narrow-screen rows. */
+@Composable
+internal fun InfraRowActions(busy: Boolean, actions: List<InfraRowAction>) {
+    val theme = LocalThemeState.current
+    val menuOpen = remember { mutableStateOf(false) }
+    Box(Modifier.size(InfraActionSlot), contentAlignment = Alignment.Center) {
+        if (busy) {
+            MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
+        } else if (actions.isNotEmpty()) {
+            Box {
+                InfraIconButton(
+                    icon = AppIcon.More,
+                    description = stringResource(R.string.act_more),
+                    tint = theme.inkColor,
+                    onClick = { menuOpen.value = true }
+                )
+                AppDropdownMenu(expanded = menuOpen.value, onDismissRequest = { menuOpen.value = false }) {
+                    actions.forEach { action ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(action.labelRes),
+                                    fontSize = 12.sp,
+                                    color = if (action.danger) DsSemantic.Danger else theme.inkColor
+                                )
+                            },
+                            onClick = { menuOpen.value = false; action.run() }
+                        )
                     }
                 }
             }

@@ -11,12 +11,15 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +50,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -144,6 +148,7 @@ fun UsersScreen(
     val density = androidx.compose.ui.platform.LocalDensity.current
     val statsCardsHeightPx = remember { mutableStateOf(0f) }
     val totalHeaderHeightPx = remember { mutableStateOf(0f) }
+    val visibleHeaderHeightPx = remember { mutableStateOf(0) }
 
     val fallbackStatsPx = remember(density) { with(density) { 114.dp.toPx() } }
     val headerHeight = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else fallbackStatsPx
@@ -261,6 +266,19 @@ fun UsersScreen(
         )
     }
 
+    val loadingGridState = rememberLazyGridState()
+    val gridState = rememberLazyGridState()
+    val compactListState = rememberLazyListState()
+    val microListState = rememberLazyListState()
+    val activeList: ScrollableState? = when {
+        ui.loading -> loadingGridState
+        ui.error != null || processedUsers.isEmpty() -> null
+        ui.viewMode == ViewMode.GRID -> gridState
+        ui.viewMode == ViewMode.COMPACT_LIST -> compactListState
+        else -> microListState
+    }
+    val headerScrollState = rememberUsersHeaderScrollState(activeList)
+
     val nestedScrollConnection = remember(headerHeight) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -302,7 +320,8 @@ fun UsersScreen(
                 icon = AppIcon.UserAdd,
                 contentDescription = stringResource(R.string.create_user),
                 modifier = Modifier.padding(bottom = DsSpacing.FabClearance, end = DsSpacing.Xs),
-                visible = fabVisible.value
+                visible = fabVisible.value,
+                compact = true
             ) { ui.createMenuOpen = true }
         }
     }) { padding ->
@@ -313,22 +332,12 @@ fun UsersScreen(
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
         ) {
-            // فاصلهٔ بالای فهرست = ارتفاعِ کاملِ سربرگ (ثابت). جمع‌شدنِ سربرگ با
-            // اسکرول، دیگر این مقدار را عوض نمی‌کند؛ به‌جایش کلِ ناحیهٔ فهرست در
-            // مرحلهٔ layout به اندازهٔ scrollOffset بالا کشیده می‌شود (پایین‌تر).
-            // قبلاً scrollOffset همین‌جا در composition خوانده می‌شد و هر پیکسلِ
-            // جمع‌شدنِ سربرگ، فهرست را با contentPadding جدید دوباره می‌ساخت —
-            // یعنی recomposition + اندازه‌گیریِ دوباره در هر فریمِ اسکرول.
-            val listTopPad = totalHeaderDp + topInsets + 4.dp
-            val collapseShift = Modifier.layout { measurable, constraints ->
-                // خواندنِ state فقط در همین لامبدا → تغییرش فقط layout را تکرار می‌کند.
-                val shift = ui.scrollOffset.value.roundToInt().coerceAtLeast(0)
-                val extended = if (constraints.hasBoundedHeight)
-                    constraints.copy(maxHeight = constraints.maxHeight + shift)
-                else constraints
-                val placeable = measurable.measure(extended)
-                val height = if (constraints.hasBoundedHeight) constraints.maxHeight else placeable.height
-                layout(placeable.width, height) { placeable.placeRelative(0, -shift) }
+            val fallbackTopPx = with(density) { (totalHeaderDp + topInsets + 4.dp).roundToPx() }
+            val headerGapPx = with(density) { 4.dp.roundToPx() }
+            val headerBottomPx = {
+                val measured = visibleHeaderHeightPx.value
+                if (measured > 0) measured + headerGapPx
+                else (fallbackTopPx - ui.scrollOffset.value.roundToInt()).coerceAtLeast(0)
             }
             val ptrState = rememberPullToRefreshState()
             PullToRefreshBox(
@@ -342,22 +351,22 @@ fun UsersScreen(
                         state = ptrState,
                         containerColor = themeState.cardSurfaceColor,
                         color = themeState.accentPrimary,
-                        modifier = Modifier.align(Alignment.TopCenter).offset { IntOffset(0, -ui.scrollOffset.value.roundToInt()) }.padding(top = listTopPad)
+                        modifier = Modifier.align(Alignment.TopCenter).offset { IntOffset(0, headerBottomPx()) }
                     )
                 }
             ) {
-                Box(Modifier.fillMaxSize().then(collapseShift)) {
+                Box(Modifier.fillMaxSize().usersListViewport(headerBottomPx).testTag("users_screen_viewport")) {
                 when {
-                    ui.loading -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) { items(6) { SkeletonCard() } }
+                    ui.loading -> LazyVerticalGrid(state = loadingGridState, modifier = Modifier.testTag("users_screen_loading_list"), columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(bottom = 140.dp)) { items(6) { SkeletonCard() } }
                     ui.error != null -> MrmErrorState(
-                        modifier = Modifier.padding(top = listTopPad),
+                        modifier = Modifier,
                         onRetry = { ui.load() },
                         message = ui.error
                     )
                     processedUsers.isEmpty() -> {
                         val noMatches = ui.query.isNotBlank() || ui.currentFilter != com.mrm.pgmanager.data.model.UserFilter.ALL
                         MrmEmptyState(
-                            modifier = Modifier.padding(top = listTopPad),
+                            modifier = Modifier,
                             title = if (noMatches) stringResource(R.string.no_results) else stringResource(R.string.no_user_found),
                             subtitle = if (noMatches) stringResource(R.string.clear_filter_or_create) else stringResource(R.string.create_first_user),
                             icon = if (noMatches) AppIcon.Search else AppIcon.Users
@@ -373,12 +382,12 @@ fun UsersScreen(
                     val listIntro = rememberListIntro()
                     androidx.compose.animation.AnimatedContent(targetState = ui.viewMode, label = "viewModeSwitch") { mode ->
                         when (mode) {
-                        ViewMode.GRID -> LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.GRID -> LazyVerticalGrid(state = gridState, modifier = Modifier.testTag("users_screen_list"), columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryGridCard(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
@@ -388,12 +397,12 @@ fun UsersScreen(
                                 }
                             }
                         }
-                        ViewMode.COMPACT_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.COMPACT_LIST -> LazyColumn(state = compactListState, modifier = Modifier.testTag("users_screen_list"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid), contentPadding = PaddingValues(bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryCompactRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item {
@@ -403,12 +412,12 @@ fun UsersScreen(
                                 }
                             }
                         }
-                        ViewMode.MICRO_LIST -> LazyColumn(verticalArrangement = Arrangement.spacedBy(DsSpacing.Md), contentPadding = PaddingValues(top = listTopPad, bottom = 140.dp)) {
+                        ViewMode.MICRO_LIST -> LazyColumn(state = microListState, modifier = Modifier.testTag("users_screen_list"), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md), contentPadding = PaddingValues(bottom = 140.dp)) {
                             itemsIndexed(processedUsers, key = { _, u -> u.id }) { index, user ->
                                 if (index >= processedUsers.lastIndex - 4) {
                                     LaunchedEffect(index, processedUsers.size) { ui.loadMore() }
                                 }
-                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onQrClick = { ui.qrWithFetch(it) }, onCopySub = { ui.copySubWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
+                                Box(Modifier.animateItem().listIntro(listIntro, index)) { LuxuryMicroRow(user, selected = ui.selectedUserIds.contains(user.id), onSelectToggle = { ui.selectedUserIds = if (ui.selectedUserIds.contains(user.id)) ui.selectedUserIds - user.id else ui.selectedUserIds + user.id }, onClick = { ui.selectedUser = user }, onShareSubscription = { ui.qrWithFetch(it) }, onLongClick = { ui.quickActionUser = user }, debtorInfo = ui.debtorByUsername[user.username]) }
                             }
                             if (ui.loadingMore) {
                                 item {
@@ -423,60 +432,65 @@ fun UsersScreen(
                     }
                 }
                 }
-            }
 
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { coords ->
-                        if (ui.scrollOffset.value == 0f && coords.size.height > 0) {
-                            val h = (coords.size.height.toFloat() - with(density) { topInsets.toPx() }).coerceAtLeast(0f)
-                            if (totalHeaderHeightPx.value != h) {
-                                totalHeaderHeightPx.value = h
-                            }
-                        }
-                    }
-                    .background(themeState.chromeBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
-                    .padding(top = topInsets)
-                    // دکمهٔ همبرگری حذف شده؛ فقط یک فاصلهٔ نفس‌کشیدن زیرِ نوارِ وضعیت.
-                    .padding(top = DsSpacing.Sm)
-                    .padding(horizontal = DsSpacing.Xl)
-                    .padding(bottom = DsSpacing.Lg)
-            ) {
-                TopBarHeader(onRefresh = { ui.load() }, loading = ui.loading, onOpenSettings = onOpenSettings)
-
-                Box(
+                Column(
                     Modifier
                         .fillMaxWidth()
                         .onGloballyPositioned { coords ->
-                            if (ui.scrollOffset.value == 0f && coords.size.height > 0) {
-                                if (statsCardsHeightPx.value != coords.size.height.toFloat()) {
-                                    statsCardsHeightPx.value = coords.size.height.toFloat()
+                            val height = coords.size.height
+                            if (height > 0 && visibleHeaderHeightPx.value != height) {
+                                visibleHeaderHeightPx.value = height
+                            }
+                            if (ui.scrollOffset.value == 0f && height > 0) {
+                                val h = (height.toFloat() - with(density) { topInsets.toPx() }).coerceAtLeast(0f)
+                                if (totalHeaderHeightPx.value != h) {
+                                    totalHeaderHeightPx.value = h
                                 }
                             }
                         }
-                        .layout { measurable, constraints ->
-                            val placeable = measurable.measure(constraints)
-                            val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else placeable.height.toFloat()
-                            val progress = if (maxH > 0f) (ui.scrollOffset.value / maxH).coerceIn(0f, 1f) else 0f
-                            val currentH = (placeable.height * (1f - progress)).roundToInt().coerceAtLeast(0)
-                            layout(placeable.width, currentH) {
-                                placeable.placeRelative(0, (-progress * placeable.height * 0.38f).roundToInt())
-                            }
-                        }
-                        .graphicsLayer {
-                            val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else 1f
-                            val progress = (ui.scrollOffset.value / maxH).coerceIn(0f, 1f)
-                            this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
-                        }
-                        // فاصله از سربرگ. عمداً *داخلِ* زنجیرهٔ جمع‌شونده است (بعد از
-                        // layout و graphicsLayer)، تا با اسکرول همراهِ خودِ کارت‌ها جمع
-                        // شود؛ اگر بیرون بود، بعد از جمع‌شدنِ کارت‌ها یک نوارِ خالی
-                        // زیرِ سربرگ باقی می‌ماند.
-                        .padding(top = DsSpacing.Mid)
+                        .usersHeaderDrag(headerScrollState)
+                        .testTag("users_screen_header")
+                        .background(themeState.chromeBgColor)
+                        .border(BorderStroke(DsBorder.Hairline, themeState.borderColor))
+                        .padding(top = topInsets)
+                        // دکمهٔ همبرگری حذف شده؛ فقط یک فاصلهٔ نفس‌کشیدن زیرِ نوارِ وضعیت.
+                        .padding(top = DsSpacing.Sm)
+                        .padding(horizontal = DsSpacing.Xl)
+                        .padding(bottom = DsSpacing.Lg)
                 ) {
-                            StatsCardsRow(
+                    TopBarHeader(onRefresh = { ui.load() }, loading = ui.loading, onOpenSettings = onOpenSettings)
+
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { coords ->
+                                if (ui.scrollOffset.value == 0f && coords.size.height > 0) {
+                                    if (statsCardsHeightPx.value != coords.size.height.toFloat()) {
+                                        statsCardsHeightPx.value = coords.size.height.toFloat()
+                                    }
+                                }
+                            }
+                            .layout { measurable, constraints ->
+                                val placeable = measurable.measure(constraints)
+                                val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else placeable.height.toFloat()
+                                val progress = if (maxH > 0f) (ui.scrollOffset.value / maxH).coerceIn(0f, 1f) else 0f
+                                val currentH = (placeable.height * (1f - progress)).roundToInt().coerceAtLeast(0)
+                                layout(placeable.width, currentH) {
+                                    placeable.placeRelative(0, (-progress * placeable.height * 0.38f).roundToInt())
+                                }
+                            }
+                            .graphicsLayer {
+                                val maxH = if (statsCardsHeightPx.value > 0f) statsCardsHeightPx.value else 1f
+                                val progress = (ui.scrollOffset.value / maxH).coerceIn(0f, 1f)
+                                this.alpha = (1f - progress * 1.3f).coerceIn(0f, 1f)
+                            }
+                            // فاصله از سربرگ. عمداً *داخلِ* زنجیرهٔ جمع‌شونده است (بعد از
+                            // layout و graphicsLayer)، تا با اسکرول همراهِ خودِ کارت‌ها جمع
+                            // شود؛ اگر بیرون بود، بعد از جمع‌شدنِ کارت‌ها یک نوارِ خالی
+                            // زیرِ سربرگ باقی می‌ماند.
+                            .padding(top = DsSpacing.Mid)
+                    ) {
+                        StatsCardsRow(
                             // از خودِ پنل، نه از روی صفحهٔ دانلودشده — وگرنه با
                             // صفحه‌بندی، «۷۳ کاربر» می‌شد «۶۰ کاربر».
                             totalUsers = ui.counts?.totalUsers ?: ui.users.size,
@@ -484,93 +498,94 @@ fun UsersScreen(
                             onlineUsers = ui.counts?.onlineUsers ?: ui.onlineCount,
                             debtorCount = ui.debtorCount
                         )
-                }
-
-                Spacer(Modifier.height(DsSpacing.Sm))
-                GlassSearchBar(query = ui.query, onQueryChange = { ui.query = it })
-                Spacer(Modifier.height(DsSpacing.Md))
-                FilterAndControlBar(
-                    currentFilter = ui.currentFilter,
-                    onFilterChange = { ui.currentFilter = it },
-                    currentSort = ui.currentSort,
-                    onSortChange = { ui.currentSort = it },
-                    viewMode = ui.viewMode,
-                    onViewModeChange = { ui.viewMode = it; store.saveViewMode(it) },
-                    debtorCount = ui.debtorCount,
-                    groups = ui.groupOptions,
-                    groupFilterId = ui.groupFilterId,
-                    onGroupFilterChange = { ui.groupFilterId = it },
-                    admins = ui.adminOptions,
-                    ownerFilter = ui.ownerFilter,
-                    onOwnerFilterChange = { ui.ownerFilter = it },
-                    expiringWindowDays = com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays)
-                )
-                // چند تا از چند تا — با صفحه‌بندی، دانستنش لازم است.
-                if (serverMode && ui.totalMatches > processedUsers.size) {
-                    Text(
-                        stringResource(R.string.us_showing_count, processedUsers.size, ui.totalMatches),
-                        fontSize = 11.sp, color = themeState.mutedColor,
-                        modifier = Modifier.padding(top = DsSpacing.Sm, start = DsSpacing.Xxs)
-                    )
-                }
-                // پاک‌سازیِ منقضی‌ها: فقط وقتی فیلترِ «منقضی» فعال است پیدایش می‌شود،
-                // چون همان‌جاست که به آدم فکرِ حذفِ دسته‌جمعی می‌رسد. اول فهرست را
-                // از پنل می‌گیریم تا کاربر ببیند چه کسانی حذف می‌شوند.
-                // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
-                if (ui.currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
-                    Row(
-                        Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).clickable {
-                                scope.launch {
-                                    val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
-                                    if (names.isEmpty()) {
-                                        com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
-                                    } else ui.cleanupNames = names
-                                }
-                            }
-                            .background(GlassRed.copy(0.10f))
-                            .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.26f)), DsRadius.Sm)
-                            .pressScale(0.98f)
-                            
-                            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-                    ) {
-                        RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
-                        Text(stringResource(R.string.us_cleanup), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
                     }
-                    // PasarGuard v5.5: پاک‌سازیِ کاربرانی که مدتی هیچ فعالیتی نداشته‌اند
-                    // (`target=inactive`). فقط روی پنلِ 5.5.1+ و برای نقشِ مجاز نشان داده
-                    // می‌شود؛ روی پنلِ قدیمی پنل با ۴۲۲ پاسخ می‌داد.
-                    if (com.mrm.pgmanager.data.PanelSupport.supportsInactiveCleanup) {
+
+                    Spacer(Modifier.height(DsSpacing.Sm))
+                    GlassSearchBar(query = ui.query, onQueryChange = { ui.query = it })
+                    Spacer(Modifier.height(DsSpacing.Md))
+                    FilterAndControlBar(
+                        currentFilter = ui.currentFilter,
+                        onFilterChange = { ui.currentFilter = it },
+                        currentSort = ui.currentSort,
+                        onSortChange = { ui.currentSort = it },
+                        viewMode = ui.viewMode,
+                        onViewModeChange = { ui.viewMode = it; store.saveViewMode(it) },
+                        debtorCount = ui.debtorCount,
+                        groups = ui.groupOptions,
+                        groupFilterId = ui.groupFilterId,
+                        onGroupFilterChange = { ui.groupFilterId = it },
+                        admins = ui.adminOptions,
+                        ownerFilter = ui.ownerFilter,
+                        onOwnerFilterChange = { ui.ownerFilter = it },
+                        expiringWindowDays = com.mrm.pgmanager.data.model.UserQuery.expiringWindowDays(monitoringSettings.nearExpiryDays)
+                    )
+                    // چند تا از چند تا — با صفحه‌بندی، دانستنش لازم است.
+                    if (serverMode && ui.totalMatches > processedUsers.size) {
+                        Text(
+                            stringResource(R.string.us_showing_count, processedUsers.size, ui.totalMatches),
+                            fontSize = 11.sp, color = themeState.mutedColor,
+                            modifier = Modifier.padding(top = DsSpacing.Sm, start = DsSpacing.Xxs)
+                        )
+                    }
+                    // پاک‌سازیِ منقضی‌ها: فقط وقتی فیلترِ «منقضی» فعال است پیدایش می‌شود،
+                    // چون همان‌جاست که به آدم فکرِ حذفِ دسته‌جمعی می‌رسد. اول فهرست را
+                    // از پنل می‌گیریم تا کاربر ببیند چه کسانی حذف می‌شوند.
+                    // `/api/users/expired` در پنل فقط با دامنهٔ «همهٔ کاربران» مجاز است (require_scope_all).
+                    if (ui.currentFilter == UserFilter.EXPIRED && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "read") && com.mrm.pgmanager.data.AdminAccess.scopeAll("users", "delete")) {
                         Row(
-                            Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Sm).clip(DsRadius.Sm)
-                                .clickable { ui.inactiveCleanupOpen = true }
-                                .background(GlassAmber.copy(0.10f))
-                                .border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(0.26f)), DsRadius.Sm)
+                            Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).clickable {
+                                    scope.launch {
+                                        val names = runCatching { PanelApi.cleanupCandidates(session) }.getOrDefault(emptyList())
+                                        if (names.isEmpty()) {
+                                            com.mrm.pgmanager.ui.feedback.AppFeedback.info(context.getString(R.string.us_cleanup_none))
+                                        } else ui.cleanupNames = names
+                                    }
+                                }
+                                .background(GlassRed.copy(0.10f))
+                                .border(BorderStroke(DsBorder.Hairline, GlassRed.copy(0.26f)), DsRadius.Sm)
                                 .pressScale(0.98f)
+
                                 .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                         ) {
-                            RoundedAppIcon(AppIcon.Timer, tint = GlassAmber, size = 13.dp)
-                            Text(stringResource(R.string.us_cleanup_inactive), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = themeState.warningTextColor)
+                            RoundedAppIcon(AppIcon.Delete, tint = GlassRed, size = 13.dp)
+                            Text(stringResource(R.string.us_cleanup), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlassRed)
+                        }
+                        // PasarGuard v5.5: پاک‌سازیِ کاربرانی که مدتی هیچ فعالیتی نداشته‌اند
+                        // (`target=inactive`). فقط روی پنلِ 5.5.1+ و برای نقشِ مجاز نشان داده
+                        // می‌شود؛ روی پنلِ قدیمی پنل با ۴۲۲ پاسخ می‌داد.
+                        if (com.mrm.pgmanager.data.PanelSupport.supportsInactiveCleanup) {
+                            Row(
+                                Modifier.heightIn(min = 40.dp).fillMaxWidth().padding(top = DsSpacing.Sm).clip(DsRadius.Sm)
+                                    .clickable { ui.inactiveCleanupOpen = true }
+                                    .background(GlassAmber.copy(0.10f))
+                                    .border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(0.26f)), DsRadius.Sm)
+                                    .pressScale(0.98f)
+                                    .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                            ) {
+                                RoundedAppIcon(AppIcon.Timer, tint = GlassAmber, size = 13.dp)
+                                Text(stringResource(R.string.us_cleanup_inactive), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = themeState.warningTextColor)
+                            }
                         }
                     }
-                }
-                ui.offlineAt?.let { cachedAt ->
-                    Row(
-                        Modifier.fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
-                    ) {
-                        RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
-                        Text(
-                            stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))),
-                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                            color = LocalThemeState.current.warningTextColor, maxLines = 1,
-                            // ظهورِ این بنر یعنی «دادهٔ زنده نیست» — باید اعلام شود.
-                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                        )
+                    ui.offlineAt?.let { cachedAt ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = DsSpacing.Md).clip(DsRadius.Sm).background(GlassAmber.copy(.12f)).border(BorderStroke(DsBorder.Hairline, GlassAmber.copy(.30f)), DsRadius.Sm).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+                        ) {
+                            RoundedAppIcon(AppIcon.Warning, tint = GlassAmber, size = 14.dp)
+                            Text(
+                                stringResource(R.string.offline_data, java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(cachedAt))),
+                                fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                color = LocalThemeState.current.warningTextColor, maxLines = 1,
+                                // ظهورِ این بنر یعنی «دادهٔ زنده نیست» — باید اعلام شود.
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                            )
+                        }
                     }
                 }
             }

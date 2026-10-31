@@ -1,13 +1,22 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
@@ -116,6 +125,16 @@ class LoginScreenTest {
         render()
         rule.onNodeWithTag("login_username").assertExists()
         rule.onNodeWithTag("login_password").assertExists()
+    }
+
+    @Test fun authenticationModesAndPasswordVisibilityAreAccessible() {
+        render()
+        rule.onNodeWithText(str(R.string.login_mode_password)).assertIsSelected()
+            .assertHeightIsAtLeast(48.dp)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        rule.onNodeWithContentDescription(str(R.string.cc_show_password))
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithContentDescription(str(R.string.cc_hide_password)).assertExists()
     }
 
     @Test fun rejectedWellFormedApiKey_showsInvalidKeyMessage_notFormatError() {

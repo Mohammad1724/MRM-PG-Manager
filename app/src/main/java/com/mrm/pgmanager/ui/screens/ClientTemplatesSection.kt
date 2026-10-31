@@ -4,20 +4,19 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,16 +30,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
@@ -91,7 +96,7 @@ private val CT_COLUMNS = listOf(
  *  • قالبِ سیستمی (`is_system`) حذف نمی‌شود — دکمهٔ حذف برایش نشان داده نمی‌شود.
  */
 @Composable
-internal fun ClientTemplatesSection(session: Session) {
+internal fun ClientTemplatesSection(session: Session, sectionTabs: @Composable () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
@@ -146,124 +151,118 @@ internal fun ClientTemplatesSection(session: Session) {
     val canUpdate = com.mrm.pgmanager.data.AdminAccess.can("client_templates", "update")
     val canDelete = com.mrm.pgmanager.data.AdminAccess.can("client_templates", "delete")
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
-        InfraSectionHeader(
-            title = stringResource(R.string.ct_title),
-            subtitle = stringResource(R.string.ct_subtitle),
-            count = templates.size,
-            onRefresh = { scope.launch { loading = templates.isEmpty(); load() } },
-            onAdd = if (canCreate) ({
-                editing = ClientTemplate(
-                    id = 0, name = "", templateType = ClientTemplateType.CLASH, content = ""
-                )
-            }) else null,
-            addLabel = stringResource(R.string.ct_create)
-        )
-
-        if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
-        banner?.let { InfraBanner(text = it, success = false) { banner = null } }
-
-        if (templates.isNotEmpty()) {
-            PGSearchBar(
-                query = query, onQueryChange = { query = it },
-                placeholder = stringResource(R.string.search_ct)
-            )
-            // فیلترِ نوع؛ «همه» با رشتهٔ خالی نشان داده می‌شود تا state ساده بماند.
-            // هفت چیپ در ۳۶۰dp جا نمی‌شوند؛ با Row+horizontalScroll چیپِ آخر نصفه
-            // بریده می‌شد و هیچ سرنخی نبود که چیزِ بیشتری هست — همان ایرادی که برای
-            // برچسب‌هایِ هاست گزارش شد، پس اینجا هم PGWrapRow می‌شود.
-            PGWrapRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalGap = DsSpacing.Xs,
-                verticalGap = DsSpacing.Xxs
-            ) {
-                val chips = listOf("" to stringResource(R.string.ct_filter_all)) +
-                    ClientTemplateType.ALL.map { it to templateTypeLabel(it) }
-                chips.forEach { (value, label) ->
-                    val active = typeFilter == value
-                    Box(
-                        Modifier.heightIn(min = 40.dp).clip(DsRadius.Full)
-                            .clickable { typeFilter = value }
-                            .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
-                            .border(
-                                BorderStroke(
-                                    DsBorder.Hairline,
-                                    if (active) theme.accentPrimary.copy(0.45f) else theme.borderColor
-                                ),
-                                DsRadius.Full
-                            )
-                            .padding(horizontal = DsSpacing.Mid),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            label, fontSize = 11.sp,
-                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = if (active) theme.accentPrimary else theme.mutedColor,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-
-        when {
-            loading && templates.isEmpty() -> Box(
-                Modifier.fillMaxWidth().height(160.dp),
-                contentAlignment = Alignment.Center
-            ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
-
-            loadError != null && templates.isEmpty() -> MrmErrorState(
-                onRetry = { scope.launch { loading = true; load() } },
-                message = loadError
-            )
-
-            templates.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_ct),
-                subtitle = stringResource(R.string.no_ct_hint),
-                icon = AppIcon.Template
-            ) {
-                if (canCreate) PGPrimaryButton(
-                    stringResource(R.string.ct_create),
-                    onClick = {
+    val intro = if (filtered.isNotEmpty()) rememberListIntro() else null
+    InfraScrollableContent(
+        listTag = "infra_templates_list",
+        header = {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
+                sectionTabs()
+                InfraSectionHeader(
+                    title = stringResource(R.string.ct_title),
+                    subtitle = stringResource(R.string.ct_subtitle),
+                    count = templates.size,
+                    onRefresh = { scope.launch { loading = templates.isEmpty(); load() } },
+                    onAdd = if (canCreate) ({
                         editing = ClientTemplate(
                             id = 0, name = "", templateType = ClientTemplateType.CLASH, content = ""
                         )
-                    },
-                    icon = AppIcon.Add
+                    }) else null,
+                    addLabel = stringResource(R.string.ct_create)
                 )
-            }
-
-            filtered.isEmpty() -> MrmEmptyState(
-                title = stringResource(R.string.no_results),
-                subtitle = stringResource(R.string.no_results_hint),
-                icon = AppIcon.Search
-            ) {
-                PGSecondaryButton(
-                    stringResource(R.string.clear_filter),
-                    onClick = { query = ""; typeFilter = "" }
-                )
-            }
-
-            else -> {
-                InfraTableHeader(CT_COLUMNS)
-                val intro = rememberListIntro()
-                LazyColumn(
-                    // نوارِ ناوبریِ پایین: این صفحه تمام‌صفحه است و نوارِ تبِ پایین
-                    // ندارد، پس خودِ لیست باید insetِ پایین را کم کند — وگرنه آخرین
-                    // ردیف زیرِ پیلِ حرکتِ انگشت می‌ماند (گزارشِ همان بریدگیِ پایین).
-                    modifier = Modifier.fillMaxWidth().weight(1f).navigationBarsPadding(),
-                    verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
-                    contentPadding = PaddingValues(top = DsSpacing.Xxs, bottom = DsSpacing.Xl)
-                ) {
-                    itemsIndexed(filtered, key = { _, t -> t.id }) { index, template ->
-                        Box(Modifier.animateItem().listIntro(intro, index)) {
-                            ClientTemplateRow(
-                                template = template,
-                                onEdit = if (canUpdate) ({ editing = template }) else null,
-                                onDelete = if (canDelete && !template.isSystem) ({ deleting = template }) else null
-                            )
+                if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
+                banner?.let { InfraBanner(text = it, success = false) { banner = null } }
+                if (templates.isNotEmpty()) {
+                    PGSearchBar(
+                        query = query, onQueryChange = { query = it },
+                        placeholder = stringResource(R.string.search_ct)
+                    )
+                    // فیلترِ نوع؛ «همه» با رشتهٔ خالی نشان داده می‌شود تا state ساده بماند.
+                    // هفت چیپ در ۳۶۰dp جا نمی‌شوند؛ با Row+horizontalScroll چیپِ آخر نصفه
+                    // بریده می‌شد و هیچ سرنخی نبود که چیزِ بیشتری هست — همان ایرادی که برای
+                    // برچسب‌هایِ هاست گزارش شد، پس اینجا هم PGWrapRow می‌شود.
+                    PGWrapRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalGap = DsSpacing.Xs,
+                        verticalGap = DsSpacing.Xxs
+                    ) {
+                        val chips = listOf("" to stringResource(R.string.ct_filter_all)) +
+                            ClientTemplateType.ALL.map { it to templateTypeLabel(it) }
+                        chips.forEach { (value, label) ->
+                            val active = typeFilter == value
+                            Box(
+                                Modifier.heightIn(min = 40.dp).clip(DsRadius.Full)
+                                    .testTag("infra_template_filter_${value.ifEmpty { "all" }}")
+                                    .clickable { typeFilter = value }
+                                    .background(if (active) theme.accentPrimary.copy(0.16f) else theme.searchBgColor)
+                                    .border(
+                                        BorderStroke(
+                                            DsBorder.Hairline,
+                                            if (active) theme.accentPrimary.copy(0.45f) else theme.borderColor
+                                        ),
+                                        DsRadius.Full
+                                    )
+                                    .padding(horizontal = DsSpacing.Mid),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    label, fontSize = 11.sp,
+                                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (active) theme.accentPrimary else theme.mutedColor,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
+                }
+                if (templates.isNotEmpty() && filtered.isNotEmpty()) InfraTableHeader(CT_COLUMNS)
+            }
+        }
+    ) {
+        when {
+            loading && templates.isEmpty() -> item(key = "templates_loading") {
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
+                }
+            }
+            loadError != null && templates.isEmpty() -> item(key = "templates_error") {
+                MrmErrorState(onRetry = { scope.launch { loading = true; load() } }, message = loadError)
+            }
+            templates.isEmpty() -> item(key = "templates_empty") {
+                MrmEmptyState(
+                    title = stringResource(R.string.no_ct),
+                    subtitle = stringResource(R.string.no_ct_hint),
+                    icon = AppIcon.Template
+                ) {
+                    if (canCreate) PGPrimaryButton(
+                        stringResource(R.string.ct_create),
+                        onClick = {
+                            editing = ClientTemplate(
+                                id = 0, name = "", templateType = ClientTemplateType.CLASH, content = ""
+                            )
+                        },
+                        icon = AppIcon.Add
+                    )
+                }
+            }
+            filtered.isEmpty() -> item(key = "templates_no_results") {
+                MrmEmptyState(
+                    title = stringResource(R.string.no_results),
+                    subtitle = stringResource(R.string.no_results_hint),
+                    icon = AppIcon.Search
+                ) {
+                    PGSecondaryButton(
+                        stringResource(R.string.clear_filter),
+                        onClick = { query = ""; typeFilter = "" }
+                    )
+                }
+            }
+            else -> itemsIndexed(filtered, key = { _, template -> template.id }) { index, template ->
+                Box(Modifier.animateItem().listIntro(requireNotNull(intro), index)) {
+                    ClientTemplateRow(
+                        template = template,
+                        onEdit = if (canUpdate) ({ editing = template }) else null,
+                        onDelete = if (canDelete && !template.isSystem) ({ deleting = template }) else null
+                    )
                 }
             }
         }
@@ -378,6 +377,9 @@ private fun ClientTemplateEditorDialog(
     var saving by remember { mutableStateOf(false) }
     var touched by remember { mutableStateOf(false) }
     var serverError by remember(initial.id) { mutableStateOf<String?>(null) }
+    val contentInteraction = remember { MutableInteractionSource() }
+    val contentFocused by contentInteraction.collectIsFocusedAsState()
+    val contentLabel = stringResource(R.string.ct_content)
 
     val errorKey = ClientTemplateValidation.validate(name, content)
     val errName = stringResource(R.string.err_ct_name)
@@ -394,7 +396,7 @@ private fun ClientTemplateEditorDialog(
     val canSave = errorKey == null && !saving
     val charCount = stringResource(R.string.ct_chars_fmt, content.length)
 
-    Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+    AppDialog(onDismissRequest = { if (!saving) onDismiss() }) {
         Column(
             Modifier.fillMaxWidth().heightIn(max = 620.dp).imePadding()
                 .clip(DsRadius.Xxl).background(theme.dialogBgColor)
@@ -449,9 +451,7 @@ private fun ClientTemplateEditorDialog(
             }
             Box(
                 Modifier.fillMaxWidth().heightIn(min = 150.dp, max = 220.dp)
-                    .clip(DsRadius.Md)
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md)
+                    .pgFieldSurface(theme, contentFocused)
                     .padding(DsSpacing.Mid)
             ) {
                 androidx.compose.foundation.text.BasicTextField(
@@ -459,14 +459,17 @@ private fun ClientTemplateEditorDialog(
                     onValueChange = { content = it; touched = true; serverError = null },
                     textStyle = TextStyle(
                         color = theme.inkColor, fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = FontFamily.Monospace, textDirection = TextDirection.Ltr
                     ),
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    interactionSource = contentInteraction,
+                    cursorBrush = SolidColor(theme.inkColor),
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .semantics { contentDescription = contentLabel },
                     enabled = !saving
                 )
                 if (content.isEmpty()) Text(
                     stringResource(R.string.ct_content_hint),
-                    fontSize = 11.sp, color = theme.mutedColor.copy(0.6f)
+                    fontSize = 11.sp, color = theme.tertiaryColor
                 )
             }
 

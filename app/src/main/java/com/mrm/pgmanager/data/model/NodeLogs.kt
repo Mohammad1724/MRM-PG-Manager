@@ -143,54 +143,60 @@ object NodeLogs {
         """^(\d{4})[-/](\d{2})[-/](\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:[.,](\d{1,9}))?"""
     )
 
-    /** تجزیهٔ یک رویدادِ SSE (شاید چند خط) به خط‌های آمادهٔ نمایش. */
-    fun parse(event: String, firstId: Long): List<NodeLogLine> =
-        event.split('\n').map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { index, raw ->
+    /** Parse an SSE event and assign contiguous IDs only to rows that will be displayed. */
+    fun parse(event: String, firstId: Long): List<NodeLogLine> {
+        val parsed = ArrayList<NodeLogLine>()
+        for (line in event.lineSequence()) {
+            val raw = line.trim()
+            if (raw.isEmpty()) continue
             val match = linePattern.matchEntire(raw)
             val stamp = match?.groupValues?.getOrNull(2)?.takeIf { it.isNotBlank() }
             val body = (match?.groupValues?.getOrNull(3) ?: raw).trim()
-            NodeLogLine(
-                id = firstId + index,
-                level = levelOf(body),
-                message = cleanMessage(body),
-                timestampText = stamp,
-                timestampMs = stamp?.let { epochMs(it) }
+            val message = cleanMessage(body)
+            if (message.isEmpty()) continue
+            parsed.add(
+                NodeLogLine(
+                    id = firstId + parsed.size,
+                    level = levelOf(body),
+                    message = message,
+                    timestampText = stamp,
+                    timestampMs = stamp?.let { epochMs(it) }
+                )
             )
-        }.filter { it.message.isNotEmpty() }
+        }
+        return parsed
+    }
 
-    /**
-     * تشخیصِ شدت از متن — قاعده‌ها یکی‌یکی از `getLogType` پنل برداشته شده‌اند
-     * (برچسبِ داخلِ قلاب، سپس کلمهٔ ابتدایی، سپس الگوی access-logِ xray).
-     */
+    // Compile the panel's patterns once: every streamed line uses these expressions.
+    private val errorTag = Regex("""\[error]""", RegexOption.IGNORE_CASE)
+    private val errorPrefix = Regex("""^\s*(error|fatal)\b""", RegexOption.IGNORE_CASE)
+    private val warningTag = Regex("""\[(warning|warn)]""", RegexOption.IGNORE_CASE)
+    private val warningPrefix = Regex("""^\s*(warning|warn)\b""", RegexOption.IGNORE_CASE)
+    private val debugTag = Regex("""\[debug]""", RegexOption.IGNORE_CASE)
+    private val debugPrefix = Regex("""^\s*debug\b""", RegexOption.IGNORE_CASE)
+    private val accessLine = Regex(
+        """from\s+\S+:\d+\s+accepted\s+(tcp|udp):\S+\s+\[[^\]]+]\s+email:\s+\S+""",
+        RegexOption.IGNORE_CASE
+    )
+    private val infoTag = Regex("""\[info]""", RegexOption.IGNORE_CASE)
+    private val infoPrefix = Regex("""^\s*info\b""", RegexOption.IGNORE_CASE)
+    private val bracketedPrefix = Regex("""^\[(Debug|Info|Warn|Warning|Error)]\s*""", RegexOption.IGNORE_CASE)
+    private val colonPrefix = Regex("""^(Debug|Info|Warn|Warning|Error):\s*""", RegexOption.IGNORE_CASE)
+
+    /** Classify a line using the same precedence and patterns as the panel. */
     fun levelOf(message: String): NodeLogLevel = when {
-        Regex("""\[error]""", RegexOption.IGNORE_CASE).containsMatchIn(message) ||
-            Regex("""^\s*(error|fatal)\b""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> NodeLogLevel.Error
-
-        Regex("""\[(warning|warn)]""", RegexOption.IGNORE_CASE).containsMatchIn(message) ||
-            Regex("""^\s*(warning|warn)\b""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> NodeLogLevel.Warning
-
-        Regex("""\[debug]""", RegexOption.IGNORE_CASE).containsMatchIn(message) ||
-            Regex("""^\s*debug\b""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> NodeLogLevel.Debug
-
-        // xray access log: «from 1.2.3.4:5 accepted tcp:x:1 [app] email: u»
-        Regex("""from\s+\S+:\d+\s+accepted\s+(tcp|udp):\S+\s+\[[^\]]+]\s+email:\s+\S+""", RegexOption.IGNORE_CASE)
-            .containsMatchIn(message) -> NodeLogLevel.Info
-
-        Regex("""\[info]""", RegexOption.IGNORE_CASE).containsMatchIn(message) ||
-            Regex("""^\s*info\b""", RegexOption.IGNORE_CASE).containsMatchIn(message) -> NodeLogLevel.Info
-
+        errorTag.containsMatchIn(message) || errorPrefix.containsMatchIn(message) -> NodeLogLevel.Error
+        warningTag.containsMatchIn(message) || warningPrefix.containsMatchIn(message) -> NodeLogLevel.Warning
+        debugTag.containsMatchIn(message) || debugPrefix.containsMatchIn(message) -> NodeLogLevel.Debug
+        accessLine.containsMatchIn(message) -> NodeLogLevel.Info
+        infoTag.containsMatchIn(message) || infoPrefix.containsMatchIn(message) -> NodeLogLevel.Info
         else -> NodeLogLevel.Info
     }
 
-    /**
-     * حذفِ برچسبِ شدت از ابتدای متن.
-     *
-     * چون خودِ ردیف شدت را با رنگ و برچسب نشان می‌دهد، `[Error]` دوباره در متن
-     * فقط نویز است (همان کاری که پنل می‌کند).
-     */
+    /** Remove the redundant leading level label without changing the log message. */
     fun cleanMessage(message: String): String = message
-        .replaceFirst(Regex("""^\[(Debug|Info|Warn|Warning|Error)]\s*""", RegexOption.IGNORE_CASE), "")
-        .replaceFirst(Regex("""^(Debug|Info|Warn|Warning|Error):\s*""", RegexOption.IGNORE_CASE), "")
+        .replaceFirst(bracketedPrefix, "")
+        .replaceFirst(colonPrefix, "")
         .trim()
 
     /**
@@ -227,8 +233,14 @@ object NodeLogs {
      */
     fun appendTrim(prev: List<NodeLogLine>, next: List<NodeLogLine>, max: Int = MaxLines): List<NodeLogLine> {
         if (next.isEmpty()) return prev
-        val merged = if (prev.isEmpty()) next else prev + next
-        return if (merged.size <= max) merged else merged.subList(merged.size - max, merged.size)
+        if (max <= 0) return emptyList()
+        val keepNext = minOf(next.size, max)
+        val keepPrev = minOf(prev.size, max - keepNext)
+        // Copy retained rows so an oversized event cannot keep its discarded backing list alive.
+        return ArrayList<NodeLogLine>(keepPrev + keepNext).apply {
+            addAll(prev.subList(prev.size - keepPrev, prev.size))
+            addAll(next.subList(next.size - keepNext, next.size))
+        }
     }
 
     /** خط‌های قابلِ نمایش (فیلتر شده، به‌ترتیبِ رسیدن). */
