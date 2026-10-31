@@ -1379,7 +1379,7 @@
     <string name="core_name">Name</string>
     <string name="core_name_hint">Core name</string>
     <string name="core_type">Type</string>
-    <string name="core_type_unknown">Auto</string>
+    <string name="core_type_unknown">Default (Xray)</string>
     <string name="core_type_xray">Xray</string>
     <string name="core_type_wg">WireGuard</string>
     <string name="core_type_mtproto">MTProto</string>
@@ -1395,10 +1395,28 @@
     <string name="core_restart">Restart nodes</string>
     <string name="core_restart_confirm">Restart every node using “%1$s”? Active connections drop for a few seconds.</string>
     <string name="delete_core">Delete core</string>
-    <string name="delete_core_confirm">Delete “%1$s”? Nodes using it must be updated first.</string>
+    <string name="delete_core_confirm">Delete “%1$s”? Assigned nodes will lose this core assignment. They will not be restarted automatically; review their configuration and reconnect them.</string>
     <string name="err_core_name">Name cannot be empty</string>
     <string name="core_sort_fmt">Order %1$d</string>
     <string name="core_tags_fmt">%1$d tags</string>
+    <string name="err_core_name_length">Name must be at most 256 characters</string>
+    <string name="err_core_tags_length">Each inbound tag selection must fit within 2048 characters</string>
+    <string name="err_core_tags_storage">The panel cannot preserve empty tags or tags containing commas. Remove those selections before saving.</string>
+    <string name="core_tag_unstorable">Cannot be stored by this panel</string>
+    <string name="core_whitespace_tag">(Whitespace-only tag)</string>
+    <string name="core_empty_tag">(Empty tag)</string>
+    <string name="core_type_conversion_hint">Changing the type does not convert the configuration. Use the web panel when changing backend.</string>
+    <string name="core_wg_tags_hint">WireGuard cores do not support excluded or fallback tags. Remove any selected tags before saving.</string>
+    <string name="err_core_wg_tags">Remove excluded and fallback tags before saving a WireGuard core.</string>
+    <string name="core_search_type">Search core types</string>
+    <string name="core_search_tags">Search this core’s inbound tags</string>
+    <string name="core_tags_loading">Loading inbound tags from this core…</string>
+    <string name="core_tags_unavailable">Could not read inbound tags from this core. Existing selections can be removed; refresh the list before adding tags.</string>
+    <string name="core_editor_scope_hint">Only name, type and inbound tags can be edited here. The latest configuration is kept from the panel.</string>
+    <string name="core_editor_discard_message">Your unsaved core edits will be lost.</string>
+    <string name="core_edit_rejected">This core update could not be saved. Check that the type and tags match its configuration in the web panel.</string>
+    <string name="core_update_unconfirmed">The server may have saved this change, but the result could not be confirmed. Close the editor and refresh the core list before retrying.</string>
+    <string name="core_edit_conflict">This core changed on the server in a field you edited, or its available inbound tags changed. Your edits are still here; close the editor, refresh the list and reopen the core.</string>
     <string name="search_cores">Search cores</string>
 
     <string name="ct_title">Client templates</string>
@@ -1681,4 +1699,7 @@
     <string name="host_editor_tcp_headers_hint">Enter one value per line. Commas inside a value are preserved.</string>
     <string name="host_editor_tcp_headers_unsupported">The saved TCP headers use an unsupported format and are preserved without editing.</string>
     <string name="host_editor_help_final_mask">Configure custom FinalMask client settings for TCP, UDP and QUIC.</string>
+    <string name="host_editor_variables_title">Variables for %1$s</string>
+    <string name="host_editor_variables_search">Search variables</string>
+    <string name="host_editor_variables_compact_hint">Use variables for dynamic text. Tap to copy.</string>
 </resources>

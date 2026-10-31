@@ -12,7 +12,7 @@
 | بخش | مسیرهای پنل | کارهای ممکن در اپ |
 |---|---|---|
 | **هاست‌ها** | `GET /api/hosts`، `POST /api/host/`، `PUT /api/host/{id}`، `DELETE /api/host/{id}`، `POST /api/hosts/bulk/{enable,disable}` | فهرست + جست‌وجو، ساخت، ویرایش، فعال/غیرفعال (تکی و گروهی از سمتِ API)، حذف |
-| **کورها** | `GET /api/cores`، `PUT /api/cores/{id}?restart_nodes=…`، `POST /api/cores/{id}/restart`، `DELETE /api/cores/{id}?restart_nodes=…` | فهرست + جست‌وجو، ویرایشِ نام/نوع/تگ‌های استثنا و فالبک، ری‌استارتِ نودها، حذف |
+| **Cores** | `GET /api/cores`, `GET/PUT/DELETE /api/core/{id}`, `POST /api/core/{id}/restart` | Search, edit name/type/excluded and fallback tags, restart nodes, delete |
 | **قالب‌های کلاینت** | `GET /api/client_templates`، `POST /api/client_templates`، `PUT /api/client_templates/{id}`، `DELETE /api/client_templates/{id}` | فهرست + جست‌وجو + فیلترِ نوع، ساخت (با انتخابِ نوع)، ویرایشِ نام/محتوا/پیش‌فرض، حذف |
 
 مجوزها از خودِ پنل خوانده می‌شوند (`hosts.*`، `cores.*`، `client_templates.*`) و
@@ -27,9 +27,10 @@
 > `modifyHost` API. The current host editor instead reads `GET /api/host/{id}` immediately
 > before saving and calls `modifyHostSafely`; it merges only deliberate field-path edits
 > into that fresh response and refuses to PUT on a read failure or same-field conflict.
-> The core editor has not changed. The host GET and PUT are not atomic; another writer
-> can still update the host between those requests, and preservation of unrecognized
-> properties also depends on the server accepting and storing them.
+> Host GET and PUT are not atomic; another writer can still update the host between
+> those requests, and preservation of unrecognized properties also depends on the
+> server accepting and storing them. The core editor now uses a similar fresh-read
+> guard; see the core update below.
 
 پنل برای `PUT` **کلِ** بدنه را می‌خواهد. هاست می‌تواند `transport_settings`،
 `mux_settings`، `fragment_settings`، `noise_settings`، `ech`، `final_mask_settings`،
@@ -51,9 +52,9 @@ PanelApi.modifyHost(session, host, mapOf("remark" to …, "port" to JSONObject.N
 را قفل می‌کند: بعد از ویرایش، `transport_settings` و `mux_settings` سرِ جایشان‌اند.
 
 ### ۲.۲ «ساختِ کور» در اپ نیست — و دلیلش گفته می‌شود
-پنل برای `POST /api/cores` یک `config` کاملِ JSON لازم دارد (inbounds/outbounds/
-routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری که ادمین یک‌بار انجام می‌دهد،
-ارزشش را ندارد. در حالتِ خالی، جملهٔ راهنما همین را می‌گوید (نه یک دکمهٔ بی‌اثر).
+The panel requires a full JSON `config` for `POST /api/core`. The mobile app does not
+currently implement creation or a structural core-config editor; these remain web-panel
+operations rather than nonfunctional buttons.
 
 ### ۲.۳ نوعِ قالبِ کلاینت پس از ساخت قفل است
 `ClientTemplateModify` در پنل `template_type` ندارد. اپ هم در ویرایش فقط نام/
@@ -63,7 +64,7 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 | مورد | جزئیات |
 |---|---|
-| `restart_nodes` | در `PUT /api/cores/{id}` و `DELETE /api/cores/{id}` کوئریِ **الزامی** است (بدونِ پیش‌فرض) — همیشه فرستاده می‌شود. |
+| `restart_nodes` | Required on `PUT /api/core/{id}`; optional on `DELETE /api/core/{id}` (defaults to `false`). The app sends it explicitly. |
 | `POST /api/host/` | اسلشِ پایانی دارد؛ `/api/host` بدونِ اسلش ریدایرکت می‌شود. |
 | `Priority` هاست | در `BaseHost` فیلدِ الزامی است؛ در ساخت مقدارِ `0` فرستاده می‌شود. |
 | شکلِ پاسخ | `/api/hosts` آرایهٔ خالص، `/api/cores` پوشیده در `{count, cores}`, `/api/client_templates` در `{count, templates}` — سه شکلِ متفاوت در یک گروه. |
@@ -92,6 +93,44 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 4. **ورود با Passkey** — WebAuthn روی موبایل، کارِ مستقل.
 5. **ساختِ کور** با ادیتورِ JSON (اگر واقعاً لازم شد).
 6. ترتیبِ کورها (`PUT /api/cores/order`) — همان دیالوگِ ترتیبِ نودها قابلِ استفادهٔ مجدد است.
+
+## Core editor update (2026-10-31)
+
+- The list endpoint is plural (`GET /api/cores`); the single-core read, update,
+  deletion and restart endpoints are singular. PUT requires `restart_nodes`; DELETE
+  defaults it to false. The app hides deletion of core ID 1, which this panel version
+  protects. Deleting another core clears its node assignments; the app does not request
+  automatic restarts and warns the user to review and reconnect affected nodes.
+- Immediately before PUT, the app fetches `GET /api/core/{id}` (requires `cores.read`),
+  checks the ID and required fields, and merges only the deliberately changed metadata
+  into the latest config. The config object is sent verbatim from the fresh response,
+  avoiding JSON numeric precision loss. Same-field conflicts, changed available inbound tags when
+  adding selections, malformed responses and read failures stop the update. Tag sets are
+  compared without order. The panel ignores null during update, so an existing type
+  cannot be cleared to the default. The editor only shows the default for an initially
+  null type, which the v5.5.1 panel treats as Xray.
+  The panel implements Xray and WireGuard backends, so the selector offers those plus
+  the existing type; changing type does not convert config. WireGuard cannot accept
+  excluded/fallback tags, and the editor asks users to remove them without clearing
+  existing values automatically. The panel stores tag sets as comma-separated strings
+  and drops empty entries, so empty tags and tags containing commas cannot be saved;
+  any such existing selections must be removed explicitly rather than silently lost.
+  Config and response details are not included in core errors. A broken connection
+  during PUT or an incomplete/mismatched success response is reported as unconfirmed,
+  since the server may have applied it; the user is asked to refresh before retrying.
+  The full-body core PUT is not automatically retried after a connection failure.
+  The server exposes no version precondition, so GET and PUT are **not atomic**: a
+  concurrent write between them can still be lost.
+- Inbound choices come from that core's configuration, not the global inbound list;
+  previously selected unknown tags and unknown core types remain visible. A failed
+  config parse is shown without clearing selections; existing tags can still be removed.
+  The in-memory draft is scoped to
+  the session and retained during activity recreation; it is not saved in a Bundle.
+- The sheet keeps its header and actions outside the scrolling body, guards unsaved
+  changes and saving, and offers searchable tag selections. It edits metadata only;
+  creation, full JSON/structured config, core order, Node administration and a
+  WireGuard address-pool screen are outside this change. Device, IME, TalkBack and
+  real-panel behavior still need verification.
 
 ## Host editor update (2026-10-28)
 
@@ -135,11 +174,18 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 
 ### Screenshot-driven host-editor follow-up (2026-10-31)
 
-- Inline help exposes localized descriptions, roles, state descriptions and 48dp
-  targets, with copyable built-in variables. The separate custom-variable control
-  lazily reads `/api/settings/general` using the panel's `settings.read_general`
-  permission; forbidden and failed requests remain visible and retryable. Values are
-  kept in memory and redacted from the new variable model's string representation.
+- Short inline help exposes localized descriptions, roles, state descriptions and
+  48dp targets. Built-in variable lists use a bounded searchable dialog with a fixed
+  close action and an adaptive two-column layout, so opening them does not lengthen
+  the host form; narrow windows and larger text use one column. The separate
+  custom-variable control lazily reads `/api/settings/general` using the panel's
+  `settings.read_general` permission; forbidden and failed requests remain visible
+  and retryable. Values are kept in memory and redacted from the new variable model's
+  string representation.
+- The compact-guide follow-up passed three standalone JVM filter/layout tests, five
+  tooling tests and the static validators. The argument checker still reports two
+  pre-existing generic warnings. The added Compose tests use a test window and need
+  Android CI; native dialog, real-device, keyboard and TalkBack checks remain separate.
 - Xray noise supports ordered add, duplicate, remove and editing of type, application,
   packet and delay. Packet strings and integer arrays remain distinct. Extra properties
   on supported entries are retained; the complete ordered list is a conflict unit.

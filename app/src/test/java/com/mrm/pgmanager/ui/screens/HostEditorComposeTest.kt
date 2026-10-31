@@ -3,6 +3,7 @@ package com.mrm.pgmanager.ui.screens
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
@@ -13,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -70,6 +72,7 @@ import java.io.File
 class HostEditorComposeTest {
     @get:Rule val rule = createComposeRule()
     private val choiceWindow = TestChoiceWindow()
+    private lateinit var testRoot: View
 
     private val host = PanelHost(
         id = 3, remark = "Example", addresses = listOf("example.com"),
@@ -102,6 +105,7 @@ class HostEditorComposeTest {
         customVariables: HostCustomVariablesAccess? = null
     ) {
         rule.setContent {
+            testRoot = LocalView.current
             val density = LocalDensity.current
             var draft by remember { mutableStateOf(HostDraft.from(initial)) }
             CompositionLocalProvider(
@@ -289,6 +293,24 @@ class HostEditorComposeTest {
         }
     }
 
+    private fun saveChoiceScreenshot(name: String) {
+        rule.runOnIdle {
+            require(testRoot.width > 0 && testRoot.height > 0) { "The test root has no layout" }
+            val image = Bitmap.createBitmap(testRoot.width, testRoot.height, Bitmap.Config.ARGB_8888)
+            testRoot.draw(Canvas(image))
+            val pixels = IntArray(image.width * image.height)
+            image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+            val visibleColors = mutableSetOf<Int>()
+            for (pixel in pixels) {
+                if (pixel ushr 24 != 0) visibleColors.add(pixel)
+                if (visibleColors.size >= 4) break
+            }
+            check(visibleColors.size >= 4) { "The choice screenshot is blank" }
+            val directory = File("build/test-screens").apply { mkdirs() }
+            File(directory, "$name.png").outputStream().use { check(image.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        }
+    }
+
     private fun assertActionsWithinEditor() {
         val window = rule.onNodeWithTag("host_editor_window").fetchSemanticsNode().boundsInRoot
         val actionsNode = rule.onNodeWithTag("host_editor_actions").assertIsDisplayed().fetchSemanticsNode()
@@ -440,22 +462,99 @@ class HostEditorComposeTest {
         remarkHelp.performClick()
         rule.onNodeWithTag("host_editor_remark_help_content").assertExists()
         rule.onNodeWithTag("host_editor_remark_variable_USERNAME").performScrollTo().performClick()
-        rule.onNodeWithTag("host_editor_remark_variable_copied").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_remark_variable_copied").assertIsDisplayed()
         rule.runOnIdle {
             val clipboard = RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             assertEquals("{USERNAME}", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
         }
-        remarkHelp.performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_remark_variables_close").assertIsDisplayed().performClick()
         rule.onNodeWithTag("host_editor_remark_help_content").assertDoesNotExist()
-        val addressHelp = rule.onNodeWithTag("host_editor_addresses_help").performScrollTo().performClick()
+        remarkHelp.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.host_editor_collapsed)))
+        rule.onNodeWithTag("host_editor_addresses_help").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_addresses_variable_EXPIRE_DATE").performScrollTo().assertExists()
-        addressHelp.performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_addresses_variables_close").assertIsDisplayed().performClick()
         rule.onNodeWithTag("host_editor_port_help").performScrollTo().performClick()
         rule.onNodeWithText(str(R.string.host_editor_help_port)).performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("host_editor_port_help").performScrollTo().performClick()
         rule.onNodeWithTag("host_editor_template_help").performScrollTo().performClick()
         rule.onNodeWithText(str(R.string.host_editor_help_template)).performScrollTo().assertIsDisplayed()
         assertActionsWithinEditor()
+    }
+
+    @Test fun `variable guide stays compact in two columns and does not resize the form`() {
+        render()
+        val help = rule.onNodeWithTag("host_editor_remark_help").performScrollTo()
+        val fieldBefore = rule.onNodeWithTag("host_editor_remark").fetchSemanticsNode().boundsInRoot
+        help.performClick()
+        val frame = rule.onNodeWithTag("host_editor_remark_help_content").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val fieldAfter = rule.onNodeWithTag("host_editor_remark").fetchSemanticsNode().boundsInRoot
+        val sheet = rule.onNodeWithTag("host_editor_window").fetchSemanticsNode().boundsInRoot
+        assertEquals(fieldBefore.top, fieldAfter.top, 1f)
+        assertEquals(fieldBefore.bottom, fieldAfter.bottom, 1f)
+        assertTrue(frame.height < sheet.height)
+        val first = rule.onNodeWithTag("host_editor_remark_variable_USERNAME").assertIsDisplayed()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        val other = rule.onNodeWithTag("host_editor_remark_variable_JALALI_EXPIRE_DATE").assertIsDisplayed()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        assertTrue(first.right <= other.left)
+        saveChoiceScreenshot("host_variables_en_test_window")
+        rule.onNodeWithTag("host_editor_remark_variables_close").assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp).performClick()
+        rule.onNodeWithTag("host_editor_remark_help_content").assertDoesNotExist()
+        assertActionsWithinEditor()
+    }
+
+    @Test fun `variable guide can search and copy without scrolling through the whole form`() {
+        render()
+        rule.onNodeWithTag("host_editor_addresses_help").performScrollTo().performClick()
+        val search = rule.onNodeWithContentDescription(str(R.string.host_editor_variables_search))
+        search.performTextInput("ADMIN_USERNAME")
+        rule.onNodeWithTag("host_editor_addresses_variable_USERNAME").assertDoesNotExist()
+        rule.onNodeWithTag("host_editor_addresses_variable_ADMIN_USERNAME").assertIsDisplayed().performClick()
+        rule.onNodeWithTag("host_editor_addresses_variable_copied").assertIsDisplayed()
+        rule.runOnIdle {
+            val clipboard = RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            assertEquals("{ADMIN_USERNAME}", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+        search.performTextClearance()
+        search.performTextInput("NO_MATCHING_VARIABLE")
+        rule.onNodeWithText(str(R.string.no_results)).assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_addresses_variables_close").assertIsDisplayed().performClick()
+        rule.onNodeWithTag("host_editor_addresses_help_content").assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "fa-rIR-w320dp-h480dp")
+    fun `short rtl variable guide keeps close accessible after its own list scrolls`() {
+        render(direction = LayoutDirection.Rtl, fontScale = 1.8f, dark = true)
+        rule.onNodeWithTag("host_editor_addresses_help").performScrollTo().performClick()
+        val frame = rule.onNodeWithTag("host_editor_addresses_help_content").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val close = rule.onNodeWithTag("host_editor_addresses_variables_close").assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp).fetchSemanticsNode().boundsInRoot
+        assertTrue(close.top >= frame.top && close.bottom <= frame.bottom)
+        saveChoiceScreenshot("host_variables_rtl_short_test_window")
+        val first = rule.onNodeWithTag("host_editor_addresses_variable_USERNAME").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val next = rule.onNodeWithTag("host_editor_addresses_variable_DATA_USAGE").performScrollTo()
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals(first.left, next.left, 1f)
+        assertEquals(first.right, next.right, 1f)
+        rule.onNodeWithTag("host_editor_addresses_variable_ADMIN_USERNAME").performScrollTo().assertIsDisplayed()
+        val after = rule.onNodeWithTag("host_editor_addresses_variables_close").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals(close.top, after.top, 1f)
+        assertEquals(close.bottom, after.bottom, 1f)
+        rule.onNodeWithTag("host_editor_addresses_variables_close").performClick()
+        rule.onNodeWithTag("host_editor_addresses_help_content").assertDoesNotExist()
+        assertActionsWithinEditor()
+    }
+
+    @Test fun `variable guide dismiss request preserves the edited draft`() {
+        render()
+        rule.onNodeWithTag("host_editor_remark").performTextClearance()
+        rule.onNodeWithTag("host_editor_remark").performTextInput("Edited")
+        rule.onNodeWithTag("host_editor_remark_help").performScrollTo().performClick()
+        rule.runOnIdle { choiceWindow.dismiss() }
+        rule.onNodeWithTag("host_editor_remark_help_content").assertDoesNotExist()
+        rule.runOnIdle { assertEquals("Edited", current?.remark) }
     }
 
     @Test fun `network security camouflage and routing expose the panel help texts`() {

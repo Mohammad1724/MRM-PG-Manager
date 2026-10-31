@@ -61,7 +61,7 @@ internal val LocalChoiceWindow = staticCompositionLocalOf<PGChoiceWindow> { Plat
 internal fun filterChoiceOptions(choices: List<PGChoiceOption>, query: String): List<PGChoiceOption> =
     choices.distinctBy { it.value }.filter { it.label.contains(query.trim(), ignoreCase = true) }
 
-/** Shared surface for searchable single- and multi-choice dialogs. */
+/** Shared surface for searchable dialogs; an optional header action stays outside the list. */
 @Composable
 internal fun PGChoiceDialogFrame(
     title: String,
@@ -70,6 +70,7 @@ internal fun PGChoiceDialogFrame(
     onQueryChange: (String) -> Unit,
     onDismiss: () -> Unit,
     tag: String,
+    headerAction: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalThemeState.current
@@ -82,10 +83,23 @@ internal fun PGChoiceDialogFrame(
                     .padding(16.dp).semantics { paneTitle = title }.testTag(tag),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    title, modifier = Modifier.semantics { heading() },
-                    fontWeight = FontWeight.Bold, fontSize = 16.sp, color = theme.inkColor
-                )
+                if (headerAction == null) {
+                    Text(
+                        title, modifier = Modifier.semantics { heading() },
+                        fontWeight = FontWeight.Bold, fontSize = 16.sp, color = theme.inkColor
+                    )
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            title, modifier = Modifier.weight(1f).semantics { heading() },
+                            fontWeight = FontWeight.Bold, fontSize = 16.sp, color = theme.inkColor
+                        )
+                        headerAction()
+                    }
+                }
                 PGSearchBar(query = query, onQueryChange = onQueryChange, placeholder = searchLabel)
                 content()
             }

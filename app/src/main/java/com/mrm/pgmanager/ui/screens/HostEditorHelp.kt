@@ -6,12 +6,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -40,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.HostCustomVariable
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGChoiceDialogFrame
 import com.mrm.pgmanager.ui.components.PGSecondaryButton
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -53,7 +58,7 @@ internal data class HostCustomVariablesAccess(
 
 internal val LocalHostCustomVariables = staticCompositionLocalOf<HostCustomVariablesAccess?> { null }
 
-/** Inline help stays inside the scrolling sheet and does not obscure its fixed actions. */
+/** Short explanations stay inline; variable guides use a bounded, dismissible dialog. */
 @Composable
 internal fun HostEditorLabel(
     label: String,
@@ -102,16 +107,17 @@ internal fun HostEditorLabel(
                 }
             }
         }
-        if (expanded || (customExpanded && hasCustom)) {
+        if (expanded && variables) {
+            HostBuiltInVariablesDialog(label, tag, help, onDismiss = { expanded = false })
+        } else if (expanded || (customExpanded && hasCustom)) {
             Column(
                 Modifier.fillMaxWidth().background(theme.searchBgColor, DsRadius.Md)
                     .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
                     .padding(12.dp).testTag(if (expanded) "${tag}_help_content" else "${tag}_custom_content"),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (expanded) {
-                    if (help != null) Text(help, fontSize = 13.sp, lineHeight = 20.sp, color = theme.inkColor)
-                    if (variables) HostBuiltInVariables(tag)
+                if (expanded && help != null) {
+                    Text(help, fontSize = 13.sp, lineHeight = 20.sp, color = theme.inkColor)
                 } else if (customAccess != null) {
                     HostCustomVariablesContent(tag, customAccess)
                 }
@@ -160,46 +166,89 @@ private fun HostCustomVariablesContent(tag: String, access: HostCustomVariablesA
 }
 
 @Composable
-private fun HostBuiltInVariables(tag: String) {
+private fun HostBuiltInVariablesDialog(label: String, tag: String, help: String?, onDismiss: () -> Unit) {
     val theme = LocalThemeState.current
     val clipboard = LocalClipboardManager.current
+    var query by rememberSaveable(tag) { mutableStateOf("") }
     var copied by rememberSaveable(tag) { mutableStateOf<String?>(null) }
     val variables = listOf(
-        "USERNAME" to R.string.host_variable_username,
-        "DATA_USAGE" to R.string.host_variable_data_usage,
-        "USAGE_PERCENTAGE" to R.string.host_variable_usage_percentage,
-        "DATA_LEFT" to R.string.host_variable_data_left,
-        "DATA_LIMIT" to R.string.host_variable_data_limit,
-        "DAYS_LEFT" to R.string.host_variable_days_left,
-        "EXPIRE_DATE" to R.string.host_variable_expire_date,
-        "JALALI_EXPIRE_DATE" to R.string.host_variable_jalali_expire_date,
-        "TIME_LEFT" to R.string.host_variable_time_left,
-        "STATUS_EMOJI" to R.string.host_variable_status_emoji,
-        "PROTOCOL" to R.string.host_variable_protocol,
-        "TRANSPORT" to R.string.host_variable_transport,
-        "ADMIN_USERNAME" to R.string.host_variable_admin_username
+        HostVariableOption("USERNAME", stringResource(R.string.host_variable_username)),
+        HostVariableOption("DATA_USAGE", stringResource(R.string.host_variable_data_usage)),
+        HostVariableOption("USAGE_PERCENTAGE", stringResource(R.string.host_variable_usage_percentage)),
+        HostVariableOption("DATA_LEFT", stringResource(R.string.host_variable_data_left)),
+        HostVariableOption("DATA_LIMIT", stringResource(R.string.host_variable_data_limit)),
+        HostVariableOption("DAYS_LEFT", stringResource(R.string.host_variable_days_left)),
+        HostVariableOption("EXPIRE_DATE", stringResource(R.string.host_variable_expire_date)),
+        HostVariableOption("JALALI_EXPIRE_DATE", stringResource(R.string.host_variable_jalali_expire_date)),
+        HostVariableOption("TIME_LEFT", stringResource(R.string.host_variable_time_left)),
+        HostVariableOption("STATUS_EMOJI", stringResource(R.string.host_variable_status_emoji)),
+        HostVariableOption("PROTOCOL", stringResource(R.string.host_variable_protocol)),
+        HostVariableOption("TRANSPORT", stringResource(R.string.host_variable_transport)),
+        HostVariableOption("ADMIN_USERNAME", stringResource(R.string.host_variable_admin_username))
     )
-    Text(stringResource(R.string.host_editor_variables_hint), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = theme.inkColor)
-    variables.forEach { (key, descriptionId) ->
-        val token = "{$key}"
-        val description = stringResource(descriptionId)
-        val copyDescription = stringResource(R.string.host_editor_copy_variable, token, description)
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                .clickable(role = Role.Button) { clipboard.setText(AnnotatedString(token)); copied = token }
-                .semantics { contentDescription = copyDescription }.testTag("${tag}_variable_$key")
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(token, style = TextStyle(fontSize = 12.sp, textDirection = TextDirection.Ltr), fontWeight = FontWeight.SemiBold, color = theme.inkColor)
-            Text(description, Modifier.weight(1f), fontSize = 12.sp, lineHeight = 18.sp, color = theme.inkColor)
+    val filtered = filterHostVariables(variables, query)
+    PGChoiceDialogFrame(
+        title = stringResource(R.string.host_editor_variables_title, label),
+        searchLabel = stringResource(R.string.host_editor_variables_search),
+        query = query,
+        onQueryChange = { query = it },
+        onDismiss = onDismiss,
+        tag = "${tag}_help_content",
+        headerAction = {
+            HostEditorSmallIconButton(
+                icon = AppIcon.Close, label = stringResource(R.string.cd_close), enabled = true,
+                tag = "${tag}_variables_close", onClick = onDismiss
+            )
         }
-    }
-    copied?.let {
+    ) {
+        if (help != null) Text(help, fontSize = 12.sp, lineHeight = 18.sp, color = theme.inkColor)
         Text(
-            stringResource(R.string.host_editor_variable_copied, it),
-            Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("${tag}_variable_copied"),
-            fontSize = 12.sp, color = theme.inkColor
+            stringResource(R.string.host_editor_variables_compact_hint),
+            fontSize = 12.sp, lineHeight = 16.sp, color = theme.inkColor
         )
+        if (filtered.isEmpty()) {
+            Text(stringResource(R.string.no_results), fontSize = 13.sp, color = theme.inkColor)
+        } else {
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f, fill = false)) {
+                val twoColumns = useTwoHostVariableColumns(maxWidth.value, LocalDensity.current.fontScale)
+                val columns = hostVariableColumns(filtered, twoColumns)
+                Row(
+                    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).testTag("${tag}_variables_list"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    columns.forEach { column ->
+                        Column(Modifier.weight(1f)) {
+                            column.forEach { variable ->
+                                val description = stringResource(
+                                    R.string.host_editor_copy_variable, variable.token, variable.description
+                                )
+                                Column(
+                                    Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                        .clickable(role = Role.Button) {
+                                            clipboard.setText(AnnotatedString(variable.token))
+                                            copied = variable.token
+                                        }
+                                        .semantics { contentDescription = description }
+                                        .testTag("${tag}_variable_${variable.key}")
+                                        .padding(horizontal = 2.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        variable.token,
+                                        style = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, textDirection = TextDirection.Ltr),
+                                        fontWeight = FontWeight.SemiBold, color = theme.inkColor
+                                    )
+                                    Text(variable.description, fontSize = 12.sp, lineHeight = 16.sp, color = theme.inkColor)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        copied?.let {
+            Text(stringResource(R.string.host_editor_variable_copied, it),
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("${tag}_variable_copied"),
+                fontSize = 12.sp, color = theme.inkColor)
+        }
     }
 }

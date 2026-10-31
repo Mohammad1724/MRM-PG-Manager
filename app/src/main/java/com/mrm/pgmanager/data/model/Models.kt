@@ -797,30 +797,21 @@ object HostValidation {
     }
 }
 
-/**
- * یک کور — `GET /api/cores` (مجوزِ `cores.read`).
- *
- * [config] عمداً رشتهٔ خام است: کانفیگِ Xray می‌تواند صدها کیلوبایت JSON باشد و
- * پارس/دوباره‌سازی‌اش در فرمِ موبایل ریسکِ گم‌شدنِ کلیدها را دارد. فقط فیلدهای
- * کوتاه (نام/تگ‌های استثنا/فالبک) در فرم ویرایش می‌شوند و کانفیگ دست‌نخورده
- * دوباره فرستاده می‌شود — پنل هم PUT را کامل می‌خواهد.
- */
+/** A core snapshot; config can contain credentials and must not be logged. */
 data class PanelCore(
     val id: Int,
     val name: String,
-    /** `xray` | `wg` | `mtproto` | `singbox` یا null (پنل از روی کانفیگ حدس می‌زند). */
+    /** Known type or null; the v5.5.1 panel treats null as Xray. */
     val type: String? = null,
     val excludeInboundTags: List<String> = emptyList(),
     val fallbacksInboundTags: List<String> = emptyList(),
     val sortOrder: Int = 0,
     val config: String = "{}"
-)
+) {
+    override fun toString(): String = "PanelCore(id=$id, config=[redacted])"
+}
 
-/**
- * انواعِ کور — عیناً همان مقادیرِ `CoreType` در `app/db/models.py` پنل:
- * `xray`، `wg`، `mtproto`، `singbox`. یک حرف اختلاف در این رشته‌ها یعنی ۴۲۲ در
- * `PUT /api/cores/{id}`؛ پس نه «sing-box» (با خط تیره) و نه «mihomo» درست نیستند.
- */
+/** Known v5.5.1 values; unknown future types are preserved in the editor. */
 object CoreType {
     const val XRAY = "xray"
     const val WG = "wg"

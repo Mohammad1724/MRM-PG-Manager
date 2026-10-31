@@ -1378,7 +1378,7 @@
     <string name="core_name">نام</string>
     <string name="core_name_hint">نامِ کور</string>
     <string name="core_type">نوع</string>
-    <string name="core_type_unknown">خودکار</string>
+    <string name="core_type_unknown">پیش‌فرض (Xray)</string>
     <string name="core_type_xray">Xray</string>
     <string name="core_type_wg">WireGuard</string>
     <string name="core_type_mtproto">MTProto</string>
@@ -1394,10 +1394,28 @@
     <string name="core_restart">ری‌استارتِ نودها</string>
     <string name="core_restart_confirm">همهٔ نودهایی که «%1$s» را اجرا می‌کنند ری‌استارت شوند؟ اتصال‌های فعال چند ثانیه قطع می‌شوند.</string>
     <string name="delete_core">حذفِ کور</string>
-    <string name="delete_core_confirm">«%1$s» حذف شود؟ نودهایی که از آن استفاده می‌کنند باید اول به‌روزرسانی شوند.</string>
+    <string name="delete_core_confirm">«%1$s» حذف شود؟ انتساب این کور از نودهای مربوط پاک می‌شود. نودها خودکار ری‌استارت نمی‌شوند؛ پیکربندی آن‌ها را بررسی و دوباره متصل کنید.</string>
     <string name="err_core_name">نام نباید خالی باشد</string>
     <string name="core_sort_fmt">ترتیب %1$d</string>
     <string name="core_tags_fmt">%1$d تگ</string>
+    <string name="err_core_name_length">نام باید حداکثر ۲۵۶ نویسه باشد</string>
+    <string name="err_core_tags_length">هر مجموعهٔ تگ ورودی باید حداکثر ۲۰۴۸ نویسه باشد</string>
+    <string name="err_core_tags_storage">پنل نمی‌تواند تگ خالی یا دارای ویرگول را حفظ کند. پیش از ذخیره این انتخاب‌ها را بردارید.</string>
+    <string name="core_tag_unstorable">در این پنل قابل ذخیره نیست</string>
+    <string name="core_whitespace_tag">(تگ شامل فاصله)</string>
+    <string name="core_empty_tag">(تگ خالی)</string>
+    <string name="core_type_conversion_hint">تغییر نوع، پیکربندی را تبدیل نمی‌کند. برای تغییر نوع موتور از پنل وب استفاده کنید.</string>
+    <string name="core_wg_tags_hint">کور WireGuard از تگ مستثنا یا جایگزین پشتیبانی نمی‌کند. پیش از ذخیره تگ‌های انتخاب‌شده را بردارید.</string>
+    <string name="err_core_wg_tags">پیش از ذخیرهٔ کور WireGuard، تگ‌های مستثنا و جایگزین را بردارید.</string>
+    <string name="core_search_type">جست‌وجوی نوع کور</string>
+    <string name="core_search_tags">جست‌وجوی تگ‌های ورودی این کور</string>
+    <string name="core_tags_loading">در حال خواندن تگ‌های ورودی این کور…</string>
+    <string name="core_tags_unavailable">خواندن تگ‌های ورودی این کور ممکن نشد. می‌توانید انتخاب‌های قبلی را بردارید؛ پیش از افزودن تگ فهرست را تازه‌سازی کنید.</string>
+    <string name="core_editor_scope_hint">در اینجا فقط نام، نوع و تگ‌های ورودی ویرایش می‌شوند. آخرین پیکربندی از پنل حفظ می‌شود.</string>
+    <string name="core_editor_discard_message">تغییرات ذخیره‌نشدهٔ کور از دست می‌روند.</string>
+    <string name="core_edit_rejected">ذخیرهٔ تغییرات کور ممکن نشد. بررسی کنید نوع و تگ‌های انتخاب‌شده با پیکربندی کور در پنل وب سازگار باشند.</string>
+    <string name="core_update_unconfirmed">ممکن است سرور تغییر را ذخیره کرده باشد، اما نتیجه تأیید نشد. پیش از تلاش دوباره، ویرایشگر را ببندید و فهرست کورها را تازه‌سازی کنید.</string>
+    <string name="core_edit_conflict">یکی از فیلدهای ویرایش‌شده یا تگ‌های ورودی این کور در سرور تغییر کرده است. تغییرات شما هنوز اینجاست؛ ویرایشگر را ببندید، فهرست را تازه‌سازی و کور را دوباره باز کنید.</string>
     <string name="search_cores">جست‌وجوی کور</string>
 
     <string name="ct_title">قالب‌های کلاینت</string>
@@ -1680,4 +1698,7 @@
     <string name="host_editor_tcp_headers_hint">هر مقدار را در یک خط وارد کنید. ویرگول داخل مقدار حفظ می‌شود.</string>
     <string name="host_editor_tcp_headers_unsupported">ساختار هدرهای TCP ذخیره‌شده پشتیبانی نمی‌شود و بدون تغییر حفظ می‌ماند.</string>
     <string name="host_editor_help_final_mask">تنظیمات سفارشی کلاینت FinalMask را برای TCP، UDP و QUIC پیکربندی کنید.</string>
+    <string name="host_editor_variables_title">متغیرهای %1$s</string>
+    <string name="host_editor_variables_search">جست‌وجوی متغیرها</string>
+    <string name="host_editor_variables_compact_hint">برای متن پویا، متغیر را لمس کنید تا کپی شود.</string>
 </resources>

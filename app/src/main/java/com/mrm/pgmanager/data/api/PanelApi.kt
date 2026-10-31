@@ -86,6 +86,8 @@ object PanelApi {
     /** آدرسِ نرمال‌شده با همان قاعده‌ای که خودِ اپ استفاده می‌کند (برای ابزارِ تشخیصی). */
     internal fun normalizedBaseForDiagnostics(address: String): String = baseUrl(address)
 
+    private object CoreWriteMarker
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -105,10 +107,11 @@ object PanelApi {
             response
         }
         .addInterceptor { chain ->
-            // برای متدهای امن (GET/PUT/DELETE) در صورتِ خطای شبکه‌ای، تا ۳ بار retry می‌کنیم.
-            // POST retry نمی‌شود (برای جلوگیری از ساختِ کاربرِ تکراری).
+            // Retry safe requests, except full-body core writes; never retry POST here.
             val request = chain.request()
-            if (request.method == "POST") return@addInterceptor chain.proceed(request)
+            if (request.method == "POST" || request.tag(CoreWriteMarker::class.java) != null) {
+                return@addInterceptor chain.proceed(request)
+            }
             var lastError: java.io.IOException? = null
             for (attempt in 0 until 3) {
                 try {
@@ -121,6 +124,10 @@ object PanelApi {
             throw lastError ?: java.io.IOException("retry exhausted")
         }
         .build()
+    // Core PUT has side effects and carries a full configuration, so never retry it blindly.
+    private val coreWriteClient: OkHttpClient by lazy {
+        client.newBuilder().retryOnConnectionFailure(false).build()
+    }
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
     /**
@@ -1910,19 +1917,58 @@ object PanelApi {
         val request = requestBuilder(session, "${session.baseUrl}/api/cores").get().build()
         client.newCall(request).execute().use { response ->
             val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) error("Load cores failed: ${response.code} ${errorDetail(raw)}".trim())
+            if (!response.isSuccessful) error("Load cores failed: ${response.code}")
             val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("cores") ?: org.json.JSONArray()
             List(arr.length()) { i -> parseCore(arr.getJSONObject(i)) }
         }
     }
 
+    private class CoreHttpBody(val raw: String, val json: JSONObject) {
+        override fun toString(): String = "CoreHttpBody(redacted)"
+    }
+
+    /** Core errors must not retain server-echoed configuration or credentials. */
+    private fun executeCoreForBody(request: Request, httpClient: OkHttpClient = client): CoreHttpBody =
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Request failed: ${response.code}")
+            val raw = response.body?.string().orEmpty()
+            val json = runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+            CoreHttpBody(raw, json)
+        }
+
+    /** Fetch one current core before a full-body update. Requires cores.read. */
+    internal suspend fun core(session: Session, coreId: Int): PanelCore = withContext(Dispatchers.IO) {
+        require(coreId > 0) { "Invalid core id" }
+        val response = executeCoreForBody(
+            requestBuilder(session, "${session.baseUrl}/api/core/$coreId").get().build()
+        )
+        parseCompleteCore(response, coreId)
+    }
+
+    /** Require fields needed for a trustworthy update or update confirmation. */
+    private fun parseCompleteCore(body: CoreHttpBody, coreId: Int): PanelCore {
+        val response = body.json
+        require(response.has("id") && response.optInt("id", -1) == coreId) { "Invalid core response" }
+        require(response.opt("name") is String && response.optJSONObject("config") != null) { "Incomplete core response" }
+        val type = response.opt("type")
+        require(response.has("type") && (type === JSONObject.NULL || (type is String && type.isNotBlank()))) {
+            "Incomplete core response"
+        }
+        for (key in listOf("exclude_inbound_tags", "fallbacks_inbound_tags")) {
+            val tags = response.optJSONArray(key) ?: throw IllegalArgumentException("Incomplete core response")
+            require((0 until tags.length()).all { index ->
+                val tag = tags.opt(index)
+                tag is String
+            }) { "Invalid core tags" }
+        }
+        val config = rawJsonObjectField(body.raw, "config") ?: throw IllegalArgumentException("Invalid core response")
+        return parseCore(response).copy(config = config)
+    }
+
     /**
-     * ویرایشِ کور — `PUT /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.update`).
-     *
-     * دو نکتهٔ قرارداد که اگر رعایت نشوند درخواست همیشه ۴۲۲ می‌گیرد:
-     *  ۱. `restart_nodes` یک query paramِ **الزامی** است (بدونِ مقدارِ پیش‌فرض در پنل)؛
-     *  ۲. بدنه باید `config` کامل را داشته باشد — پس [PanelCore.config] خام و
-     *     دست‌نخورده دوباره فرستاده می‌شود و فقط فیلدهای فرم عوض می‌شوند.
+     * The panel requires a complete config and the restart_nodes query for PUT.
+     * Merge only user-edited metadata into a fresh core; never resend a cached config.
+     * This reduces lost updates but is not atomic without a server-side precondition.
      */
     suspend fun modifyCore(
         session: Session,
@@ -1934,37 +1980,81 @@ object PanelApi {
         restartNodes: Boolean
     ): PanelCore = withContext(Dispatchers.IO) {
         require(name.isNotBlank()) { "Core name cannot be empty" }
-        val config = runCatching { JSONObject(core.config) }.getOrElse { JSONObject() }
-        require(config.length() > 0) { "Core config cannot be empty" }
-        val body = JSONObject()
-            .put("name", name.trim())
-            .put("config", config)
-            .put("exclude_inbound_tags", org.json.JSONArray(excludeInboundTags))
-            .put("fallbacks_inbound_tags", org.json.JSONArray(fallbacksInboundTags))
-        if (type.isNullOrBlank()) body.put("type", JSONObject.NULL) else body.put("type", type)
-        val url = "${session.baseUrl}/api/cores/${core.id}?restart_nodes=$restartNodes"
-        parseCore(
-            executeJsonForBody(
-                requestBuilder(session, url).put(body.toString().toRequestBody(jsonType)).build()
-            )
+        val requestedType = type?.takeIf { it.isNotBlank() }
+        // CoreCreate is dumped with exclude_none=True; null cannot clear an existing type.
+        require(core.type == null || requestedType != null) { "The panel cannot clear an existing core type" }
+        val latest = core(session, core.id)
+        val addedTags = (excludeInboundTags.toSet() - core.excludeInboundTags.toSet()) +
+            (fallbacksInboundTags.toSet() - core.fallbacksInboundTags.toSet())
+        if (addedTags.isNotEmpty()) {
+            val previousTags = coreConfigInboundTags(core.config, core.type)
+            val currentTags = coreConfigInboundTags(latest.config, latest.type)
+            if (previousTags == null || currentTags == null || previousTags.toSet() != currentTags.toSet()) {
+                throw CoreEditConflictException(listOf("inbounds"))
+            }
+            val offeredTags = currentTags.toSet() + core.excludeInboundTags + core.fallbacksInboundTags
+            require(addedTags.all { it in offeredTags }) { "Core tag is not available" }
+        }
+        val merged = CoreEditMerge.merge(
+            initial = core,
+            latest = latest,
+            edit = CoreEditValues(name, requestedType, excludeInboundTags, fallbacksInboundTags)
         )
+        require(merged.name.isNotBlank() && merged.name.codePointCount(0, merged.name.length) <= 256) {
+            "Invalid core name"
+        }
+        for (tags in listOf(merged.excludeInboundTags, merged.fallbacksInboundTags)) {
+            val serialized = tags.joinToString(",")
+            require(tags.all(::coreTagCanRoundTrip) && serialized.codePointCount(0, serialized.length) <= 2048) {
+                "Core tags cannot be stored by the panel"
+            }
+        }
+        require(merged.type != com.mrm.pgmanager.data.model.CoreType.WG ||
+            (merged.excludeInboundTags.isEmpty() && merged.fallbacksInboundTags.isEmpty())) {
+            "WireGuard cores do not support excluded or fallback tags"
+        }
+        val config = runCatching { JSONObject(latest.config) }.getOrElse { JSONObject() }
+        require(config.length() > 0) { "Core config cannot be empty" }
+        val metadata = JSONObject()
+            .put("name", merged.name)
+            .put("exclude_inbound_tags", org.json.JSONArray(merged.excludeInboundTags))
+            .put("fallbacks_inbound_tags", org.json.JSONArray(merged.fallbacksInboundTags))
+        if (merged.type.isNullOrBlank()) metadata.put("type", JSONObject.NULL) else metadata.put("type", merged.type)
+        // JSON number parsing can lose precision. Embed the freshly read config verbatim.
+        val body = metadata.toString().dropLast(1) + ",\"config\":" + latest.config + "}"
+        val url = "${session.baseUrl}/api/core/${core.id}?restart_nodes=$restartNodes"
+        val updated = try {
+            val request = requestBuilder(session, url).tag(CoreWriteMarker::class.java, CoreWriteMarker)
+                .put(body.toRequestBody(jsonType)).build()
+            executeCoreForBody(request, coreWriteClient)
+        } catch (_: java.io.IOException) {
+            // The write may already have reached the server; do not invite a blind retry.
+            throw CoreUpdateUnconfirmedException()
+        }
+        try {
+            parseCompleteCore(updated, core.id)
+        } catch (_: IllegalArgumentException) {
+            throw CoreUpdateUnconfirmedException()
+        }
     }
 
-    /** ری‌استارتِ نودهای یک کور — `POST /api/cores/{id}/restart` (مجوزِ `cores.update`، ۲۰۴). */
+    /** Restart nodes assigned to a core: POST /api/core/{id}/restart. */
     suspend fun restartCore(session: Session, coreId: Int) = withContext(Dispatchers.IO) {
-        executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/cores/$coreId/restart")
+        executeCoreForBody(
+            requestBuilder(session, "${session.baseUrl}/api/core/$coreId/restart")
                 .post("".toRequestBody(jsonType)).build()
         )
+        Unit
     }
 
-    /** حذفِ کور — `DELETE /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.delete`، ۲۰۴). */
+    /** Delete a core: DELETE /api/core/{id}?restart_nodes=... */
     suspend fun deleteCore(session: Session, coreId: Int, restartNodes: Boolean = false) =
         withContext(Dispatchers.IO) {
-            executeJson(
-                requestBuilder(session, "${session.baseUrl}/api/cores/$coreId?restart_nodes=$restartNodes")
+            executeCoreForBody(
+                requestBuilder(session, "${session.baseUrl}/api/core/$coreId?restart_nodes=$restartNodes")
                     .delete().build()
             )
+            Unit
         }
 
     /**
@@ -2228,11 +2318,11 @@ object PanelApi {
     private fun parseCore(o: JSONObject): PanelCore = PanelCore(
         id = o.optInt("id"),
         name = o.optString("name"),
-        type = optionalString(o, "type"),
-        excludeInboundTags = jsonStringList(o, "exclude_inbound_tags"),
-        fallbacksInboundTags = jsonStringList(o, "fallbacks_inbound_tags"),
+        type = (o.opt("type") as? String)?.takeIf { it.isNotBlank() },
+        excludeInboundTags = jsonCoreTags(o, "exclude_inbound_tags"),
+        fallbacksInboundTags = jsonCoreTags(o, "fallbacks_inbound_tags"),
         sortOrder = o.optInt("sort_order", 0),
-        // کانفیگ رشتهٔ خام می‌ماند تا PUT بعدی عیناً همان را برگرداند.
+        // Keep the snapshot for viewing; updates fetch a fresh configuration.
         config = o.optJSONObject("config")?.toString() ?: "{}"
     )
 
@@ -2256,6 +2346,12 @@ object PanelApi {
     private fun jsonStringList(o: JSONObject, key: String): List<String> {
         val arr = o.optJSONArray(key) ?: return emptyList()
         return List(arr.length()) { i -> arr.optString(i) }.filter { it.isNotBlank() && it != "null" }
+    }
+
+    /** Preserve unusual but valid string tags; JSON null is not the string "null". */
+    private fun jsonCoreTags(o: JSONObject, key: String): List<String> {
+        val array = o.optJSONArray(key) ?: return emptyList()
+        return (0 until array.length()).mapNotNull { array.opt(it) as? String }.distinct()
     }
 
     /** مثلِ [executeJson] ولی بدنهٔ پاسخ را هم برمی‌گرداند (برای POST/PUT که آبجکت می‌دهند). */
