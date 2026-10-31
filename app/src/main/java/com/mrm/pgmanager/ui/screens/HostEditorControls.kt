@@ -106,11 +106,13 @@ internal fun HostEditorTextField(
     singleLine: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
     tag: String = "",
-    technical: Boolean = false
+    technical: Boolean = false,
+    help: String? = null,
+    variablesHelp: Boolean = false,
+    customVariables: Boolean = false
 ) {
-    val theme = LocalThemeState.current
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+        HostEditorLabel(label, tag, help, variablesHelp, customVariables)
         PGFormInput(
             value = value,
             onValueChange = onChange,
@@ -139,12 +141,13 @@ internal fun HostEditorPickerField(
     enabled: Boolean,
     tag: String,
     expanded: Boolean? = null,
+    help: String? = null,
     onClick: () -> Unit
 ) {
     val theme = LocalThemeState.current
     val expandedState = expanded?.let { stringResource(if (it) R.string.host_editor_expanded else R.string.host_editor_collapsed) }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
+        HostEditorLabel(label, tag, help)
         Row(
             Modifier.fillMaxWidth().heightIn(min = 52.dp).pgFieldSurface(theme)
                 .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
@@ -335,13 +338,14 @@ internal fun HostEditorSelect(
     choices: List<HostEditorChoice>,
     enabled: Boolean,
     tag: String,
+    help: String? = null,
     onChange: (String) -> Unit
 ) {
     var expanded by rememberSaveable(tag) { mutableStateOf(false) }
     LaunchedEffect(enabled) { if (!enabled) expanded = false }
     val unknownLabel = if (value.isEmpty()) stringResource(R.string.host_editor_inherit) else value
     val current = choices.firstOrNull { it.value == value }?.label ?: unknownLabel
-    HostEditorPickerField(label, current, enabled, tag, expanded = expanded) { expanded = true }
+    HostEditorPickerField(label, current, enabled, tag, expanded = expanded, help = help) { expanded = true }
     if (expanded && enabled) {
         val options = if (choices.any { it.value == value }) choices else listOf(HostEditorChoice(value, unknownLabel)) + choices
         HostEditorOptionsDialog(
@@ -377,6 +381,45 @@ internal fun hostEditorFieldLabel(key: String): Int = when (key) {
     "ech.sing_box.config" -> R.string.host_editor_ech_singbox_config
     "ech.sing_box.query_server_name" -> R.string.host_editor_ech_singbox_name
     "transport_settings.xhttp_settings.mode" -> R.string.host_editor_xhttp_mode
+    "transport_settings.xhttp_settings.no_grpc_header" -> R.string.host_editor_xhttp_no_grpc
+    "transport_settings.xhttp_settings.x_padding_obfs_mode" -> R.string.host_editor_xhttp_padding_obfs
+    "transport_settings.xhttp_settings.x_padding_bytes" -> R.string.host_editor_xhttp_padding_bytes
+    "transport_settings.xhttp_settings.sc_max_each_post_bytes" -> R.string.host_editor_xhttp_post_bytes
+    "transport_settings.xhttp_settings.sc_min_posts_interval_ms" -> R.string.host_editor_xhttp_post_interval
+    "transport_settings.xhttp_settings.x_padding_key" -> R.string.host_editor_xhttp_padding_key
+    "transport_settings.xhttp_settings.x_padding_header" -> R.string.host_editor_xhttp_padding_header
+    "transport_settings.xhttp_settings.x_padding_placement" -> R.string.host_editor_xhttp_padding_placement
+    "transport_settings.xhttp_settings.x_padding_method" -> R.string.host_editor_xhttp_padding_method
+    "transport_settings.xhttp_settings.uplink_http_method" -> R.string.host_editor_xhttp_uplink_method
+    "transport_settings.xhttp_settings.uplink_data_placement" -> R.string.host_editor_xhttp_uplink_placement
+    "transport_settings.xhttp_settings.uplink_data_key" -> R.string.host_editor_xhttp_uplink_key
+    "transport_settings.xhttp_settings.uplink_chunk_size" -> R.string.host_editor_xhttp_uplink_chunk
+    "transport_settings.xhttp_settings.session_placement" -> R.string.host_editor_xhttp_session_placement
+    "transport_settings.xhttp_settings.session_key" -> R.string.host_editor_xhttp_session_key
+    "transport_settings.xhttp_settings.session_id_table" -> R.string.host_editor_xhttp_session_table
+    "transport_settings.xhttp_settings.session_id_length" -> R.string.host_editor_xhttp_session_length
+    "transport_settings.xhttp_settings.seq_placement" -> R.string.host_editor_xhttp_seq_placement
+    "transport_settings.xhttp_settings.seq_key" -> R.string.host_editor_xhttp_seq_key
+    "transport_settings.xhttp_settings.download_settings" -> R.string.host_editor_xhttp_download
+    "transport_settings.tcp_settings.header" -> R.string.host_editor_tcp_header
+    "transport_settings.tcp_settings.request.version", "transport_settings.tcp_settings.response.version" -> R.string.host_editor_tcp_version
+    "transport_settings.tcp_settings.request.method" -> R.string.host_editor_tcp_method
+    "transport_settings.tcp_settings.response.status" -> R.string.host_editor_tcp_status
+    "transport_settings.tcp_settings.response.reason" -> R.string.host_editor_tcp_reason
+    "transport_settings.kcp_settings.mtu" -> R.string.host_editor_kcp_mtu
+    "transport_settings.kcp_settings.tti" -> R.string.host_editor_kcp_tti
+    "transport_settings.kcp_settings.uplink_capacity" -> R.string.host_editor_kcp_uplink
+    "transport_settings.kcp_settings.downlink_capacity" -> R.string.host_editor_kcp_downlink
+    "transport_settings.kcp_settings.congestion" -> R.string.host_editor_kcp_congestion
+    "transport_settings.kcp_settings.read_buffer_size" -> R.string.host_editor_kcp_read
+    "transport_settings.kcp_settings.write_buffer_size" -> R.string.host_editor_kcp_write
+    "transport_settings.masque_settings.remote_dns" -> R.string.host_editor_masque_dns
+    "transport_settings.xhttp_settings.xmux.max_concurrency", "transport_settings.masque_settings.xmux.max_concurrency" -> R.string.host_editor_xmux_max_concurrency
+    "transport_settings.xhttp_settings.xmux.max_connections", "transport_settings.masque_settings.xmux.max_connections" -> R.string.host_editor_xmux_max_connections
+    "transport_settings.xhttp_settings.xmux.c_max_reuse_times", "transport_settings.masque_settings.xmux.c_max_reuse_times" -> R.string.host_editor_xmux_reuse
+    "transport_settings.xhttp_settings.xmux.h_max_reusable_secs", "transport_settings.masque_settings.xmux.h_max_reusable_secs" -> R.string.host_editor_xmux_seconds
+    "transport_settings.xhttp_settings.xmux.h_max_request_times", "transport_settings.masque_settings.xmux.h_max_request_times" -> R.string.host_editor_xmux_requests
+    "transport_settings.xhttp_settings.xmux.h_keep_alive_period", "transport_settings.masque_settings.xmux.h_keep_alive_period" -> R.string.host_editor_xmux_keepalive
     "transport_settings.grpc_settings.multi_mode" -> R.string.host_editor_grpc_multi
     "transport_settings.grpc_settings.idle_timeout" -> R.string.host_editor_grpc_idle
     "transport_settings.grpc_settings.health_check_timeout" -> R.string.host_editor_grpc_health
@@ -391,6 +434,8 @@ internal fun hostEditorFieldLabel(key: String): Int = when (key) {
     "fragment_settings.sing_box.record_fragment" -> R.string.host_editor_record_fragment
     "mux_settings.xray.enabled" -> R.string.host_editor_xray_mux
     "mux_settings.xray.concurrency" -> R.string.host_editor_mux_concurrency
+    "mux_settings.xray.xudp_concurrency" -> R.string.host_editor_xudp_concurrency
+    "mux_settings.xray.xudp_proxy_udp_443" -> R.string.host_editor_xudp_proxy
     "mux_settings.sing_box.enable" -> R.string.host_editor_sing_mux
     "mux_settings.clash.enable" -> R.string.host_editor_clash_mux
     "mux_settings.sing_box.protocol", "mux_settings.clash.protocol" -> R.string.host_editor_mux_protocol

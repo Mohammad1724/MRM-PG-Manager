@@ -6,6 +6,11 @@ import org.json.JSONObject
 /** Minimal client-template information exposed by the panel's read_simple permission. */
 internal data class HostXrayTemplate(val id: Int, val name: String)
 
+/** Values may contain private panel configuration; never include them in logs. */
+internal data class HostCustomVariable(val key: String, val value: String) {
+    override fun toString(): String = "HostCustomVariable(key=$key, value=<redacted>)"
+}
+
 /** A deliberate edit to one JSON field. A null value means an explicit JSON null. */
 internal data class HostFieldChange(val path: List<String>, val value: Any?) {
     constructor(field: String, value: Any?) : this(listOf(field), value)
@@ -32,6 +37,8 @@ internal object HostEditMerge {
         require(initial.has("id") && initial.optInt("id", -1) == hostId) { "Invalid original host snapshot" }
         require(latest.has("id") && latest.optInt("id", -1) == hostId) { "Invalid latest host snapshot" }
         validate(changes)
+        normalizeAliases(initial)
+        normalizeAliases(latest)
 
         val conflicts = changes.filter { change ->
             val originalValue = get(initial, change.path)
@@ -43,25 +50,59 @@ internal object HostEditMerge {
         if (conflicts.isNotEmpty()) throw HostEditConflictException(conflicts)
 
         apply(latest, changes)
-        normalizePutAliases(latest)
+        // If a response alias existed, keep it in sync with the intentional edit.
+        // Otherwise a stale camelCase value could overwrite the edited snake_case value.
+        syncEditedAliases(latest, changes)
         return latest
     }
 
-    /** The panel serializes these two fields as camelCase but accepts snake_case on PUT. */
-    private fun normalizePutAliases(body: JSONObject) {
-        val xray = body.optJSONObject("mux_settings")?.optJSONObject("xray") ?: return
-        listOf(
-            "xudpConcurrency" to "xudp_concurrency",
-            "xudpProxyUDP443" to "xudp_proxy_udp_443"
-        ).forEach { (responseName, requestName) ->
-            if (xray.has(responseName)) {
-                val value = xray.opt(responseName) ?: JSONObject.NULL
-                if (xray.has(requestName) && !equivalent(value, xray.opt(requestName) ?: JSONObject.NULL, listOf(requestName))) {
-                    throw HostEditConflictException(listOf("mux_settings.xray.$requestName"))
-                }
-                // Keep the response key as well for forks that may accept it.
-                xray.put(requestName, value)
+    private data class Alias(val parent: List<String>, val response: String, val request: String) {
+        val path: List<String> get() = parent + request
+    }
+
+    // Pydantic serializes XUDP and XMux fields with aliases; its request models accept
+    // the snake_case names. Compare aliases as one field and reject ambiguous snapshots.
+    private val aliases = buildList {
+        val mux = listOf("mux_settings", "xray")
+        add(Alias(mux, "xudpConcurrency", "xudp_concurrency"))
+        add(Alias(mux, "xudpProxyUDP443", "xudp_proxy_udp_443"))
+        for (transport in listOf("xhttp_settings", "masque_settings")) {
+            val parent = listOf("transport_settings", transport, "xmux")
+            listOf(
+                "maxConcurrency" to "max_concurrency",
+                "maxConnections" to "max_connections",
+                "cMaxReuseTimes" to "c_max_reuse_times",
+                "hMaxReusableSecs" to "h_max_reusable_secs",
+                "hMaxRequestTimes" to "h_max_request_times",
+                "hKeepAlivePeriod" to "h_keep_alive_period"
+            ).forEach { (response, request) -> add(Alias(parent, response, request)) }
+        }
+    }
+
+    /** Reads either server response aliases or canonical request names without modifying the JSON. */
+    fun editorValue(root: JSONObject, path: List<String>): Any? {
+        val value = get(root, path)
+        if (value !== Missing) return value
+        val alias = aliases.firstOrNull { it.path == path } ?: return null
+        return get(root, alias.parent + alias.response).takeUnless { it === Missing }
+    }
+
+    private fun normalizeAliases(root: JSONObject) {
+        aliases.forEach { alias ->
+            val parent = get(root, alias.parent) as? JSONObject ?: return@forEach
+            if (!parent.has(alias.response)) return@forEach
+            val value = parent.opt(alias.response) ?: JSONObject.NULL
+            if (parent.has(alias.request) && !equivalent(value, parent.opt(alias.request) ?: JSONObject.NULL, alias.path)) {
+                throw HostEditConflictException(listOf(alias.path.joinToString(".")))
             }
+            parent.put(alias.request, value)
+        }
+    }
+
+    private fun syncEditedAliases(root: JSONObject, changes: List<HostFieldChange>) {
+        aliases.filter { alias -> changes.any { it.path == alias.path } }.forEach { alias ->
+            val parent = get(root, alias.parent) as? JSONObject ?: return@forEach
+            if (parent.has(alias.response)) parent.put(alias.response, parent.opt(alias.request) ?: JSONObject.NULL)
         }
     }
 

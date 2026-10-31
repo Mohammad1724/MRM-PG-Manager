@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.api.HostCustomVariable
 import com.mrm.pgmanager.data.api.HostXrayTemplate
 import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -97,7 +98,8 @@ class HostEditorComposeTest {
         fontScale: Float = 1f,
         dark: Boolean = false,
         inbounds: HostOptions<String> = HostOptions.Ready(listOf("VLESS-TLS")),
-        initial: PanelHost = host
+        initial: PanelHost = host,
+        customVariables: HostCustomVariablesAccess? = null
     ) {
         rule.setContent {
             val density = LocalDensity.current
@@ -119,6 +121,7 @@ class HostEditorComposeTest {
                         templates = HostOptions.Ready<HostXrayTemplate>(emptyList()),
                         onRetryInbounds = {},
                         onRetryTemplates = {},
+                        customVariables = customVariables,
                         onDismiss = { dismissed = true },
                         onSave = { saved = draft }
                     )
@@ -428,4 +431,165 @@ class HostEditorComposeTest {
         rule.onNodeWithText(str(R.string.host_editor_discard)).performClick()
         rule.runOnIdle { assertEquals(true, dismissed) }
     }
+
+    @Test fun `field help opens and closes with accessible touch targets in rtl`() {
+        render(direction = LayoutDirection.Rtl, fontScale = 1.6f, dark = true)
+        val remarkHelp = rule.onNodeWithTag("host_editor_remark_help").performScrollTo()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.host_editor_collapsed)))
+        remarkHelp.performClick()
+        rule.onNodeWithTag("host_editor_remark_help_content").assertExists()
+        rule.onNodeWithTag("host_editor_remark_variable_USERNAME").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_remark_variable_copied").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle {
+            val clipboard = RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            assertEquals("{USERNAME}", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+        remarkHelp.performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_remark_help_content").assertDoesNotExist()
+        val addressHelp = rule.onNodeWithTag("host_editor_addresses_help").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_addresses_variable_EXPIRE_DATE").performScrollTo().assertExists()
+        addressHelp.performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_port_help").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_help_port)).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_port_help").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_template_help").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_help_template)).performScrollTo().assertIsDisplayed()
+        assertActionsWithinEditor()
+    }
+
+    @Test fun `network security camouflage and routing expose the panel help texts`() {
+        render()
+        rule.onNodeWithTag("host_editor_section_network").performScrollTo().performClick()
+        listOf(
+            "host_editor_field_host" to R.string.host_editor_help_network_host,
+            "host_editor_field_path" to R.string.host_editor_help_path
+        ).forEach { (tag, text) ->
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+            rule.onNodeWithText(str(text)).performScrollTo().assertIsDisplayed()
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+        }
+        rule.onNodeWithTag("host_editor_section_security").performScrollTo().performClick()
+        listOf(
+            "host_editor_security" to R.string.host_editor_help_security,
+            "host_editor_field_sni" to R.string.host_editor_help_sni
+        ).forEach { (tag, text) ->
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+            rule.onNodeWithText(str(text)).performScrollTo().assertIsDisplayed()
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+        }
+        rule.onNodeWithTag("host_editor_section_camouflage").performScrollTo().performClick()
+        listOf(
+            "host_editor_fragment" to R.string.host_editor_help_fragment,
+            "host_editor_noise" to R.string.host_editor_help_noise
+        ).forEach { (tag, text) ->
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+            rule.onNodeWithText(str(text)).performScrollTo().assertIsDisplayed()
+            rule.onNodeWithTag("${tag}_help").performScrollTo().performClick()
+        }
+        rule.onNodeWithTag("host_editor_section_final_mask").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_final_mask_json_help").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_help_final_mask)).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_section_routing").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_field_vless_route_help").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_help_vless)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun `noise rows add edit duplicate and delete without changing other settings`() {
+        render()
+        rule.onNodeWithTag("host_editor_section_camouflage").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_noise_add").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_noise_packet_0").performScrollTo().performTextInput("10-20")
+        rule.onNodeWithTag("host_editor_noise_delay_0").performScrollTo().performTextInput("5-10")
+        rule.onNodeWithTag("host_editor_noise_duplicate_0").performScrollTo().performClick()
+        rule.runOnIdle {
+            assertEquals(2, current?.noise?.size)
+            assertEquals("10-20", current?.noise?.get(1)?.packet)
+        }
+        rule.onNodeWithTag("host_editor_noise_remove_0").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle {
+            assertEquals("5-10", saved?.noise?.single()?.delay)
+            assertEquals("10-20", saved?.noise?.single()?.packet)
+            assertEquals(listOf("noise_settings", "xray"), saved?.changes(host)?.single()?.path)
+        }
+    }
+
+    @Test fun `xhttp controls and xudp settings update the real draft`() {
+        render()
+        rule.onNodeWithTag("host_editor_section_transport").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_section_transport_xhttp").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_field_transport_settings.xhttp_settings.no_grpc_header")
+            .performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_picker_option_true").performClick()
+        rule.onNodeWithTag("host_editor_field_transport_settings.xhttp_settings.x_padding_bytes")
+            .performScrollTo().performTextInput("10-20")
+        rule.onNodeWithTag("host_editor_section_mux").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_field_mux_settings.xray.xudp_concurrency").performScrollTo().performTextInput("9")
+        rule.onNodeWithTag("host_editor_field_mux_settings.xray.xudp_proxy_udp_443").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_picker_option_allow").performClick()
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle {
+            assertEquals("true", saved?.field("transport_settings.xhttp_settings.no_grpc_header"))
+            assertEquals("10-20", saved?.field("transport_settings.xhttp_settings.x_padding_bytes"))
+            assertEquals("9", saved?.field("mux_settings.xray.xudp_concurrency"))
+            assertEquals("allow", saved?.field("mux_settings.xray.xudp_proxy_udp_443"))
+        }
+    }
+
+
+    @Test fun `custom variables can be copied where the panel exposes them`() {
+        val access = HostCustomVariablesAccess(HostOptions.Ready(listOf(HostCustomVariable("REGION", "west")))) {}
+        render(customVariables = access)
+        val button = rule.onNodeWithTag("host_editor_remark_custom_variables").performScrollTo()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        button.performClick()
+        rule.onNodeWithTag("host_editor_remark_custom_REGION").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_remark_custom_copied").performScrollTo().assertIsDisplayed()
+        rule.runOnIdle {
+            val clipboard = RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            assertEquals("{REGION}", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+        rule.onNodeWithText("west").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_remark_help_content").assertDoesNotExist()
+        button.performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_remark_custom_content").assertDoesNotExist()
+    }
+
+    @Test fun `denied custom variables access remains retryable`() {
+        var calls = 0
+        render(customVariables = HostCustomVariablesAccess(HostOptions.Failed("Forbidden")) { calls++ })
+        rule.onNodeWithTag("host_editor_remark_custom_variables").performScrollTo().performClick()
+        rule.onNodeWithText(str(R.string.host_editor_custom_variables_title)).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("host_editor_remark_custom_retry").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(1, calls) }
+    }
+
+
+    @Test fun `custom variables are requested only when opened`() {
+        var calls = 0
+        render(customVariables = HostCustomVariablesAccess(null) { calls++ })
+        rule.runOnIdle { assertEquals(0, calls) }
+        rule.onNodeWithTag("host_editor_addresses_custom_variables").performScrollTo().performClick()
+        rule.runOnIdle { assertEquals(1, calls) }
+        rule.onNodeWithTag("host_editor_addresses_custom_content").assertExists()
+    }
+
+
+    @Test fun `TCP request headers support multiple values and preserve commas`() {
+        val initial = host.copy(raw = """{"id":3,"remark":"Example","address":["example.com"],
+            "transport_settings":{"tcp_settings":{"header":"http"}}}""")
+        render(initial = initial)
+        rule.onNodeWithTag("host_editor_section_transport").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_section_transport_tcp").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_section_transport_tcp_request").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_tcp_request_headers_add").performScrollTo().performClick()
+        rule.onNodeWithTag("host_editor_tcp_request_headers_name_0").performScrollTo().performTextInput("Accept")
+        rule.onNodeWithTag("host_editor_tcp_request_headers_value_0").performScrollTo().performTextInput("text/html,application/json\nsecond")
+        rule.onNodeWithTag("host_editor_save").performClick()
+        rule.runOnIdle {
+            assertEquals(listOf("text/html,application/json", "second"), saved?.tcpRequestHeaders?.headers?.single()?.values)
+        }
+    }
+
 }

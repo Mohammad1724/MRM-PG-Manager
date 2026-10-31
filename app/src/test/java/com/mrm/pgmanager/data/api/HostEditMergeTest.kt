@@ -109,4 +109,49 @@ class HostEditMergeTest {
         assertEquals("preserved", result.getJSONObject("subscription_templates").getString("future"))
         assertFalse(result.has("address"))
     }
+
+    @Test fun `editing aliased mux fields uses canonical request keys and synchronizes response keys`() {
+        val changes = listOf(
+            HostFieldChange(listOf("mux_settings", "xray", "xudp_concurrency"), 12),
+            HostFieldChange(listOf("mux_settings", "xray", "xudp_proxy_udp_443"), "skip")
+        )
+        val result = HostEditMerge.merge(original, original, 7, changes)
+        val mux = result.getJSONObject("mux_settings").getJSONObject("xray")
+        assertEquals(12, mux.getInt("xudp_concurrency"))
+        assertEquals(12, mux.getInt("xudpConcurrency"))
+        assertEquals("skip", mux.getString("xudp_proxy_udp_443"))
+        assertEquals("skip", mux.getString("xudpProxyUDP443"))
+    }
+
+    @Test fun `aliases are compared across response and request shapes and concurrent edits conflict`() {
+        val canonical = JSONObject(original)
+        val xray = canonical.getJSONObject("mux_settings").getJSONObject("xray")
+        xray.remove("xudpConcurrency")
+        xray.put("xudp_concurrency", 9)
+        val path = listOf("mux_settings", "xray", "xudp_concurrency")
+        assertEquals(12, HostEditMerge.merge(original, canonical.toString(), 7, listOf(HostFieldChange(path, 12)))
+            .getJSONObject("mux_settings").getJSONObject("xray").getInt("xudp_concurrency"))
+        xray.put("xudp_concurrency", 10)
+        val error = assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(original, canonical.toString(), 7, listOf(HostFieldChange(path, 12)))
+        }
+        assertEquals(listOf("mux_settings.xray.xudp_concurrency"), error.fields)
+    }
+
+    @Test fun `xmux alias edits retain siblings and reject conflicting aliases`() {
+        val first = """{"id":7,"transport_settings":{"xhttp_settings":{"xmux":{"maxConcurrency":"2-4","future":"keep"}}}}"""
+        val path = listOf("transport_settings", "xhttp_settings", "xmux", "max_concurrency")
+        val result = HostEditMerge.merge(first, first, 7, listOf(HostFieldChange(path, "5-8")))
+        val xmux = result.getJSONObject("transport_settings").getJSONObject("xhttp_settings").getJSONObject("xmux")
+        assertEquals("5-8", xmux.getString("maxConcurrency"))
+        assertEquals("5-8", xmux.getString("max_concurrency"))
+        assertEquals("keep", xmux.getString("future"))
+        val ambiguous = JSONObject(first)
+        ambiguous.getJSONObject("transport_settings").getJSONObject("xhttp_settings").getJSONObject("xmux")
+            .put("max_concurrency", "9")
+        assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(first, ambiguous.toString(), 7, listOf(HostFieldChange("remark", "x")))
+        }
+    }
+
 }

@@ -77,7 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Share, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder,
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Share, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder, Info,
     // وضعیت کاربر
     StatusActive, StatusDisabled, StatusExpired, StatusLimited, StatusOnHold,
     // نوار ابزار
@@ -116,6 +116,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     // آیکون‌های جهت‌دار از نسخهٔ AutoMirrored می‌آیند تا در چیدمانِ راست‌به‌چپ خودشان آینه شوند.
     AppIcon.Logout -> Icons.AutoMirrored.Rounded.Logout
     AppIcon.Warning -> Icons.Rounded.WarningAmber
+    AppIcon.Info -> Icons.Rounded.ErrorOutline
     AppIcon.LightMode -> Icons.Rounded.LightMode
     AppIcon.DarkMode -> Icons.Rounded.DarkMode
     AppIcon.AutoMode -> Icons.Rounded.BrightnessAuto

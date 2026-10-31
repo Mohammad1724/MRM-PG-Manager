@@ -85,4 +85,26 @@ class HostEditorStateTest {
         state.bind(account)
         assertNull(state.notice)
     }
+
+    @Test fun `noise and TCP header drafts survive failed saves without crossing accounts`() {
+        val state = HostEditorState()
+        state.open(account, host)
+        val id = requireNotNull(state.active).requestId
+        val changed = requireNotNull(state.active).draft
+            .withNoise(listOf(HostNoiseItem(packet = "1-5", delay = "3")))
+            .withTcpHeaders("request", listOf(HostTcpHeader("X-Region", listOf("east,west", "other"))))
+        state.update(id, changed)
+        assertNotNull(state.beginSave(id))
+        state.update(id, changed.withNoise(emptyList()))
+        state.failSave(id, "failed")
+        assertEquals(changed, state.active?.draft)
+        val other = Session("https://other.example", "other-test-token", "other")
+        state.bind(other)
+        state.open(other, host.copy(id = 9))
+        state.failSave(id, "stale")
+        assertTrue(requireNotNull(state.active).draft.noise.isEmpty())
+        assertTrue(requireNotNull(state.active).draft.tcpRequestHeaders.headers.isEmpty())
+        assertNull(state.active?.error)
+    }
+
 }

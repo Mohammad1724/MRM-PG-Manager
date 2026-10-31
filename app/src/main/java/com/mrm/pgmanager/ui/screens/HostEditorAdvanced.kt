@@ -32,15 +32,16 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
     val commaHint = stringResource(R.string.host_editor_comma_list)
 
     HostEditorSection(stringResource(R.string.host_editor_network), "network", enabled) {
-        DraftText(draft, "host", enabled, onChange, hint = commaHint, singleLine = false)
-        DraftText(draft, "path", enabled, onChange)
+        DraftText(draft, "host", enabled, onChange, hint = commaHint, singleLine = false,
+            help = stringResource(R.string.host_editor_help_network_host), customVariables = true)
+        DraftText(draft, "path", enabled, onChange, help = stringResource(R.string.host_editor_help_path), customVariables = true)
         DraftSwitch(draft, "random_user_agent", enabled, onChange)
         HostHttpHeadersEditor(draft, enabled, onChange)
     }
     HostEditorSection(stringResource(R.string.host_security), "security", enabled) {
         HostEditorSelect(
             label = stringResource(R.string.host_security), value = draft.security, enabled = enabled,
-            tag = "host_editor_security",
+            tag = "host_editor_security", help = stringResource(R.string.host_editor_help_security),
             choices = listOf(
                 HostEditorChoice(HostSecurity.INBOUND_DEFAULT, stringResource(R.string.host_security_inbound_default)),
                 HostEditorChoice(HostSecurity.NONE, stringResource(R.string.host_security_none)),
@@ -48,7 +49,8 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
             ),
             onChange = { onChange(draft.copy(security = it)) }
         )
-        DraftText(draft, "sni", enabled, onChange, hint = commaHint, singleLine = false)
+        DraftText(draft, "sni", enabled, onChange, hint = commaHint, singleLine = false,
+            help = stringResource(R.string.host_editor_help_sni), customVariables = true)
         HostAlpnFilter(draft, enabled, onChange)
         val fingerprints = listOf("chrome", "firefox", "safari", "ios", "android", "edge", "360", "qq", "random", "randomized", "randomizednoalpn", "unsafe")
         DraftSelect(
@@ -86,22 +88,22 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
     }
     HostEditorSection(stringResource(R.string.host_editor_transport), "transport", enabled) {
         Text(stringResource(R.string.host_editor_transport_hint), fontSize = 12.sp, color = theme.mutedColor)
-        DraftSelect(
-            draft, "transport_settings.xhttp_settings.mode", enabled, onChange,
-            listOf(HostEditorChoice("", defaultLabel)) + listOf("auto", "packet-up", "stream-up", "stream-one").map { HostEditorChoice(it, it) }
-        )
-        DraftSwitch(draft, "transport_settings.grpc_settings.multi_mode", enabled, onChange)
-        DraftText(draft, "transport_settings.grpc_settings.idle_timeout", enabled, onChange, number = true)
-        DraftText(draft, "transport_settings.grpc_settings.health_check_timeout", enabled, onChange, number = true)
-        DraftSwitch(draft, "transport_settings.grpc_settings.permit_without_stream", enabled, onChange)
-        DraftText(draft, "transport_settings.grpc_settings.initial_windows_size", enabled, onChange, number = true)
-        DraftText(draft, "transport_settings.websocket_settings.heartbeatPeriod", enabled, onChange, number = true)
+        HostTransportSections(draft, enabled, onChange)
     }
     HostEditorSection(stringResource(R.string.host_editor_camouflage), "camouflage", enabled) {
+        HostEditorLabel(
+            label = stringResource(R.string.host_editor_xray_fragment), tag = "host_editor_fragment",
+            help = stringResource(R.string.host_editor_help_fragment)
+        )
         Text(stringResource(R.string.host_editor_xray_fragment_hint), fontSize = 12.sp, color = theme.mutedColor)
+        if (listOf("packets", "length", "interval").any { draft.field("fragment_settings.xray.$it").isNotBlank() } || draft.noise.isNotEmpty()) {
+            Text(stringResource(R.string.host_editor_fragment_deprecated), fontSize = 12.sp, color = theme.inkColor)
+        }
         listOf("packets", "length", "interval").forEach { key ->
             DraftText(draft, "fragment_settings.xray.$key", enabled, onChange)
         }
+        HostNoiseEditor(draft, enabled, onChange)
+        HostFinalMaskEditor(draft, enabled, onChange)
         DraftSwitch(draft, "fragment_settings.sing_box.fragment", enabled, onChange)
         DraftText(
             draft, "fragment_settings.sing_box.fragment_fallback_delay", enabled, onChange,
@@ -110,13 +112,21 @@ internal fun HostEditorAdvancedSections(draft: HostDraft, enabled: Boolean, onCh
         DraftSwitch(draft, "fragment_settings.sing_box.record_fragment", enabled, onChange)
     }
     HostEditorSection(stringResource(R.string.host_editor_mux), "mux", enabled) {
-        DraftSwitch(draft, "mux_settings.xray.enabled", enabled, onChange)
+        Text(stringResource(R.string.host_editor_mux_exclusive), fontSize = 12.sp, color = theme.mutedColor)
+        DraftMuxSwitch(draft, "mux_settings.xray.enabled", enabled, onChange)
         DraftText(draft, "mux_settings.xray.concurrency", enabled, onChange, number = true)
+        DraftText(draft, "mux_settings.xray.xudp_concurrency", enabled, onChange, number = true)
+        DraftSelect(draft, "mux_settings.xray.xudp_proxy_udp_443", enabled, onChange, listOf(
+            HostEditorChoice("reject", stringResource(R.string.host_editor_xudp_reject)),
+            HostEditorChoice("allow", stringResource(R.string.host_editor_xudp_allow)),
+            HostEditorChoice("skip", stringResource(R.string.host_editor_xudp_skip))
+        ))
         MuxClientFields(draft, "sing_box", enabled, onChange)
         MuxClientFields(draft, "clash", enabled, onChange)
     }
     HostEditorSection(stringResource(R.string.host_editor_routing), "routing", enabled) {
-        DraftText(draft, "vless_route", enabled, onChange, hint = stringResource(R.string.host_editor_vless_hint))
+        DraftText(draft, "vless_route", enabled, onChange, hint = stringResource(R.string.host_editor_vless_hint),
+            help = stringResource(R.string.host_editor_help_vless))
     }
     HostEditorSection(stringResource(R.string.host_editor_wireguard), "wireguard", enabled) {
         Text(stringResource(R.string.host_editor_wireguard_hint), fontSize = 12.sp, color = theme.mutedColor)
@@ -177,7 +187,7 @@ private fun MuxClientFields(draft: HostDraft, client: String, enabled: Boolean, 
         stringResource(if (client == "clash") R.string.host_editor_clash_mux else R.string.host_editor_sing_mux),
         fontWeight = FontWeight.SemiBold, color = theme.inkColor
     )
-    DraftSwitch(draft, "$prefix.enable", enabled, onChange)
+    DraftMuxSwitch(draft, "$prefix.enable", enabled, onChange)
     DraftSelect(draft, "$prefix.protocol", enabled, onChange, listOf("smux", "yamux", "h2mux").map { HostEditorChoice(it, it) })
     DraftText(draft, "$prefix.max_connections", enabled, onChange, number = true)
     DraftText(draft, "$prefix.min_streams", enabled, onChange, number = true)
@@ -190,31 +200,43 @@ private fun MuxClientFields(draft: HostDraft, client: String, enabled: Boolean, 
 }
 
 @Composable
-private fun DraftText(
+internal fun DraftText(
     draft: HostDraft,
     key: String,
     enabled: Boolean,
     onChange: (HostDraft) -> Unit,
     hint: String = "",
     singleLine: Boolean = true,
-    number: Boolean = false
+    number: Boolean = false,
+    normalizeDigits: Boolean = number,
+    help: String? = null,
+    customVariables: Boolean = false
 ) {
     HostEditorTextField(
         label = stringResource(hostEditorFieldLabel(key)),
         value = draft.field(key),
-        onChange = { onChange(draft.withField(key, if (number) normalizePersianDigits(it) else it)) },
+        onChange = { onChange(draft.withField(key, if (normalizeDigits) normalizePersianDigits(it) else it)) },
         enabled = enabled,
         hint = hint,
         singleLine = singleLine,
         // The panel accepts signed values for some transport and mux settings.
         keyboardType = if (number) KeyboardType.Ascii else KeyboardType.Text,
         tag = "host_editor_field_$key",
-        technical = true
+        technical = true, help = help, customVariables = customVariables
     )
 }
 
 @Composable
-private fun DraftSwitch(
+private fun DraftMuxSwitch(draft: HostDraft, key: String, enabled: Boolean, onChange: (HostDraft) -> Unit) {
+    SettingsSwitchRow(
+        title = stringResource(hostEditorFieldLabel(key)),
+        checked = draft.field(key) == "true", enabled = enabled,
+        onChange = { onChange(draft.withMuxEnabled(key, it)) }
+    )
+}
+
+@Composable
+internal fun DraftSwitch(
     draft: HostDraft,
     key: String,
     enabled: Boolean,
@@ -229,7 +251,7 @@ private fun DraftSwitch(
 }
 
 @Composable
-private fun DraftSelect(
+internal fun DraftSelect(
     draft: HostDraft,
     key: String,
     enabled: Boolean,

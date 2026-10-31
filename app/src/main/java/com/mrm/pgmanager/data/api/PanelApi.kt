@@ -1717,6 +1717,29 @@ object PanelApi {
         }
     }
 
+    /** Lazy read for the host editor; the panel enforces settings.read_general. */
+    internal suspend fun hostCustomVariables(session: Session): List<HostCustomVariable> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings/general").get().build()
+        val body = client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Custom variables request failed: ${response.code} ${errorDetail(text)}".trim())
+            JSONObject(text)
+        }
+        require(body.has("custom_variables")) { "Custom variables are not provided by this panel" }
+        val raw = body.opt("custom_variables")
+        if (raw == null || raw === JSONObject.NULL) return@withContext emptyList()
+        require(raw is org.json.JSONArray) { "Invalid custom variables response" }
+        val result = mutableListOf<HostCustomVariable>()
+        for (index in 0 until raw.length()) {
+            val item = raw.opt(index) as? JSONObject ?: error("Invalid custom variable")
+            val key = item.opt("key") as? String ?: error("Invalid custom variable key")
+            val value = item.opt("value")
+            require(value == null || value === JSONObject.NULL || value is String) { "Invalid custom variable value" }
+            if (key.isNotBlank()) result += HostCustomVariable(key, value as? String ?: "")
+        }
+        result
+    }
+
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
         val body = JSONObject().apply {
             put("ids", org.json.JSONArray(userIds))

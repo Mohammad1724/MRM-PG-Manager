@@ -102,11 +102,12 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
   `/api/client_templates/simple` (`client_templates.read_simple`) responses; failures
   remain visible and do not clear existing values. Creating a host requires an inbound;
   manual tag entry is available if the list is empty or cannot be loaded.
-- The expandable editors cover network (including HTTP header name/value pairs), TLS
-  certificate-verification inheritance, ECH, parts of XHTTP/gRPC/WebSocket, Xray and
-  sing-box fragmentation, selected mux settings, VLESS routing and WireGuard overrides.
-  This is **not full parity** with the web editor: noise, final masks, additional
-  transport/mux controls, and other unsupported fields are not editable here. Untouched
+- The expandable editors cover network headers, TLS verification inheritance, ECH,
+  XHTTP, gRPC, KCP, TCP, WebSocket and MASQUE subsets, Xray and sing-box fragmentation,
+  Xray noise, selected mux settings, VLESS routing and WireGuard overrides. FinalMask
+  is editable as an advanced JSON object rather than the panel's structured editor.
+  This is **not full parity** with the web editor: the structured FinalMask editor and
+  additional transport/mux features remain unavailable. Untouched
   values are carried forward from the fresh response, subject to the receiving server's
   behavior.
 - HTTP headers use the panel's `dict[str, str] | null` contract. Edits validate token
@@ -131,6 +132,34 @@ routing/…). ادیتورِ JSON روی صفحهٔ گوشی، برای کاری
 - Xray mux output uses `xudpConcurrency` and `xudpProxyUDP443` while this upstream
   request model expects `xudp_concurrency` and `xudp_proxy_udp_443`. The guarded PUT
   includes compatible aliases and rejects conflicting pairs rather than guessing.
+
+### Screenshot-driven host-editor follow-up (2026-10-31)
+
+- Inline help exposes localized descriptions, roles, state descriptions and 48dp
+  targets, with copyable built-in variables. The separate custom-variable control
+  lazily reads `/api/settings/general` using the panel's `settings.read_general`
+  permission; forbidden and failed requests remain visible and retryable. Values are
+  kept in memory and redacted from the new variable model's string representation.
+- Xray noise supports ordered add, duplicate, remove and editing of type, application,
+  packet and delay. Packet strings and integer arrays remain distinct. Extra properties
+  on supported entries are retained; the complete ordered list is a conflict unit.
+  Unsupported saved formats are read-only. FinalMask uses a whole-object JSON conflict
+  unit, validates JSON syntax locally and delegates its schema validation to the panel.
+- TCP's HTTP request/response headers preserve lists of values, including commas in a
+  value. Each header map is validated and conflict-checked as a unit; unsupported
+  formats stay read-only and untouched.
+- The XUDP and XMux response aliases are compared against request names as one field,
+  checked for ambiguity, and kept in sync after an edit. Enabling one mux client
+  deliberately disables the other two as in the web form. XHTTP's nullable booleans
+  retain separate inherited/true/false choices. MASQUE range and exclusivity checks
+  follow the panel form, while unedited unsupported settings remain unchanged.
+- In a standalone JVM harness, 59 draft, merge, state and real-API/MockWebServer
+  tests passed with Android `org.json`, OkHttp 4.12.0 and Okio 3.6.0; MockWebServer
+  was compiled from the official 4.12.0 source and Android annotations, `R` and the
+  lifecycle `ViewModel` were temporary stubs. A Kotlin-generated sample also passed
+  the upstream Pydantic Noise, Xray mux, XHTTP, MASQUE and TCP models. These checks
+  do not replace an Android Gradle build, the added Compose tests, visual checks, a
+  real panel, IME or TalkBack validation.
 
 ### UI consistency follow-up (2026-10-28)
 
