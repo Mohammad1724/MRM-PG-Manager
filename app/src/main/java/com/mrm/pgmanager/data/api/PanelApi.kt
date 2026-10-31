@@ -47,7 +47,9 @@ import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
 import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
@@ -87,6 +89,8 @@ object PanelApi {
     internal fun normalizedBaseForDiagnostics(address: String): String = baseUrl(address)
 
     private object CoreWriteMarker
+    private object NodeWriteMarker
+    private object NodeLogMarker
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -107,9 +111,10 @@ object PanelApi {
             response
         }
         .addInterceptor { chain ->
-            // Retry safe requests, except full-body core writes; never retry POST here.
+            // Never replay node mutations, full-body core updates or a streaming handshake.
             val request = chain.request()
-            if (request.method == "POST" || request.tag(CoreWriteMarker::class.java) != null) {
+            if (request.method == "POST" || request.tag(CoreWriteMarker::class.java) != null ||
+                request.tag(NodeWriteMarker::class.java) != null || request.tag(NodeLogMarker::class.java) != null) {
                 return@addInterceptor chain.proceed(request)
             }
             var lastError: java.io.IOException? = null
@@ -124,26 +129,35 @@ object PanelApi {
             throw lastError ?: java.io.IOException("retry exhausted")
         }
         .build()
-    // Core PUT has side effects and carries a full configuration, so never retry it blindly.
-    private val coreWriteClient: OkHttpClient by lazy {
-        client.newBuilder().retryOnConnectionFailure(false).build()
+    // Sensitive infrastructure requests do not forward custom API-key headers through redirects.
+    private val infrastructureReadClient: OkHttpClient by lazy {
+        client.newBuilder().followRedirects(false).followSslRedirects(false).build()
+    }
+    private val infrastructureWriteClient: OkHttpClient by lazy {
+        infrastructureReadClient.newBuilder().retryOnConnectionFailure(false).build()
     }
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
-    /**
-     * کلاینتِ جریان‌ها (لاگِ زندهٔ نود).
-     *
-     * دو تفاوت با [client]، هر دو از روی همان سازنده تا یک منبعِ حقیقت بماند:
-     * `readTimeout = 0` چون لاگ می‌تواند دقایق ساکت بماند، و
-     * `retryOnConnectionFailure(false)` چون تلاشِ دوبارهٔ OkHttp روی پاسخِ
-     * نیمه‌کارهٔ streaming یعنی دو جریانِ هم‌زمان و خط‌های تکراری روی صفحه.
-     * interceptorها (نگاشتِ ۴۰۱ به [SessionExpiredException]، retryِ متدهای امن)
-     * سرِ جایشان می‌مانند.
-     */
+    /** OkHttp can retry a 503 with Retry-After: 0 even when connection retries are disabled. */
+    private fun oneShot(body: RequestBody): RequestBody = object : RequestBody() {
+        override fun contentType() = body.contentType()
+        override fun contentLength() = body.contentLength()
+        override fun writeTo(sink: BufferedSink) = body.writeTo(sink)
+        override fun isOneShot() = true
+    }
+
+    /** A quiet SSE connection has no read timeout, redirects or network/503 handshake replay. */
     private val streamClient: OkHttpClient by lazy {
-        client.newBuilder()
+        infrastructureReadClient.newBuilder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .retryOnConnectionFailure(false)
+            .addNetworkInterceptor { chain ->
+                val response = chain.proceed(chain.request())
+                // OkHttp follows 503 Retry-After: 0 even when connection retries are disabled.
+                if (response.code == 503 && response.header("Retry-After")?.toLongOrNull() == 0L) {
+                    response.newBuilder().removeHeader("Retry-After").build()
+                } else response
+            }
             .build()
     }
 
@@ -536,21 +550,36 @@ object PanelApi {
      * ولی خطای گذرای شبکه باید پرتاب شود تا فراخوان لیستِ کش‌شده‌اش را نگه دارد و
      * صفحه «این پنل نودی ندارد»ِ دروغ نشان ندهد (هم‌راستا با رفع D3 داشبورد).
      */
-    suspend fun nodes(session: Session): List<PanelNode> = withContext(Dispatchers.IO) {
+    suspend fun nodes(session: Session): List<PanelNode> = fetchNodes(session, strict = false)
+
+    /** Management and logs must distinguish forbidden or malformed responses from an empty list. */
+    internal suspend fun nodesStrict(session: Session): List<PanelNode> = fetchNodes(session, strict = true)
+
+    private suspend fun fetchNodes(session: Session, strict: Boolean): List<PanelNode> = withContext(Dispatchers.IO) {
         val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
-        client.newCall(req).execute().use { res ->
-            if (res.code == 403) return@withContext emptyList()
+        val httpClient = if (strict) infrastructureReadClient else client
+        httpClient.newCall(req).execute().use { res ->
+            if (res.code == 403 && !strict) return@withContext emptyList()
             if (!res.isSuccessful) error("Nodes request failed: ${res.code} ${errorDetail(res.body?.string())}".trim())
             val body = res.body?.string() ?: "{}"
             val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
                 ?: runCatching { org.json.JSONArray(body) }.getOrNull()
-                ?: return@withContext emptyList<PanelNode>()
+                ?: if (strict) throw IllegalArgumentException("Invalid nodes response") else return@withContext emptyList<PanelNode>()
             // `sortedBy` پایدار است: نودهای بدونِ `sort_order` (همه `0`) ترتیبِ خودِ
             // پاسخ را نگه می‌دارند و بقیه همان‌جای پنل می‌نشینند.
+            val seenIds = mutableSetOf<Int>()
             List(arr.length()) { i ->
                 val n = arr.getJSONObject(i)
+                val id = n.optInt("id")
+                if (strict) {
+                    val rawId = n.opt("id") as? Number
+                    require(rawId != null && id > 0 && rawId.toDouble() == id.toDouble() && seenIds.add(id) &&
+                        n.opt("name") is String && n.opt("address") is String && n.opt("status") is String) {
+                        "Invalid nodes response"
+                    }
+                }
                 PanelNode(
-                    id = n.optInt("id"),
+                    id = id,
                     name = n.optString("name", "Node #${n.optInt("id")}"),
                     address = n.optString("address", ""),
                     status = n.optString("status", ""),
@@ -596,12 +625,91 @@ object PanelApi {
         }
     }
 
-    /** تلاشِ دوبارهٔ اتصال به یک نود — `POST /api/node/{id}/reconnect`. */
+    /** Read-only infrastructure endpoints; HTTP errors are not converted to empty lists. */
+    internal suspend fun inboundDetails(session: Session): List<InboundDetail> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/inbounds/details").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Inbounds request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            parseInboundDetails(response.body?.string() ?: throw IllegalArgumentException("Empty inbounds response"))
+        }
+    }
+
+    internal suspend fun wireGuardSubnets(session: Session): List<WireGuardSubnet> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/wireguard/subnets").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("WireGuard request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            parseWireGuardSubnets(response.body?.string() ?: throw IllegalArgumentException("Empty WireGuard response"))
+        }
+    }
+
+    /** The returned snapshot keeps only hashes of credentials and never enters the shared cache. */
+    internal suspend fun nodeSnapshot(session: Session, nodeId: Int): NodeSnapshot = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Node read failed: ${response.code}")
+            parseNodeSnapshot(response.body?.string() ?: throw IllegalArgumentException("Empty node response"), nodeId)
+        }
+    }
+
+    /** Never replay a side-effecting node request; a lost response has an uncertain outcome. */
+    private fun executeNodeWrite(request: Request, expectedId: Int? = null, requireResponseId: Boolean = false) {
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw NodeWriteUnconfirmedException()
+                // Validation bodies can echo credentials, so never copy them into an exception.
+                if (!response.isSuccessful) error("Node request failed: ${response.code}")
+                if (requireResponseId) {
+                    val id = runCatching {
+                        (JSONObject(response.body?.string().orEmpty()).opt("id") as? Number)?.toString()?.toIntOrNull()
+                    }.getOrNull()
+                    if (id == null || id <= 0 || (expectedId != null && id != expectedId)) throw NodeWriteUnconfirmedException()
+                }
+            }
+        } catch (_: java.io.IOException) {
+            throw NodeWriteUnconfirmedException()
+        }
+    }
+
+    internal suspend fun createNode(session: Session, draft: NodeDraft) = withContext(Dispatchers.IO) {
+        val body = oneShot(NodeEditMerge.create(draft).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request, requireResponseId = true)
+    }
+
+    internal suspend fun modifyNode(session: Session, initial: NodeSnapshot, draft: NodeDraft) = withContext(Dispatchers.IO) {
+        val latest = nodeSnapshot(session, initial.id)
+        val changes = NodeEditMerge.update(initial, latest, draft)
+        // A PUT restarts an enabled node, so an already-satisfied edit must not send one.
+        if (changes.length() == 1 && changes.optInt("api_port", -1) == latest.apiPort) return@withContext
+        val body = oneShot(changes.toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/${initial.id}")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).put(body).build()
+        executeNodeWrite(request, expectedId = initial.id, requireResponseId = true)
+    }
+
+    internal suspend fun deleteNode(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).delete(oneShot("".toRequestBody())).build()
+        executeNodeWrite(request)
+    }
+
+    /** This synchronizes users, not the node software. The panel defaults flush_users to true. */
+    internal suspend fun syncNodeUsers(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/sync?flush_users=true")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).put(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request, expectedId = nodeId, requireResponseId = true)
+    }
+
+    /** Request a node reconnection without replaying an uncertain result. */
     suspend fun reconnectNode(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
-        executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reconnect")
-                .post("".toRequestBody(jsonType)).build()
-        )
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reconnect")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request)
     }
 
     // ── جریانِ لاگِ نود (SSE) ──────────────────────────────────────────────
@@ -624,7 +732,9 @@ object PanelApi {
      * `ApiErrorMapper` بتواند ۴۰۳ «مجوزِ nodes.logs نداری» را خوانا نشان بدهد.
      */
     internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection {
+        require(nodeId > 0)
         val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
+            .tag(NodeLogMarker::class.java, NodeLogMarker)
             .header("Accept", "text/event-stream")
             .header("Cache-Control", "no-cache")
             .get().build()
@@ -1928,8 +2038,12 @@ object PanelApi {
     }
 
     /** Core errors must not retain server-echoed configuration or credentials. */
-    private fun executeCoreForBody(request: Request, httpClient: OkHttpClient = client): CoreHttpBody =
-        httpClient.newCall(request).execute().use { response ->
+    private fun executeCoreForBody(
+        request: Request,
+        httpClient: OkHttpClient = client,
+        unconfirmedOnServerError: Boolean = false
+    ): CoreHttpBody = httpClient.newCall(request).execute().use { response ->
+            if (unconfirmedOnServerError && response.code >= 500) throw CoreUpdateUnconfirmedException()
             if (!response.isSuccessful) error("Request failed: ${response.code}")
             val raw = response.body?.string().orEmpty()
             val json = runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
@@ -1940,7 +2054,8 @@ object PanelApi {
     internal suspend fun core(session: Session, coreId: Int): PanelCore = withContext(Dispatchers.IO) {
         require(coreId > 0) { "Invalid core id" }
         val response = executeCoreForBody(
-            requestBuilder(session, "${session.baseUrl}/api/core/$coreId").get().build()
+            requestBuilder(session, "${session.baseUrl}/api/core/$coreId").get().build(),
+            infrastructureReadClient
         )
         parseCompleteCore(response, coreId)
     }
@@ -2025,8 +2140,8 @@ object PanelApi {
         val url = "${session.baseUrl}/api/core/${core.id}?restart_nodes=$restartNodes"
         val updated = try {
             val request = requestBuilder(session, url).tag(CoreWriteMarker::class.java, CoreWriteMarker)
-                .put(body.toRequestBody(jsonType)).build()
-            executeCoreForBody(request, coreWriteClient)
+                .put(oneShot(body.toRequestBody(jsonType))).build()
+            executeCoreForBody(request, infrastructureWriteClient, unconfirmedOnServerError = true)
         } catch (_: java.io.IOException) {
             // The write may already have reached the server; do not invite a blind retry.
             throw CoreUpdateUnconfirmedException()

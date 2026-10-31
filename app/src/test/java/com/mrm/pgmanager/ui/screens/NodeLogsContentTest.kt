@@ -79,6 +79,7 @@ class NodeLogsContentTest {
     }
 
     private fun render(
+        displayNodes: List<PanelNode> = nodes,
         lines: List<NodeLogLine> = sample,
         total: Int = lines.size,
         filter: NodeLogFilter = NodeLogFilter(),
@@ -99,7 +100,7 @@ class NodeLogsContentTest {
     ) {
         rule.setContent {
             NodeLogsContent(
-                nodes = nodes,
+                nodes = displayNodes,
                 selectedNode = selectedNode,
                 stream = stream,
                 streamError = streamError,
@@ -144,6 +145,14 @@ class NodeLogsContentTest {
         // «هنوز خطی نرسیده» دروغ است وقتی ۴۱۲ خط در بافر است
         assertEquals(0, count(str(R.string.nl_empty)))
         assertEquals(0, count(str(R.string.nl_waiting)))
+    }
+
+    @Test fun `node list errors provide retry rather than claiming no nodes exist`() {
+        render(displayNodes = emptyList(), lines = emptyList(), nodesError = "Access denied")
+        assertEquals(1, count("Access denied"))
+        assertEquals(1, count(str(R.string.load_failed)))
+        assertEquals(1, count(str(R.string.retry)))
+        assertEquals(0, count(str(R.string.nl_no_node)))
     }
 
     @Test fun `empty buffer while connecting waits for the first line`() {

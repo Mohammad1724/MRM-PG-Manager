@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.api.NodeWriteUnconfirmedException
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.model.CountMetric
@@ -383,8 +384,11 @@ fun StatisticsScreen(
                                                     runCatching { PanelApi.reconnectNode(session, n.id) }
                                                         .onSuccess { load(true) }
                                                         .onFailure {
+                                                            if (it is kotlinx.coroutines.CancellationException) throw it
+                                                            if (it is NodeWriteUnconfirmedException) PanelCache.invalidate(nodesKey)
                                                             com.mrm.pgmanager.ui.feedback.AppFeedback.error(
-                                                                com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                                                                if (it is NodeWriteUnconfirmedException) context.getString(R.string.node_action_unconfirmed)
+                                                                else com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
                                                                 detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
                                                             )
                                                         }

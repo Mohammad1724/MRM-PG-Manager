@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,7 +42,8 @@ internal fun PGFormInput(
     maxLines: Int = if (singleLine) 1 else 5,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     leading: AppIcon? = null,
-    textStyle: TextStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+    textStyle: TextStyle = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
+    visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
     val theme = LocalThemeState.current
     val interaction = remember { MutableInteractionSource() }
@@ -54,6 +56,7 @@ internal fun PGFormInput(
         singleLine = singleLine,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
+        visualTransformation = visualTransformation,
         interactionSource = interaction,
         textStyle = style,
         cursorBrush = SolidColor(theme.inkColor),

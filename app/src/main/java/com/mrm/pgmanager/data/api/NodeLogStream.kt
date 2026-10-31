@@ -84,6 +84,8 @@ internal class NodeLogConnection(
     }
 }
 
+internal class NodeLogUnexpectedContentException : IllegalStateException("Node logs response is not an event stream")
+
 /** Cancel an in-flight handshake and close a response that cannot be delivered to its caller. */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal suspend fun connectNodeLog(call: Call, errorDetail: (String?) -> String): NodeLogConnection = kotlinx.coroutines.coroutineScope {
@@ -97,6 +99,11 @@ internal suspend fun connectNodeLog(call: Call, errorDetail: (String?) -> String
                         "Node logs failed: ${it.code} ${errorDetail(it.body?.string())}".trim()
                     }
                     error(message)
+                }
+                val mediaType = response.header("Content-Type")?.substringBefore(';')?.trim()
+                if (!mediaType.equals("text/event-stream", ignoreCase = true) || response.body == null) {
+                    response.close()
+                    throw NodeLogUnexpectedContentException()
                 }
                 val connection = try {
                     NodeLogConnection(call, response)

@@ -14,6 +14,9 @@
 | **هاست‌ها** | `GET /api/hosts`، `POST /api/host/`، `PUT /api/host/{id}`، `DELETE /api/host/{id}`، `POST /api/hosts/bulk/{enable,disable}` | فهرست + جست‌وجو، ساخت، ویرایش، فعال/غیرفعال (تکی و گروهی از سمتِ API)، حذف |
 | **Cores** | `GET /api/cores`, `GET/PUT/DELETE /api/core/{id}`, `POST /api/core/{id}/restart` | Search, edit name/type/excluded and fallback tags, restart nodes, delete |
 | **قالب‌های کلاینت** | `GET /api/client_templates`، `POST /api/client_templates`، `PUT /api/client_templates/{id}`، `DELETE /api/client_templates/{id}` | فهرست + جست‌وجو + فیلترِ نوع، ساخت (با انتخابِ نوع)، ویرایشِ نام/محتوا/پیش‌فرض، حذف |
+| **Nodes** | `GET /api/nodes`, `GET/PUT/DELETE /api/node/{id}`, `POST /api/node`, `PUT /api/node/{id}/sync`, `POST /api/node/{id}/reconnect` | Permission-gated list, create, edit, delete, user sync and reconnect |
+| **Inbounds** | `GET /api/inbounds/details` | Read-only tag, protocol and network list |
+| **WireGuard** | `GET /api/wireguard/subnets` | Read-only subnet capacity, usage, tags and the first free addresses |
 
 مجوزها از خودِ پنل خوانده می‌شوند (`hosts.*`، `cores.*`، `client_templates.*`) و
 دکمه‌های ساخت/ویرایش/حذف بر همان اساس پنهان می‌شوند؛ ولی تصمیمِ نهایی همیشه با
@@ -284,3 +287,32 @@ operations rather than nonfunctional buttons.
 - The Compose checks exercise selected controls in Robolectric; they are not visual
   sign-off or real-device validation. Activity recreation, keyboard/insets, TalkBack,
   real-panel behavior, the non-atomic GET/PUT race and `lintDebug` remain unverified.
+
+## Node, inbound, WireGuard and log follow-up
+
+- The infrastructure header remains fixed while all six sections share a scrolling
+  viewport. Node actions follow `nodes.read`, `nodes.create`, `nodes.update`,
+  `nodes.delete` and `nodes.reconnect`; the log stream uses `nodes.logs` and its node
+  selector also requires `nodes.read`. Inbounds require `system.read`, and the
+  read-only WireGuard inventory requires `cores.read`.
+- Node editing fetches a fresh snapshot, preserves untouched fields and credentials,
+  checks conflicts and explicitly preserves the panel's inherited `api_port` default.
+  The GET–PUT sequence is not atomic. Credentials remain in memory, and a sensitive
+  editor uses the secure-window treatment. An uncertain write is not automatically
+  replayed; refresh and verify its result before retrying. An already-satisfied edit
+  does not send a restart-triggering PUT.
+- User sync calls `PUT /api/node/{id}/sync?flush_users=true`, not the software-update
+  endpoint. The panel may only acknowledge a remotely queued request, so the app does
+  not claim that sync has finished. Deleting a node also removes its usage history.
+- Inbounds and WireGuard are read-only. WireGuard counts use arbitrary-precision
+  integers, and the app pages the free IPs actually returned by the panel; that list
+  is not necessarily every free address. No pool or core configuration is changed.
+- Logs distinguish permission, malformed response, invalid stream media type, normal
+  EOF and cancellation. A successful SSE handshake is shown as connected even while
+  the stream is quiet; the node list is fetched without the shared account cache.
+- The standalone verification ran 100 JUnit cases with real OkHttp 4.12, official
+  MockWebServer source, Android JSON/JsonReader implementations, and lightweight
+  Lifecycle/Robolectric stand-ins. Four Kotlin-produced node payloads also passed the
+  upstream Pydantic model validators with dependency stubs. These checks are not a
+  Gradle/Android build, a real Robolectric run, a visual or accessibility inspection,
+  or a live panel/device test; those still need an Android-capable environment.

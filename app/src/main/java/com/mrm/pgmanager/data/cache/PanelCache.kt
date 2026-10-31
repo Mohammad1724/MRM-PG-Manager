@@ -62,6 +62,11 @@ object PanelCache {
         entries[key] = Entry(value, clock())
     }
 
+    /** Invalidate one resource without discarding unrelated panel data. */
+    fun invalidate(key: String) {
+        entries.remove(key)
+    }
+
     @Suppress("UNCHECKED_CAST")
     fun <T> get(key: String): T? = entries[key]?.value as? T
 

@@ -459,6 +459,23 @@ class PanelInfraApiTest {
         assertEquals(2, server.requestCount)
     }
 
+    @Test fun `a core update does not replay a 503 immediate retry hint`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        server.enqueue(MockResponse().setResponseCode(503).setHeader("Retry-After", "0"))
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"renamed","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(CoreUpdateUnconfirmedException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals("GET", server.takeRequest().method)
+        assertEquals("PUT", server.takeRequest().method)
+        assertEquals(2, server.requestCount)
+    }
+
     @Test fun `an incomplete update response warns that the result is unconfirmed`() {
         server.enqueue(MockResponse().setBody(
             """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""

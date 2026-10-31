@@ -53,9 +53,9 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.NodeLogReadResult
+import com.mrm.pgmanager.data.api.NodeLogUnexpectedContentException
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.api.readNodeLogEvents
-import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.NodeLogFilter
 import com.mrm.pgmanager.data.model.NodeLogLine
 import com.mrm.pgmanager.data.model.NodeLogLevel
@@ -65,6 +65,7 @@ import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
 import com.mrm.pgmanager.ui.components.PGPageHeader
 import com.mrm.pgmanager.ui.components.MrmEmptyState
+import com.mrm.pgmanager.ui.components.MrmErrorState
 import com.mrm.pgmanager.ui.components.MrmText
 import com.mrm.pgmanager.ui.components.PGWrapRow
 import com.mrm.pgmanager.ui.components.PGBadge
@@ -87,6 +88,7 @@ import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 /** وضعیتِ جریانِ لاگ — حالت‌هایی که کاربر باید از هم تشخیص بدهد. */
@@ -140,10 +142,10 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val canLogs = AdminAccess.can("nodes", "logs")
-    val nodesKey = PanelCache.nodesKey(session.baseUrl)
 
-    var nodes by remember(session) { mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList()) }
-    var nodesLoading by remember(session) { mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) == null) }
+    // Do not reuse another account's panel-wide node cache before its access is verified.
+    var nodes by remember(session) { mutableStateOf(emptyList<PanelNode>()) }
+    var nodesLoading by remember(session) { mutableStateOf(true) }
     var nodesReady by remember(session) { mutableStateOf(false) }
     var nodesError by remember(session) { mutableStateOf<String?>(null) }
     // فقط نودِ متصل لاگ می‌دهد (پنل هم در انتخاب‌گرش بقیه را نمی‌گذارد).
@@ -167,27 +169,47 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
 
     val filter = NodeLogFilter(query = query, levels = levels, windowMs = windowMs)
 
-    suspend fun loadNodes(force: Boolean) {
-        if (!force && PanelCache.isFresh(nodesKey)) {
-            nodesLoading = false
-            nodesReady = true
-            return
-        }
-        runCatching { PanelApi.nodes(session) }
-            .onSuccess {
-                nodes = it
+    var nodesRequest by remember(session) { mutableStateOf(0L) }
+    suspend fun loadNodes() {
+        val request = ++nodesRequest
+        nodesLoading = nodes.isEmpty()
+        try {
+            val result = PanelApi.nodesStrict(session)
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (request == nodesRequest) {
+                nodes = result
                 nodesError = null
-                PanelCache.put(nodesKey, it)
             }
-            .onFailure {
-                if (it is CancellationException) throw it
-                nodesError = ApiErrorMapper.friendly(context, it)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (request == nodesRequest) {
+                val kind = ApiErrorMapper.kindOf(error)
+                if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN ||
+                    kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) nodes = emptyList()
+                nodesError = ApiErrorMapper.friendly(context, error)
             }
-        nodesLoading = false
-        nodesReady = true
+        } finally {
+            if (request == nodesRequest) {
+                nodesLoading = false
+                nodesReady = true
+            }
+        }
     }
 
-    LaunchedEffect(session) { loadNodes(force = false) }
+    LaunchedEffect(session, canLogs) {
+        if (canLogs) loadNodes() else {
+            nodesRequest++
+            nodes = emptyList()
+            nodesLoading = false
+            nodesReady = false
+            nodesError = null
+            lines = emptyList()
+            pending = emptyList()
+            streamError = null
+        }
+    }
 
     // Preserve a requested node until the initial list has actually been loaded.
     LaunchedEffect(connected, nodesReady) {
@@ -215,9 +237,12 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
             .onFailure {
                 if (it is CancellationException) throw it
                 stream = NodeLogStream.Failed
-                streamError = ApiErrorMapper.friendly(context, it)
+                streamError = if (it is NodeLogUnexpectedContentException) context.getString(R.string.nl_invalid_stream)
+                else ApiErrorMapper.friendly(context, it)
             }
             .getOrNull() ?: return@LaunchedEffect
+        // A quiet SSE stream is already connected once the server has accepted it.
+        stream = NodeLogStream.Streaming
         try {
             val result = readNodeLogEvents(conn) { event ->
                 val parsed = NodeLogs.parse(event, seq)
@@ -267,8 +292,10 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
         onDismissError = { streamError = null },
         onRefresh = {
             scope.launch {
-                loadNodes(force = true)
-                restartToken += 1
+                if (canLogs) {
+                    loadNodes()
+                    restartToken += 1
+                }
             }
         },
         onSelectNode = { id -> selected = id },
@@ -364,6 +391,7 @@ internal fun NodeLogsContent(
         }
 
         streamError?.let { InfraBanner(text = it, success = false) { onDismissError() } }
+        if (nodes.isNotEmpty()) nodesError?.let { InfraBanner(text = it, success = false) }
 
         when {
             // نقشِ بدونِ `nodes.logs`: درخواست ۴۰۳ می‌گرفت و پیامِ پنل برای
@@ -379,9 +407,11 @@ internal fun NodeLogsContent(
                 contentAlignment = Alignment.Center
             ) { MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp) }
 
+            nodes.isEmpty() && nodesError != null -> MrmErrorState(onRetry = onRefresh, message = nodesError)
+
             nodes.isEmpty() -> MrmEmptyState(
                 title = stringResource(R.string.nl_no_node),
-                subtitle = nodesError ?: stringResource(R.string.nl_no_node_hint),
+                subtitle = stringResource(R.string.nl_no_node_hint),
                 icon = AppIcon.Wifi
             ) {
                 PGSecondaryButton(

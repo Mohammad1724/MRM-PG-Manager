@@ -23,23 +23,8 @@ import com.mrm.pgmanager.ui.components.PGTabBar
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
-/**
- * «زیرساختِ پنل» — صفحهٔ سطحِ سرور برای سه چیزی که تا امروز فقط از پنلِ وب
- * قابلِ مدیریت بودند: **هاست‌ها** (سازندهٔ لینکِ اشتراک)، **کورها** (کانفیگِ
- * Xray/WireGuard/MTProto/sing-box) و **قالب‌های کلاینت** (خروجیِ اشتراک).
- *
- * ### چرا اینجا و نه در نوارِ پایین
- * نوارِ پایینِ اپ عمداً «کارِ روزمره» است (داشبورد، کاربران، آمار، گروه‌ها،
- * قالب‌های کاربر). این سه مورد کارِ «یک‌بار در ماه» است؛ گذاشتنشان روی نوارِ
- * پایین هم شلوغش می‌کرد و هم با سوایپِ سه‌انگشتی به آن‌ها می‌رسیدی. از تنظیمات
- * (تبِ «اتصال») باز می‌شوند و مثل خودِ تنظیمات یک صفحهٔ تمام‌قد روی محتوا هستند.
- *
- * ### چرا هر سه در یک صفحه با تب
- * هر سه به هم مربوط‌اند: هاست به `inbound_tag` یک کور اشاره می‌کند و قالبِ
- * کلاینت می‌تواند در خودِ هاست انتخاب شود. تب‌کردنشان اجازه می‌دهد کاربر بدونِ
- * گم‌شدن بین صفحه‌ها، این روابط را ببیند.
- *
- * @param onBack بستنِ صفحه (هم دکمهٔ برگشتِ سربرگ و هم دکمهٔ برگشتِ گوشی).
+/** Server infrastructure, including node management and read-only network inventories.
+ * The page header stays fixed while section tabs and content scroll together.
  */
 @Composable
 fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
@@ -50,7 +35,10 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
     val tabs = listOf(
         R.string.infra_tab_hosts,
         R.string.infra_tab_cores,
-        R.string.infra_tab_templates
+        R.string.infra_tab_templates,
+        R.string.infra_tab_nodes,
+        R.string.infra_tab_inbounds,
+        R.string.infra_tab_wireguard
     )
 
     // Tabs and section controls share the section's scroll viewport; the page header does not.
@@ -80,7 +68,11 @@ fun PanelInfraScreen(session: Session, onBack: () -> Unit) {
             when (tab) {
                 0 -> HostsSection(session, sectionTabs)
                 1 -> CoresSection(session, sectionTabs)
-                else -> ClientTemplatesSection(session, sectionTabs)
+                2 -> ClientTemplatesSection(session, sectionTabs)
+                3 -> NodesSection(session, sectionTabs)
+                4 -> InboundsSection(session, sectionTabs)
+                5 -> WireGuardSection(session, sectionTabs)
+                else -> HostsSection(session, sectionTabs)
             }
         }
     }

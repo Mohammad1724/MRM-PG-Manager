@@ -76,6 +76,16 @@ class PanelCacheTest {
         )
     }
 
+    @Test fun `invalidating nodes does not remove unrelated cached resources`() {
+        val nodesKey = PanelCache.nodesKey("https://panel.example")
+        val statsKey = PanelCache.statsKey("https://panel.example")
+        PanelCache.put(nodesKey, listOf("node"))
+        PanelCache.put(statsKey, "stats")
+        PanelCache.invalidate(nodesKey)
+        assertNull(PanelCache.get<Any>(nodesKey))
+        assertEquals("stats", PanelCache.get<String>(statsKey))
+    }
+
     @Test fun `clear wipes every range for the account`() {
         PanelCache.put(PanelCache.trafficKey("b", "LAST_7D"), listOf(TrafficPoint("t", 1)))
         PanelCache.clear()
