@@ -248,6 +248,43 @@ class NodeManagementApiTest {
         assertEquals("/api/node/7/reconnect", reconnect.path)
     }
 
+    @Test fun `maintenance requests match panel endpoints and payloads`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"id":7}"""))
+        PanelApi.resetNodeUsage(session, 7)
+        assertEquals("/api/node/7/reset", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.updateNodeSoftware(session, 7)
+        assertEquals("/api/node/7/update", server.takeRequest().path)
+
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.updateNodeCore(session, 7, "v25.8.31")
+        val core = server.takeRequest()
+        assertEquals("POST", core.method)
+        assertEquals("/api/node/7/core_update", core.path)
+        assertEquals("v25.8.31", JSONObject(core.body.readUtf8()).getString("core_version"))
+
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.updateNodeGeofiles(session, 7, "iran")
+        val geo = server.takeRequest()
+        assertEquals("/api/node/7/geofiles", geo.path)
+        assertEquals("iran", JSONObject(geo.body.readUtf8()).getString("region"))
+    }
+
+    @Test fun `invalid maintenance parameters are rejected before network access`() {
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { PanelApi.updateNodeCore(session, 7, "../latest") } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { PanelApi.updateNodeGeofiles(session, 7, "other") } }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `maintenance requests are not replayed after an uncertain response`() {
+        server.enqueue(MockResponse().setResponseCode(503).setHeader("Retry-After", "0"))
+        server.enqueue(MockResponse().setBody("{}"))
+        assertThrows(NodeWriteUnconfirmedException::class.java) { runBlocking { PanelApi.updateNodeCore(session, 7, "latest") } }
+        assertEquals("/api/node/7/core_update", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
     @Test fun `authenticated infrastructure reads do not follow redirects to another server`() {
         val other = MockWebServer()
         other.start()

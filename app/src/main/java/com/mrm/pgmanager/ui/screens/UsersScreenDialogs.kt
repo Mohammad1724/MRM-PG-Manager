@@ -645,7 +645,20 @@ internal fun UsersScreenDialogs(
             user = user,
             onDismiss = { ui.selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                ui.selectedUser = null; ui.runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds); if (iso != null) store.saveRenewalDate(session.baseUrl, user.id, LocalDate.now().toString()) }
+                ui.selectedUser = null
+                ui.runAction {
+                    val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi)
+                    PanelApi.modifyUser(
+                        session, user, limitGb.value, iso,
+                        if (limitGb.keepNote) null else limitGb.note, limitGb.hwidLimit,
+                        if (limitGb.keepGroupIds) null else limitGb.groupIds,
+                        limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status,
+                        limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds,
+                        dataLimitBytes = limitGb.dataLimitBytes, keepDataLimit = limitGb.keepDataLimit,
+                        clearHwidLimit = limitGb.clearHwidLimit
+                    )
+                    if (iso != null) store.saveRenewalDate(session.baseUrl, user.id, LocalDate.now().toString())
+                }
             },
             onToggle = {
                 ui.selectedUser = null
@@ -670,7 +683,7 @@ internal fun UsersScreenDialogs(
                 ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
                     val renewedOn = LocalDate.now()
                     val newExpire = renewedOn.plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, keepDataLimit = true)
                     store.saveRenewalDate(session.baseUrl, user.id, renewedOn.toString())
                 }
             },
@@ -733,8 +746,16 @@ internal fun UsersScreenDialogs(
         }
     }
     if (ui.createUser) UserEditorDialog(initial = null, onDismiss = { ui.createUser = false }, onSave = { limitGb, expireShamsi ->
-        ui.createUser = false; ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
-    }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
+        ui.createUser = false
+        ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) {
+            val iso = JalaliCalendar.shamsiToIso(expireShamsi)
+            PanelApi.createUser(
+                session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds,
+                limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status,
+                limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds, dataLimitBytes = limitGb.dataLimitBytes
+            )
+        }
+    }, onSaveWithTemplate = { username, templateId, note ->
         ui.createUser = false; ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)
     ui.deleteUser?.let { user ->
@@ -856,7 +877,7 @@ internal fun UsersScreenDialogs(
                 ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
                     val renewedOn = LocalDate.now()
                     val newExpire = renewedOn.plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
+                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, keepDataLimit = true)
                     store.saveRenewalDate(session.baseUrl, targetUser.id, renewedOn.toString())
                 }
             }

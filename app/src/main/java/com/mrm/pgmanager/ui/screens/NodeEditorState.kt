@@ -31,7 +31,7 @@ internal data class ActiveNodeEditor(
 internal data class NodeSaveNotice(val requestId: Long, val session: Session, val created: Boolean) {
     override fun toString(): String = "NodeSaveNotice(requestId=$requestId, created=$created)"
 }
-internal enum class NodeAction { DELETE, SYNC, RECONNECT }
+internal enum class NodeAction { DELETE, SYNC, RECONNECT, RESET_USAGE, UPDATE_NODE, UPDATE_CORE, UPDATE_GEOFILES }
 internal data class NodeActionRequest(val requestId: Long, val session: Session, val nodeId: Int, val action: NodeAction) {
     override fun toString(): String = "NodeActionRequest(requestId=$requestId, nodeId=$nodeId, action=$action)"
 }

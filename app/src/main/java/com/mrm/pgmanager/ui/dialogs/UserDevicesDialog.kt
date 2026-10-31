@@ -155,7 +155,11 @@ fun UserDevicesDialog(
                     )
                 }
                 Text(
-                    stringResource(R.string.ud_devices_count, devices.size, limit ?: 0),
+                    when (limit) {
+                        null -> stringResource(R.string.ud_devices_count_default, devices.size)
+                        0 -> stringResource(R.string.ud_devices_count_unlimited, devices.size)
+                        else -> stringResource(R.string.ud_devices_count, devices.size, limit)
+                    },
                     fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
                 )
             }

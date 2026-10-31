@@ -96,7 +96,8 @@ class NodeLogsContentTest {
         onReconnect: () -> Unit = {},
         onToggleLevel: (NodeLogLevel) -> Unit = {},
         onWindowChange: (String) -> Unit = {},
-        onCopy: (List<NodeLogLine>) -> Unit = {}
+        onCopy: (List<NodeLogLine>) -> Unit = {},
+        onExport: (List<NodeLogLine>) -> Unit = {}
     ) {
         rule.setContent {
             NodeLogsContent(
@@ -123,7 +124,8 @@ class NodeLogsContentTest {
                 onQueryChange = {},
                 onToggleLevel = onToggleLevel,
                 onWindowChange = onWindowChange,
-                onCopy = onCopy
+                onCopy = onCopy,
+                onExport = onExport
             )
         }
     }
@@ -188,6 +190,13 @@ class NodeLogsContentTest {
         assertEquals(listOf("panic: runtime error", "accepted tcp:1.1.1.1:443"), copied.map { it.message })
     }
 
+    @Test fun `export offers exactly the visible lines`() {
+        var exported: List<NodeLogLine> = emptyList()
+        render(lines = sample.take(1), total = sample.size, onExport = { exported = it })
+        rule.onNodeWithContentDescription(str(R.string.nl_export)).performClick()
+        assertEquals(listOf("panic: runtime error"), exported.map { it.message })
+    }
+
     @Test fun `pause and resume buttons report which state the screen should flip`() {
         var taps = 0
         render(paused = true, buffered = 7, onTogglePause = { taps++ })
@@ -201,6 +210,14 @@ class NodeLogsContentTest {
     @Test fun `a closed stream offers to resume`() {
         var reconnects = 0
         render(stream = NodeLogStream.Ended, onReconnect = { reconnects++ })
+        rule.onNodeWithText(str(R.string.nl_reconnect)).performClick()
+        assertEquals(1, reconnects)
+    }
+
+    @Test fun `retrying stream shows status and allows immediate retry`() {
+        var reconnects = 0
+        render(stream = NodeLogStream.Retrying, onReconnect = { reconnects++ })
+        assertEquals(1, count(str(R.string.nl_retrying)))
         rule.onNodeWithText(str(R.string.nl_reconnect)).performClick()
         assertEquals(1, reconnects)
     }

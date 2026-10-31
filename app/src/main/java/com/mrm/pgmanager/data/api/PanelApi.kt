@@ -712,6 +712,37 @@ object PanelApi {
         executeNodeWrite(request)
     }
 
+    /** Node maintenance is side-effecting and is never automatically replayed. */
+    internal suspend fun resetNodeUsage(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reset")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request, expectedId = nodeId, requireResponseId = true)
+    }
+
+    internal suspend fun updateNodeSoftware(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/update")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request)
+    }
+
+    internal suspend fun updateNodeCore(session: Session, nodeId: Int, version: String) = withContext(Dispatchers.IO) {
+        require(nodeId > 0 && Regex("^(latest|v?\\d+\\.\\d+\\.\\d+)$").matches(version))
+        val body = oneShot(JSONObject().put("core_version", version).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/core_update")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request)
+    }
+
+    internal suspend fun updateNodeGeofiles(session: Session, nodeId: Int, region: String) = withContext(Dispatchers.IO) {
+        require(nodeId > 0 && region in setOf("iran", "china", "russia"))
+        val body = oneShot(JSONObject().put("region", region).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/geofiles")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request)
+    }
+
     // ── جریانِ لاگِ نود (SSE) ──────────────────────────────────────────────
     //
     // پنل لاگ را با `EventSourceResponse` می‌دهد (`GET /api/node/{id}/logs`،
@@ -978,16 +1009,17 @@ object PanelApi {
      * به‌جای `expire` فقط `on_hold_expire_duration` (ثانیه، > 0) فرستاده می‌شود؛ شمارش اعتبار
      * با اولین اتصال کاربر شروع می‌شود.
      */
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null, dataLimitBytes: Long? = null) = withContext(Dispatchers.IO) {
+        validateOnHold(status, onHoldExpireSeconds, onHoldTimeoutSeconds)
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
-        val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", gbToBytes(limitGb))
+        val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", dataLimitBytes ?: gbToBytes(limitGb))
         if (onHold) {
             body.put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // پنل عددِ صحیح را «ثانیه از الان» تعبیر می‌کند.
             if (onHoldTimeoutSeconds != null && onHoldTimeoutSeconds > 0L) body.put("on_hold_timeout", onHoldTimeoutSeconds)
         } else body.put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
-        if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
+        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
         nextPlanJson(nextPlan)?.let { body.put("next_plan", it) }
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
@@ -1004,36 +1036,51 @@ object PanelApi {
      * قواعدِ «دست‌نزدن» (همه بر اساسِ `crud.modify_user` پنل v5.4.1):
      *  - `expireIso == null` → کلیدِ `expire` اصلاً فرستاده نمی‌شود (پنل تاریخِ فعلی را نگه می‌دارد).
      *    `""` همچنان یعنی «نامحدود» (expire = 0).
-     *  - `note` همیشه فرستاده می‌شود، چون پنل `""` را «پاک کن» می‌فهمد و اگر کلید نیاید
-     *    یادداشتِ قبلی می‌ماند — قبلاً امکانِ پاک‌کردنِ یادداشت وجود نداشت.
-     *  - `next_plan`: پنل اگر این کلید در بدنه **نباشد**، پلنِ بعدیِ موجود را حذف می‌کند
-     *    (`elif db_user.next_plan is not None: delete`). پس اگر صداکننده چیزی نداده،
-     *    پلنِ فعلیِ خودِ کاربر دوباره فرستاده می‌شود تا با یک «تمدید» بی‌صدا از بین نرود.
+     *  - `note`: null omits it; an explicitly edited empty string clears it.
+     *  - `next_plan`: panel 5.5.1 checks model_fields_set; omission preserves the current plan,
+     *    while an explicit null clears it. Do not re-send a potentially stale snapshot.
      */
-    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String?, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String?, note: String? = null, hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null, dataLimitBytes: Long? = null, keepDataLimit: Boolean = false, clearHwidLimit: Boolean = false) = withContext(Dispatchers.IO) {
+        require(autoDeleteDays == null || autoDeleteDays == user.autoDeleteDays) {
+            "Panel 5.5.1 ignores auto-delete changes on user updates"
+        }
+        require(!(status == "active" && (user.status == "on_hold" ||
+            (user.status == "disabled" && user.onHoldExpireDuration != null)))) {
+            "Panel 5.5.1 cannot clear the stored on-hold duration through this endpoint"
+        }
+        validateOnHold(status, onHoldExpireSeconds, onHoldTimeoutSeconds)
+        require(!(user.onHoldTimeout != null && onHoldTimeoutSeconds == 0L)) {
+            "Panel 5.5.1 cannot clear an existing on-hold deadline through this endpoint"
+        }
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
-        val body = JSONObject().put("data_limit", gbToBytes(limitGb))
+        val body = JSONObject()
+        if (!keepDataLimit) body.put("data_limit", dataLimitBytes ?: gbToBytes(limitGb))
         if (onHold) {
             body.put("status", "on_hold").put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
-            // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
-            onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
         } else {
             if (expireIso != null) body.put("expire", expireValue(expireIso))
-            if (status == "active") body.put("status", "active")
+            if (status == "active" || status == "disabled") body.put("status", status)
         }
-        body.put("note", note.trim())
-        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
+        // Timeout edits do not require resending an unchanged on-hold duration.
+        onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it) }
+        note?.let { body.put("note", it.trim()) }
+        if (clearHwidLimit) body.put("hwid_limit", JSONObject.NULL)
+        else if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
-        // null یعنی «دست نزن» → پلنِ فعلیِ کاربر دوباره فرستاده می‌شود؛ قالبِ خالی یعنی «پاکش کن».
-        val planToSend = nextPlan ?: user.nextPlan
-        if (planToSend != null) body.put("next_plan", nextPlanJson(planToSend) ?: JSONObject.NULL)
+        // A null argument omits the field; an explicitly empty plan clears it.
+        if (nextPlan != null) body.put("next_plan", nextPlanJson(nextPlan) ?: JSONObject.NULL)
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
-        // null یعنی «دست نزن»، عددِ صفر یعنی «حذفِ خودکار را بردار».
-        autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
+        // Panel 5.5.1 does not apply auto_delete_in_days in its user update path.
         executeJson(requestBuilder(session, userUrl(session, user)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
-    /** on_hold فقط وقتی معتبر است که مدتِ مثبت داشته باشد؛ در غیر این صورت مثل درخواستِ عادی رفتار می‌شود. */
+    private fun validateOnHold(status: String?, duration: Long?, timeout: Long?) {
+        if (status == "on_hold") {
+            require(duration != null && duration in 1L..MAX_PLAN_SECONDS) { "Invalid on-hold duration" }
+        }
+        require(timeout == null || timeout in 0L..MAX_PLAN_SECONDS) { "Invalid on-hold deadline" }
+    }
+
     private fun isOnHoldRequest(status: String?, onHoldExpireSeconds: Long?): Boolean =
         status == "on_hold" && (onHoldExpireSeconds ?: 0L) > 0L
 
@@ -1133,7 +1180,7 @@ object PanelApi {
             onlineAt = onlineAtStr,
             isOnline = isOnline,
             note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
-            hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 },
+            hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it >= 0 },
             groupIds = groupIds,
             groupNames = groupNames,
             lifetimeUsedTraffic = user.optLong("lifetime_used_traffic", 0L),
@@ -1151,7 +1198,7 @@ object PanelApi {
             onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
             onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" },
             dataLimitResetStrategy = if (user.isNull("data_limit_reset_strategy")) null else user.optString("data_limit_reset_strategy").takeIf { it.isNotBlank() && it != "null" },
-            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 },
+            autoDeleteDays = if (!user.has("auto_delete_in_days") || user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days"),
             // PasarGuard v5.5: تعداد دستگاه در خودِ پاسخِ لیست می‌آید (بدونِ درخواستِ جداگانهٔ HWID).
             // `null` = عدد در دسترس نیست؛ صفر یک مقدارِ واقعی است («دستگاهی ثبت نشده»).
             hwidCount = if (user.isNull("hwid_count")) null else user.optInt("hwid_count").takeIf { it >= 0 }

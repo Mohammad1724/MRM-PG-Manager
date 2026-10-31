@@ -172,7 +172,7 @@ fun DashboardScreen(
             PanelCache.put(statsKey, it)
             // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5 (همین پاسخ، بدونِ درخواستِ اضافه).
             com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(it) }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { store.saveStatsCache(session, it) }
             refreshDebtors()
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
@@ -181,10 +181,18 @@ fun DashboardScreen(
                 com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                 onSessionExpired()
                 expired = true
+            } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
+                stats = null
+                offlineAt = null
+                PanelCache.invalidate(statsKey)
+                store.invalidateStatsCache(session)
+                error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             } else {
                 // F5: latch مشترکِ ورکر و ID یکتا (5104) تا دو موتور یک اعلان بسازند.
                 if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) { NotificationHelper.post(context, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); store.saveAlertFlag("panel_offline", true) }
-                val cache = if (settings.offlineCacheEnabled) store.readStatsCache() else null
+                val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e)
+                val cache = if (settings.offlineCacheEnabled && com.mrm.pgmanager.data.AdminAccess.can("system", "read") &&
+                    com.mrm.pgmanager.utils.ApiErrorMapper.isTransient(kind)) store.readStatsCache(session) else null
                 if (cache != null) { stats = cache.first; offlineAt = cache.second; error = null }
                 else error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             }

@@ -68,10 +68,10 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
     val saveNotice = editorSnapshot.notice?.takeIf { it.session == session }
 
     val coresKey = PanelCache.coresKey(session.baseUrl)
-    var cores by remember(session) {
-        mutableStateOf(PanelCache.get<List<PanelCore>>(coresKey) ?: emptyList())
-    }
-    var loading by remember(session) { mutableStateOf(PanelCache.get<List<PanelCore>>(coresKey) == null) }
+    val accessState = com.mrm.pgmanager.data.AdminAccess.state
+    val canRead = com.mrm.pgmanager.data.AdminAccess.can("cores", "read")
+    var cores by remember(session) { mutableStateOf(emptyList<PanelCore>()) }
+    var loading by remember(session) { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -87,6 +87,12 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
 
     suspend fun load() {
         val request = ++loadRequest
+        if (!canRead) {
+            cores = emptyList()
+            loading = false
+            loadError = null
+            return
+        }
         try {
             val result = PanelApi.cores(session)
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
@@ -99,18 +105,20 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
             throw e
         } catch (e: Exception) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
-            if (request == loadRequest) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+            if (request == loadRequest) {
+                val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e)
+                if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN || kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) cores = emptyList()
+                loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+            }
         } finally {
             if (request == loadRequest) loading = false
         }
     }
 
-    LaunchedEffect(session) {
+    LaunchedEffect(session, canRead) {
         editor.bind(session)
-        if (!PanelCache.isFresh(coresKey)) {
-            loading = cores.isEmpty()
-            load()
-        }
+        loading = canRead
+        load()
     }
 
     LaunchedEffect(saveNotice) {
@@ -133,8 +141,8 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
         if (q.isEmpty()) cores
         else cores.filter { it.name.contains(q, ignoreCase = true) }
     }
-    val canUpdate = com.mrm.pgmanager.data.AdminAccess.can("cores", "update")
-    val canDelete = com.mrm.pgmanager.data.AdminAccess.can("cores", "delete")
+    val canUpdate = canRead && com.mrm.pgmanager.data.AdminAccess.can("cores", "update")
+    val canDelete = canRead && com.mrm.pgmanager.data.AdminAccess.can("cores", "delete")
 
     val intro = if (filtered.isNotEmpty()) rememberListIntro() else null
     InfraScrollableContent(
@@ -145,8 +153,8 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
                 InfraSectionHeader(
                     title = stringResource(R.string.cores_title),
                     subtitle = stringResource(R.string.cores_subtitle),
-                    count = cores.size,
-                    onRefresh = { scope.launch { loading = cores.isEmpty(); load() } },
+                    count = if (canRead) cores.size else null,
+                    onRefresh = { if (canRead) scope.launch { loading = cores.isEmpty(); load() } },
                     // ساخت از گوشی ممکن نیست (کانفیگِ JSON کامل لازم است) — توضیحش در حالتِ خالی است.
                     onAdd = null,
                     addLabel = ""
@@ -165,6 +173,19 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
         }
     ) {
         when {
+            accessState == com.mrm.pgmanager.data.AdminAccessState.Unknown ||
+                accessState == com.mrm.pgmanager.data.AdminAccessState.Loading -> item(key = "cores_access_loading") {
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
+                }
+            }
+            !canRead -> item(key = "cores_permission") {
+                MrmEmptyState(
+                    title = stringResource(if (accessState == com.mrm.pgmanager.data.AdminAccessState.Unavailable) R.string.access_unavailable_title else R.string.core_read_permission),
+                    subtitle = stringResource(if (accessState == com.mrm.pgmanager.data.AdminAccessState.Unavailable) R.string.access_unavailable else R.string.core_read_permission_hint),
+                    icon = AppIcon.Lock
+                )
+            }
             loading && cores.isEmpty() -> item(key = "cores_loading") {
                 Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                     MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
@@ -203,7 +224,7 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
         }
     }
 
-    activeEditor?.let { current ->
+    activeEditor?.takeIf { canUpdate }?.let { current ->
         val target = current.initial
         var tagsLoading by remember(target) { mutableStateOf(true) }
         var availableTags by remember(target) { mutableStateOf<List<String>?>(null) }
@@ -253,7 +274,7 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
         )
     }
 
-    restarting?.let { target ->
+    restarting?.takeIf { canUpdate }?.let { target ->
         ConfirmActionDialog(
             title = stringResource(R.string.core_restart),
             message = stringResource(R.string.core_restart_confirm, target.name),
@@ -279,7 +300,7 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
         )
     }
 
-    deleting?.let { target ->
+    deleting?.takeIf { canDelete }?.let { target ->
         ConfirmActionDialog(
             title = stringResource(R.string.delete_core),
             message = stringResource(R.string.delete_core_confirm, target.name),

@@ -1,5 +1,7 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +61,7 @@ import com.mrm.pgmanager.data.api.readNodeLogEvents
 import com.mrm.pgmanager.data.model.NodeLogFilter
 import com.mrm.pgmanager.data.model.NodeLogLine
 import com.mrm.pgmanager.data.model.NodeLogLevel
+import com.mrm.pgmanager.data.model.NodeLogRetryPolicy
 import com.mrm.pgmanager.data.model.NodeLogs
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.data.model.Session
@@ -81,12 +84,15 @@ import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.dialogs.ChipSelector
+import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.ApiErrorMapper
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
@@ -98,6 +104,9 @@ enum class NodeLogStream {
 
     /** درخواست رفته، هنوز اولین خط نیامده. */
     Connecting,
+
+    /** A transient failure is waiting for a bounded automatic reconnect. */
+    Retrying,
 
     /** حداقل یک خط رسیده و جریان باز است. */
     Streaming,
@@ -121,9 +130,8 @@ enum class NodeLogStream {
  * ### سه تصمیمی که فرق می‌کنند
  *  • The screen's coroutine cancels its own connection on disposal or restart;
  *    the stream reader interrupts a blocked handshake or read and closes its response.
- *  • **بازاتصالِ خودکار نداریم.** مرورگرِ پنل EventSource را خودش دوباره باز
- *    می‌کند، ولی روی موبایلِ ضعیف همان یعنی حلقهٔ بی‌پایانِ درخواست. جریان که
- *    بسته شد، وضعیت روی صفحه می‌آید و «ادامهٔ دریافت» یک تپ است.
+ *  • Transient disconnects use a bounded exponential backoff. Authorization and
+ *    invalid-content failures stop immediately; manual reconnect remains available.
  *  • **بافرِ حلقوی، نه بی‌نهایت.** فقط `NodeLogs.MaxLines` خطِ آخر می‌ماند؛ با
  *    نودِ پرحجم (access log) وگرنه چند دقیقه نگاه‌داشتنِ لاگ پروسه را می‌کُشد.
  *  • «محدودۀ خط»ِ جدا (مثلِ `LineCountFilter` پنل) ندارد: همان سقفِ بافر روی
@@ -142,6 +150,22 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val canLogs = AdminAccess.can("nodes", "logs")
+    var pendingExport by remember(session) { mutableStateOf<String?>(null) }
+    var confirmExport by remember(session) { mutableStateOf<List<NodeLogLine>?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        val text = pendingExport
+        pendingExport = null
+        if (uri != null && text != null) scope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                runCatching {
+                    val output = context.contentResolver.openOutputStream(uri) ?: error("Unable to open output")
+                    output.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                }.isSuccess
+            }
+            if (saved) com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.us_file_saved))
+            else com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_file_save_failed))
+        }
+    }
 
     // Do not reuse another account's panel-wide node cache before its access is verified.
     var nodes by remember(session) { mutableStateOf(emptyList<PanelNode>()) }
@@ -207,6 +231,8 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
             nodesError = null
             lines = emptyList()
             pending = emptyList()
+            confirmExport = null
+            pendingExport = null
             streamError = null
         }
     }
@@ -223,41 +249,59 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
     LaunchedEffect(session, selected) {
         lines = emptyList()
         pending = emptyList()
+        confirmExport = null
     }
 
-    LaunchedEffect(session, selected, restartToken, canLogs, nodesReady) {
+    val selectedConnected = connected.any { it.id == selected }
+    LaunchedEffect(session, selected, restartToken, canLogs, nodesReady, selectedConnected) {
         val node = selected
-        if (!nodesReady || !canLogs || node == null || connected.none { it.id == node }) {
+        if (!nodesReady || !canLogs || node == null || !selectedConnected) {
             stream = NodeLogStream.Idle
             return@LaunchedEffect
         }
-        stream = NodeLogStream.Connecting
-        streamError = null
-        val conn = runCatching { PanelApi.openNodeLogs(session, node) }
-            .onFailure {
-                if (it is CancellationException) throw it
-                stream = NodeLogStream.Failed
-                streamError = if (it is NodeLogUnexpectedContentException) context.getString(R.string.nl_invalid_stream)
-                else ApiErrorMapper.friendly(context, it)
-            }
-            .getOrNull() ?: return@LaunchedEffect
-        // A quiet SSE stream is already connected once the server has accepted it.
-        stream = NodeLogStream.Streaming
-        try {
-            val result = readNodeLogEvents(conn) { event ->
-                val parsed = NodeLogs.parse(event, seq)
-                seq += parsed.size.toLong()
-                if (parsed.isNotEmpty()) {
-                    if (paused) pending = NodeLogs.appendTrim(pending, parsed)
-                    else lines = NodeLogs.appendTrim(lines, parsed)
-                    if (stream != NodeLogStream.Streaming) stream = NodeLogStream.Streaming
+        var attempts = 0
+        while (true) {
+            stream = NodeLogStream.Connecting
+            streamError = null
+            var connectedAtNanos: Long? = null
+            var failure: Exception? = null
+            try {
+                val connection = PanelApi.openNodeLogs(session, node)
+                // A quiet SSE stream is already connected once the server accepts it.
+                connectedAtNanos = System.nanoTime()
+                stream = NodeLogStream.Streaming
+                val result = readNodeLogEvents(connection) { event ->
+                    val parsed = NodeLogs.parse(event, seq)
+                    seq += parsed.size.toLong()
+                    if (parsed.isNotEmpty()) {
+                        if (paused) pending = NodeLogs.appendTrim(pending, parsed)
+                        else lines = NodeLogs.appendTrim(lines, parsed)
+                    }
                 }
+                if (result == NodeLogReadResult.Closed) return@LaunchedEffect
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                failure = error
             }
-            if (result == NodeLogReadResult.Ended) stream = NodeLogStream.Ended
-        } catch (error: Exception) {
-            if (error is CancellationException) throw error
-            stream = NodeLogStream.Failed
-            streamError = ApiErrorMapper.friendly(context, error)
+            // A stable stream resets the budget; an immediate error event followed by EOF does not.
+            val connectedAt = connectedAtNanos
+            if (connectedAt != null && System.nanoTime() - connectedAt >= 60_000_000_000L) attempts = 0
+            val transient = failure == null ||
+                (failure !is NodeLogUnexpectedContentException && ApiErrorMapper.isTransient(ApiErrorMapper.kindOf(failure)))
+            if (!transient || attempts >= NodeLogRetryPolicy.MaxAttempts) {
+                stream = if (failure == null) NodeLogStream.Ended else NodeLogStream.Failed
+                streamError = when (failure) {
+                    null -> null
+                    is NodeLogUnexpectedContentException -> context.getString(R.string.nl_invalid_stream)
+                    else -> ApiErrorMapper.friendly(context, failure)
+                }
+                return@LaunchedEffect
+            }
+            attempts++
+            stream = NodeLogStream.Retrying
+            streamError = failure?.let { ApiErrorMapper.friendly(context, it) }
+            delay(NodeLogRetryPolicy.delayMillis(attempts))
         }
     }
 
@@ -272,6 +316,12 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
     }
     val visible = remember(lines, query, levels, windowMs, filterNow) {
         NodeLogs.visible(lines, filter, filterNow)
+    }
+
+    fun formatLogRows(rows: List<NodeLogLine>): String = rows.joinToString("\n") { row ->
+        val stamp = row.timestampText?.takeIf { it.isNotBlank() }
+            ?: row.timestampMs?.let { logTimeFormat.format(Date(it)) }
+        if (stamp.isNullOrBlank()) row.message else "$stamp ${row.message}"
     }
 
     NodeLogsContent(
@@ -317,16 +367,24 @@ fun NodeLogsScreen(session: Session, nodeId: Int? = null, onBack: () -> Unit) {
         },
         onWindowChange = { key -> windowMs = NodeLogFilter.msOf(key) },
         onCopy = { rows ->
-            val text = rows.joinToString("\n") { row ->
-                val stamp = row.timestampText?.takeIf { it.isNotBlank() }
-                    ?: row.timestampMs?.let { logTimeFormat.format(Date(it)) }
-                if (stamp.isNullOrBlank()) row.message else "$stamp ${row.message}"
-            }
             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.nl_title), text))
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.nl_title), formatLogRows(rows)))
             com.mrm.pgmanager.ui.feedback.AppFeedback.success(context.getString(R.string.copied))
-        }
+        },
+        onExport = { rows -> confirmExport = rows.toList() }
     )
+    confirmExport?.let { rows ->
+        ConfirmActionDialog(
+            title = stringResource(R.string.nl_export), message = stringResource(R.string.nl_export_warning),
+            confirmLabel = stringResource(R.string.nl_export), onDismiss = { confirmExport = null },
+            onConfirm = {
+                pendingExport = formatLogRows(rows)
+                confirmExport = null
+                val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+                exportLauncher.launch("node-logs-$stamp.txt")
+            }
+        )
+    }
 }
 
 /**
@@ -363,7 +421,8 @@ internal fun NodeLogsContent(
     onQueryChange: (String) -> Unit,
     onToggleLevel: (NodeLogLevel) -> Unit,
     onWindowChange: (String) -> Unit,
-    onCopy: (List<NodeLogLine>) -> Unit
+    onCopy: (List<NodeLogLine>) -> Unit,
+    onExport: (List<NodeLogLine>) -> Unit = {}
 ) {
     val theme = LocalThemeState.current
 
@@ -441,6 +500,7 @@ internal fun NodeLogsContent(
                             // ── وضعیتِ جریان
                             val statusLine = when (stream) {
                                 NodeLogStream.Connecting -> stringResource(R.string.nl_connecting)
+                                NodeLogStream.Retrying -> stringResource(R.string.nl_retrying)
                                 NodeLogStream.Streaming -> stringResource(R.string.nl_streaming)
                                 NodeLogStream.Ended -> stringResource(R.string.nl_ended)
                                 NodeLogStream.Failed -> stringResource(R.string.nl_failed)
@@ -453,7 +513,7 @@ internal fun NodeLogsContent(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
                             ) {
-                                if (stream == NodeLogStream.Connecting) {
+                                if (stream == NodeLogStream.Connecting || stream == NodeLogStream.Retrying) {
                                     MrmBusyIndicator(color = theme.accentPrimary, size = 12.dp, strokeWidth = 1.6.dp)
                                 } else {
                                     Box(
@@ -470,7 +530,7 @@ internal fun NodeLogsContent(
                                     statusLine, fontSize = 10.sp, color = theme.mutedColor,
                                     modifier = Modifier.weight(1f)
                                 )
-                                if (stream == NodeLogStream.Ended || stream == NodeLogStream.Failed) {
+                                if (stream == NodeLogStream.Ended || stream == NodeLogStream.Failed || stream == NodeLogStream.Retrying) {
                                     val reconnectLabel = stringResource(R.string.nl_reconnect)
                                     Text(
                                         reconnectLabel, fontSize = 11.sp,
@@ -505,6 +565,13 @@ internal fun NodeLogsContent(
                                     description = stringResource(R.string.nl_copy),
                                     tint = theme.mutedColor,
                                     onClick = { onCopy(visible) },
+                                    enabled = visible.isNotEmpty()
+                                )
+                                InfraIconButton(
+                                    icon = AppIcon.Download,
+                                    description = stringResource(R.string.nl_export),
+                                    tint = theme.mutedColor,
+                                    onClick = { onExport(visible) },
                                     enabled = visible.isNotEmpty()
                                 )
                                 InfraIconButton(
@@ -589,7 +656,7 @@ internal fun NodeLogsContent(
                                     ) {
                                         Text(
                                             if (total == 0) stringResource(
-                                                if (stream == NodeLogStream.Connecting) R.string.nl_waiting else R.string.nl_empty
+                                                if (stream == NodeLogStream.Connecting || stream == NodeLogStream.Retrying) R.string.nl_waiting else R.string.nl_empty
                                             ) else stringResource(R.string.nl_filtered_empty),
                                             fontSize = 11.sp, color = theme.mutedColor
                                         )

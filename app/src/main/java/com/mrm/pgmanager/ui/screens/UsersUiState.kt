@@ -246,9 +246,9 @@ internal class UsersUiState(
                             // خراب نمی‌کنیم؛ فقط اگر این صفحه خودش کلِ فهرست است یا کشِ دیسک کهنه/غایب است.
                             // و حتی وقتی فهرست کامل است، هر رفرشِ خودکار (شاید هر ۵ ثانیه) دیسک را
                             // بازنویسی نمی‌کند؛ رمزنگاری و نوشتنِ کلِ prefs برای کشِ آفلاین حداکثر دقیقه‌ای یک‌بار کافی است.
-                            val age = store.usersCacheAgeMs()
+                            val age = store.usersCacheAgeMs(session)
                             val complete = page.users.size >= page.total
-                            if (age == null || (complete && age > 60_000L) || age > 30L * 60L * 1000L) store.saveUsersCache(page.users)
+                            if (age == null || (complete && age > 60_000L) || age > 30L * 60L * 1000L) store.saveUsersCache(session, page.users)
                         }
                     }
                 }
@@ -256,9 +256,18 @@ internal class UsersUiState(
                 if (PanelApi.isUnauthorized(it)) {
                     com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
+                } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
+                    users = emptyList()
+                    onlineCount = 0
+                    offlineAt = null
+                    PanelCache.invalidate(usersKey)
+                    store.invalidateUsersCache(session)
+                    error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                 } else {
-                    // بدونِ شبکه: فهرستِ ذخیره‌شده با برچسبِ «آفلاین» بهتر از صفحهٔ خطای خالی است.
-                    val cache = if (defaultView && users.isEmpty() && monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
+                    val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
+                    val cache = if (defaultView && users.isEmpty() && monitoringSettings.offlineCacheEnabled &&
+                        com.mrm.pgmanager.data.AdminAccess.can("users", "read") &&
+                        com.mrm.pgmanager.utils.ApiErrorMapper.isTransient(kind)) store.readUsersCache(session) else null
                     if (cache != null) {
                         users = cache.first
                         offlineAt = cache.second
@@ -307,8 +316,8 @@ internal class UsersUiState(
                 users = list; onlineCount = list.count { it.isOnline }
                 PanelCache.put(usersKey, list)
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val age = store.usersCacheAgeMs()
-                    if (age == null || age > 60_000L) store.saveUsersCache(list)
+                    val age = store.usersCacheAgeMs(session)
+                    if (age == null || age > 60_000L) store.saveUsersCache(session, list)
                 }
                 offlineAt = null
                 val settings = store.readMonitoringSettings()
@@ -342,8 +351,18 @@ internal class UsersUiState(
                 if (PanelApi.isUnauthorized(it)) {
                     com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
+                } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
+                    users = emptyList()
+                    onlineCount = 0
+                    offlineAt = null
+                    PanelCache.invalidate(usersKey)
+                    store.invalidateUsersCache(session)
+                    error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
                 } else {
-                    val cache = if (monitoringSettings.offlineCacheEnabled) store.readUsersCache() else null
+                    val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it)
+                    val cache = if (monitoringSettings.offlineCacheEnabled &&
+                        com.mrm.pgmanager.data.AdminAccess.can("users", "read") &&
+                        com.mrm.pgmanager.utils.ApiErrorMapper.isTransient(kind)) store.readUsersCache(session) else null
                     if (cache != null) {
                         users = cache.first
                         // شمارش از روی همان فهرستِ کش‌شده (مثل مسیر موفقیت)؛ صفرگذاشتن،

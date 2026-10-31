@@ -441,7 +441,12 @@ fun UserDetailsDialog(
                             SectionLabel(stringResource(R.string.ud_devices))
                             Column(Modifier.fillMaxWidth().clip(DsRadius.Md).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                                    Text(stringResource(R.string.ud_devices_count, devices.size, currentUser.hwidLimit ?: 0), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
+                                    val deviceCountLabel = when (val limit = currentUser.hwidLimit) {
+                                        null -> stringResource(R.string.ud_devices_count_default, devices.size)
+                                        0 -> stringResource(R.string.ud_devices_count_unlimited, devices.size)
+                                        else -> stringResource(R.string.ud_devices_count, devices.size, limit)
+                                    }
+                                    Text(deviceCountLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.inkColor, modifier = Modifier.weight(1f))
                                     if (onManageDevices != null) Box(Modifier.heightIn(min = 40.dp).clip(DsRadius.Full).clickable { onManageDevices() }.background(theme.accentPrimary.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, theme.accentPrimary.copy(0.26f)), DsRadius.Full).pressScale(0.95f).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ud_devices_manage), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.accentPrimary) }
                                 }
                                 if (devices.isEmpty()) Text(stringResource(R.string.ud_devices_empty), fontSize = 11.sp, color = theme.mutedColor)
@@ -511,7 +516,7 @@ fun UserDetailsDialog(
         }
         BulkApplyTemplateDialog(templates = availableTemplates, selectedCount = 1, onDismiss = { templatePickerOpen = false }, onApply = { id, note -> templatePickerOpen = false; onApplyTemplate?.invoke(id, note) }, isLoading = templatesLoading, loadFailed = templatesFailed)
     }
-    if (editOpen) UserEditorDialog(initial = currentUser, onDismiss = { editOpen = false }, onSave = onSave, onToggle = onToggle, onApplyTemplateToUser = onApplyTemplate, session = session)
+    if (editOpen) UserEditorDialog(initial = currentUser, onDismiss = { editOpen = false }, onSave = onSave, onApplyTemplateToUser = onApplyTemplate, session = session)
     if (notesSheetOpen) NotesSheetDialog(note = currentUser.note.orEmpty(), onDismiss = { notesSheetOpen = false }, onEdit = { notesSheetOpen = false; editOpen = true })
     if (qrOpen) SubscriptionQrDialog(user = currentUser, onDismiss = { qrOpen = false })
     if (usageConfirm) ConfirmActionDialog(title = stringResource(R.string.ud_reset_data_title), message = stringResource(R.string.ud_reset_data_msg), onDismiss = { usageConfirm = false }, onConfirm = { usageConfirm = false; currentUser = currentUser.copy(usedTraffic = 0L); onResetUsage() })

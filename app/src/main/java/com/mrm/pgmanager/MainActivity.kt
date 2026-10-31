@@ -192,7 +192,13 @@ fun MRMApp() {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val store = remember { SessionStore(context) }
-    var session by remember { mutableStateOf(store.read()) }
+    var session by remember {
+        com.mrm.pgmanager.data.AdminAccess.reset()
+        com.mrm.pgmanager.data.cache.PanelCache.clear()
+        com.mrm.pgmanager.data.PanelSupport.reset()
+        mutableStateOf(store.read())
+    }
+    var accessRetryToken by remember(session) { mutableIntStateOf(0) }
     // نسخهٔ پنل (دروازهٔ قابلیت‌های 5.5) — از کشِ همان پنل خوانده می‌شود؛ با سوییچِ
     // حساب اول پاک می‌شود تا نسخهٔ پنلِ قبلی روی پنلِ جدید نماند.
     androidx.compose.runtime.LaunchedEffect(session?.baseUrl) {
@@ -304,11 +310,11 @@ fun MRMApp() {
         }
     }
 
-    // مجوزهای RBAC ادمین (GET /api/admin) — یک‌بار به‌ازای هر نشست؛ صفحه‌ها با AdminAccess.can() دکمه‌ها را گیت می‌کنند.
-    LaunchedEffect(session) {
+    // Permission-dependent controls remain disabled until the panel confirms this account's role.
+    LaunchedEffect(session, accessRetryToken) {
         val current = session
         if (current == null) com.mrm.pgmanager.data.AdminAccess.reset()
-        else com.mrm.pgmanager.data.AdminAccess.refresh(current)
+        else com.mrm.pgmanager.data.AdminAccess.refresh(current, force = accessRetryToken > 0)
     }
 
     LaunchedEffect(session) {
@@ -367,18 +373,27 @@ fun MRMApp() {
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
             // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
             com.mrm.pgmanager.data.cache.PanelCache.clear()
+            com.mrm.pgmanager.data.AdminAccess.reset()
+            com.mrm.pgmanager.data.PanelSupport.reset()
             store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
         val onSessionExpired: () -> Unit = {
             com.mrm.pgmanager.data.cache.PanelCache.clear()
+            com.mrm.pgmanager.data.AdminAccess.reset()
+            com.mrm.pgmanager.data.PanelSupport.reset()
             store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
             LoginScreen(
-                onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
+                onLoggedIn = { v ->
+                    com.mrm.pgmanager.data.AdminAccess.reset()
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.PanelSupport.reset()
+                    store.save(v); session = v; isUnlocked = true; addingAccount = false
+                },
                 themeState = effectiveTheme,
                 appLanguage = appLanguage,
                 onLanguageChange = handleLanguageChange,
@@ -391,7 +406,12 @@ fun MRMApp() {
                         val other = store.readAccounts().firstOrNull { acc ->
                             expiredAccount == null || acc.baseUrl != expiredAccount.baseUrl || acc.username != expiredAccount.username
                         }
-                        val switchToOther: (() -> Unit)? = if (other != null) ({ store.setActive(other); session = other }) else null
+                        val switchToOther: (() -> Unit)? = if (other != null) ({
+                            com.mrm.pgmanager.data.AdminAccess.reset()
+                            com.mrm.pgmanager.data.cache.PanelCache.clear()
+                            com.mrm.pgmanager.data.PanelSupport.reset()
+                            store.setActive(other); session = other
+                        }) else null
                         switchToOther
                     }
                     else -> null
@@ -411,7 +431,7 @@ fun MRMApp() {
                         )
                     }
                 },
-                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false }
+                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); com.mrm.pgmanager.data.AdminAccess.reset(); session = null; isUnlocked = false }
             )
         } else {
             // فعال‌سازی قفل از هر دو مسیر (تنظیمات داشبورد / کاربران) با تأیید بیومتریک انجام می‌شود.
@@ -764,6 +784,7 @@ fun MRMApp() {
                     showNodeLogs = false
                     store.clear()
                     com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.AdminAccess.reset()
                     session = null
                     isUnlocked = false
                 },
@@ -784,6 +805,19 @@ fun MRMApp() {
                     notifPromptOpen = false
                 }
             )
+        }
+        if (session != null && !addingAccount && (!isAppLockEnabled || isUnlocked) &&
+            com.mrm.pgmanager.data.AdminAccess.state == com.mrm.pgmanager.data.AdminAccessState.Unavailable) {
+            Column(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(DsSpacing.Screen)
+                    .clip(RoundedCornerShape(16.dp)).background(effectiveTheme.dialogBgColor)
+                    .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(16.dp))
+                    .padding(DsSpacing.Mid),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+            ) {
+                Text(stringResource(R.string.access_unavailable), color = effectiveTheme.inkColor, fontSize = 13.sp)
+                PGPrimaryButton(stringResource(R.string.retry), onClick = { accessRetryToken++ }, icon = AppIcon.Refresh)
+            }
         }
         // میزبانِ بازخوردِ سراسری — بالایِ کپسولِ ناوبری، رویِ همه شاخه‌ها.
         AppFeedbackHost(

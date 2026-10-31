@@ -70,11 +70,13 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
     val action = snapshot.action?.takeIf { it.session == session }
     val actionNotice = snapshot.actionNotice?.takeIf { it.request.session == session }
 
+    val accessState = AdminAccess.state
     val canRead = AdminAccess.can("nodes", "read")
     val canCreate = AdminAccess.can("nodes", "create")
     val canUpdate = AdminAccess.can("nodes", "update")
     val canDelete = AdminAccess.can("nodes", "delete")
     val canReconnect = AdminAccess.can("nodes", "reconnect")
+    val canUpdateCore = AdminAccess.can("nodes", "update_core")
     var nodes by remember(session) { mutableStateOf(emptyList<PanelNode>()) }
     var loading by remember(session) { mutableStateOf(true) }
     var loadError by remember(session) { mutableStateOf<String?>(null) }
@@ -83,12 +85,17 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
     var toast by remember(session) { mutableStateOf<String?>(null) }
     var deleting by remember(session) { mutableStateOf<PanelNode?>(null) }
     var syncing by remember(session) { mutableStateOf<PanelNode?>(null) }
+    var resetting by remember(session) { mutableStateOf<PanelNode?>(null) }
+    var updating by remember(session) { mutableStateOf<PanelNode?>(null) }
+    var maintenance by remember(session) { mutableStateOf<Pair<PanelNode, NodeAction>?>(null) }
     var loadRequest by remember(session) { mutableStateOf(0L) }
     val savedMessage = stringResource(R.string.node_saved)
     val createdMessage = stringResource(R.string.node_created)
     val deletedMessage = stringResource(R.string.node_deleted)
     val syncedMessage = stringResource(R.string.node_synced)
     val reconnectedMessage = stringResource(R.string.node_reconnected)
+    val resetMessage = stringResource(R.string.node_usage_reset)
+    val maintenanceRequestedMessage = stringResource(R.string.node_maintenance_requested)
 
     suspend fun load() {
         val request = ++loadRequest
@@ -130,7 +137,7 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
         }
     }
 
-    fun startAction(target: PanelNode, kind: NodeAction) {
+    fun startAction(target: PanelNode, kind: NodeAction, argument: String? = null) {
         val request = state.beginAction(session, target.id, kind) ?: return
         model.viewModelScope.launch {
             try {
@@ -138,6 +145,10 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                     NodeAction.DELETE -> PanelApi.deleteNode(session, target.id)
                     NodeAction.SYNC -> PanelApi.syncNodeUsers(session, target.id)
                     NodeAction.RECONNECT -> PanelApi.reconnectNode(session, target.id)
+                    NodeAction.RESET_USAGE -> PanelApi.resetNodeUsage(session, target.id)
+                    NodeAction.UPDATE_NODE -> PanelApi.updateNodeSoftware(session, target.id)
+                    NodeAction.UPDATE_CORE -> PanelApi.updateNodeCore(session, target.id, requireNotNull(argument))
+                    NodeAction.UPDATE_GEOFILES -> PanelApi.updateNodeGeofiles(session, target.id, requireNotNull(argument))
                 }
                 state.finishAction(request)
             } catch (error: CancellationException) {
@@ -172,6 +183,8 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                 NodeAction.DELETE -> deletedMessage
                 NodeAction.SYNC -> syncedMessage
                 NodeAction.RECONNECT -> reconnectedMessage
+                NodeAction.RESET_USAGE -> resetMessage
+                NodeAction.UPDATE_NODE, NodeAction.UPDATE_CORE, NodeAction.UPDATE_GEOFILES -> maintenanceRequestedMessage
             }
             load()
             state.consumeActionNotice(it.request.requestId)
@@ -203,9 +216,18 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
         }
     }) {
         when {
+            accessState == com.mrm.pgmanager.data.AdminAccessState.Unknown ||
+                accessState == com.mrm.pgmanager.data.AdminAccessState.Loading -> item(key = "node_access_loading") {
+                Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                    MrmBusyIndicator(color = theme.accentPrimary, size = 40.dp, strokeWidth = 2.5.dp)
+                }
+            }
             !canRead -> item(key = "node_permission") {
-                MrmEmptyState(title = stringResource(R.string.node_read_permission),
-                    subtitle = stringResource(R.string.node_read_permission_hint), icon = AppIcon.Lock)
+                MrmEmptyState(
+                    title = stringResource(if (accessState == com.mrm.pgmanager.data.AdminAccessState.Unavailable) R.string.access_unavailable_title else R.string.node_read_permission),
+                    subtitle = stringResource(if (accessState == com.mrm.pgmanager.data.AdminAccessState.Unavailable) R.string.access_unavailable else R.string.node_read_permission_hint),
+                    icon = AppIcon.Lock
+                )
             }
             loading && nodes.isEmpty() -> item(key = "node_loading") {
                 Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
@@ -243,6 +265,14 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                         if (canReconnect && node.status in setOf("error", "connecting") && action == null) {
                             add(InfraRowAction(R.string.node_reconnect) { startAction(node, NodeAction.RECONNECT) })
                         }
+                        if (canUpdate && action == null) {
+                            add(InfraRowAction(R.string.node_reset_usage, danger = true) { resetting = node })
+                        }
+                        if (canUpdateCore && node.isConnected && action == null) {
+                            add(InfraRowAction(R.string.node_update_software) { updating = node })
+                            add(InfraRowAction(R.string.node_update_core) { maintenance = node to NodeAction.UPDATE_CORE })
+                            add(InfraRowAction(R.string.node_update_geofiles) { maintenance = node to NodeAction.UPDATE_GEOFILES })
+                        }
                         if (canDelete && action == null) add(InfraRowAction(R.string.node_delete, danger = true) { deleting = node })
                     }, onEdit = onEdit
                 )
@@ -250,7 +280,7 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
         }
     }
 
-    active?.let { editor ->
+    active?.takeIf { if (it.nodeId == null) canCreate else canRead && canUpdate }?.let { editor ->
         NodeEditorDialog(editor = editor, onDraftChange = { state.update(editor.requestId, it) },
             onRetry = { state.beginLoad(editor.requestId)?.let(::loadEditor) },
             onDismiss = { state.dismiss(editor.requestId) }, onSave = save@ {
@@ -279,14 +309,28 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                 }
             })
     }
-    deleting?.let { target -> ConfirmActionDialog(
+    deleting?.takeIf { canRead && canDelete }?.let { target -> ConfirmActionDialog(
         title = stringResource(R.string.node_delete), message = stringResource(R.string.node_delete_confirm, target.name),
         confirmLabel = stringResource(R.string.node_delete), danger = true,
         onDismiss = { deleting = null }, onConfirm = { deleting = null; startAction(target, NodeAction.DELETE) }
     ) }
-    syncing?.let { target -> ConfirmActionDialog(
+    syncing?.takeIf { canRead && canUpdate }?.let { target -> ConfirmActionDialog(
         title = stringResource(R.string.node_sync_users), message = stringResource(R.string.node_sync_confirm, target.name),
         confirmLabel = stringResource(R.string.node_sync_users),
         onDismiss = { syncing = null }, onConfirm = { syncing = null; startAction(target, NodeAction.SYNC) }
+    ) }
+    resetting?.takeIf { canRead && canUpdate }?.let { target -> ConfirmActionDialog(
+        title = stringResource(R.string.node_reset_usage), message = stringResource(R.string.node_reset_usage_confirm, target.name),
+        confirmLabel = stringResource(R.string.node_reset_usage), danger = true,
+        onDismiss = { resetting = null }, onConfirm = { resetting = null; startAction(target, NodeAction.RESET_USAGE) }
+    ) }
+    updating?.takeIf { canRead && canUpdateCore }?.let { target -> ConfirmActionDialog(
+        title = stringResource(R.string.node_update_software), message = stringResource(R.string.node_update_software_confirm, target.name),
+        confirmLabel = stringResource(R.string.node_update_software),
+        onDismiss = { updating = null }, onConfirm = { updating = null; startAction(target, NodeAction.UPDATE_NODE) }
+    ) }
+    maintenance?.takeIf { canRead && canUpdateCore }?.let { (target, kind) -> NodeMaintenanceDialog(
+        nodeName = target.name, action = kind, onDismiss = { maintenance = null },
+        onConfirm = { argument -> maintenance = null; startAction(target, kind, argument) }
     ) }
 }

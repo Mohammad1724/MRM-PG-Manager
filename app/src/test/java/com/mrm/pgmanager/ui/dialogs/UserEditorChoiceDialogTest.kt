@@ -33,7 +33,7 @@ import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -100,7 +100,7 @@ class UserEditorChoiceDialogTest {
                 LocalChoiceWindow provides choiceWindow
             ) {
                 Box(Modifier.fillMaxSize()) {
-                    UserEditorDialog(initial = initial, onDismiss = {}, onSave = { values, _ -> saved = values }, onToggle = {}, session = session)
+                    UserEditorDialog(initial = initial, onDismiss = {}, onSave = { values, _ -> saved = values }, session = session)
                     choiceWindow.Overlay()
                 }
             }
@@ -148,16 +148,16 @@ class UserEditorChoiceDialogTest {
         save()
         rule.runOnIdle {
             assertTrue(requireNotNull(saved).keepExpire)
-            assertEquals(originalPlan, saved?.nextPlan)
+            assertNull(saved?.nextPlan)
         }
     }
 
-    @Test fun `selecting active still marks expiry as edited`() {
+    @Test fun `reselecting active does not edit expiry`() {
         render(user)
         rule.onNodeWithTag("user_editor_status").performScrollTo().performClick()
         rule.onNodeWithTag("user_editor_status_dialog_option_active").performClick()
         save()
-        rule.runOnIdle { assertFalse(requireNotNull(saved).keepExpire) }
+        rule.runOnIdle { assertTrue(requireNotNull(saved).keepExpire) }
     }
 
     @Test fun `unknown template remains selected without changing its original plan`() {
@@ -166,7 +166,7 @@ class UserEditorChoiceDialogTest {
         rule.onNodeWithTag("user_editor_next_plan").performScrollTo().performClick()
         rule.onNodeWithTag("user_editor_next_plan_dialog_option_99").assertIsSelected().performClick()
         save()
-        rule.runOnIdle { assertEquals(originalPlan, saved?.nextPlan) }
+        rule.runOnIdle { assertNull(saved?.nextPlan) }
     }
 
     @Test fun `custom plan stays intact unless the user explicitly clears it`() {
@@ -175,7 +175,7 @@ class UserEditorChoiceDialogTest {
         rule.onNodeWithTag("user_editor_next_plan").performScrollTo().performClick()
         rule.onNodeWithTag("user_editor_next_plan_dialog_option___current_custom_plan__").assertIsSelected().performClick()
         save()
-        rule.runOnIdle { assertEquals(originalPlan, saved?.nextPlan) }
+        rule.runOnIdle { assertNull(saved?.nextPlan) }
         rule.onNodeWithTag("user_editor_next_plan").performScrollTo().performClick()
         rule.onNodeWithTag("user_editor_next_plan_dialog_option_").performClick()
         save()

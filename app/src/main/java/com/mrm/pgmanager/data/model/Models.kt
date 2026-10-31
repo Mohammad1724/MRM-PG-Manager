@@ -91,7 +91,7 @@ data class PanelUser(
      * می‌شود تا ذخیرهٔ یک ویرایشِ ساده راهبردِ کاربر را بی‌صدا به no_reset برنگرداند.
      */
     val dataLimitResetStrategy: String? = null,
-    /** حذفِ خودکار N روز پس از انقضا؛ null یعنی هرگز. */
+    /** Auto-delete offset; null inherits the panel setting, a negative value disables cleanup. */
     val autoDeleteDays: Int? = null,
     /**
      * تعداد دستگاه‌های ثبت‌شده (HWID) — از **PasarGuard v5.5** در پاسخِ `/api/users`
@@ -696,7 +696,7 @@ data class UserEditorValues(
     val nextPlan: NextPlan? = null,
     /** no_reset / day / week / month / year؛ null یعنی «دست نزن» (ویرایش بدونِ تغییرِ این گزینه). */
     val resetStrategy: String? = TemplateOptions.RESET_NO_RESET,
-    /** حذفِ خودکار پس از انقضا؛ null یعنی دست نزن، 0 یعنی بردار، عددِ مثبت یعنی تنظیم کن. */
+    /** Creation offset; panel 5.5.1 does not apply edits to this field. */
     val autoDeleteDays: Int? = null,
     /**
      * در ویرایش: اگر ادمین به فیلدِ زمان دست نزده، `expire` اصلاً فرستاده نمی‌شود.
@@ -712,8 +712,17 @@ data class UserEditorValues(
     val status: String? = null,
     /** مدت اعتبار پس از اولین اتصال (ثانیه) — فقط وقتی [status] برابر `on_hold` است. */
     val onHoldExpireSeconds: Long? = null,
-    /** مهلت فعال‌سازی از الان (ثانیه)؛ 0 یعنی پاکش کن؛ null یعنی دست نزن. */
-    val onHoldTimeoutSeconds: Long? = null
+    /** Activation deadline relative to now; null leaves it untouched on edits. */
+    val onHoldTimeoutSeconds: Long? = null,
+    /** Exact bytes for an explicitly entered limit; display rounding is never used for untouched limits. */
+    val dataLimitBytes: Long? = null,
+    /** Omit data_limit from an edit unless the field was deliberately changed. */
+    val keepDataLimit: Boolean = false,
+    /** Explicit JSON null restores the panel's default device-limit policy. */
+    val clearHwidLimit: Boolean = false,
+    /** Leave unedited note and groups untouched instead of resending stale list snapshots. */
+    val keepNote: Boolean = false,
+    val keepGroupIds: Boolean = false
 )
 
 // ─────────────────────────── زیرساختِ پنل — PasarGuard v5 ───────────────────────────

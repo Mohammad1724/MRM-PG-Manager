@@ -99,8 +99,8 @@ internal fun ConnectionSection(
         // remember بدونِ قیدِ شرطی: فراخوانیِ composable داخلِ شاخهٔ elvis ساختار
         // گروه‌ها را بین recompositionها ناپایدار می‌کرد؛ خوانشِ دیسک یک‌بار و
         // بدونِ شرط انجام می‌شود و کشِ حافظه در هر recompose ارزان بررسی می‌شود.
-        val diskPanelVersion = remember(session.baseUrl) {
-            store.readStatsCache()?.first?.version.orEmpty()
+        val diskPanelVersion = remember(session) {
+            store.readStatsCache(session)?.first?.version.orEmpty()
         }
         val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session.baseUrl))?.version
             ?.takeIf { it.isNotBlank() }

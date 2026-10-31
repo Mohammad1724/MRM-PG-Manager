@@ -39,7 +39,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
             store.saveAlertFlag("auth_expired", false)
             store.saveAlertCount("panel_offline", 0)
             // کش آفلاین/ویجت: آخرین وضعیت موفق همیشه به‌روز نگه داشته می‌شود (حتی اگر اعلان‌ها خاموش باشند).
-            store.saveStatsCache(stats)
+            store.saveStatsCache(session, stats)
             // بروزرسانی ویجت پس از کش جدید
             com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(applicationContext)
 
@@ -52,7 +52,7 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                 (settings.notifyLimited || settings.notifyExpired || settings.notifyNearLimit || settings.notifyNearExpiry)
             val needUsers = perUserNotifications || settings.offlineCacheEnabled
             val users: List<com.mrm.pgmanager.data.model.PanelUser> = if (needUsers) PanelApi.users(session) else emptyList()
-            if (needUsers) store.saveUsersCache(users)
+            if (needUsers) store.saveUsersCache(session, users)
             // اعلان‌ها فقط در صورت فعال‌بودن؛ کش/ویجت بالا مستقل از اعلان‌هاست.
             if (settings.notificationsEnabled) {
             if (perUserNotifications) {
@@ -153,7 +153,15 @@ class MonitoringWorker(context: Context, params: WorkerParameters) : CoroutineWo
                         NotificationHelper.post(applicationContext, NotificationIds.SESSION_EXPIRED, NotificationHelper.CHANNEL_SYSTEM, applicationContext.getString(R.string.mw_session), applicationContext.getString(R.string.mw_session_body))
                         store.saveAlertFlag("auth_expired", true)
                     }
-                    store.expireActive()
+                    store.invalidateUsersCache(session)
+                    store.invalidateStatsCache(session)
+                    if (store.read() == session) store.expireActive()
+                    Result.success()
+                }
+                com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN -> {
+                    store.invalidateUsersCache(session)
+                    store.invalidateStatsCache(session)
+                    com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(applicationContext)
                     Result.success()
                 }
                 else -> {

@@ -62,7 +62,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
                 if (ids.isEmpty()) return
                 val store = SessionStore(context)
                 val session = store.read()
-                val cache = runCatching { store.readStatsCache() }.getOrNull()
+                val cache = session?.let { current -> runCatching { store.readStatsCache(current) }.getOrNull() }
                 val debtorsCount = runCatching {
                     store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
                 }.getOrDefault(0)
@@ -413,7 +413,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
         // برای هر ویجت جدا بساز تا سایز متفاوت پشتیبانی شود
         val store = SessionStore(context)
         val session = store.read()
-        val cache = runCatching { store.readStatsCache() }.getOrNull()
+        val cache = session?.let { current -> runCatching { store.readStatsCache(current) }.getOrNull() }
         val debtorsCount = runCatching {
             store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
         }.getOrDefault(0)
@@ -434,7 +434,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
         // وقتی کاربر ریسایز می‌کند، ویجت را با سایز جدید بازسازی کن
         val store = SessionStore(context)
         val session = store.read()
-        val cache = runCatching { store.readStatsCache() }.getOrNull()
+        val cache = session?.let { current -> runCatching { store.readStatsCache(current) }.getOrNull() }
         val debtorsCount = runCatching {
             store.readDebtors().values.count { it.baseUrl == session?.baseUrl }
         }.getOrDefault(0)
@@ -457,8 +457,14 @@ class PanelWidgetProvider : AppWidgetProvider() {
                             kotlinx.coroutines.withTimeoutOrNull(REFRESH_TIMEOUT_MS) {
                                 PanelApi.systemStats(sess)
                             }
-                        }.getOrNull()
-                        if (stats != null) store.saveStatsCache(stats)
+                        }
+                        stats.getOrNull()?.let { store.saveStatsCache(sess, it) }
+                        stats.exceptionOrNull()?.let { error ->
+                            val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(error)
+                            if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN || kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
+                                store.invalidateStatsCache(sess)
+                            }
+                        }
                     }
                 } finally {
                     updateAll(context)
