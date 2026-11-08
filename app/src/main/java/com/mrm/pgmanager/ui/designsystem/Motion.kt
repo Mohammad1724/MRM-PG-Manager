@@ -405,7 +405,7 @@ private class PressScaleNode(
     private fun animateTo(target: Float) {
         if (!enabled && target != 1f) return
         animation?.cancel()
-        animation = coroutineScope.launch {
+        animation = this.coroutineScope.launch {
             current.animateTo(
                 targetValue = target,
                 animationSpec = DsAnim.snappy()
