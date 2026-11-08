@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PermissionScope
 import com.mrm.pgmanager.data.model.Session
@@ -56,6 +57,9 @@ object AdminAccess {
             synchronized(lock) {
                 if (request == generation && context.isActive) {
                     verified = VerifiedAccess(session, admin)
+                    // Revoke cached sensitive data even if the corresponding screen is not mounted.
+                    if (!admin.can("settings", "read")) PanelCache.invalidate(PanelCache.panelSettingsKey(session))
+                    if (!admin.can("api_keys", "read")) PanelCache.invalidate(PanelCache.apiKeysKey(session))
                     state = AdminAccessState.Ready
                 }
             }

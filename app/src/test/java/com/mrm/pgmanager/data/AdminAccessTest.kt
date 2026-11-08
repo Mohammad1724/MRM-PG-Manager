@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.data
 
+import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PermissionScope
 import com.mrm.pgmanager.data.model.Session
@@ -61,6 +62,44 @@ class AdminAccessTest {
         assertFalse(AdminAccess.canFor(first, "settings", "read"))
         assertTrue(AdminAccess.canFor(second, "settings", "read"))
         assertEquals(owner, AdminAccess.current)
+    }
+
+    @Test fun `revoked read permissions evict sensitive cache without a mounted screen`() = runBlocking {
+        PanelCache.clock = { 1L }
+        try {
+            AdminAccess.refreshWith(first) { owner }
+            PanelCache.put(PanelCache.panelSettingsKey(first), "settings")
+            PanelCache.put(PanelCache.apiKeysKey(first), "keys")
+            PanelCache.put(PanelCache.nodesKey(first.baseUrl), "nodes")
+
+            AdminAccess.refreshWith(first, force = true) { reader }
+
+            assertNull(PanelCache.get<Any>(PanelCache.panelSettingsKey(first)))
+            assertNull(PanelCache.get<Any>(PanelCache.apiKeysKey(first)))
+            assertEquals("nodes", PanelCache.get<String>(PanelCache.nodesKey(first.baseUrl)))
+            assertFalse(AdminAccess.canFor(first, "settings", "read"))
+        } finally {
+            PanelCache.clear()
+            PanelCache.resetClockForTests()
+        }
+    }
+
+    @Test fun `a permitted sensitive cache is retained while a different permission is revoked`() = runBlocking {
+        PanelCache.clock = { 1L }
+        try {
+            AdminAccess.refreshWith(first) { owner }
+            PanelCache.put(PanelCache.panelSettingsKey(first), "settings")
+            PanelCache.put(PanelCache.apiKeysKey(first), "keys")
+            AdminAccess.refreshWith(first, force = true) {
+                reader.copy(permissions = mapOf("api_keys" to mapOf("read" to PermissionScope.OWN)))
+            }
+            assertNull(PanelCache.get<Any>(PanelCache.panelSettingsKey(first)))
+            assertEquals("keys", PanelCache.get<String>(PanelCache.apiKeysKey(first)))
+            assertTrue(AdminAccess.canFor(first, "api_keys", "read"))
+        } finally {
+            PanelCache.clear()
+            PanelCache.resetClockForTests()
+        }
     }
 
     @Test fun `stale refresh cannot replace a different account`() = runBlocking {
