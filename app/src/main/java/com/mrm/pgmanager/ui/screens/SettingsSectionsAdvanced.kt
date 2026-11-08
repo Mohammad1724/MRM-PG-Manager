@@ -102,7 +102,7 @@ internal fun ConnectionSection(
         val diskPanelVersion = remember(session) {
             store.readStatsCache(session)?.first?.version.orEmpty()
         }
-        val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session.baseUrl))?.version
+        val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session))?.version
             ?.takeIf { it.isNotBlank() }
             ?: diskPanelVersion
         if (panelVersion.isNotBlank()) SettingsInfoRow(stringResource(R.string.set_conn_panel_version), "PasarGuard v$panelVersion")
@@ -242,7 +242,10 @@ internal fun ConnectionSection(
                         },
                         // تستِ اتصال: پیامِ دسته‌بندی‌شده جای «Connection error: <raw>» —
                         // همین‌جا «به پنل دسترسی پیدا نشد…» دقیقاً همان چیزی است که لازم است.
-                        onFailure = { e -> false to com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e) }
+                        onFailure = { e ->
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            false to com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+                        }
                     )
                     testing = false
                 }

@@ -201,12 +201,12 @@ fun MRMApp() {
     var accessRetryToken by remember(session) { mutableIntStateOf(0) }
     // نسخهٔ پنل (دروازهٔ قابلیت‌های 5.5) — از کشِ همان پنل خوانده می‌شود؛ با سوییچِ
     // حساب اول پاک می‌شود تا نسخهٔ پنلِ قبلی روی پنلِ جدید نماند.
-    androidx.compose.runtime.LaunchedEffect(session?.baseUrl) {
+    androidx.compose.runtime.LaunchedEffect(session) {
         com.mrm.pgmanager.data.PanelSupport.reset()
         session?.let { s ->
             com.mrm.pgmanager.data.PanelSupport.updateFrom(
                 com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(
-                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s.baseUrl)
+                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s)
                 )
             )
         }
@@ -379,11 +379,19 @@ fun MRMApp() {
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
-        val onSessionExpired: () -> Unit = {
-            com.mrm.pgmanager.data.cache.PanelCache.clear()
-            com.mrm.pgmanager.data.AdminAccess.reset()
-            com.mrm.pgmanager.data.PanelSupport.reset()
-            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
+        val onSessionExpired: (com.mrm.pgmanager.data.model.Session) -> Unit = { expired ->
+            if (session == expired) {
+                val expiredHere = store.expireActive(expired)
+                // A worker may already have expired the same session. Do not clear a
+                // different account that was activated while the response was in flight.
+                if (expiredHere || store.read() == null) {
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.AdminAccess.reset()
+                    com.mrm.pgmanager.data.PanelSupport.reset()
+                    session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
+                }
+            }
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
@@ -571,19 +579,20 @@ fun MRMApp() {
                         CompositionLocalProvider(
                             com.mrm.pgmanager.ui.components.LocalPageActive provides (pagerState.settledPage == page)
                         ) {
+                        val pageSession = session!!
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
+                            TAB_DASHBOARD -> DashboardScreen(pageSession, monitoringSettings, onSessionExpired = { onSessionExpired(pageSession) }, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
                             TAB_STATISTICS -> StatisticsScreen(
-                                session!!,
+                                pageSession,
                                 onOpenSettings = { showDashboardSettings = true },
                                 // «لاگ» روی کارتِ هر نود؛ همان نود از پیش انتخاب می‌شود.
                                 onOpenNodeLogs = { id -> nodeLogsId = id; showNodeLogs = true }
                             )
-                            TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
-                            TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
+                            TAB_GROUPS -> GroupsScreen(pageSession, onOpenSettings = { showDashboardSettings = true })
+                            TAB_TEMPLATES -> TemplatesScreen(pageSession, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
-                                session = session!!,
-                                onSessionExpired = onSessionExpired,
+                                session = pageSession,
+                                onSessionExpired = { onSessionExpired(pageSession) },
                                 themeState = effectiveTheme,
                                 monitoringSettings = monitoringSettings,
                                 deepLinkUsername = deepLinkUsername,
@@ -650,6 +659,19 @@ fun MRMApp() {
                                 appLockTimeout = store.readAppLockTimeoutSecs()
                                 isAppLockEnabled = store.readAppLock()
                                 com.mrm.pgmanager.data.cache.PanelCache.clear()
+                                // Account restore also changes the active credential in prefs.
+                                // Keep the running UI and its authorization state in sync.
+                                val restoredSession = store.read()
+                                if (restoredSession != session) {
+                                    if (restoredSession != null) switchAccount(restoredSession)
+                                    else {
+                                        com.mrm.pgmanager.data.AdminAccess.reset()
+                                        com.mrm.pgmanager.data.PanelSupport.reset()
+                                        session = null
+                                        isUnlocked = false
+                                        showDashboardSettings = false
+                                    }
+                                }
                             }
                         )
                     }

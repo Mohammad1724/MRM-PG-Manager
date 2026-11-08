@@ -3,6 +3,7 @@ package com.mrm.pgmanager.data.storage
 import android.content.Context
 import android.content.SharedPreferences
 import com.mrm.pgmanager.data.model.AppFontScale
+import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UiPrefs
 import com.mrm.pgmanager.utils.BackupManager
 import java.io.ByteArrayOutputStream
@@ -80,6 +81,61 @@ class FontScalePreferencesTest {
         assertEquals(AppFontScale.MIN_PERCENT, store.readUiPrefs().fontScalePercent)
         store.saveUiPrefs(store.readUiPrefs().copy(fontScalePercent = 1000))
         assertEquals(AppFontScale.MAX_PERCENT, store.readUiPrefs().fontScalePercent)
+    }
+
+    @Test fun `backup exports monitoring baselines only for the active credential`() {
+        val first = Session("https://panel.example", "pg_key_first", "alice")
+        val second = Session("https://panel.example", "pg_key_second", "bob")
+        store.save(first)
+        store.saveNotificationStates(first, mapOf(1L to "active|10|false"))
+        store.saveNodeStates(first, mapOf(1 to true))
+        fun data(): JSONObject {
+            val output = ByteArrayOutputStream()
+            BackupManager.createBackup(context, output)
+            return JSONObject(output.toString(Charsets.UTF_8.name())).getJSONObject("data")
+        }
+        val firstBackup = data()
+        assertEquals("active|10|false", JSONObject(firstBackup.getString("notification_states")).getString("1"))
+        assertEquals(true, JSONObject(firstBackup.getString("node_states")).getBoolean("1"))
+
+        store.save(second)
+        val secondBackup = data()
+        assertEquals(0, JSONObject(secondBackup.getString("notification_states")).length())
+        assertEquals(0, JSONObject(secondBackup.getString("node_states")).length())
+    }
+
+    @Test fun `owned monitoring baselines restore only to the matching active credential`() {
+        val first = Session("https://panel.example", "pg_key_first", "alice")
+        val second = Session("https://panel.example", "pg_key_second", "bob")
+        store.save(first)
+        store.saveNotificationStates(first, mapOf(1L to "active|10|false"))
+        store.saveNodeStates(first, mapOf(1 to true))
+        val output = ByteArrayOutputStream()
+        BackupManager.createBackup(context, output)
+        store.saveNotificationStates(first, emptyMap())
+        store.saveNodeStates(first, emptyMap())
+
+        BackupManager.restoreBackup(context, output.toByteArray().inputStream(),
+            restoreAccounts = false, restoreDebtors = false, restoreSettings = true, restoreInvoice = false)
+        assertEquals(mapOf(1L to "active|10|false"), store.readNotificationStates(first))
+        assertEquals(mapOf(1 to true), store.readNodeStates(first))
+
+        store.save(second)
+        store.saveNodeStates(second, mapOf(1 to false))
+        BackupManager.restoreBackup(context, output.toByteArray().inputStream(),
+            restoreAccounts = false, restoreDebtors = false, restoreSettings = true, restoreInvoice = false)
+        assertEquals(mapOf(1 to false), store.readNodeStates(second))
+        assertEquals(emptyMap<Long, String>(), store.readNotificationStates(second))
+    }
+
+    @Test fun `legacy backup baselines without an owner do not overwrite current state`() {
+        val session = Session("https://panel.example", "pg_key_first", "alice")
+        store.save(session)
+        store.saveNodeStates(session, mapOf(1 to true))
+        val legacy = """{"_meta":{"v":1},"data":{"notification_states":"{}","node_states":"{\"1\":false}"}}"""
+        BackupManager.restoreBackup(context, legacy.byteInputStream(),
+            restoreAccounts = false, restoreDebtors = false, restoreSettings = true, restoreInvoice = false)
+        assertEquals(mapOf(1 to true), store.readNodeStates(session))
     }
 
     @Test fun `backup includes both new and older compatible text sizes`() {

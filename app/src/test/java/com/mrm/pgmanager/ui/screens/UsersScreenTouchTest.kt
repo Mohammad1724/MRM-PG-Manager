@@ -95,7 +95,7 @@ class UsersScreenTouchTest {
         PanelApi.allowCleartextLoopbackForTests = true
         session = Session(server.url("/").toString().trimEnd('/'), "test-token", "test-admin")
         PanelCache.clear()
-        PanelCache.put(PanelCache.usersKey(session.baseUrl), (1..50).map {
+        PanelCache.put(PanelCache.usersKey(session), (1..50).map {
             PanelUser(id = it.toLong(), username = "sample_$it", status = "active", usedTraffic = 0,
                 dataLimit = 0, expire = null, createdAt = null)
         })
@@ -181,7 +181,7 @@ class UsersScreenTouchTest {
             id = 1, username = "sample_1", status = "active", usedTraffic = 0, dataLimit = 0,
             expire = null, createdAt = null, subUrl = "https://example.test/sub/sample_1"
         )
-        PanelCache.put(PanelCache.usersKey(session.baseUrl), listOf(user))
+        PanelCache.put(PanelCache.usersKey(session), listOf(user))
         val initialHolds = ScreenSecurity.holds
         rule.setContent {
             UsersScreen(

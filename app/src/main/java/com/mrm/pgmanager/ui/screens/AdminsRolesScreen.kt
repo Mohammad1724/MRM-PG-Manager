@@ -98,8 +98,8 @@ fun AdminsRolesScreen(session: Session, onBack: () -> Unit) {
     val canReadRoles = AdminAccess.can("admin_roles", "read")
     var tab by rememberSaveable { mutableStateOf(0) }
 
-    val adminsCacheKey = PanelCache.adminsKey(session.baseUrl)
-    val rolesCacheKey = PanelCache.adminRolesKey(session.baseUrl)
+    val adminsCacheKey = PanelCache.adminsKey(session)
+    val rolesCacheKey = PanelCache.adminRolesKey(session)
 
     var admins by remember(session) { mutableStateOf(PanelCache.get<List<PanelAdmin>>(adminsCacheKey) ?: emptyList()) }
     var roles by remember(session) { mutableStateOf(PanelCache.get<List<PanelAdminRole>>(rolesCacheKey) ?: emptyList()) }

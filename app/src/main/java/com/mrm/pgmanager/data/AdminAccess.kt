@@ -60,6 +60,8 @@ object AdminAccess {
                     // Revoke cached sensitive data even if the corresponding screen is not mounted.
                     if (!admin.can("settings", "read")) PanelCache.invalidate(PanelCache.panelSettingsKey(session))
                     if (!admin.can("api_keys", "read")) PanelCache.invalidate(PanelCache.apiKeysKey(session))
+                    // Group scopes can change even when the same credential remains active.
+                    PanelApi.invalidateGroupNameAccess(session)
                     state = AdminAccessState.Ready
                 }
             }

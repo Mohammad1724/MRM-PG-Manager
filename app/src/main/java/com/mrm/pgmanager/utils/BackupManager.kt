@@ -6,6 +6,7 @@ import android.content.Context
 import android.net.Uri
 import com.mrm.pgmanager.data.model.AppFontScale
 import com.mrm.pgmanager.data.storage.SessionStore
+import com.mrm.pgmanager.data.storage.offlineCacheOwner
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -158,9 +159,16 @@ object BackupManager {
             }
         })
 
-        // === فیلترها / وضعیت اعلان‌ها/نودها ===
-        json.put("notification_states", allPrefs["notification_user_states"] as? String ?: "{}")
-        json.put("node_states", allPrefs["node_states"] as? String ?: "{}")
+        // Preserve the existing backup fields, using only the active account's baseline.
+        val notificationStates = active?.let { session ->
+            JSONObject(store.readNotificationStates(session).mapKeys { it.key.toString() }).toString()
+        } ?: (allPrefs["notification_user_states"] as? String ?: "{}")
+        val nodeStates = active?.let { session ->
+            JSONObject(store.readNodeStates(session).mapKeys { it.key.toString() }).toString()
+        } ?: (allPrefs["node_states"] as? String ?: "{}")
+        json.put("notification_states", notificationStates)
+        json.put("node_states", nodeStates)
+        if (active != null) json.put("monitor_state_owner", offlineCacheOwner(active))
 
         return json
     }
@@ -426,6 +434,25 @@ object BackupManager {
                     store.setActive(toActivate)
                     restored += accs.size
                 }
+            }
+        }
+
+        // Older backups have no owner for these baselines and cannot be attributed safely.
+        // New backups restore them only when the exact active credential matches.
+        val activeSession = store.read()
+        if (restoreSettings && activeSession != null &&
+            data.optString("monitor_state_owner", "") == offlineCacheOwner(activeSession)) {
+            val notificationStates = runCatching {
+                val values = JSONObject(data.getString("notification_states"))
+                values.keys().asSequence().associate { it.toLong() to values.getString(it) }
+            }.getOrNull()
+            val nodeStates = runCatching {
+                val values = JSONObject(data.getString("node_states"))
+                values.keys().asSequence().associate { it.toInt() to values.getBoolean(it) }
+            }.getOrNull()
+            if (notificationStates != null && nodeStates != null) {
+                store.saveNotificationStates(activeSession, notificationStates)
+                store.saveNodeStates(activeSession, nodeStates)
             }
         }
 

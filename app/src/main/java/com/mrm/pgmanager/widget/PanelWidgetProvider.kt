@@ -3,6 +3,7 @@ package com.mrm.pgmanager.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -53,7 +54,13 @@ class PanelWidgetProvider : AppWidgetProvider() {
         // سقفِ امن برای goAsync(): سیستم عملاً حدود ۱۰ ثانیه به BroadcastReceiver
         // مهلت می‌دهد. OkHttp تایم‌اوت‌های ۱۵/۲۰ ثانیه‌ای و تا ۳ تلاش دارد؛ بدونِ
         // این سقف، روی شبکهٔ کند کارِ پس‌زمینه کشته می‌شد و گاهی ANR ثبت می‌کرد.
-        private const val REFRESH_TIMEOUT_MS = 9_000L
+        internal const val REFRESH_TIMEOUT_MS = 9_000L
+
+        internal fun refreshIntent(context: Context, appWidgetId: Int): Intent =
+            Intent(context, WidgetRefreshReceiver::class.java).apply {
+                action = ACTION_REFRESH
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
 
         fun updateAll(context: Context) {
             runCatching {
@@ -147,7 +154,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
                 val diskPct = if (stats.diskTotal > 0) ((stats.diskUsed * 100) / stats.diskTotal).toInt().coerceIn(0, 100) else 0
                 val cpuPct = stats.cpuUsage.toInt().coerceIn(0, 100)
 
-                views.setTextViewText(R.id.w_cpu_val, "$cpuPct%")
+                views.setTextViewText(R.id.w_cpu_val, if (stats.cpuUsage.isFinite()) "$cpuPct%" else "—")
                 views.setTextViewText(R.id.w_ram_val, "$ramPct%")
                 views.setTextViewText(R.id.w_disk_val, "$diskPct%")
 
@@ -316,10 +323,7 @@ class PanelWidgetProvider : AppWidgetProvider() {
             )
 
             // refresh
-            val refresh = Intent(context, PanelWidgetProvider::class.java).apply {
-                action = ACTION_REFRESH
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
+            val refresh = refreshIntent(context, appWidgetId)
             views.setOnClickPendingIntent(
                 R.id.w_refresh,
                 PendingIntent.getBroadcast(
@@ -442,34 +446,35 @@ class PanelWidgetProvider : AppWidgetProvider() {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
+}
+
+/** The widget's private PendingIntent must not be triggerable by another app. */
+class WidgetRefreshReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == ACTION_REFRESH) {
-            val pending = goAsync()
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                try {
-                    val store = SessionStore(context)
-                    val sess = store.read()
-                    if (sess != null) {
-                        // سقفِ زمانی: اگر پنل دیر جواب داد، کشِ قبلی می‌ماند و
-                        // badge آفلاین نشان داده می‌شود؛ کارِ گیرنده از بودجهٔ مجاز رد نمی‌شود.
-                        val stats = runCatching {
-                            kotlinx.coroutines.withTimeoutOrNull(REFRESH_TIMEOUT_MS) {
-                                PanelApi.systemStats(sess)
-                            }
-                        }
-                        stats.getOrNull()?.let { store.saveStatsCache(sess, it) }
-                        stats.exceptionOrNull()?.let { error ->
-                            val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(error)
-                            if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN || kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
-                                store.invalidateStatsCache(sess)
-                            }
+        if (intent.action != PanelWidgetProvider.ACTION_REFRESH) return
+        val pending = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                val store = SessionStore(context)
+                val session = store.read()
+                if (session != null) {
+                    val stats = runCatching {
+                        kotlinx.coroutines.withTimeoutOrNull(PanelWidgetProvider.REFRESH_TIMEOUT_MS) {
+                            PanelApi.systemStats(session)
                         }
                     }
-                } finally {
-                    updateAll(context)
-                    pending.finish()
+                    stats.getOrNull()?.let { store.saveStatsCache(session, it) }
+                    stats.exceptionOrNull()?.let { error ->
+                        val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(error)
+                        if (kind == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN ||
+                            kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
+                            store.invalidateStatsCache(session)
+                        }
+                    }
                 }
+            } finally {
+                PanelWidgetProvider.updateAll(context)
+                pending.finish()
             }
         }
     }

@@ -880,6 +880,7 @@
     <string name="err_forbidden_panel">این حساب برای این کار مجوز ندارد.</string>
     <string name="err_not_found_panel">این مورد دیگر وجود ندارد — ممکن است از پنل حذف شده باشد.</string>
     <string name="err_server_fmt">پنل خطای سرور داد (%1$d) — چند لحظه بعد دوباره تلاش کنید.</string>
+    <string name="err_write_unconfirmed">ممکن است عملیات به پنل رسیده باشد، اما نتیجه مشخص نیست. پیش از تلاش دوباره، صفحه را تازه‌سازی و نتیجه را بررسی کنید.</string>
     <string name="err_validation_fmt">پنل این درخواست را نپذیرفت: %1$s</string>
     <string name="err_local_permission">دسترسی به آن محل داده نشد — فایل را دوباره انتخاب کنید.</string>
     <string name="err_local_storage">نوشتنِ فایل ممکن نشد — فضای آزاد و مسیر را بررسی کنید.</string>

@@ -8,6 +8,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +28,7 @@ class SessionStoreOfflineCacheTest {
         context.getSharedPreferences("offline_cache_test", Context.MODE_PRIVATE).edit().clear().commit()
         SessionStore.prefsFactory = { it.getSharedPreferences("offline_cache_test", Context.MODE_PRIVATE) }
         store = SessionStore(context)
+        store.setActive(first)
     }
 
     @After fun tearDown() { SessionStore.resetPrefsForTests() }
@@ -44,6 +46,14 @@ class SessionStoreOfflineCacheTest {
         assertNull(store.readStatsCache(first.copy(baseUrl = "https://other.example")))
     }
 
+    @Test fun `missing cpu remains unknown without breaking the rest of the stats cache`() {
+        store.saveStatsCache(first, SystemStats(cpuUsage = Float.NaN, totalUsers = 12))
+        val cached = store.readStatsCache(first)!!.first
+        assertTrue(cached.cpuUsage.isNaN())
+        assertEquals(12, cached.totalUsers)
+        assertTrue(org.json.JSONObject(store.prefs.getString("stats_cache", "{}")!!).isNull("cpu_usage"))
+    }
+
     @Test fun `legacy cache with unknown owner is not exposed`() {
         store.prefs.edit().putString("users_cache", "[]").putLong("users_cache_ts", 1)
             .putString("stats_cache", "{}").putLong("stats_cache_ts", 1).commit()
@@ -54,8 +64,25 @@ class SessionStoreOfflineCacheTest {
 
     @Test fun `new owner replaces rather than inheriting a previous cache`() {
         store.saveUsersCache(first, listOf(user))
+        store.setActive(second)
         store.saveUsersCache(second, listOf(user.copy(username = "second")))
         assertNull(store.readUsersCache(first))
         assertEquals("second", store.readUsersCache(second)?.first?.single()?.username)
+    }
+
+    @Test fun `late responses cannot replace the active account offline caches`() {
+        store.saveUsersCache(first, listOf(user))
+        store.saveStatsCache(first, SystemStats(totalUsers = 1))
+        store.setActive(second)
+        store.saveUsersCache(second, listOf(user.copy(username = "second")))
+        store.saveStatsCache(second, SystemStats(totalUsers = 2))
+
+        store.saveUsersCache(first, listOf(user.copy(username = "late")))
+        store.saveStatsCache(first, SystemStats(totalUsers = 999))
+
+        assertEquals("second", store.readUsersCache(second)?.first?.single()?.username)
+        assertEquals(2, store.readStatsCache(second)?.first?.totalUsers)
+        assertNull(store.readUsersCache(first))
+        assertNull(store.readStatsCache(first))
     }
 }

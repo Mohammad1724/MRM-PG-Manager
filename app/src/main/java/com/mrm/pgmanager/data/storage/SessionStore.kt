@@ -26,6 +26,8 @@ class SessionStore(context: Context) {
         private const val FONT_SCALE_KEY = "ui_font_scale_percent_v2"
         private const val LEGACY_FONT_SCALE_KEY = "ui_font_scale_percent"
         private val offlineCacheLock = Any()
+        // Session transitions from the UI, widget and workers share this process-wide lock.
+        private val sessionLock = Any()
 
         // کلیدهای نشانه‌های one-time (فاز ۲.۵ — کشف‌پذیری)
         const val HINT_LONG_PRESS = "hint_long_press"
@@ -95,10 +97,10 @@ class SessionStore(context: Context) {
         }
     }
 
-    fun read(): Session? {
-        val base = prefs.getString("base", null) ?: return null
-        val token = prefs.getString("token", null) ?: return null
-        return Session(base, token, prefs.getString("username", "") ?: "")
+    fun read(): Session? = synchronized(sessionLock) {
+        val base = prefs.getString("base", null) ?: return@synchronized null
+        val token = prefs.getString("token", null) ?: return@synchronized null
+        Session(base, token, prefs.getString("username", "") ?: "")
     }
 
     /** ورود جدید: حساب در لیست ذخیره/به‌روز می‌شود و به‌عنوان حساب فعال تنظیم می‌گردد. */
@@ -116,13 +118,16 @@ class SessionStore(context: Context) {
      * پیش‌پر کند. توکنِ JWT پنل پیش‌فرض ۲۴ ساعته است، پس این اتفاق روزانه می‌افتد و
      * نباید هر بار حساب را از دست بدهیم.
      */
-    fun expireActive() {
-        val active = read() ?: return
+    /** Expire only the session that actually received the 401, atomically with account switches. */
+    fun expireActive(expected: Session): Boolean = synchronized(sessionLock) {
+        val active = read()
+        if (active != expected) return@synchronized false
         prefs.edit()
-            .putString("expired_base", active.baseUrl)
-            .putString("expired_username", active.username)
+            .putString("expired_base", expected.baseUrl)
+            .putString("expired_username", expected.username)
             .remove("base").remove("token").remove("username")
             .apply()
+        true
     }
 
     /** حسابی که آخرین بار نشستش منقضی شد (برای پیش‌پرکردنِ صفحهٔ ورود). */
@@ -135,14 +140,16 @@ class SessionStore(context: Context) {
     fun clearExpiredMarker() = prefs.edit().remove("expired_base").remove("expired_username").apply()
 
     /** کلیدهای نشستِ فعال را بدون تغییر لیست حساب‌ها به حسابِ انتخاب‌شده سوئیچ می‌کند. */
-    fun setActive(value: Session) = prefs.edit()
-        .putString("base", value.baseUrl)
-        .putString("token", value.token)
-        .putString("username", value.username)
-        .apply()
+    fun setActive(value: Session) = synchronized(sessionLock) {
+        prefs.edit()
+            .putString("base", value.baseUrl)
+            .putString("token", value.token)
+            .putString("username", value.username)
+            .apply()
+    }
 
     /** خروج کامل: نشستِ فعال و حسابِ متناظر از لیست حذف می‌شود (حساب‌های دیگر باقی می‌مانند). */
-    fun clear() {
+    fun clear() = synchronized(sessionLock) {
         val active = read()
         if (active != null) saveAccounts(readAccounts().filterNot { it.baseUrl == active.baseUrl && it.username == active.username })
         prefs.edit().remove("base").remove("token").remove("username").apply()
@@ -281,31 +288,60 @@ class SessionStore(context: Context) {
         .putString("debtor_currency", v.debtorCurrency)
         .apply()
 
-    fun readNotificationStates(): Map<Long, String> = runCatching {
-        val obj = org.json.JSONObject(prefs.getString("notification_user_states", "{}") ?: "{}")
+    /** Only the current credential may read or update the monitoring baseline. */
+    private fun monitoringJson(session: Session, key: String): org.json.JSONObject = synchronized(sessionLock) {
+        if (read() != session || prefs.getString("monitor_owner_v2", null) != offlineCacheOwner(session)) {
+            return@synchronized org.json.JSONObject()
+        }
+        runCatching { org.json.JSONObject(prefs.getString(key, "{}") ?: "{}") }.getOrDefault(org.json.JSONObject())
+    }
+
+    private inline fun updateMonitoringState(
+        session: Session,
+        update: (android.content.SharedPreferences.Editor, Boolean) -> Unit
+    ) = synchronized(sessionLock) {
+        if (read() != session) return@synchronized
+        val owner = offlineCacheOwner(session)
+        val sameOwner = prefs.getString("monitor_owner_v2", null) == owner
+        val editor = prefs.edit()
+        if (!sameOwner) {
+            // Old global values have no reliable owner: retain them but do not reuse them.
+            listOf("monitor_users_v2", "monitor_nodes_v2", "monitor_flags_v2", "monitor_counts_v2").forEach(editor::remove)
+            editor.putString("monitor_owner_v2", owner)
+        }
+        update(editor, sameOwner)
+        editor.apply()
+    }
+
+    fun readNotificationStates(session: Session): Map<Long, String> = runCatching {
+        val obj = monitoringJson(session, "monitor_users_v2")
         obj.keys().asSequence().associate { it.toLong() to obj.getString(it) }
     }.getOrDefault(emptyMap())
 
-    fun saveNotificationStates(states: Map<Long, String>) = prefs.edit().putString("notification_user_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
+    fun saveNotificationStates(session: Session, states: Map<Long, String>) = updateMonitoringState(session) { editor, _ ->
+        editor.putString("monitor_users_v2", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString())
+    }
 
-    /** فلگ‌های latch اعلان‌ها (برای جلوگیری از اسپمِ هشدارهای مکرر در Worker). */
-    fun readAlertFlag(key: String): Boolean = prefs.getBoolean("alert_$key", false)
-    fun saveAlertFlag(key: String, value: Boolean) = prefs.edit().putBoolean("alert_$key", value).apply()
+    fun readAlertFlag(session: Session, key: String): Boolean = monitoringJson(session, "monitor_flags_v2").optBoolean(key, false)
+    fun saveAlertFlag(session: Session, key: String, value: Boolean) = updateMonitoringState(session) { editor, sameOwner ->
+        val flags = if (sameOwner) monitoringJson(session, "monitor_flags_v2") else org.json.JSONObject()
+        editor.putString("monitor_flags_v2", flags.put(key, value).toString())
+    }
 
-    /**
-     * شمارندهٔ خطاهای پشتِ‌سرِ هم — برای اینکه یک قطعیِ لحظه‌ای فوراً به اعلان
-     * تبدیل نشود و فقط خطای تکرارشونده گزارش شود.
-     */
-    fun readAlertCount(key: String): Int = prefs.getInt("alert_count_$key", 0)
-    fun saveAlertCount(key: String, value: Int) = prefs.edit().putInt("alert_count_$key", value).apply()
+    fun readAlertCount(session: Session, key: String): Int = monitoringJson(session, "monitor_counts_v2").optInt(key, 0)
+    fun saveAlertCount(session: Session, key: String, value: Int) = updateMonitoringState(session) { editor, sameOwner ->
+        val counts = if (sameOwner) monitoringJson(session, "monitor_counts_v2") else org.json.JSONObject()
+        editor.putString("monitor_counts_v2", counts.put(key, value).toString())
+    }
 
-    /** آخرین وضعیت آنلاین/آفلاین نودها برای تشخیص تغییر در پس‌زمینه. */
-    fun readNodeStates(): Map<Int, Boolean> = runCatching {
-        val obj = org.json.JSONObject(prefs.getString("node_states", "{}") ?: "{}")
+    fun readNodeStates(session: Session): Map<Int, Boolean> = runCatching {
+        val obj = monitoringJson(session, "monitor_nodes_v2")
         obj.keys().asSequence().associate { it.toInt() to obj.getBoolean(it) }
     }.getOrDefault(emptyMap())
 
-    fun saveNodeStates(states: Map<Int, Boolean>) = prefs.edit().putString("node_states", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString()).apply()
+    fun saveNodeStates(session: Session, states: Map<Int, Boolean>) = updateMonitoringState(session) { editor, _ ->
+        editor.putString("monitor_nodes_v2", org.json.JSONObject(states.mapKeys { it.key.toString() }).toString())
+    }
 
     /**
      * تاریخ آخرین تمدید هر کاربر، به‌صورت ISO (yyyy-MM-dd).
@@ -343,10 +379,14 @@ class SessionStore(context: Context) {
                 put("group_ids", org.json.JSONArray(u.groupIds)); put("group_names", org.json.JSONArray(u.groupNames))
             })
         }
-        synchronized(offlineCacheLock) {
-            prefs.edit().putString("users_cache", arr.toString())
-                .putLong("users_cache_ts", System.currentTimeMillis())
-                .putString("users_cache_owner", offlineCacheOwner(session)).apply()
+        synchronized(sessionLock) {
+            // An old request may finish after another account becomes active.
+            if (read() != session) return
+            synchronized(offlineCacheLock) {
+                prefs.edit().putString("users_cache", arr.toString())
+                    .putLong("users_cache_ts", System.currentTimeMillis())
+                    .putString("users_cache_owner", offlineCacheOwner(session)).apply()
+            }
         }
     }
 
@@ -411,16 +451,20 @@ class SessionStore(context: Context) {
     fun saveStatsCache(session: Session, s: SystemStats) {
         val raw = org.json.JSONObject().apply {
             put("uptime_seconds", s.uptimeSeconds); put("mem_total", s.memTotal); put("mem_used", s.memUsed)
-            put("disk_total", s.diskTotal); put("disk_used", s.diskUsed); put("cpu_cores", s.cpuCores); put("cpu_usage", s.cpuUsage.toDouble())
+            put("disk_total", s.diskTotal); put("disk_used", s.diskUsed); put("cpu_cores", s.cpuCores)
+            put("cpu_usage", if (s.cpuUsage.isFinite()) s.cpuUsage.toDouble() else org.json.JSONObject.NULL)
             put("total_users", s.totalUsers); put("online_users", s.onlineUsers); put("active_users", s.activeUsers)
             put("expired_users", s.expiredUsers); put("limited_users", s.limitedUsers); put("disabled_users", s.disabledUsers); put("on_hold_users", s.onHoldUsers)
             put("incoming_bandwidth", s.incomingBandwidth); put("outgoing_bandwidth", s.outgoingBandwidth)
             put("version", s.version)
         }.toString()
-        synchronized(offlineCacheLock) {
-            prefs.edit().putString("stats_cache", raw)
-                .putLong("stats_cache_ts", System.currentTimeMillis())
-                .putString("stats_cache_owner", offlineCacheOwner(session)).apply()
+        synchronized(sessionLock) {
+            if (read() != session) return
+            synchronized(offlineCacheLock) {
+                prefs.edit().putString("stats_cache", raw)
+                    .putLong("stats_cache_ts", System.currentTimeMillis())
+                    .putString("stats_cache_owner", offlineCacheOwner(session)).apply()
+            }
         }
     }
 

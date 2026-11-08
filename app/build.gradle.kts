@@ -116,6 +116,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     // رفتارِ لمس (clickable/pressScale) را با رویدادهای واقعیِ pointer می‌سنجد؛ فقط تست، نه APK.
     testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.work:work-testing:2.9.1")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

@@ -81,47 +81,32 @@ object PanelCache {
     /** همهٔ کلیدها را دور می‌ریزد — موقعِ خروج از حساب. */
     fun clear() = entries.clear()
 
-    // ── کلیدها؛ همه به آدرسِ پنل وصل‌اند تا با عوض‌شدنِ حساب قاطی نشوند.
-    fun statsKey(baseUrl: String) = "stats:$baseUrl"
-    /**
-     * کلیدِ کشِ ترافیکِ داشبورد. بازهٔ انتخابی هم وارد کلید می‌شود (D5): قبلاً هر شش
-     * بازه روی یک کلید می‌نوشتند و با عوض‌کردنِ بازه، کشِ بازهٔ قبلی بازنویسی و
-     * هنگامِ ورودِ مجدد نقاطِ بازهٔ دیگری لحظه‌ای نمایش داده می‌شد.
-     */
-    fun trafficKey(baseUrl: String, range: String? = null) =
-        if (range.isNullOrBlank()) "traffic:$baseUrl" else "traffic:$baseUrl:$range"
-    fun statsTrafficKey(baseUrl: String) = "stats.traffic:$baseUrl"
-    fun statsCountKey(baseUrl: String) = "stats.count:$baseUrl"
-    fun statsNodeUsageKey(baseUrl: String) = "stats.nodeusage:$baseUrl"
-    fun nodesKey(baseUrl: String) = "nodes:$baseUrl"
-    fun usersKey(baseUrl: String) = "users:$baseUrl"
-    fun groupsKey(baseUrl: String) = "groups:$baseUrl"
-    fun inboundsKey(baseUrl: String) = "inbounds:$baseUrl"
-    fun templatesKey(baseUrl: String) = "templates:$baseUrl"
-    fun templateGroupsKey(baseUrl: String) = "templates.groups:$baseUrl"
+    // Scope every resource to the exact account and credential. Clearing on a switch is
+    // not enough: a response from the old account can arrive after clear() has run.
+    // Never embed the credential itself in a key.
+    private fun sessionKey(resource: String, session: Session) =
+        "$resource:session:${offlineCacheOwner(session)}"
 
-    // ── زیرساختِ پنل (فازِ ۲): هاست‌ها / کورها / قالب‌های کلاینت.
-    // این‌ها دادهٔ «سطحِ سرور» هستند و در یک نشست تقریباً ثابت‌اند، پس کشِ
-    // کوتاه‌مدتِ همین حافظه برای برگشت از تب/صفحه کافی است و از درخواستِ
-    // تکراری هنگامِ جابه‌جایی بین تب‌های مدیریتِ پنل جلوگیری می‌کند.
-    fun hostsKey(baseUrl: String) = "hosts:$baseUrl"
-
-    /**
-     * تنظیماتِ پنل (`GET /api/settings`). مثلِ بقیهٔ داده‌های سطحِ سرور کش می‌شود
-     * تا رفت‌وبرگشت بین چهار تب دوباره درخواست نفرستد؛ بعد از هر ذخیره، پاسخِ
-     * تازه جای همین می‌نشیند.
-     */
-    fun panelSettingsKey(baseUrl: String) = "panelsettings:$baseUrl"
-    // Sensitive data must not reuse another account's cache on the same panel.
-    fun panelSettingsKey(session: Session) = "panelsettings:session:${offlineCacheOwner(session)}"
-
-    /** فهرستِ کلیدهای API — همان قاعدهٔ کشِ کوتاه‌مدتِ داده‌های سطحِ سرور. */
-    fun apiKeysKey(baseUrl: String) = "apikeys:$baseUrl"
-    fun apiKeysKey(session: Session) = "apikeys:session:${offlineCacheOwner(session)}"
-
-    /** اپراتورها و نقش‌ها (صفحهٔ «اپراتورها و نقش‌ها») — دو کلیدِ جدا. */
-    fun adminsKey(baseUrl: String) = "admins:$baseUrl"
-    fun adminRolesKey(baseUrl: String) = "adminroles:$baseUrl"
-    fun coresKey(baseUrl: String) = "cores:$baseUrl"
-    fun clientTemplatesKey(baseUrl: String) = "clienttemplates:$baseUrl"
+    fun statsKey(session: Session) = sessionKey("stats", session)
+    /** Each traffic range has its own entry within the current session. */
+    fun trafficKey(session: Session, range: String? = null): String {
+        val key = sessionKey("traffic", session)
+        return if (range.isNullOrBlank()) key else "$key:$range"
+    }
+    fun statsTrafficKey(session: Session) = sessionKey("stats.traffic", session)
+    fun statsCountKey(session: Session) = sessionKey("stats.count", session)
+    fun statsNodeUsageKey(session: Session) = sessionKey("stats.nodeusage", session)
+    fun nodesKey(session: Session) = sessionKey("nodes", session)
+    fun usersKey(session: Session) = sessionKey("users", session)
+    fun groupsKey(session: Session) = sessionKey("groups", session)
+    fun inboundsKey(session: Session) = sessionKey("inbounds", session)
+    fun templatesKey(session: Session) = sessionKey("templates", session)
+    fun templateGroupsKey(session: Session) = sessionKey("templates.groups", session)
+    fun hostsKey(session: Session) = sessionKey("hosts", session)
+    fun panelSettingsKey(session: Session) = sessionKey("panelsettings", session)
+    fun apiKeysKey(session: Session) = sessionKey("apikeys", session)
+    fun adminsKey(session: Session) = sessionKey("admins", session)
+    fun adminRolesKey(session: Session) = sessionKey("adminroles", session)
+    fun coresKey(session: Session) = sessionKey("cores", session)
+    fun clientTemplatesKey(session: Session) = sessionKey("clienttemplates", session)
 }

@@ -75,10 +75,10 @@ fun StatisticsScreen(
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
     // مثلِ داشبورد: صفحه با آخرین دادهٔ حافظه ساخته می‌شود تا سوایپ خالی نباشد.
-    val statsKey = PanelCache.statsKey(session.baseUrl)
-    val trafficKey = PanelCache.statsTrafficKey(session.baseUrl)
-    val countKey = PanelCache.statsCountKey(session.baseUrl)
-    val nodesKey = PanelCache.nodesKey(session.baseUrl)
+    val statsKey = PanelCache.statsKey(session)
+    val trafficKey = PanelCache.statsTrafficKey(session)
+    val countKey = PanelCache.statsCountKey(session)
+    val nodesKey = PanelCache.nodesKey(session)
     var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
     var trafficPoints by remember(session) {
         mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
@@ -90,7 +90,7 @@ fun StatisticsScreen(
         mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList())
     }
     // ترافیکِ گزارش‌شده توسطِ خودِ نودها (`/api/node/usage`) — null یعنی هنوز نیامده یا نقش اجازه ندارد.
-    val nodeUsageKey = PanelCache.statsNodeUsageKey(session.baseUrl)
+    val nodeUsageKey = PanelCache.statsNodeUsageKey(session)
     var nodeUsage by remember(session) { mutableStateOf(PanelCache.get<List<NodeUsage>>(nodeUsageKey)) }
     val canNodeStats = AdminAccess.canFor(session, "nodes", "stats")
     // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
@@ -153,11 +153,15 @@ fun StatisticsScreen(
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }
             .onSuccess {
+                currentCoroutineContext().ensureActive()
                 stats = it; loadError = null; PanelCache.put(statsKey, it)
                 // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5.
                 com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
             }
-            .onFailure { if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
+            .onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+            }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
@@ -242,7 +246,7 @@ fun StatisticsScreen(
                 // نسبت‌های سیستم — یک‌بار حساب می‌شوند و به حلقه‌ها می‌روند.
                 val memFraction = if (s.memTotal > 0) (s.memUsed.toFloat() / s.memTotal) else 0f
                 val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
-                val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
+                val cpuFraction = if (s.cpuUsage.isFinite()) (s.cpuUsage / 100f).coerceIn(0f, 1f) else 0f
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 // ترافیک صفر: هر دو سهم صفر (نه آپلودِ ۱۰۰٪) — حلقه فقط شیار پس‌زمینه را نشان می‌دهد.
                 val (downShare, upShare) = trafficShares(s.incomingBandwidth, s.outgoingBandwidth)
@@ -256,7 +260,7 @@ fun StatisticsScreen(
                     PGRingStatRow(spacing = DsSpacing.Md) {
                         PGRingStatCard(
                             label = stringResource(R.string.cpu_usage),
-                            value = "${formatPercent(s.cpuUsage)}%",
+                            value = if (s.cpuUsage.isFinite()) "${formatPercent(s.cpuUsage)}%" else "—",
                             icon = AppIcon.Gauge,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = cpuFraction,

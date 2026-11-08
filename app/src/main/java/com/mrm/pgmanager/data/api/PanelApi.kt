@@ -45,6 +45,7 @@ import com.mrm.pgmanager.data.model.PanelHwidSection
 import com.mrm.pgmanager.data.model.PanelNotificationSection
 import com.mrm.pgmanager.data.model.PanelRuntimeSettings
 import com.mrm.pgmanager.data.model.PanelCleanupSettings
+import com.mrm.pgmanager.data.storage.offlineCacheOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -71,10 +72,16 @@ import kotlin.coroutines.resumeWithException
  */
 class SessionExpiredException(message: String = "401 Unauthorized: session expired") : RuntimeException(message)
 
+/** The server may have applied a mutation even though its result could not be confirmed. */
+class PanelWriteUnconfirmedException(cause: java.io.IOException? = null) :
+    java.io.IOException("The panel operation could not be confirmed", cause)
+
 object PanelApi {
-    /** تشخیصِ یکپارچهٔ «نشست منقضی شده» — به‌جای `message.contains("401")` پراکنده. */
+    private val unauthorizedCode = Regex("""^(?:[^:\r\n]*:\s*)?401(?:\s|$)""")
+
+    /** Recognize typed session expiry and the legacy `...: 401 ...` login error. */
     fun isUnauthorized(e: Throwable?): Boolean =
-        e is SessionExpiredException || e?.message?.contains("401") == true
+        e is SessionExpiredException || e?.message?.let(unauthorizedCode::containsMatchIn) == true
 
     /**
      * کلاینتی که **فقط TLS 1.2** حرف می‌زند.
@@ -100,6 +107,7 @@ object PanelApi {
     private object CoreWriteMarker
     private object NodeWriteMarker
     private object NodeLogMarker
+    private object ReadOnlyPostMarker
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -120,12 +128,32 @@ object PanelApi {
             response
         }
         .addInterceptor { chain ->
-            // Never replay node mutations, full-body core updates or a streaming handshake.
             val request = chain.request()
-            if (request.method == "POST" || request.tag(CoreWriteMarker::class.java) != null ||
-                request.tag(NodeWriteMarker::class.java) != null || request.tag(NodeLogMarker::class.java) != null) {
-                return@addInterceptor chain.proceed(request)
+            val isRead = request.method == "GET" || request.method == "HEAD"
+            if (!isRead) {
+                // An IO failure or a 503 can arrive after a mutation was applied. Do not
+                // repeat it, including OkHttp's own Retry-After: 0 follow-up. DELETE's
+                // usual empty body is wrapped too; some endpoints mutate without a body.
+                val body = request.body ?: "".toRequestBody()
+                val singleAttempt = request.newBuilder()
+                    .method(request.method, if (body.isOneShot()) body else oneShot(body))
+                    .build()
+                val authenticated = request.header("Authorization") != null || request.header("X-Api-Key") != null
+                val isMutation = authenticated && request.tag(ReadOnlyPostMarker::class.java) == null
+                try {
+                    val response = chain.proceed(singleAttempt)
+                    if (isMutation && response.code >= 500) {
+                        response.close()
+                        throw PanelWriteUnconfirmedException()
+                    }
+                    return@addInterceptor response
+                } catch (error: java.io.IOException) {
+                    if (!isMutation || chain.call().isCanceled() || error is PanelWriteUnconfirmedException) throw error
+                    throw PanelWriteUnconfirmedException(error)
+                }
             }
+            // A log connection has its own bounded reconnect policy, not the read retry loop.
+            if (request.tag(NodeLogMarker::class.java) != null) return@addInterceptor chain.proceed(request)
             var lastError: java.io.IOException? = null
             for (attempt in 0 until 3) {
                 try {
@@ -137,6 +165,19 @@ object PanelApi {
                 }
             }
             throw lastError ?: java.io.IOException("retry exhausted")
+        }
+        .addNetworkInterceptor { chain ->
+            val request = chain.request()
+            val response = chain.proceed(request)
+            if (!response.isRedirect) return@addNetworkInterceptor response
+            val target = response.header("Location")?.let { request.url.resolve(it) }
+            val sameOrigin = target != null && target.scheme == request.url.scheme &&
+                target.host == request.url.host && target.port == request.url.port
+            val isRead = request.method == "GET" || request.method == "HEAD"
+            // OkHttp strips Authorization on cross-origin redirects, but not X-Api-Key.
+            // Keep same-origin read redirects for compatibility; never redirect a write.
+            if (!isRead || !sameOrigin) response.newBuilder().removeHeader("Location").build()
+            else response
         }
         .build()
     // Sensitive infrastructure requests do not forward custom API-key headers through redirects.
@@ -385,19 +426,30 @@ object PanelApi {
         )
     }
 
-    suspend fun systemStats(session: Session): SystemStats = withContext(Dispatchers.IO) {
+    suspend fun systemStats(session: Session): SystemStats = coroutineScope {
         val request = requestBuilder(session, "${session.baseUrl}/api/system").get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("System stats failed: ${response.code}")
-            val o = JSONObject(response.body?.string() ?: "{}")
-            SystemStats(
-                uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
-                diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
-                totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
-                expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
-                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
-                version = o.optString("version").takeIf { it != "null" }.orEmpty()
-            )
+        suspendCancellableCoroutine { continuation ->
+            val call = client.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            launch(Dispatchers.IO) {
+                try {
+                    val stats = call.execute().use { response ->
+                        if (!response.isSuccessful) error("System stats failed: ${response.code}")
+                        val o = JSONObject(response.body?.string() ?: "{}")
+                        SystemStats(
+                            uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
+                            diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
+                            totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
+                            expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
+                            incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
+                            version = o.optString("version").takeIf { it != "null" }.orEmpty()
+                        )
+                    }
+                    if (continuation.isActive) continuation.resume(stats)
+                } catch (error: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
+            }
         }
     }
 
@@ -971,27 +1023,53 @@ object PanelApi {
         }
     }
 
-    /**
-     * نگاشتِ id→name گروه‌ها با کشِ کوتاهِ درون‌حافظه‌ای (به‌ازای هر پنل).
-     *
-     * هر صفحهٔ کاربران (و هر رفرشِ خودکار، که می‌تواند هر ۵ ثانیه باشد) به این
-     * نگاشت نیاز دارد؛ بدونِ کش هر بار یک `GET /api/groups/simple` اضافه می‌رفت.
-     * گروه‌ها به‌ندرت عوض می‌شوند، و ساخت/ویرایش/حذفِ گروه از همین اپ کش را باطل می‌کند.
-     */
-    private val groupNameCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Map<Int, String>>>()
+    /** Cache group labels per exact credential; two accounts can see different groups. */
+    private data class CachedGroupNames(val baseUrl: String, val at: Long, val names: Map<Int, String>)
+    private val groupNameLock = Any()
+    private val groupNameCache = mutableMapOf<String, CachedGroupNames>()
+    private var groupNameGeneration = 0L
     private const val GROUP_NAME_CACHE_MS = 60_000L
 
     private suspend fun groupNameMap(session: Session): Map<Int, String> {
-        // nanoTime (یکنواخت و بدونِ وابستگی به اندروید — تست‌های JVM هم از این مسیر می‌گذرند).
         val now = System.nanoTime() / 1_000_000L
-        groupNameCache[session.baseUrl]?.let { (at, map) -> if (now - at < GROUP_NAME_CACHE_MS && map.isNotEmpty()) return map }
-        val map = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
-        if (map.isNotEmpty()) groupNameCache[session.baseUrl] = now to map
-        return map
+        val key = offlineCacheOwner(session)
+        val generation = synchronized(groupNameLock) {
+            // Expired credentials should not accumulate across repeated logins.
+            groupNameCache.entries.removeAll { now - it.value.at >= GROUP_NAME_CACHE_MS }
+            groupNameCache[key]?.let { return it.names }
+            groupNameGeneration
+        }
+        val groups = try {
+            groups(session)
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: SessionExpiredException) {
+            throw error
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val map = groups.associate { it.id to it.name }
+        return synchronized(groupNameLock) {
+            // Do not reinstall a response after a permission refresh or group change.
+            if (generation != groupNameGeneration) return@synchronized emptyMap()
+            if (map.isNotEmpty()) groupNameCache[key] = CachedGroupNames(session.baseUrl, now, map)
+            map
+        }
     }
 
-    /** پس از ساخت/ویرایش/حذفِ گروه صدا زده می‌شود تا نامِ تازه فوراً روی کاربران بنشیند. */
-    private fun invalidateGroupNames(session: Session) { groupNameCache.remove(session.baseUrl) }
+    /** A group change can affect every account connected to the same panel. */
+    private fun invalidateGroupNames(session: Session) = synchronized(groupNameLock) {
+        groupNameGeneration++
+        groupNameCache.entries.removeAll { it.value.baseUrl == session.baseUrl }
+        Unit
+    }
+
+    /** Refreshing permissions also invalidates in-flight and cached group labels. */
+    internal fun invalidateGroupNameAccess(session: Session) = synchronized(groupNameLock) {
+        groupNameGeneration++
+        groupNameCache.remove(offlineCacheOwner(session))
+        Unit
+    }
 
     /**
      * افزودن یا برداشتنِ گروه برای چند کاربر یک‌جا —
@@ -1368,7 +1446,10 @@ object PanelApi {
                         Group(id = g.optInt("id"), name = g.optString("name"))
                     }
                 }
-            }.getOrNull()
+            }.getOrElse { error ->
+                if (error is kotlinx.coroutines.CancellationException || error is SessionExpiredException) throw error
+                null
+            }
             if (chunk == null) break
             all.addAll(chunk)
             if (chunk.size < limit) break
@@ -1391,7 +1472,10 @@ object PanelApi {
                         Group(id = g.optInt("id"), name = g.optString("name"))
                     }
                 }
-            }.getOrDefault(emptyList())
+            }.getOrElse { error ->
+                if (error is kotlinx.coroutines.CancellationException || error is SessionExpiredException) throw error
+                emptyList()
+            }
             all.addAll(chunk)
             if (chunk.size < limit) break
             offset += limit
@@ -1772,6 +1856,7 @@ object PanelApi {
             put("dry_run", true)
         }
         val request = requestBuilder(session, "${session.baseUrl}/api/users/bulk/$path")
+            .tag(ReadOnlyPostMarker::class.java, ReadOnlyPostMarker)
             .post(body.toString().toRequestBody(jsonType)).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Preview failed: ${response.code}")

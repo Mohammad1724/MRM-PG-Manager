@@ -85,7 +85,7 @@ internal fun HostsSection(session: Session, sectionTabs: @Composable () -> Unit)
     val activeEditor = editorSnapshot.active?.takeIf { it.session == session }
     val saveNotice = editorSnapshot.notice?.takeIf { it.session == session }
 
-    val hostsKey = PanelCache.hostsKey(session.baseUrl)
+    val hostsKey = PanelCache.hostsKey(session)
     var hosts by remember(session) {
         mutableStateOf(PanelCache.get<List<PanelHost>>(hostsKey) ?: emptyList())
     }
@@ -115,7 +115,7 @@ internal fun HostsSection(session: Session, sectionTabs: @Composable () -> Unit)
                 loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             }
             // Keep the shared inbound cache warm for the other infrastructure sections.
-            PanelCache.put(PanelCache.inboundsKey(session.baseUrl), PanelApi.inboundTags(session))
+            PanelCache.put(PanelCache.inboundsKey(session), PanelApi.inboundTags(session))
         } finally {
             loading = false
         }

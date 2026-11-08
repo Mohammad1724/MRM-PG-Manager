@@ -108,7 +108,7 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             if (request == loadRequest) {
                 nodes = result; loadError = null
-                PanelCache.put(PanelCache.nodesKey(session.baseUrl), result)
+                PanelCache.put(PanelCache.nodesKey(session), result)
             }
         } catch (error: CancellationException) {
             throw error
@@ -159,7 +159,7 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                 state.finishAction(request, message)
             } finally {
                 // A failed or cancelled write may still have reached the panel.
-                PanelCache.invalidate(PanelCache.nodesKey(session.baseUrl))
+                PanelCache.invalidate(PanelCache.nodesKey(session))
             }
         }
     }
@@ -304,7 +304,7 @@ private fun NodesSectionContent(session: Session, sectionTabs: @Composable () ->
                         state.failSave(operation.requestId, message, blocked)
                     } finally {
                         // Invalidate even if the tab was left or the write's outcome is unknown.
-                        PanelCache.invalidate(PanelCache.nodesKey(operation.session.baseUrl))
+                        PanelCache.invalidate(PanelCache.nodesKey(operation.session))
                     }
                 }
             })

@@ -70,13 +70,13 @@ class AdminAccessTest {
             AdminAccess.refreshWith(first) { owner }
             PanelCache.put(PanelCache.panelSettingsKey(first), "settings")
             PanelCache.put(PanelCache.apiKeysKey(first), "keys")
-            PanelCache.put(PanelCache.nodesKey(first.baseUrl), "nodes")
+            PanelCache.put(PanelCache.nodesKey(first), "nodes")
 
             AdminAccess.refreshWith(first, force = true) { reader }
 
             assertNull(PanelCache.get<Any>(PanelCache.panelSettingsKey(first)))
             assertNull(PanelCache.get<Any>(PanelCache.apiKeysKey(first)))
-            assertEquals("nodes", PanelCache.get<String>(PanelCache.nodesKey(first.baseUrl)))
+            assertEquals("nodes", PanelCache.get<String>(PanelCache.nodesKey(first)))
             assertFalse(AdminAccess.canFor(first, "settings", "read"))
         } finally {
             PanelCache.clear()

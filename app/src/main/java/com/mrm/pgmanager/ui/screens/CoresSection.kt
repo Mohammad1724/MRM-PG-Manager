@@ -67,7 +67,7 @@ private fun CoresSectionContent(session: Session, sectionTabs: @Composable () ->
     val activeEditor = editorSnapshot.active?.takeIf { it.session == session }
     val saveNotice = editorSnapshot.notice?.takeIf { it.session == session }
 
-    val coresKey = PanelCache.coresKey(session.baseUrl)
+    val coresKey = PanelCache.coresKey(session)
     val accessState = com.mrm.pgmanager.data.AdminAccess.state
     val canRead = com.mrm.pgmanager.data.AdminAccess.can("cores", "read")
     var cores by remember(session) { mutableStateOf(emptyList<PanelCore>()) }

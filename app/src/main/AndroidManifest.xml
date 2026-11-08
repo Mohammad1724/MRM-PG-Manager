@@ -25,13 +25,17 @@
             android:exported="true"
             android:label="@string/widget_name">
             <intent-filter>
-                <!-- اکشن بروزرسانی دستی با PendingIntentِ explicit تحویل داده می‌شود و نیازی به فیلتر ندارد. -->
+                <!-- Widget lifecycle broadcasts are delivered to this provider. -->
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/panel_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".widget.WidgetRefreshReceiver"
+            android:exported="false" />
 
         <!-- FileProvider برای اشتراک‌گذاری فایل‌های PDF فاکتور -->
         <!-- فاز ۸.۳ — اکشنِ «بی‌صدا کردن» روی اعلان‌ها. بدونِ exported: فقط سیستمی

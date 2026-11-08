@@ -88,14 +88,14 @@ class PanelInfraScrollTest {
     private fun str(id: Int) = RuntimeEnvironment.getApplication().getString(id)
 
     private fun seed(target: Session, count: Int = 35) {
-        PanelCache.put(PanelCache.hostsKey(target.baseUrl), (0 until count).map { index ->
+        PanelCache.put(PanelCache.hostsKey(target), (0 until count).map { index ->
             PanelHost(id = index + 1, remark = "Host $index", addresses = listOf("node-$index.example.test"), priority = index + 1)
         })
-        PanelCache.put(PanelCache.inboundsKey(target.baseUrl), emptyList<String>())
-        PanelCache.put(PanelCache.coresKey(target.baseUrl), (0 until count).map { index ->
+        PanelCache.put(PanelCache.inboundsKey(target), emptyList<String>())
+        PanelCache.put(PanelCache.coresKey(target), (0 until count).map { index ->
             PanelCore(id = index + 1, name = "Core $index", type = "xray")
         })
-        PanelCache.put(PanelCache.clientTemplatesKey(target.baseUrl), (0 until count).map { index ->
+        PanelCache.put(PanelCache.clientTemplatesKey(target), (0 until count).map { index ->
             ClientTemplate(
                 id = index + 1,
                 name = "Template $index",
@@ -306,14 +306,14 @@ class PanelInfraScrollTest {
             server.enqueue(MockResponse().setBody("[]"))
             server.enqueue(MockResponse().setBody("[]"))
             render(target = target)
-            rule.waitUntil(15_000) { PanelCache.get<List<String>>(PanelCache.inboundsKey(target.baseUrl)) != null }
+            rule.waitUntil(15_000) { PanelCache.get<List<String>>(PanelCache.inboundsKey(target)) != null }
             rule.onNodeWithTag("infra_hosts_list").performScrollToIndex(1)
             rule.onNodeWithText(str(R.string.load_failed)).assertExists()
             PanelCache.clock = { 2_000L }
             rule.onNodeWithText(str(R.string.retry)).performClick()
             rule.waitUntil(15_000) {
-                PanelCache.get<List<PanelHost>>(PanelCache.hostsKey(target.baseUrl)) != null &&
-                    PanelCache.ageMs(PanelCache.inboundsKey(target.baseUrl)) == 0L
+                PanelCache.get<List<PanelHost>>(PanelCache.hostsKey(target)) != null &&
+                    PanelCache.ageMs(PanelCache.inboundsKey(target)) == 0L
             }
             rule.onNodeWithText(str(R.string.no_hosts)).assertExists()
             rule.onNodeWithTag("infra_hosts_list").performScrollToIndex(0)

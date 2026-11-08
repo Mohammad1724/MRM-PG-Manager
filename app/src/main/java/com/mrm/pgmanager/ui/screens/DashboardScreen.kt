@@ -53,6 +53,7 @@ import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import com.mrm.pgmanager.ui.theme.GlassAmber
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.utils.NotificationHelper
+import kotlinx.coroutines.ensureActive
 import com.mrm.pgmanager.utils.NotificationIds
 import com.mrm.pgmanager.utils.formatBytes
 import com.mrm.pgmanager.utils.formatPercent
@@ -98,14 +99,14 @@ fun DashboardScreen(
     val pageActive = rememberUpdatedState(com.mrm.pgmanager.ui.components.LocalPageActive.current)
     // مقدارِ اولیه از حافظهٔ برنامه می‌آید: با برگشتن به این تب، صفحه فوراً با
     // آخرین دادهٔ دیده‌شده ساخته می‌شود به‌جای اینکه خالی بیاید و بعد پر شود.
-    val statsKey = PanelCache.statsKey(session.baseUrl)
+    val statsKey = PanelCache.statsKey(session)
     var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
     var loading by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey) == null) }
     var manualRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trafficPoints by remember(session) {
         // بازهٔ پیش‌فرضِ اولیه LAST_7D است؛ کشِ همان بازه مقدار اولیه می‌شود.
-        mutableStateOf(PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session.baseUrl, StatsRange.LAST_7D.name)) ?: emptyList())
+        mutableStateOf(PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session, StatsRange.LAST_7D.name)) ?: emptyList())
     }
     // بازهٔ نمودارِ مصرف — قبلاً دو «منو»ی تزئینی بود که کلیک هم نمی‌شدند.
     var chartRange by remember { mutableStateOf(StatsRange.LAST_7D) }
@@ -128,7 +129,7 @@ fun DashboardScreen(
 
     // D4: latch مشترکِ قطع پنل با سوییچ حساب ریست شود تا هشدارِ حساب قبلی،
     // هشدارِ حساب جدید را سرکوب نکند (معادل remember(session) قبلی برای فلگ ماندگار).
-    LaunchedEffect(session.baseUrl) { store.saveAlertFlag("panel_offline", false) }
+    LaunchedEffect(session) { store.saveAlertFlag(session, "panel_offline", false) }
 
     // D2: تنها مسیر درخواست ترافیک. اگر همان بازه در پرواز است، صدا زدنِ دوباره
     // (از load و از افکت تغییر بازه) ریکوئست تکراری نمی‌سازد. نتیجه فقط وقتی به
@@ -139,7 +140,7 @@ fun DashboardScreen(
         scope.launch {
             try {
                 runCatching { PanelApi.trafficUsage(session, range) }.onSuccess { pts ->
-                    PanelCache.put(PanelCache.trafficKey(session.baseUrl, range.name), pts)
+                    PanelCache.put(PanelCache.trafficKey(session, range.name), pts)
                     if (range == chartRange) trafficPoints = pts
                 }
             } finally {
@@ -153,7 +154,9 @@ fun DashboardScreen(
         // F1: ظرفیت آنلاین سوییچِ مستقل دارد؛ early-return قبلی روی notifySystemHealth
         // باعث می‌شد با خاموش‌بودن هشدار سلامت، هشدار ظرفیت هم هرگز نرسد.
         if (settings.notifySystemHealth) {
-            if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(NotificationIds.CPU, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
+            if (s.cpuUsage.isFinite()) {
+                if (s.cpuUsage >= settings.cpuThreshold) { if (!cpuAlerted) alert(NotificationIds.CPU, context.getString(R.string.mw_cpu), context.getString(R.string.mw_cpu_body, "%.1f".format(s.cpuUsage)), "system_health"); cpuAlerted = true } else cpuAlerted = false
+            }
             val ram = if (s.memTotal > 0L) (s.memUsed * 100 / s.memTotal).toInt() else 0
             if (ram >= settings.ramThreshold) { if (!ramAlerted) alert(NotificationIds.RAM, context.getString(R.string.mw_ram), context.getString(R.string.mw_ram_body, ram), "system_health"); ramAlerted = true } else ramAlerted = false
             val disk = if (s.diskTotal > 0L) (s.diskUsed * 100 / s.diskTotal).toInt() else 0
@@ -168,7 +171,10 @@ fun DashboardScreen(
         if (!silent) loading = true
         error = null
         var expired = false
-        runCatching { PanelApi.systemStats(session) }.onSuccess { stats = it; store.saveAlertFlag("panel_offline", false); offlineAt = null
+        runCatching { PanelApi.systemStats(session) }.onSuccess {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (store.read() != session) return
+            stats = it; store.saveAlertFlag(session, "panel_offline", false); offlineAt = null
             PanelCache.put(statsKey, it)
             // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5 (همین پاسخ، بدونِ درخواستِ اضافه).
             com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
@@ -177,8 +183,9 @@ fun DashboardScreen(
             if (System.currentTimeMillis() - lastWidgetUpdateAt > 30_000L) { lastWidgetUpdateAt = System.currentTimeMillis(); runCatching { com.mrm.pgmanager.widget.PanelWidgetProvider.updateAll(context) } }
             evaluateHealth(it)
         }.onFailure { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (store.read() != session) return
             if (PanelApi.isUnauthorized(e)) {
-                com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                 onSessionExpired()
                 expired = true
             } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
@@ -189,7 +196,7 @@ fun DashboardScreen(
                 error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
             } else {
                 // F5: latch مشترکِ ورکر و ID یکتا (5104) تا دو موتور یک اعلان بسازند.
-                if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag("panel_offline")) { NotificationHelper.post(context, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); store.saveAlertFlag("panel_offline", true) }
+                if (settings.notificationsEnabled && settings.notifyPanelOffline && !store.readAlertFlag(session, "panel_offline")) { NotificationHelper.post(context, NotificationIds.PANEL_OFFLINE, NotificationHelper.CHANNEL_SYSTEM, context.getString(R.string.mw_unreachable), context.getString(R.string.db_error_stats), kind = "panel_offline"); store.saveAlertFlag(session, "panel_offline", true) }
                 val kind = com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(e)
                 val cache = if (settings.offlineCacheEnabled && com.mrm.pgmanager.data.AdminAccess.can("system", "read") &&
                     com.mrm.pgmanager.utils.ApiErrorMapper.isTransient(kind)) store.readStatsCache(session) else null
@@ -209,6 +216,8 @@ fun DashboardScreen(
             }
         // N6-followup: realtime_stats نیازمند nodes.stats است؛ بدون مجوز درخواست ۴۰۳ نزن.
         if (com.mrm.pgmanager.data.AdminAccess.can("nodes", "stats")) runCatching { PanelApi.nodeOnlineStates(session) }.onSuccess { states ->
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            if (store.read() != session) return
             if (settings.notificationsEnabled && settings.notifyNodeOffline && lastNodeStates.isNotEmpty()) states.forEach { (id, online) ->
                 val prev = lastNodeStates[id]
                 // F3: IDهای هش‌محورِ مشترک با ورکر (NotificationIds) — بدون برخورد باندی روی idهای بزرگ.
@@ -217,7 +226,7 @@ fun DashboardScreen(
             }
             lastNodeStates = states
             // write-through روی baseline مشترک تا تیک بعدیِ ورکر گذارِ دیده‌شده را دوباره هشدار ندهد.
-            store.saveNodeStates(states)
+            store.saveNodeStates(session, states)
         }
         loading = false
     }
@@ -245,7 +254,7 @@ fun DashboardScreen(
     // نشان داده می‌شود تا نمودار بلافاصله خالی نشود، بعد درخواست تازه از مسیرِ
     // واحدِ واجد گاردِ تکرار (D2/D5).
     LaunchedEffect(chartRange) {
-        PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session.baseUrl, chartRange.name))
+        PanelCache.get<List<TrafficPoint>>(PanelCache.trafficKey(session, chartRange.name))
             ?.let { trafficPoints = it }
         fetchTraffic(chartRange)
     }
@@ -397,7 +406,7 @@ fun DashboardScreen(
                 // قرمز) خودش هشدار است.
                 val memFraction = if (s.memTotal > 0) (s.memUsed.toFloat() / s.memTotal) else 0f
                 val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
-                val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
+                val cpuFraction = if (s.cpuUsage.isFinite()) (s.cpuUsage / 100f).coerceIn(0f, 1f) else 0f
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 val downShare = if (totalTraffic > 0) s.incomingBandwidth.toFloat() / totalTraffic else 0f
                 // I2: تپ روی هر کارت حلقه‌ای به تب آمار می‌رود؛ شرحِ اقدام برای TalkBack.
@@ -412,7 +421,7 @@ fun DashboardScreen(
                 PGRingStatRow(spacing = DsSpacing.CardGap) {
                     PGRingStatCard(
                         label = stringResource(R.string.cpu_usage),
-                        value = "${formatPercent(s.cpuUsage)}%",
+                        value = if (s.cpuUsage.isFinite()) "${formatPercent(s.cpuUsage)}%" else "—",
                         icon = AppIcon.Gauge,
                         modifier = statsCardModifier,
                         fraction = cpuFraction,

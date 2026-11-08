@@ -94,8 +94,8 @@ fun TemplatesScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    val templatesKey = PanelCache.templatesKey(session.baseUrl)
-    val templateGroupsKey = PanelCache.templateGroupsKey(session.baseUrl)
+    val templatesKey = PanelCache.templatesKey(session)
+    val templateGroupsKey = PanelCache.templateGroupsKey(session)
     var templates by remember(session) {
         mutableStateOf(PanelCache.get<List<UserTemplateItem>>(templatesKey) ?: emptyList())
     }

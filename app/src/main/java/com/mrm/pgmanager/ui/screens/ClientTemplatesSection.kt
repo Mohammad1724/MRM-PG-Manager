@@ -101,7 +101,7 @@ internal fun ClientTemplatesSection(session: Session, sectionTabs: @Composable (
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    val key = PanelCache.clientTemplatesKey(session.baseUrl)
+    val key = PanelCache.clientTemplatesKey(session)
     var templates by remember(session) {
         mutableStateOf(PanelCache.get<List<ClientTemplate>>(key) ?: emptyList())
     }

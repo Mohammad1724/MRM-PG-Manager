@@ -243,7 +243,7 @@ fun UserDetailsDialog(
     // تاریخچهٔ گرفتنِ لینکِ اشتراک (users.read) — ۵ موردِ آخر + شمارِ کل.
     var subUpdates by remember(user.id) { mutableStateOf<SubUpdateList?>(null) }
     val nodeNames = remember(session) {
-        session?.let { com.mrm.pgmanager.data.cache.PanelCache.get<List<PanelNode>>(com.mrm.pgmanager.data.cache.PanelCache.nodesKey(it.baseUrl)) }
+        session?.let { com.mrm.pgmanager.data.cache.PanelCache.get<List<PanelNode>>(com.mrm.pgmanager.data.cache.PanelCache.nodesKey(it)) }
             ?.associate { it.id to it.name } ?: emptyMap()
     }
 

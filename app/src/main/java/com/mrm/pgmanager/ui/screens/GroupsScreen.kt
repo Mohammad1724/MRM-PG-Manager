@@ -69,8 +69,8 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    val groupsKey = PanelCache.groupsKey(session.baseUrl)
-    val inboundsKey = PanelCache.inboundsKey(session.baseUrl)
+    val groupsKey = PanelCache.groupsKey(session)
+    val inboundsKey = PanelCache.inboundsKey(session)
     var groups by remember(session) {
         mutableStateOf(PanelCache.get<List<GroupDetail>>(groupsKey) ?: emptyList())
     }

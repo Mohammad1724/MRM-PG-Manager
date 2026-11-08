@@ -880,6 +880,7 @@
     <string name="err_forbidden_panel">This account doesn’t have permission for that action.</string>
     <string name="err_not_found_panel">That item no longer exists — it may have been removed on the panel.</string>
     <string name="err_server_fmt">The panel returned a server error (%1$d). Try again in a moment.</string>
+    <string name="err_write_unconfirmed">The operation may have reached the panel, but its result is unknown. Refresh and verify before trying again.</string>
     <string name="err_validation_fmt">The panel rejected this request: %1$s</string>
     <string name="err_local_permission">Access to that location was denied — pick the file again.</string>
     <string name="err_local_storage">Couldn’t write the file — check free space and the path.</string>

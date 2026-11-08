@@ -62,7 +62,7 @@ internal class UsersUiState(
     var monitoringSettings: MonitoringSettings = monitoring
 
     /** کلیدِ کشِ فهرست برای این پنل. */
-    val usersKey = PanelCache.usersKey(session.baseUrl)
+    val usersKey = PanelCache.usersKey(session)
 
     // ── دادهٔ فهرست و سربرگ ──────────────────────────────────────────────
     var users by mutableStateOf<List<PanelUser>>(PanelCache.get<List<PanelUser>>(usersKey) ?: emptyList())
@@ -253,9 +253,11 @@ internal class UsersUiState(
                     }
                 }
             }.onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
                 if (PanelApi.isUnauthorized(it)) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
+                    loading = false
+                    return@launch
                 } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
                     users = emptyList()
                     onlineCount = 0
@@ -277,7 +279,9 @@ internal class UsersUiState(
                 }
             }
             // شمارنده‌های سربرگ از خودِ پنل، نه از روی صفحهٔ دانلودشده.
-            runCatching { PanelApi.systemStats(session) }.onSuccess { counts = it; onlineCount = it.onlineUsers }
+            runCatching { PanelApi.systemStats(session) }
+                .onSuccess { counts = it; onlineCount = it.onlineUsers }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
             loading = false
         }
     }
@@ -293,11 +297,18 @@ internal class UsersUiState(
                 totalMatches = page.total
                 endReached = page.users.isEmpty() || users.size >= page.total
             }.onFailure {
-                // خطای گذرا (تایم‌اوت/قطعِ لحظه‌ای/۴۲۹) نباید صفحه‌بندی را برای
-                // همیشه ببندد: قبلاً اینجا endReached = true ست می‌شد و پس از یک
-                // خطای تنها، کاربر دیگر هیچ‌وقت صفحهٔ بعد را نمی‌گرفت مگر با رفرش
-                // دستی. حالا فقط همین تلاش شکست می‌خورد؛ با اسکرولِ دوباره به تهِ
-                // فهرست (یا رفرش) دوباره تلاش می‌شود. endReached فقط با پاسخِ واقعیِ پنل عوض می‌شود.
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                if (PanelApi.isUnauthorized(it)) {
+                    onSessionExpired()
+                } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
+                    users = emptyList()
+                    onlineCount = 0
+                    offlineAt = null
+                    PanelCache.invalidate(usersKey)
+                    store.invalidateUsersCache(session)
+                    error = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+                }
+                // Transient failures leave pagination open for a later retry.
             }
             loadingMore = false
         }
@@ -348,9 +359,11 @@ internal class UsersUiState(
                 lastUserStates = nextStates
                 if (resetHeader) scrollOffset.value = 0f
             }.onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
                 if (PanelApi.isUnauthorized(it)) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
+                    loading = false
+                    return@launch
                 } else if (com.mrm.pgmanager.utils.ApiErrorMapper.kindOf(it) == com.mrm.pgmanager.utils.ApiErrorKind.FORBIDDEN) {
                     users = emptyList()
                     onlineCount = 0
@@ -526,7 +539,6 @@ internal class UsersUiState(
                 // صورت فهرستِ سالمِ روی صفحه با یک صفحهٔ خطای تمام‌صفحه عوض می‌شد
                 // و کاربر context کاری‌اش را از دست می‌داد (یافتهٔ B4 ممیزی UX).
                 if (kind == com.mrm.pgmanager.utils.ApiErrorKind.UNAUTHORIZED) {
-                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
                     onSessionExpired()
                 } else {
                     // خطاهای گذرا «تلاش دوباره» می‌گیرند؛ متنِ خام فقط در جزئیاتِ فنی.
