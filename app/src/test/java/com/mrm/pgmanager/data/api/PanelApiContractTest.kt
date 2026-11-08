@@ -212,6 +212,43 @@ class PanelApiContractTest {
         assertEquals("POST", reset.method); assertEquals("/api/user/by-id/7/reset", reset.path)
     }
 
+    @Test fun `device limit zero and default are preserved in user writes`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.createUser(session, "ali", 1.0, "", hwidLimit = 0)
+        assertEquals(0, JSONObject(server.takeRequest().body.readUtf8()).getInt("hwid_limit"))
+
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 1.0, null, keepDataLimit = true)
+        val untouched = JSONObject(server.takeRequest().body.readUtf8())
+        assertFalse(untouched.has("hwid_limit"))
+        assertFalse(untouched.has("data_limit"))
+
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 1.0, null, clearHwidLimit = true)
+        val clear = JSONObject(server.takeRequest().body.readUtf8())
+        assertTrue(clear.has("hwid_limit"))
+        assertTrue(clear.isNull("hwid_limit"))
+    }
+
+    @Test fun `explicit data limit uses exact bytes and zero hwid is parsed`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 1.4, null, dataLimitBytes = 1_500_000_000L)
+        assertEquals(1_500_000_000L, JSONObject(server.takeRequest().body.readUtf8()).getLong("data_limit"))
+        val parsed = PanelApi.parseUser(JSONObject("""{"id":7,"username":"ali","hwid_limit":0}"""))
+        assertEquals(0, parsed.hwidLimit)
+    }
+
+    @Test fun `deadline-only edit does not resend on-hold duration`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali").copy(status = "on_hold"), 0.0, null,
+            keepDataLimit = true, onHoldTimeoutSeconds = 86_400L)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals(86_400L, body.getLong("on_hold_timeout"))
+        assertFalse(body.has("on_hold_expire_duration"))
+        assertFalse(body.has("status"))
+        assertFalse(body.has("expire"))
+    }
+
     // ── on_hold ──────────────────────────────────────────────
     // قاعدهٔ پنل (UserValidator.validate_status): on_hold فقط با on_hold_expire_duration > 0 و بدون expire.
 
@@ -237,17 +274,14 @@ class PanelApiContractTest {
         assertFalse(body.has("on_hold_timeout"))
     }
 
-    @Test fun `createUser ignores on_hold without a positive duration`() = runBlocking {
-        server.enqueue(MockResponse().setBody("{}"))
-        PanelApi.createUser(session, "ali", 10.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 0L)
-        val body = JSONObject(server.takeRequest().body.readUtf8())
-
-        assertEquals("active", body.getString("status"))
-        assertTrue(body.has("expire"))
-        assertFalse(body.has("on_hold_expire_duration"))
+    @Test fun `createUser rejects an invalid on_hold duration rather than creating an active user`() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.createUser(session, "ali", 10.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 0L) }
+        }
+        assertEquals(0, server.requestCount)
     }
 
-    @Test fun `modifyUser to on_hold drops expire and can clear the timeout`() = runBlocking {
+    @Test fun `modifyUser to on_hold drops expire and sends an explicit zero timeout`() = runBlocking {
         server.enqueue(MockResponse().setBody("{}"))
         PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01", status = "on_hold", onHoldExpireSeconds = 86_400L, onHoldTimeoutSeconds = 0L)
         val req = server.takeRequest()
@@ -259,6 +293,39 @@ class PanelApiContractTest {
         assertEquals(86_400L, body.getLong("on_hold_expire_duration"))
         assertEquals(0L, body.getLong("on_hold_timeout"))
         assertFalse(body.has("expire"))
+    }
+
+    @Test fun `existing activation deadline cannot be silently cleared`() {
+        val existing = user(7, "ali").copy(onHoldTimeout = "2026-12-01T00:00:00Z")
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyUser(session, existing, 5.0, null, status = "on_hold", onHoldExpireSeconds = 86_400L, onHoldTimeoutSeconds = 0L) }
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `on hold durations beyond panel maximum are rejected`() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.createUser(session, "ali", 1.0, "", status = "on_hold", onHoldExpireSeconds = PanelApi.MAX_PLAN_SECONDS + 1L) }
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `on-hold to active edit is rejected because the panel retains its duration`() {
+        val onHold = user(7, "ali").copy(status = "on_hold", onHoldExpireDuration = 86_400L)
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyUser(session, onHold, 5.0, "2026-12-01", status = "active") }
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `disabling a user is part of the same edit request`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 0.0, null, status = "disabled", keepDataLimit = true)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("disabled", body.getString("status"))
+        assertFalse(body.has("expire"))
+        assertFalse(body.has("data_limit"))
+        assertEquals(1, server.requestCount)
     }
 
     @Test fun `modifyUser back to active sends status and expire`() = runBlocking {
@@ -292,7 +359,12 @@ class PanelApiContractTest {
         assertTrue(body.has("data_limit"))
     }
 
-    @Test fun `modifyUser always sends note so an emptied note is cleared`() = runBlocking {
+    @Test fun `modifyUser omits untouched note and groups but can clear note`() = runBlocking {
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, user(7, "ali"), 5.0, null, keepDataLimit = true)
+        val untouched = JSONObject(server.takeRequest().body.readUtf8())
+        assertFalse(untouched.has("note"))
+        assertFalse(untouched.has("group_ids"))
         server.enqueue(MockResponse().setBody("{}"))
         PanelApi.modifyUser(session, user(7, "ali"), 5.0, "2026-12-01", note = "  ")
         val body = JSONObject(server.takeRequest().body.readUtf8())
@@ -301,14 +373,15 @@ class PanelApiContractTest {
         assertEquals("", body.getString("note"))
     }
 
-    @Test fun `modifyUser re-sends the existing next plan when the caller passes none`() = runBlocking {
-        // پنل اگر next_plan در بدنه نباشد پلنِ بعدیِ موجود را حذف می‌کند.
+    @Test fun `modifyUser omits an untouched next plan and sends explicit edits`() = runBlocking {
         val withPlan = user(7, "ali").copy(nextPlan = NextPlan(templateId = 3, dataLimit = 1_000L, expireSeconds = 86_400L, addRemainingTraffic = true))
         server.enqueue(MockResponse().setBody("{}"))
         PanelApi.modifyUser(session, withPlan, 5.0, "2026-12-01")
-        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertFalse(JSONObject(server.takeRequest().body.readUtf8()).has("next_plan"))
 
-        val plan = body.getJSONObject("next_plan")
+        server.enqueue(MockResponse().setBody("{}"))
+        PanelApi.modifyUser(session, withPlan, 5.0, "2026-12-01", nextPlan = withPlan.nextPlan)
+        val plan = JSONObject(server.takeRequest().body.readUtf8()).getJSONObject("next_plan")
         assertEquals(3, plan.getInt("user_template_id"))
         assertEquals(1_000L, plan.getLong("data_limit"))
         assertEquals(86_400L, plan.getLong("expire"))
@@ -334,6 +407,15 @@ class PanelApiContractTest {
         val bare = PanelApi.parseUser(JSONObject("""{"id":6,"username":"n","status":"active","used_traffic":0,"data_limit":0,"expire":null,"data_limit_reset_strategy":null,"auto_delete_in_days":null}"""))
         assertNull(bare.dataLimitResetStrategy)
         assertNull(bare.autoDeleteDays)
+        assertEquals(-1, PanelApi.parseUser(JSONObject("""{"id":7,"username":"q","auto_delete_in_days":-1}""")).autoDeleteDays)
+        assertEquals(0, PanelApi.parseUser(JSONObject("""{"id":8,"username":"r","auto_delete_in_days":0}""")).autoDeleteDays)
+    }
+
+    @Test fun `unsupported auto delete edit is rejected before sending`() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyUser(session, user(7, "ali"), 1.0, null, autoDeleteDays = 3) }
+        }
+        assertEquals(0, server.requestCount)
     }
 
     // ── لینکِ اشتراکِ نسبی (url_prefix خالی) ─────────────────────

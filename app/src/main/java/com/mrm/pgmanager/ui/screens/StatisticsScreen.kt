@@ -7,9 +7,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -21,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.mrm.pgmanager.ui.designsystem.AppDropdownMenu
 import com.mrm.pgmanager.ui.designsystem.DsNeutral
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.mrm.pgmanager.R
@@ -30,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.api.NodeWriteUnconfirmedException
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.model.CountMetric
@@ -51,7 +55,11 @@ import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.ApiErrorMapper
+import com.mrm.pgmanager.utils.PanelVersion
 import com.mrm.pgmanager.utils.formatPercent
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,10 +75,10 @@ fun StatisticsScreen(
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
     // مثلِ داشبورد: صفحه با آخرین دادهٔ حافظه ساخته می‌شود تا سوایپ خالی نباشد.
-    val statsKey = PanelCache.statsKey(session.baseUrl)
-    val trafficKey = PanelCache.statsTrafficKey(session.baseUrl)
-    val countKey = PanelCache.statsCountKey(session.baseUrl)
-    val nodesKey = PanelCache.nodesKey(session.baseUrl)
+    val statsKey = PanelCache.statsKey(session)
+    val trafficKey = PanelCache.statsTrafficKey(session)
+    val countKey = PanelCache.statsCountKey(session)
+    val nodesKey = PanelCache.nodesKey(session)
     var stats by remember(session) { mutableStateOf(PanelCache.get<SystemStats>(statsKey)) }
     var trafficPoints by remember(session) {
         mutableStateOf(PanelCache.get<List<TrafficPoint>>(trafficKey) ?: emptyList())
@@ -82,9 +90,9 @@ fun StatisticsScreen(
         mutableStateOf(PanelCache.get<List<PanelNode>>(nodesKey) ?: emptyList())
     }
     // ترافیکِ گزارش‌شده توسطِ خودِ نودها (`/api/node/usage`) — null یعنی هنوز نیامده یا نقش اجازه ندارد.
-    val nodeUsageKey = PanelCache.statsNodeUsageKey(session.baseUrl)
+    val nodeUsageKey = PanelCache.statsNodeUsageKey(session)
     var nodeUsage by remember(session) { mutableStateOf(PanelCache.get<List<NodeUsage>>(nodeUsageKey)) }
-    val canNodeStats = AdminAccess.can("nodes", "stats")
+    val canNodeStats = AdminAccess.canFor(session, "nodes", "stats")
     // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
     // هیچ‌جا روی صفحه دیده نمی‌شد.
     var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
@@ -107,16 +115,53 @@ fun StatisticsScreen(
     var countRange by remember { mutableStateOf(StatsRange.LAST_24H) }
     var countMetric by remember { mutableStateOf(CountMetric.ONLINE) }
     var metricMenuOpen by remember { mutableStateOf(false) }
+    var outboundState by remember(session, trafficRange, selectedNode?.id, canNodeStats) {
+        mutableStateOf<OutboundLoadState>(OutboundLoadState.Loading)
+    }
+    var outboundRequest by remember(session) { mutableStateOf(0L) }
+
+    suspend fun loadOutbound() {
+        if (!AdminAccess.canFor(session, "nodes", "stats")) return
+        val request = ++outboundRequest
+        if (PanelVersion.isAtLeast(stats?.version, "5.6.0") == false) {
+            outboundState = OutboundLoadState.Unsupported
+            return
+        }
+        runCatching { PanelApi.outboundUsage(session, trafficRange, selectedNode?.id) }
+            .onSuccess {
+                currentCoroutineContext().ensureActive()
+                if (request == outboundRequest && AdminAccess.canFor(session, "nodes", "stats")) {
+                    outboundState = OutboundLoadState.Ready(it)
+                }
+            }
+            .onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                currentCoroutineContext().ensureActive()
+                if (request == outboundRequest && AdminAccess.canFor(session, "nodes", "stats")) {
+                    outboundState = if (ApiErrorMapper.httpCodeOf(it) == 404) OutboundLoadState.Unsupported
+                    else OutboundLoadState.Failed(ApiErrorMapper.friendly(context, it))
+                }
+            }
+    }
+
+    LaunchedEffect(session, trafficRange, selectedNode?.id, canNodeStats) {
+        outboundRequest++
+        loadOutbound()
+    }
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
         runCatching { PanelApi.systemStats(session) }
             .onSuccess {
+                currentCoroutineContext().ensureActive()
                 stats = it; loadError = null; PanelCache.put(statsKey, it)
                 // نسخهٔ پنل برای دروازهٔ قابلیت‌های 5.5.
                 com.mrm.pgmanager.data.PanelSupport.updateFrom(it)
             }
-            .onFailure { if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it) }
+            .onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                if (stats == null) loadError = com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it)
+            }
         runCatching { PanelApi.trafficUsage(session, trafficRange, selectedNode?.id) }
             .onSuccess { trafficPoints = it; PanelCache.put(trafficKey, it) }
         runCatching { PanelApi.userCountMetric(session, countMetric, countRange) }
@@ -144,7 +189,7 @@ fun StatisticsScreen(
         if (changed || !PanelCache.isFresh(statsKey)) load(silent = stats != null)
     }
     val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
+    PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); loadOutbound(); refreshing = false } }, state = pullState,
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentTextColor) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -153,7 +198,7 @@ fun StatisticsScreen(
                 title = stringResource(R.string.statistics),
                 subtitle = stringResource(R.string.statistics_subtitle),
                 refreshing = refreshing,
-                onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } },
+                onRefresh = { scope.launch { refreshing = true; load(true); loadOutbound(); refreshing = false } },
                 onOpenSettings = onOpenSettings,
                 settingsLabel = settingsLabel,
                 refreshLabel = refreshLabel
@@ -165,7 +210,7 @@ fun StatisticsScreen(
                     Column { Text(stringResource(R.string.nodes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor); Text(stringResource(R.string.nodes_desc), fontSize = 11.sp, color = theme.mutedColor) }
                     Box {
                         PGDropdown(value = selectedNode?.name ?: stringResource(R.string.all_nodes), onClick = { nodeMenuOpen = true })
-                        DropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
+                        AppDropdownMenu(expanded = nodeMenuOpen, onDismissRequest = { nodeMenuOpen = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.all_nodes)) },
                                 onClick = { selectedNode = null; nodeMenuOpen = false }
@@ -191,11 +236,17 @@ fun StatisticsScreen(
                 MrmErrorState(onRetry = { scope.launch { load() } }, message = loadError)
             }
 
+            if (canNodeStats && stats == null) {
+                OutboundUsageCard(outboundState, trafficRange,
+                    selectedNode?.name ?: stringResource(R.string.all_nodes),
+                    onRefresh = { scope.launch { loadOutbound() } })
+            }
+
             stats?.let { s ->
                 // نسبت‌های سیستم — یک‌بار حساب می‌شوند و به حلقه‌ها می‌روند.
                 val memFraction = if (s.memTotal > 0) (s.memUsed.toFloat() / s.memTotal) else 0f
                 val diskFraction = if (s.diskTotal > 0) (s.diskUsed.toFloat() / s.diskTotal) else 0f
-                val cpuFraction = (s.cpuUsage / 100f).coerceIn(0f, 1f)
+                val cpuFraction = if (s.cpuUsage.isFinite()) (s.cpuUsage / 100f).coerceIn(0f, 1f) else 0f
                 val totalTraffic = s.incomingBandwidth + s.outgoingBandwidth
                 // ترافیک صفر: هر دو سهم صفر (نه آپلودِ ۱۰۰٪) — حلقه فقط شیار پس‌زمینه را نشان می‌دهد.
                 val (downShare, upShare) = trafficShares(s.incomingBandwidth, s.outgoingBandwidth)
@@ -209,7 +260,7 @@ fun StatisticsScreen(
                     PGRingStatRow(spacing = DsSpacing.Md) {
                         PGRingStatCard(
                             label = stringResource(R.string.cpu_usage),
-                            value = "${formatPercent(s.cpuUsage)}%",
+                            value = if (s.cpuUsage.isFinite()) "${formatPercent(s.cpuUsage)}%" else "—",
                             icon = AppIcon.Gauge,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             fraction = cpuFraction,
@@ -380,8 +431,11 @@ fun StatisticsScreen(
                                                     runCatching { PanelApi.reconnectNode(session, n.id) }
                                                         .onSuccess { load(true) }
                                                         .onFailure {
+                                                            if (it is kotlinx.coroutines.CancellationException) throw it
+                                                            if (it is NodeWriteUnconfirmedException) PanelCache.invalidate(nodesKey)
                                                             com.mrm.pgmanager.ui.feedback.AppFeedback.error(
-                                                                com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
+                                                                if (it is NodeWriteUnconfirmedException) context.getString(R.string.node_action_unconfirmed)
+                                                                else com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, it),
                                                                 detail = com.mrm.pgmanager.utils.ApiErrorMapper.technical(it)
                                                             )
                                                         }
@@ -456,12 +510,9 @@ fun StatisticsScreen(
                     Text(stringResource(R.string.traffic_usage_desc), fontSize = 11.sp, color = theme.mutedColor)
                     // چیپ‌ها به هم می‌چسبیدند و در عرضِ باریک (یا فونتِ بزرگ) آخری
                     // نصفه بریده می‌شد؛ حالا خط می‌شکنند.
-                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                        StatsRange.entries.forEach { r ->
-                            val sel = r == trafficRange
-                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { trafficRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
-                            }
+                    PGWrapRow(modifier = Modifier.fillMaxWidth().selectableGroup(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
+                        StatsRange.entries.forEach { range ->
+                            StatsRangeChip(range.label, selected = range == trafficRange) { trafficRange = range }
                         }
                     }
                     Text(stringResource(R.string.usage_in_range), fontSize = 11.sp, color = theme.mutedColor)
@@ -490,21 +541,24 @@ fun StatisticsScreen(
                     )
                 }
 
+                if (canNodeStats) {
+                    OutboundUsageCard(outboundState, trafficRange,
+                        selectedNode?.name ?: stringResource(R.string.all_nodes),
+                        onRefresh = { scope.launch { loadOutbound() } })
+                }
+
                 // ── User Count
                 Column(Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Card), verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
                     Text(stringResource(R.string.user_count), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = theme.inkColor)
                     Text(stringResource(R.string.user_count_desc), fontSize = 11.sp, color = theme.mutedColor)
                     Text(stringResource(R.string.status_history_note), fontSize = 11.sp, color = theme.mutedColor, lineHeight = 12.sp)
-                    PGWrapRow(modifier = Modifier.fillMaxWidth(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
-                        StatsRange.entries.forEach { r ->
-                            val sel = r == countRange
-                            Box(Modifier.padding(vertical = 6.dp).height(28.dp).clip(RoundedCornerShape(8.dp)).clickable { countRange = r }.primarySurface(theme, sel, RoundedCornerShape(8.dp), idle = theme.searchBgColor, idleBorder = theme.borderColor, idleBorderWidth = 1.dp).padding(horizontal = DsSpacing.Mid), contentAlignment = Alignment.Center) {
-                                Text(r.label, fontSize = 11.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = if (sel) theme.onPrimary else theme.mutedColor)
-                            }
+                    PGWrapRow(modifier = Modifier.fillMaxWidth().selectableGroup(), horizontalGap = DsSpacing.Xs, verticalGap = DsSpacing.Xxs) {
+                        StatsRange.entries.forEach { range ->
+                            StatsRangeChip(range.label, selected = range == countRange) { countRange = range }
                         }
                         Box {
                             PGDropdown(value = stringResource(countMetric.labelRes), onClick = { metricMenuOpen = true })
-                            DropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
+                            AppDropdownMenu(expanded = metricMenuOpen, onDismissRequest = { metricMenuOpen = false }) {
                                 CountMetric.entries.forEach { m ->
                                     DropdownMenuItem(text = { Text(stringResource(m.labelRes)) }, onClick = { countMetric = m; metricMenuOpen = false })
                                 }
@@ -589,9 +643,25 @@ private fun NodeTrafficCard(
     }
 }
 
+@Composable
+private fun StatsRangeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val theme = LocalThemeState.current
+    val shape = RoundedCornerShape(8.dp)
+    Box(
+        Modifier.heightIn(min = 48.dp).clip(shape)
+            .primarySurface(theme, selected, shape, idle = theme.searchBgColor, idleBorder = theme.borderColor)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) theme.onPrimary else theme.mutedColor)
+    }
+}
+
 @Composable private fun PGDropdown(value: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Row(Modifier.clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
+    Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).background(theme.searchBgColor).border(BorderStroke(1.dp, theme.borderColor), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = DsSpacing.Mid, vertical = DsSpacing.Md),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
         Text(value, fontSize = 11.sp, color = theme.inkColor, fontWeight = FontWeight.Medium)
         Text("▾", fontSize = 11.sp, color = theme.mutedColor)

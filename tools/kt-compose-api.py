@@ -144,7 +144,8 @@ HELPER_PREFIXES = ("onNode", "onAllNodes", "assert", "perform", "print", "captur
 # (`Unresolved reference: assertExists`) — یک چرخهٔ CI کامل. پس:
 #   • صدا زدنشان بدونِ import درست است (نه خطا)
 #   • import کردنشان خطاست (پاسِ سوم)
-MEMBER_ONLY = {"assertExists", "assertDoesNotExist"}
+# These provider functions are members even though their names appear in the bytecode index.
+MEMBER_ONLY = {"assertExists", "assertDoesNotExist", "onNode", "onAllNodes"}
 HELPER_EXCLUDE = {"assert", "assertAll", "assertAny"} | MEMBER_ONLY
 
 

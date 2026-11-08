@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.storage.SessionStore
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGPageHeader
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
@@ -85,10 +87,9 @@ fun PanelScreen(
 ) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
-    val backLabel = stringResource(R.string.cd_back)
 
     Column(
-        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
+        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()
             .padding(
                 start = DsSpacing.Screen, end = DsSpacing.Screen,
                 top = DsSpacing.Screen, bottom = DsSpacing.Mid
@@ -96,32 +97,11 @@ fun PanelScreen(
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // ── سربرگ: برگشت + عنوان (هم‌سبکِ سربرگِ تنظیمات و زیرساخت)
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
-        ) {
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                    .semantics { contentDescription = backLabel },
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.panel_title), fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.panel_subtitle),
-                    fontSize = 11.sp, color = theme.mutedColor
-                )
-            }
-        }
+        PGPageHeader(
+            title = stringResource(R.string.panel_title),
+            subtitle = stringResource(R.string.panel_subtitle),
+            onBack = onBack
+        )
 
         Column(
             Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),

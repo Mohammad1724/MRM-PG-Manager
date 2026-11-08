@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.utils
 
+import com.mrm.pgmanager.data.api.PanelWriteUnconfirmedException
 import com.mrm.pgmanager.data.api.SessionExpiredException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -40,6 +41,13 @@ class ApiErrorMapperTest {
         assertEquals(ApiErrorKind.OFFLINE, ApiErrorMapper.kindOf(IOException("retry exhausted")))
     }
 
+    @Test fun `an uncertain write is not treated as a transient read error`() {
+        val error = PanelWriteUnconfirmedException(IOException("connection lost"))
+        assertEquals(ApiErrorKind.WRITE_UNCONFIRMED, ApiErrorMapper.kindOf(error))
+        assertFalse(ApiErrorMapper.isTransient(ApiErrorMapper.kindOf(error)))
+        assertEquals(ApiErrorKind.LOCAL_STORAGE, ApiErrorMapper.kindOf(error, ErrorOrigin.LOCAL))
+    }
+
     @Test fun `session expiry wins over everything`() {
         assertEquals(ApiErrorKind.UNAUTHORIZED, ApiErrorMapper.kindOf(SessionExpiredException()))
     }
@@ -74,6 +82,9 @@ class ApiErrorMapperTest {
         // «Invalid URL» یک شمارهٔ تصادفی نیست؛ نباید به‌عنوانِ کدِ HTTP خوانده شود.
         assertNull(ApiErrorMapper.httpCodeOf(IllegalStateException("Invalid URL")))
         assertNull(ApiErrorMapper.httpCodeOf(IllegalStateException("Login failed: 200 ok")))
+        assertNull(ApiErrorMapper.httpCodeOf(IllegalArgumentException("User 401 has invalid data")))
+        assertEquals(ApiErrorKind.UNKNOWN, ApiErrorMapper.kindOf(IllegalArgumentException("Invalid item 403")))
+        assertEquals(ApiErrorKind.VALIDATION, ApiErrorMapper.kindOf(IllegalStateException("Request failed: 422 {\"detail\":\"user 401\"}")))
         assertEquals(429, ApiErrorMapper.httpCodeOf(IllegalStateException("Request failed: 429 too many")))
     }
 

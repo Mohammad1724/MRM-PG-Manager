@@ -1,6 +1,12 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -73,6 +79,7 @@ class NodeLogsContentTest {
     }
 
     private fun render(
+        displayNodes: List<PanelNode> = nodes,
         lines: List<NodeLogLine> = sample,
         total: Int = lines.size,
         filter: NodeLogFilter = NodeLogFilter(),
@@ -89,11 +96,12 @@ class NodeLogsContentTest {
         onReconnect: () -> Unit = {},
         onToggleLevel: (NodeLogLevel) -> Unit = {},
         onWindowChange: (String) -> Unit = {},
-        onCopy: (List<NodeLogLine>) -> Unit = {}
+        onCopy: (List<NodeLogLine>) -> Unit = {},
+        onExport: (List<NodeLogLine>) -> Unit = {}
     ) {
         rule.setContent {
             NodeLogsContent(
-                nodes = nodes,
+                nodes = displayNodes,
                 selectedNode = selectedNode,
                 stream = stream,
                 streamError = streamError,
@@ -116,7 +124,8 @@ class NodeLogsContentTest {
                 onQueryChange = {},
                 onToggleLevel = onToggleLevel,
                 onWindowChange = onWindowChange,
-                onCopy = onCopy
+                onCopy = onCopy,
+                onExport = onExport
             )
         }
     }
@@ -138,6 +147,14 @@ class NodeLogsContentTest {
         // «هنوز خطی نرسیده» دروغ است وقتی ۴۱۲ خط در بافر است
         assertEquals(0, count(str(R.string.nl_empty)))
         assertEquals(0, count(str(R.string.nl_waiting)))
+    }
+
+    @Test fun `node list errors provide retry rather than claiming no nodes exist`() {
+        render(displayNodes = emptyList(), lines = emptyList(), nodesError = "Access denied")
+        assertEquals(1, count("Access denied"))
+        assertEquals(1, count(str(R.string.load_failed)))
+        assertEquals(1, count(str(R.string.retry)))
+        assertEquals(0, count(str(R.string.nl_no_node)))
     }
 
     @Test fun `empty buffer while connecting waits for the first line`() {
@@ -173,6 +190,13 @@ class NodeLogsContentTest {
         assertEquals(listOf("panic: runtime error", "accepted tcp:1.1.1.1:443"), copied.map { it.message })
     }
 
+    @Test fun `export offers exactly the visible lines`() {
+        var exported: List<NodeLogLine> = emptyList()
+        render(lines = sample.take(1), total = sample.size, onExport = { exported = it })
+        rule.onNodeWithContentDescription(str(R.string.nl_export)).performClick()
+        assertEquals(listOf("panic: runtime error"), exported.map { it.message })
+    }
+
     @Test fun `pause and resume buttons report which state the screen should flip`() {
         var taps = 0
         render(paused = true, buffered = 7, onTogglePause = { taps++ })
@@ -186,6 +210,14 @@ class NodeLogsContentTest {
     @Test fun `a closed stream offers to resume`() {
         var reconnects = 0
         render(stream = NodeLogStream.Ended, onReconnect = { reconnects++ })
+        rule.onNodeWithText(str(R.string.nl_reconnect)).performClick()
+        assertEquals(1, reconnects)
+    }
+
+    @Test fun `retrying stream shows status and allows immediate retry`() {
+        var reconnects = 0
+        render(stream = NodeLogStream.Retrying, onReconnect = { reconnects++ })
+        assertEquals(1, count(str(R.string.nl_retrying)))
         rule.onNodeWithText(str(R.string.nl_reconnect)).performClick()
         assertEquals(1, reconnects)
     }
@@ -217,6 +249,25 @@ class NodeLogsContentTest {
         // همان قاعدهٔ تب‌های تنظیمات: چیپِ کوچکِ زیر ۴۰dp روی گوشی لمسِ از دست رفته است.
         rule.onNodeWithText(str(R.string.nl_level_error)).assertHeightIsAtLeast(40.dp)
         rule.onNodeWithText(str(R.string.nl_time_all)).assertHeightIsAtLeast(40.dp)
+    }
+
+    @Test fun `selected filters have accessible state and forty eight dp targets`() {
+        render(filter = NodeLogFilter(levels = setOf(NodeLogLevel.Error), windowMs = 3_600_000L))
+        rule.onNodeWithText(str(R.string.nl_level_error))
+            .assertHeightIsAtLeast(48.dp).assertIsOn()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
+        rule.onNodeWithText(str(R.string.nl_time_1h))
+            .assertHeightIsAtLeast(48.dp).assertIsSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+
+    @Test fun `log rows expose severity and expanded state without relying on color`() {
+        render(lines = sample.take(1))
+        rule.onNodeWithText(str(R.string.nl_row_error)).assertExists()
+        val row = rule.onNodeWithText(sample[0].message)
+        row.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.nl_line_collapsed)))
+            .performClick()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, str(R.string.nl_line_expanded)))
     }
 
     @Test fun `no connected node says why and still offers a refresh`() {

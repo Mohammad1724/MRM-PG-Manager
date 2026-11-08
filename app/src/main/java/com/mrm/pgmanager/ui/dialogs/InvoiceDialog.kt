@@ -28,9 +28,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppDialog
+import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.mrm.pgmanager.data.model.DebtorInfo
 import com.mrm.pgmanager.data.model.PanelUser
@@ -198,7 +199,7 @@ fun InvoiceDialog(
     // ==== حالت نمایش متن فاکتور ====
     if (textShareMode) {
         val invoiceText = buildTextInvoice()
-        Dialog(onDismissRequest = { textShareMode = false }) {
+        AppDialog(onDismissRequest = { textShareMode = false }) {
             Box(
                 Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)
@@ -269,7 +270,7 @@ fun InvoiceDialog(
     }
 
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -525,7 +526,7 @@ private fun InvoicePreviewCard(
     // پیش‌نمایشِ فاکتور رنگ‌های چاپی‌اش را خودش دارد و به وضعیتِ رنگیِ دیالوگِ
     // بالادست کاری ندارد؛ پارامترهای statusText/statusColor گرفته می‌شدند و
     // هیچ‌جا خوانده نمی‌شدند.
-    Dialog(onDismissRequest = onClose) {
+    AppDialog(onDismissRequest = onClose) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Md),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid),

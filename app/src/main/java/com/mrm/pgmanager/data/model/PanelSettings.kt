@@ -24,7 +24,9 @@ class PanelSettings(
     val general: PanelGeneralSection,
     val subscription: PanelSubscriptionSection,
     val hwid: PanelHwidSection,
-    val notifications: PanelNotificationSection
+    val notifications: PanelNotificationSection,
+    val runtime: PanelRuntimeSettings? = null,
+    val cleanup: PanelCleanupSettings? = null
 ) {
     companion object {
         /**
@@ -45,7 +47,9 @@ class PanelSettings(
                 ),
                 subscription = PanelSubscriptionSection.from(subscriptionRaw),
                 hwid = PanelHwidSection.from(raw.optJSONObject("hwid")),
-                notifications = PanelNotificationSection.from(raw.optJSONObject("notification_settings"))
+                notifications = PanelNotificationSection.from(raw.optJSONObject("notification_settings")),
+                runtime = PanelRuntimeSettings.from(raw.optJSONObject("general")),
+                cleanup = PanelCleanupSettings.from(raw.optJSONObject("cleanup"))
             )
         }
     }
@@ -147,9 +151,10 @@ object PanelSettingsErrors {
 data class PanelGeneralSection(
     val defaultMethod: String = ShadowsocksMethod.CHACHA20_POLY1305,
     val onHoldTimeoutAction: String = OnHoldAction.ACTIVATE,
-    val customVariables: List<PanelCustomVariable> = emptyList()
+    val customVariables: List<PanelCustomVariable> = emptyList(),
+    val raw: JSONObject? = null
 ) {
-    fun toJson(): JSONObject = JSONObject()
+    fun toJson(): JSONObject = (raw?.let { JSONObject(it.toString()) } ?: JSONObject())
         .put("default_method", defaultMethod)
         .put("on_hold_timeout_action", onHoldTimeoutAction)
         .put(
@@ -167,7 +172,8 @@ data class PanelGeneralSection(
             return PanelGeneralSection(
                 defaultMethod = method.ifBlank { ShadowsocksMethod.CHACHA20_POLY1305 },
                 onHoldTimeoutAction = if (action in ON_HOLD_ACTIONS) action else OnHoldAction.ACTIVATE,
-                customVariables = PanelCustomVariable.listFrom(vars)
+                customVariables = PanelCustomVariable.listFrom(vars),
+                raw = o
             )
         }
 
@@ -194,6 +200,7 @@ data class PanelSubscriptionSection(
     val allowBrowserConfig: Boolean = true,
     val disableSubTemplate: Boolean = false,
     val randomizeOrder: Boolean = false,
+    val clientsLimit: Int? = null,
     /** کلید = نامِ فیلدِ `SubFormatEnable` (`links`, `xray`, …)، مقدار = فعال بودن. */
     val manualFormats: Map<String, Boolean> = defaultFormats(),
     // فقط‌خواندنی (شمارنده برای نشان‌دادنِ «چقدر از این بخش در پنلِ وب مانده»)
@@ -216,6 +223,7 @@ data class PanelSubscriptionSection(
         body.put("allow_browser_config", allowBrowserConfig)
         body.put("disable_sub_template", disableSubTemplate)
         body.put("randomize_order", randomizeOrder)
+        if (raw?.has("clients_limit") == true && clientsLimit != null) body.put("clients_limit", clientsLimit)
         // `rules` در پنل الزامی است و پیش‌فرض ندارد؛ اگر پاسخِ قبلی نداشت، آرایهٔ خالی.
         if (!body.has("rules")) body.put("rules", JSONArray())
         val formats = if (body.optJSONObject("manual_sub_request") != null) {
@@ -272,6 +280,7 @@ data class PanelSubscriptionSection(
                 allowBrowserConfig = o?.optBoolean("allow_browser_config", true) ?: true,
                 disableSubTemplate = o?.optBoolean("disable_sub_template", false) ?: false,
                 randomizeOrder = o?.optBoolean("randomize_order", false) ?: false,
+                clientsLimit = if (o != null && o.has("clients_limit") && !o.isNull("clients_limit")) o.optInt("clients_limit") else null,
                 manualFormats = manual,
                 rulesCount = o?.optJSONArray("rules")?.length() ?: 0,
                 applicationsCount = o?.optJSONArray("applications")?.length() ?: 0,
@@ -289,9 +298,10 @@ data class PanelHwidSection(
     val requireHwidForManualSub: Boolean = false,
     val fallbackLimit: Int? = null,
     val minLimit: Int? = null,
-    val maxLimit: Int? = null
+    val maxLimit: Int? = null,
+    val raw: JSONObject? = null
 ) {
-    fun toJson(): JSONObject = JSONObject()
+    fun toJson(): JSONObject = (raw?.let { JSONObject(it.toString()) } ?: JSONObject())
         .put("enabled", enabled)
         .put("forced", forced)
         .put("require_hwid_for_manual_sub", requireHwidForManualSub)
@@ -317,7 +327,8 @@ data class PanelHwidSection(
             requireHwidForManualSub = o?.optBoolean("require_hwid_for_manual_sub", false) ?: false,
             fallbackLimit = nullableInt(o, "fallback_limit"),
             minLimit = nullableInt(o, "min_limit"),
-            maxLimit = nullableInt(o, "max_limit")
+            maxLimit = nullableInt(o, "max_limit"),
+            raw = o
         )
     }
 }

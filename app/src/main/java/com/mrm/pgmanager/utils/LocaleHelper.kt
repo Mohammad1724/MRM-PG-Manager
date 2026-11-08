@@ -7,6 +7,16 @@ import java.util.Locale
 
 object LocaleHelper {
 
+    /** Apply only the selected language; keep the rest of Android's configuration intact. */
+    fun applyLanguageToOverride(configuration: Configuration, language: String) {
+        val locale = when (language) {
+            "fa" -> Locale("fa")
+            "en" -> Locale("en")
+            else -> return
+        }
+        configuration.setLocale(locale)
+    }
+
     fun wrap(context: Context, language: String): Context {
         if (language == "system") return context
         val locale = when (language) {

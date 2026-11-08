@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.ui.screens
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -10,6 +11,7 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
@@ -81,6 +83,7 @@ class ApiKeysScreenTest {
         // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
         MotionPrefs.reduceMotion = true
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
+        runBlocking { AdminAccess.refreshWith(session) { AdminSelf(id = 1, username = session.username, isOwner = true) } }
     }
 
     @After fun tearDown() {
@@ -94,7 +97,7 @@ class ApiKeysScreenTest {
 
     /** کشِ **تازه** ⇒ صفحه بی‌درخواستِ شبکه ساخته می‌شود (قاعدهٔ ۱). */
     private fun seedFresh(keys: List<PanelApiKey> = seedKeys) =
-        PanelCache.put(PanelCache.apiKeysKey(session.baseUrl), keys)
+        PanelCache.put(PanelCache.apiKeysKey(session), keys)
 
     /** کشِ **کهنه** ⇒ همان اول یک رفرش راه می‌افتد؛ برای تستِ مسیرِ خطا. */
     private fun seedStale(keys: List<PanelApiKey> = seedKeys) {
@@ -105,17 +108,17 @@ class ApiKeysScreenTest {
     }
 
     /**
-     * @param keysBody پاسخِ `GET /api/api_keys`؛ `null` یعنی ۴۰۳ (مسیرِ خطا).
+     * @param keysBody response for `GET /api/api_keys`; null returns keysErrorCode.
      * @param adminBody پاسخِ `GET /api/admin` برای نقش‌دادنِ تستِ RBAC.
      */
-    private fun installResponses(keysBody: String? = null, adminBody: String? = null) {
+    private fun installResponses(keysBody: String? = null, adminBody: String? = null, keysErrorCode: Int = 403) {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse =
                 when (request.path.orEmpty().substringBefore('?')) {
                     "/api/admin" -> adminBody?.let { MockResponse().setBody(it) }
                         ?: MockResponse().setResponseCode(404)
                     "/api/api_keys" -> keysBody?.let { MockResponse().setBody(it) }
-                        ?: MockResponse().setResponseCode(403).setBody("""{"detail":"nope"}""")
+                        ?: MockResponse().setResponseCode(keysErrorCode).setBody("""{"detail":"nope"}""")
                     else -> MockResponse().setResponseCode(404)
                 }
         }
@@ -132,6 +135,19 @@ class ApiKeysScreenTest {
 
     private fun count(text: String) = rule.onAllNodesWithText(text).fetchSemanticsNodes().size
     private fun countDesc(desc: String) = rule.onAllNodesWithContentDescription(desc).fetchSemanticsNodes().size
+
+    @Test fun verified_session_change_recomposes_even_when_admin_data_is_equal() {
+        val second = session.copy(token = "another-token")
+        val sameAdmin = AdminSelf(id = 1, username = session.username, isOwner = true)
+        rule.setContent {
+            Text(if (AdminAccess.canFor(second, "api_keys", "read")) "Granted" else "Not granted")
+        }
+        assertEquals(1, count("Not granted"))
+
+        runBlocking { AdminAccess.refreshWith(second) { sameAdmin } }
+        assertEquals(1, count("Granted"))
+        assertEquals(0, count("Not granted"))
+    }
 
     @Test fun row_shows_the_masked_key_and_never_the_secret() {
         seedFresh()
@@ -151,9 +167,49 @@ class ApiKeysScreenTest {
         assertEquals(0, count("pg_key_full_secret"))
     }
 
+    @Test fun exhausted_key_shows_limit_and_offers_disable_not_enable() {
+        seedFresh(listOf(PanelApiKey(
+            id = 5,
+            name = "limited",
+            trimmed = "pg_key_…321",
+            maxRequests = 9,
+            requestCount = 9,
+            deleteOnLimit = true
+        )))
+        installResponses()
+        render()
+
+        assertEquals(1, count(str(R.string.ak_status_limit_reached)))
+        assertEquals(1, count(str(R.string.ak_request_usage_limited, "9", "9")))
+        assertEquals(1, count(str(R.string.ak_delete_on_limit)))
+        assertEquals(0, count(str(R.string.ak_status_active)))
+        assertEquals(1, countDesc(str(R.string.ak_disable)))
+        assertEquals(0, countDesc(str(R.string.ak_enable)))
+    }
+
+    @Test fun limited_key_without_count_is_not_reported_active() {
+        seedFresh(listOf(PanelApiKey(id = 6, name = "unknown", maxRequests = 10)))
+        installResponses()
+        render()
+
+        assertEquals(1, count(str(R.string.ak_status_count_unknown)))
+        assertEquals(0, count(str(R.string.ak_status_active)))
+        assertEquals(1, countDesc(str(R.string.ak_disable)))
+    }
+
+    @Test fun invalid_limit_is_not_presented_as_an_unlimited_active_key() {
+        seedFresh(listOf(PanelApiKey(id = 8, name = "invalid", requestLimitReported = true, requestLimitUnknown = true)))
+        installResponses()
+        render()
+
+        assertEquals(1, count(str(R.string.ak_status_limit_unknown)))
+        assertEquals(0, count(str(R.string.ak_status_active)))
+        assertEquals(0, countDesc(str(R.string.ak_edit_quota)))
+    }
+
     @Test fun failed_refresh_keeps_the_rows_instead_of_showing_the_empty_state() {
         seedStale()
-        installResponses(keysBody = null)   // ۴۰۳
+        installResponses(keysErrorCode = 500) // A transient server error retains the cached rows.
         render()
 
         awaitRequests(atLeast = 1)
@@ -161,6 +217,36 @@ class ApiKeysScreenTest {
         // جای دادهٔ کش‌شده را می‌گیرد (ادامهٔ کار با همان ردیف‌ها بهتر از پریدنِ
         // کاربر به صفحهٔ خالی است).
         assertEquals(1, count("pg_key_…f7a2"))
+        assertEquals(0, count(str(R.string.ak_empty)))
+    }
+
+    @Test fun losing_read_permission_hides_and_invalidates_key_rows() {
+        seedFresh()
+        installResponses()
+        render()
+        assertEquals(1, count("pg_key_…f7a2"))
+
+        rule.runOnIdle {
+            runBlocking {
+                AdminAccess.refreshWith(session, force = true) {
+                    AdminSelf(id = 2, username = session.username,
+                        permissions = mapOf("api_keys" to mapOf("update" to 2)))
+                }
+            }
+        }
+        rule.waitUntil(15_000) { PanelCache.get<List<PanelApiKey>>(PanelCache.apiKeysKey(session)) == null }
+        assertEquals(0, count("pg_key_…f7a2"))
+        assertEquals(0, countDesc(str(R.string.ak_edit_quota)))
+    }
+
+    @Test fun forbidden_refresh_discards_cached_key_rows() {
+        seedStale()
+        installResponses(keysErrorCode = 403)
+        render()
+
+        awaitRequests(atLeast = 1)
+        rule.waitUntil(15_000) { PanelCache.get<List<PanelApiKey>>(PanelCache.apiKeysKey(session)) == null }
+        assertEquals(0, count("pg_key_…f7a2"))
         assertEquals(0, count(str(R.string.ak_empty)))
     }
 
@@ -202,4 +288,15 @@ class ApiKeysScreenTest {
         rule.onAllNodesWithContentDescription(str(R.string.ak_create))[0]
             .assertHeightIsAtLeast(40.dp)
     }
+    @Test fun quota_editor_is_exposed_only_for_a_complete_supported_response() {
+        seedFresh(listOf(
+            PanelApiKey(id = 5, name = "supported", maxRequests = 10, requestCount = 2,
+                deleteOnLimit = false, requestLimitReported = true),
+            PanelApiKey(id = 6, name = "legacy")
+        ))
+        installResponses()
+        render()
+        assertEquals(1, countDesc(str(R.string.ak_edit_quota)))
+    }
+
 }

@@ -7,6 +7,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -130,13 +133,14 @@ fun MrmFloatingNav(
             Modifier
                 .navigationBarsPadding()
                 .padding(horizontal = DsSpacing.Xl, vertical = DsSpacing.Mid)
-                .shadow(10.dp, DsRadius.Full, clip = false)
+                .shadow(4.dp, DsRadius.Full, clip = false)
                 .clip(DsRadius.Full)
                 .background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Full)
         ) {
             androidx.compose.foundation.lazy.LazyRow(
                 state = listState,
+                modifier = Modifier.selectableGroup(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(DsSpacing.Sm),
                 horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs),
                 verticalAlignment = Alignment.CenterVertically
@@ -171,7 +175,7 @@ private fun AccountNavChip(
     val cd = stringResource(R.string.cd_account)
     Box(
         Modifier
-            .size(46.dp)
+            .size(48.dp)
             .clip(DsRadius.Full)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Full)
@@ -246,7 +250,7 @@ private fun NavChip(
             // آیکون‌محور به contentDescription نیاز داریم (وگرنه TalkBack دوبار می‌خواند).
             .semantics { if (!selected) contentDescription = label }
             .pressScale(0.94f)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(
                 start = DsSpacing.Screen,
                 end = if (selected) DsSpacing.Lg else DsSpacing.Screen

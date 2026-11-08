@@ -73,7 +73,10 @@ object WcagContrast {
      */
     fun forTextOn(fg: Int, bg: Int, minRatio: Double = AA_TEXT): Int {
         if (ratio(fg, bg) >= minRatio) return fg
-        val darken = relativeLuminance(bg) > 0.5
+        val black = 0xFF000000.toInt()
+        val white = 0xFFFFFFFF.toInt()
+        // Choose the direction with more available contrast, including mid-tone surfaces.
+        val darken = ratio(black, bg) >= ratio(white, bg)
         val (h, s, l0) = toHsl(fg)
         // گامِ ۰٫۰۴ کافی است و بیش از ۳۰ دور حلقه نمی‌زند؛ در بدترین حالت به
         // سیاه/سفید می‌رسد که همیشه آستانه را رد می‌کند.
@@ -84,11 +87,22 @@ object WcagContrast {
             val candidate = fromHsl(h, s, l, alphaOf(fg))
             if (ratio(candidate, bg) >= minRatio) return candidate
         }
-        return if (darken) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+        return if (darken) black else white
     }
 
     /** مثلِ [forTextOn] ولی با آستانهٔ «اجزای غیرمتنی» (۳:۱) برای مرزِ کنترل. */
     fun forBorderOn(fg: Int, bg: Int, minRatio: Double = AA_NON_TEXT): Int = forTextOn(fg, bg, minRatio)
+
+    /** Choose legible content on any opaque user-selected accent. */
+    fun contentOnAccent(background: Int, preferredDark: Int): Int {
+        val white = 0xFFFFFFFF.toInt()
+        val black = 0xFF000000.toInt()
+        return when {
+            ratio(preferredDark, background) >= AA_TEXT -> preferredDark
+            ratio(white, background) >= AA_TEXT -> white
+            else -> black
+        }
+    }
 
     fun alphaOf(argb: Int): Double = ((argb ushr 24) and 0xFF) / 255.0
 

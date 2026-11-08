@@ -1,6 +1,7 @@
 package com.mrm.pgmanager.ui.dialogs
 
 import android.content.Context
+import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import android.content.Intent
 import android.graphics.Bitmap
@@ -78,7 +79,7 @@ fun QuickActionSheet(
 ) {
     val theme = LocalThemeState.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -86,7 +87,7 @@ fun QuickActionSheet(
     ) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
             Box(Modifier.fillMaxWidth().paneTitle(user.username).navigationBarsPadding().padding(DsSpacing.Xxl)) {
-                Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xl)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(36.dp).clip(DsRadius.Xxl).background(if (user.isOnline) GlassGreen.copy(.14f) else Color.Gray.copy(.12f)), contentAlignment = Alignment.Center) { Box(Modifier.size(12.dp).clip(DsRadius.Xs).background(if (user.isOnline) GlassGreen else Color.Gray)) }
                         Spacer(Modifier.width(DsSpacing.Lg))
@@ -153,11 +154,18 @@ fun QuickActionSheet(
 
 @Composable
 private fun QuickActionRow(icon: AppIcon, label: String, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    // چیپ رنگی کم‌رنگ؛ همان زبان ردیف‌های اکشنِ تنظیمات (مرز یک‌چهارم رنگ).
-    Box(modifier.padding(vertical = 1.dp).height(38.dp).clip(DsRadius.Md).clickable(onClick = onClick).background(color.copy(.10f)).border(BorderStroke(1.dp, color.copy(.26f)), DsRadius.Md), contentAlignment = Alignment.Center) {
+    val theme = LocalThemeState.current
+    val background = color.copy(alpha = 0.10f).compositeOver(theme.dialogBgColor)
+    val content = Color(WcagContrast.forTextOn(color.toArgb(), background.toArgb()))
+    Box(
+        modifier.heightIn(min = 48.dp).clip(DsRadius.Md).clickable(onClick = onClick)
+            .background(background).border(BorderStroke(1.dp, content.copy(alpha = 0.26f)), DsRadius.Md)
+            .padding(horizontal = DsSpacing.Sm, vertical = DsSpacing.Sm),
+        contentAlignment = Alignment.Center
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-            RoundedAppIcon(icon, tint = color, size = 16.dp)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+            RoundedAppIcon(icon, tint = content, size = 16.dp)
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = content, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

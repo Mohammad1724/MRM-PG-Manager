@@ -99,10 +99,10 @@ internal fun ConnectionSection(
         // remember بدونِ قیدِ شرطی: فراخوانیِ composable داخلِ شاخهٔ elvis ساختار
         // گروه‌ها را بین recompositionها ناپایدار می‌کرد؛ خوانشِ دیسک یک‌بار و
         // بدونِ شرط انجام می‌شود و کشِ حافظه در هر recompose ارزان بررسی می‌شود.
-        val diskPanelVersion = remember(session.baseUrl) {
-            store.readStatsCache()?.first?.version.orEmpty()
+        val diskPanelVersion = remember(session) {
+            store.readStatsCache(session)?.first?.version.orEmpty()
         }
-        val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session.baseUrl))?.version
+        val panelVersion = com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(com.mrm.pgmanager.data.cache.PanelCache.statsKey(session))?.version
             ?.takeIf { it.isNotBlank() }
             ?: diskPanelVersion
         if (panelVersion.isNotBlank()) SettingsInfoRow(stringResource(R.string.set_conn_panel_version), "PasarGuard v$panelVersion")
@@ -242,7 +242,10 @@ internal fun ConnectionSection(
                         },
                         // تستِ اتصال: پیامِ دسته‌بندی‌شده جای «Connection error: <raw>» —
                         // همین‌جا «به پنل دسترسی پیدا نشد…» دقیقاً همان چیزی است که لازم است.
-                        onFailure = { e -> false to com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e) }
+                        onFailure = { e ->
+                            if (e is kotlinx.coroutines.CancellationException) throw e
+                            false to com.mrm.pgmanager.utils.ApiErrorMapper.friendly(context, e)
+                        }
                     )
                     testing = false
                 }
@@ -822,7 +825,7 @@ internal fun BackupSection(
         Text(stringResource(R.string.set_bk_enc_desc), fontSize = 11.sp, color = theme.mutedColor)
         CompactGlassField(
             value = backupPassword,
-            onValueChange = { v -> backupPassword = v.take(64); store.saveBackupPassword(v) },
+            onValueChange = { value -> backupPassword = value; store.saveBackupPassword(value) },
             placeholder = stringResource(R.string.set_bk_password),
             leadingAppIcon = AppIcon.Lock,
             keyboardType = KeyboardType.Password

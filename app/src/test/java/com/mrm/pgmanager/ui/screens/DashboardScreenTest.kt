@@ -74,12 +74,17 @@ class DashboardScreenTest {
         // SharedPreferencesِ ساده جای رمزنگاری‌شده می‌نشیند؛ مسیرِ تولید همان
         // رمزنگاری‌شده است و در `resetPrefsForTests` برمی‌گردد.
         SessionStore.resetPrefsForTests()
-        SessionStore.prefsFactory = { ctx -> ctx.getSharedPreferences("mrm_pg_test", android.content.Context.MODE_PRIVATE) }
+        val context = RuntimeEnvironment.getApplication()
+        val preferences = context.getSharedPreferences("mrm_pg_test", android.content.Context.MODE_PRIVATE)
+        preferences.edit().clear().commit()
+        SessionStore.prefsFactory = { preferences }
         server = MockWebServer()
         server.start()
         PanelApi.allowCleartextLoopbackForTests = true
         PanelCache.clear()
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
+        // The dashboard is normally rendered only after this session becomes active.
+        SessionStore(context).save(session)
     }
 
     @After fun tearDown() {

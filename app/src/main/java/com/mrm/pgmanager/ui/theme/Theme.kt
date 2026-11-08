@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import com.mrm.pgmanager.ui.designsystem.WcagContrast
 import androidx.compose.ui.platform.LocalContext
@@ -129,8 +128,10 @@ data class ThemeState(
     val accentSpotHigh: Color get() = customColor?.copy(alpha = 0.34f) ?: lamp.spotHigh
     val accentSpotLow: Color get() = customColor?.copy(alpha = 0.08f) ?: lamp.spotLow
 
-    /** رنگِ متن/آیکونی که مستقیم روی [accentPrimary] می‌نشیند (زرد → تیره، آبی/سبز → سفید). */
-    val onAccent: Color get() = if (accentPrimary.luminance() > 0.45f) DsAccent.OnAccentWarm else Color.White
+    /** Accessible content color for the selected opaque accent, including custom colors. */
+    val onAccent: Color get() = Color(
+        WcagContrast.contentOnAccent(accentPrimary.toArgb(), DsAccent.OnAccentWarm.toArgb())
+    )
 
     /**
      * ابتدا/انتهای گرادیانِ سطوحِ اصلی (دکمهٔ اصلی، FAB، تبِ فعال، چیپ‌های انتخاب‌شده).
@@ -144,14 +145,14 @@ data class ThemeState(
     /** رنگِ تختِ معادلِ گرادیان — برای سایه/هاله و جاهایی که Brush نمی‌پذیرند. */
     val primaryFill: Color get() = accentPrimary
 
-    /** گرادیانِ افقیِ سطوحِ اصلی (چیپ‌ها، تبِ فعال، دکمه‌های کوچک). */
-    val primaryBrush: Brush get() = Brush.horizontalGradient(listOf(primaryStart, primaryEnd))
+    /** A restrained, flat accent shared by selected controls and primary actions. */
+    val primaryBrush: Brush get() = Brush.horizontalGradient(listOf(primaryFill, primaryFill))
 
     /** رنگِ محتوا روی سطوحِ اصلی (زرد → تیره، آبی/سبز → سفید). */
     val onPrimary: Color get() = onAccent
 
-    /** لبهٔ شیشه‌ایِ سفیدِ نیمه‌شفافِ دورِ سطوحِ اصلی. */
-    val primaryEdge: Color get() = Color.White.copy(alpha = if (onPrimary == Color.White) 0.55f else 0.70f)
+    /** A subtle edge that follows the accessible content color. */
+    val primaryEdge: Color get() = onPrimary.copy(alpha = 0.14f)
 
     /** رنگِ هالهٔ نورِ دکمهٔ اصلی و FAB. */
     val primaryGlow: Color get() = accentPrimary
@@ -263,7 +264,7 @@ fun LiquidGlassTheme(
     val colors = if (themeState.isDark) {
         darkColorScheme(
             primary = themeState.accentPrimary,
-            onPrimary = DsAccent.OnAccent,
+            onPrimary = themeState.onPrimary,
             secondary = themeState.accentLight,
             background = if (themeState.amoledDark) Color(0xFF000000) else Color(0xFF0D0D10),
             surface = if (themeState.amoledDark) Color(0xFF080808) else Color(0xFF141418),
@@ -274,7 +275,7 @@ fun LiquidGlassTheme(
     } else {
         lightColorScheme(
             primary = themeState.accentPrimary,
-            onPrimary = Color.White,
+            onPrimary = themeState.onPrimary,
             secondary = themeState.accentLight,
             background = DsNeutral.BackgroundLight,
             surface = DsNeutral.SurfaceLight,

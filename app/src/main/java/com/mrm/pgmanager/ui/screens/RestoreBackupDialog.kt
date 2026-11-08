@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppModalBottomSheet
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
@@ -87,7 +88,7 @@ internal fun RestoreBackupDialog(
     }
 
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    androidx.compose.material3.ModalBottomSheet(
+    AppModalBottomSheet(
         onDismissRequest = { if (!restoring) onDismiss() }, sheetState = sheetState,
         containerColor = theme.dialogBgColor, contentColor = theme.inkColor, tonalElevation = 0.dp,
         shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),

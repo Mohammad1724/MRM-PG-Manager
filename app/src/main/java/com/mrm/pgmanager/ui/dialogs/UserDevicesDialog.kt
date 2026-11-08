@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
@@ -137,7 +137,7 @@ fun UserDevicesDialog(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         Column(
             Modifier.fillMaxWidth().heightIn(max = 520.dp)
                 .clip(DsRadius.Xxl).background(theme.dialogBgColor)
@@ -155,7 +155,11 @@ fun UserDevicesDialog(
                     )
                 }
                 Text(
-                    stringResource(R.string.ud_devices_count, devices.size, limit ?: 0),
+                    when (limit) {
+                        null -> stringResource(R.string.ud_devices_count_default, devices.size)
+                        0 -> stringResource(R.string.ud_devices_count_unlimited, devices.size)
+                        else -> stringResource(R.string.ud_devices_count, devices.size, limit)
+                    },
                     fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor
                 )
             }

@@ -3,11 +3,11 @@ package com.mrm.pgmanager.ui.designsystem
 import androidx.compose.ui.unit.dp
 
 object DsComponent {
-    val Button = 42.dp
-    val ButtonCompact = 40.dp
+    val Button = 48.dp
+    val ButtonCompact = 48.dp
     val ButtonSmall = 32.dp
-    val Field = 46.dp
-    val SearchBar = 40.dp
+    val Field = 48.dp
+    val SearchBar = 48.dp
     val FAB = 52.dp
     val Chip = 26.dp
     val MiniChip = 20.dp
@@ -27,6 +27,6 @@ object DsComponent {
     val ProgressBarHeight = 4.dp
     val ProgressBarHeightCompact = 3.dp
 
-    val MinTouchTarget = 44.dp
+    val MinTouchTarget = 48.dp
     val MinTouchTargetSmall = 36.dp
 }

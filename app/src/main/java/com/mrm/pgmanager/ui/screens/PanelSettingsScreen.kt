@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,10 +38,16 @@ import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.api.SettingsEditConflictException
+import com.mrm.pgmanager.data.api.SettingsMaskedSecretException
+import com.mrm.pgmanager.data.api.SettingsUnavailableException
+import com.mrm.pgmanager.data.api.SettingsWriteUnconfirmedException
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
+import com.mrm.pgmanager.ui.components.PGPageHeader
+import com.mrm.pgmanager.ui.components.PGTabBar
 import com.mrm.pgmanager.ui.components.MrmErrorState
 import com.mrm.pgmanager.ui.components.RoundedAppIcon
 import com.mrm.pgmanager.ui.designsystem.DsBorder
@@ -50,75 +57,80 @@ import com.mrm.pgmanager.ui.designsystem.pressScale
 import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
+import com.mrm.pgmanager.utils.ApiErrorKind
 import com.mrm.pgmanager.utils.ApiErrorMapper
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
-/**
- * **«تنظیماتِ پنل»** — چهار بخشی از `SettingsSchema` که در گوشی معنا دارند:
- * پیش‌فرض‌های سرور (`general`)، اشتراک (`subscription`)، محدودیتِ دستگاه
- * (`hwid`) و کانال‌های اعلان (`notification_settings`).
- *
- * ### چرا صفحه‌ای جدا، و چرا چهار تب
- * این‌ها مالِ **آن سرور**‌اند، نه این گوشی؛ پس جایشان در «تنظیماتِ اپ» نیست
- * (قاعدهٔ `docs/SETTINGS-SPLIT.md`) و مثلِ «زیرساختِ پنل» یک صفحهٔ کاملِ رویی‌اند
- * که از «پنلِ من» باز می‌شود. چهار تب هم چون هر بخش مستقل ذخیره می‌شود: یک
- * `PUT` بدنهٔ همان بخش را کامل جایگزین می‌کند، پس قاطی‌کردنشان در یک فرمِ بلند
- * یعنی هر ذخیره همه‌چیز را بازنویسی می‌کند.
- *
- * ### چیزهایی که عمداً اینجا نیستند
- * رباتِ تلگرام، وبهوک، ماتریسِ کانالِ هر موجودیت (`channels`)، فهرستِ رویدادها
- * (`notification_enable`)، `rules` و `applications`ِ اشتراک. این‌ها در `PUT`
- * از پاسخِ قبلی دست‌نخورده برمی‌گردند (merge روی بدنهٔ خام) و ویرایششان فرمِ وب
- * را می‌خواهد؛ ساختنِ فرم برایشان در گوشی فقط ۴۲۲ می‌سازد.
- *
- * @param onBack بستنِ صفحه (دکمهٔ سربرگ و دکمهٔ برگشتِ گوشی).
- */
+/** Server settings are edited as separate drafts, with a fresh read before each write. */
 @Composable
 fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
     val context = LocalContext.current
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
-    val backLabel = stringResource(R.string.cd_back)
     var tab by rememberSaveable { mutableStateOf(0) }
 
-    val cacheKey = PanelCache.panelSettingsKey(session.baseUrl)
-    var settings by remember(session) { mutableStateOf(PanelCache.get<PanelSettings>(cacheKey)) }
-    var loading by remember(session) { mutableStateOf(settings == null) }
-    var loadError by remember(session) { mutableStateOf<String?>(null) }
-    var banner by remember { mutableStateOf<String?>(null) }
-    var toast by remember { mutableStateOf<String?>(null) }
-    var saving by remember { mutableStateOf(false) }
+    val cacheKey = remember(session) { PanelCache.panelSettingsKey(session) }
+    val canRead = AdminAccess.canFor(session, "settings", "read")
+    var settings by remember(session, canRead) {
+        mutableStateOf(if (canRead) PanelCache.get<PanelSettings>(cacheKey) else null)
+    }
+    var loading by remember(session, canRead) { mutableStateOf(canRead && settings == null) }
+    var loadError by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var loadRequest by remember(session) { mutableStateOf(0L) }
+    var banner by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var toast by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var saving by remember(session, canRead) { mutableStateOf(false) }
 
-    val canEdit = AdminAccess.can("settings", "update")
+    val canEdit = canRead && AdminAccess.canFor(session, "settings", "update")
     val savedMessage = stringResource(R.string.ps_saved)
     val tabs = listOf(
         R.string.panel_settings_tab_general,
         R.string.panel_settings_tab_subscription,
         R.string.panel_settings_tab_hwid,
         R.string.panel_settings_tab_notifications
-    )
+    ) + if (settings?.runtime != null || settings?.cleanup != null) listOf(R.string.panel_settings_tab_advanced) else emptyList()
+    LaunchedEffect(tabs.size) { if (tab >= tabs.size) tab = 0 }
 
     suspend fun load() {
-        runCatching { PanelApi.panelSettings(session) }
-            .onSuccess {
-                settings = it
+        if (!AdminAccess.canFor(session, "settings", "read")) return
+        val request = ++loadRequest
+        try {
+            val result = PanelApi.panelSettings(session)
+            currentCoroutineContext().ensureActive()
+            if (request == loadRequest && AdminAccess.canFor(session, "settings", "read")) {
+                settings = result
                 loadError = null
                 banner = null
-                PanelCache.put(cacheKey, it)
+                PanelCache.put(cacheKey, result)
             }
-            .onFailure {
-                val message = ApiErrorMapper.friendly(context, it)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            currentCoroutineContext().ensureActive()
+            if (request == loadRequest && AdminAccess.canFor(session, "settings", "read")) {
+                val kind = ApiErrorMapper.kindOf(error)
+                if (kind == ApiErrorKind.FORBIDDEN || kind == ApiErrorKind.UNAUTHORIZED) {
+                    settings = null
+                    PanelCache.invalidate(cacheKey)
+                }
+                val message = ApiErrorMapper.friendly(context, error)
                 loadError = message
-                // اگر دادهٔ کش‌شده روی صفحه هست، خطا هم باید دیده شود وگرنه کاربر
-                // فکر می‌کند مقادیرِ کهنه همان مقدارِ سرور است.
                 if (settings != null) banner = message
             }
-        loading = false
+        } finally {
+            if (request == loadRequest) loading = false
+        }
     }
 
-    LaunchedEffect(session) {
-        if (!PanelCache.isFresh(cacheKey)) {
+    LaunchedEffect(session, canRead) {
+        loadRequest++
+        if (!canRead) {
+            PanelCache.invalidate(cacheKey)
+        } else if (!PanelCache.isFresh(cacheKey)) {
             loading = settings == null
             load()
         }
@@ -133,21 +145,38 @@ fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
     /** پس از هر ذخیره، پاسخِ کاملِ سرور جای حالتِ محلی می‌نشیند. */
     fun persist(call: suspend () -> PanelSettings) {
         scope.launch {
+            if (!AdminAccess.canFor(session, "settings", "update")) return@launch
             saving = true
-            runCatching { call() }
-                .onSuccess { fresh ->
+            try {
+                val fresh = call()
+                currentCoroutineContext().ensureActive()
+                if (AdminAccess.canFor(session, "settings", "read")) {
                     settings = fresh
                     PanelCache.put(cacheKey, fresh)
                     banner = null
                     toast = savedMessage
                 }
-                .onFailure { banner = ApiErrorMapper.friendly(context, it) }
-            saving = false
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                currentCoroutineContext().ensureActive()
+                if (AdminAccess.canFor(session, "settings", "read")) {
+                    banner = when (error) {
+                        is SettingsEditConflictException -> context.getString(R.string.ps_edit_conflict)
+                        is SettingsMaskedSecretException -> context.getString(R.string.ps_masked_secret)
+                        is SettingsUnavailableException -> context.getString(R.string.ps_section_unavailable)
+                        is SettingsWriteUnconfirmedException -> context.getString(R.string.ps_write_unconfirmed)
+                        else -> ApiErrorMapper.friendly(context, error)
+                    }
+                }
+            } finally {
+                saving = false
+            }
         }
     }
 
     Column(
-        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding()
+        Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().navigationBarsPadding()
             .padding(
                 start = DsSpacing.Screen, end = DsSpacing.Screen,
                 top = DsSpacing.Screen, bottom = DsSpacing.Mid
@@ -155,69 +184,25 @@ fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
     ) {
         // ── سربرگ (هم‌سبکِ «پنلِ من» و «زیرساخت»)
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)
-                .padding(horizontal = DsSpacing.Card, vertical = DsSpacing.Mid),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Mid)
+        PGPageHeader(
+            title = stringResource(R.string.panel_settings_title),
+            subtitle = stringResource(R.string.panel_settings_subtitle),
+            onBack = onBack
         ) {
-            Box(
-                Modifier.padding(3.dp).size(34.dp).clip(DsRadius.Sm).clickable { onBack() }
-                    .background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-                    .semantics { contentDescription = backLabel },
-                contentAlignment = Alignment.Center
-            ) { RoundedAppIcon(AppIcon.Prev, tint = theme.mutedColor, size = 16.dp) }
-
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.panel_settings_title), fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold, color = theme.inkColor
-                )
-                Text(
-                    stringResource(R.string.panel_settings_subtitle),
-                    fontSize = 11.sp, color = theme.mutedColor
-                )
-            }
-            InfraIconButton(
+            if (canRead) InfraIconButton(
                 icon = AppIcon.Refresh,
                 description = stringResource(R.string.refresh),
                 tint = theme.mutedColor,
-                onClick = {
-                    scope.launch {
-                        loading = settings == null
-                        load()
-                    }
-                }
+                onClick = { scope.launch { loading = settings == null; load() } }
             )
         }
 
         // ── تب‌ها
-        Row(
-            Modifier.fillMaxWidth().clip(DsRadius.Xl).background(theme.searchBgColor)
-                .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xl)
-                .padding(DsSpacing.Xs),
-            horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs)
-        ) {
-            tabs.forEachIndexed { index, labelRes ->
-                val selected = tab == index
-                Box(
-                    Modifier.weight(1f).heightIn(min = 40.dp).clip(DsRadius.Full)
-                        .clickable { tab = index }
-                        .primarySurface(theme, selected, DsRadius.Full, idle = Color.Transparent)
-                        .pressScale(0.96f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        stringResource(labelRes), fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selected) theme.onPrimary else theme.mutedColor,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
+        PGTabBar(
+            labels = tabs.map { stringResource(it) },
+            selectedIndex = tab,
+            onSelect = { tab = it }
+        )
 
         if (toast != null) InfraBanner(text = toast.orEmpty(), success = true)
         banner?.let { InfraBanner(text = it, success = false) { banner = null } }
@@ -225,6 +210,7 @@ fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
         Box(Modifier.fillMaxWidth().weight(1f)) {
             val current = settings
             when {
+                !canRead -> Text(stringResource(R.string.err_forbidden_panel), color = theme.mutedColor)
                 loading && current == null -> Box(
                     Modifier.fillMaxWidth().heightIn(min = 160.dp),
                     contentAlignment = Alignment.Center
@@ -240,25 +226,33 @@ fun PanelSettingsScreen(session: Session, onBack: () -> Unit) {
                         section = current.general,
                         canEdit = canEdit,
                         saving = saving,
-                        onSave = { draft -> persist { PanelApi.savePanelGeneral(session, draft) } }
+                        onSave = { draft -> persist { PanelApi.savePanelGeneral(session, current.general, draft) } }
                     )
                     1 -> SubscriptionSettingsTab(
                         section = current.subscription,
                         canEdit = canEdit,
                         saving = saving,
-                        onSave = { draft -> persist { PanelApi.savePanelSubscription(session, draft) } }
+                        onSave = { draft -> persist { PanelApi.savePanelSubscription(session, current.subscription, draft) } }
                     )
                     2 -> HwidSettingsTab(
                         section = current.hwid,
                         canEdit = canEdit,
                         saving = saving,
-                        onSave = { draft -> persist { PanelApi.savePanelHwid(session, draft) } }
+                        onSave = { draft -> persist { PanelApi.savePanelHwid(session, current.hwid, draft) } }
                     )
-                    else -> NotificationsSettingsTab(
+                    3 -> NotificationsSettingsTab(
                         section = current.notifications,
                         canEdit = canEdit,
                         saving = saving,
-                        onSave = { draft -> persist { PanelApi.savePanelNotifications(session, draft) } }
+                        onSave = { draft -> persist { PanelApi.savePanelNotifications(session, current.notifications, draft) } }
+                    )
+                    else -> AdvancedSettingsTab(
+                        runtime = current.runtime,
+                        cleanup = current.cleanup,
+                        canEdit = canEdit,
+                        saving = saving,
+                        onSaveRuntime = { base, draft -> persist { PanelApi.savePanelRuntime(session, base, draft) } },
+                        onSaveCleanup = { base, draft -> persist { PanelApi.savePanelCleanup(session, base, draft) } }
                     )
                 }
             }

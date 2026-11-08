@@ -19,7 +19,7 @@ import sys
 
 DECL_RE = re.compile(
     r'^(?:@\w+\s*)?(?:internal |private |public )?(?:expect |actual )?'
-    r'(?:data |sealed |enum |abstract |open |value |const |lateinit |inline )*'
+    r'(?:data |sealed |enum |abstract |open |value |const |lateinit |inline |suspend )*'
     r'(?:class|object|interface|fun|val|var|typealias)\s+'
     # گیرندهٔ الحاقی (مثلاً «fun Modifier.pressScale») باید رد شود تا نامِ خودِ
     # تابع استخراج شود، نه نامِ گیرنده.

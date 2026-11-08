@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -21,14 +23,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.stringResource
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
@@ -51,6 +56,8 @@ import java.time.LocalDate
 @Composable
 fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit, onDateSelected: (String) -> Unit) {
     val theme = LocalThemeState.current
+    val previousMonthLabel = stringResource(R.string.cal_previous_month)
+    val nextMonthLabel = stringResource(R.string.cal_next_month)
     val today = JalaliCalendar.todayJalali()
     val parsed = remember(initialDateShamsi) {
         val p = initialDateShamsi.replace("-", "/").split("/")
@@ -69,25 +76,25 @@ fun ShamsiCalendarPickerDialog(initialDateShamsi: String, onDismiss: () -> Unit,
             if (isLeap) 30 else 29
         }
     }
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         LiquidGlassTheme(themeState = theme, drawBackground = false) {
-            Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
+                Box(Modifier.fillMaxWidth().paneTitle(stringResource(R.string.cal_title)).clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.cal_title), fontWeight = FontWeight.Bold, color = theme.inkColor)
                         TextButton(onClick = { y = today.year; m = today.month; d = today.day }) { Text(stringResource(R.string.cal_today), color = theme.accentTextColor) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
-                        // ناوبری ماه: کاشی‌های خاکستریِ خنثیِ design system.
-                        Box(Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
+                        // Month navigation keeps distinct labels and non-overlapping touch targets.
+                        Box(Modifier.size(48.dp).clip(DsRadius.Sm).clickable { if (m > 1) m-- else { m = 12; y-- } }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).semantics { contentDescription = previousMonthLabel }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Prev, tint = theme.inkColor, size = 18.dp) }
                         Box(Modifier.weight(1f).clip(DsRadius.Md).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Md).padding(DsSpacing.Md), contentAlignment = Alignment.Center) { Text("${com.mrm.pgmanager.utils.jalaliMonthName(JalaliCalendar.Date(y, m, 1))} $y", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = theme.inkColor) }
-                        Box(Modifier.padding(4.dp).size(32.dp).clip(DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm), contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
+                        Box(Modifier.size(48.dp).clip(DsRadius.Sm).clickable { if (m < 12) m++ else { m = 1; y++ } }.background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).semantics { contentDescription = nextMonthLabel }, contentAlignment = Alignment.Center) { RoundedAppIcon(AppIcon.Next, tint = theme.inkColor, size = 18.dp) }
                     }
-                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.height(200.dp)) {
+                    LazyVerticalGrid(columns = GridCells.Fixed(7), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Xs), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xs), modifier = Modifier.height(200.dp).selectableGroup()) {
                         items((1..daysInMonth).toList()) { day ->
                             val sel = day == d
                             // روز انتخاب‌شده = پرکنندهٔ اصلیِ تم و متنِ روی آن؛ سایر روزها شفاف (هم‌تراز با سگمنت تنظیمات).
-                            Box(Modifier.heightIn(min = 40.dp).aspectRatio(1f).clip(DsRadius.Full).primarySurface(theme, sel, DsRadius.Full, idle = Color.Transparent).clickable { d = day }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.heightIn(min = 40.dp).aspectRatio(1f).clip(DsRadius.Full).primarySurface(theme, sel, DsRadius.Full, idle = Color.Transparent).selectable(selected = sel, role = Role.RadioButton, onClick = { d = day }), contentAlignment = Alignment.Center) {
                                 Text("$day", color = if (sel) theme.onPrimary else theme.inkColor, fontSize = 12.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
                             }
                         }

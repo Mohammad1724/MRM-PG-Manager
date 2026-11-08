@@ -13,6 +13,7 @@ import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
+import com.mrm.pgmanager.data.model.AdminSelf
 import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
@@ -97,7 +98,8 @@ class PanelSettingsScreenTest {
         // روی صحنه نمی‌ماند، پس waitForIdle هرگز تا ۶۰ ثانیه کش نمی‌آید.
         MotionPrefs.reduceMotion = true
         session = Session(server.url("/").toString().trimEnd('/'), "tok", "admin")
-        PanelCache.put(PanelCache.panelSettingsKey(session.baseUrl), PanelSettings.from(org.json.JSONObject(settingsJson)))
+        runBlocking { AdminAccess.refreshWith(session) { AdminSelf(id = 1, username = session.username, isOwner = true) } }
+        PanelCache.put(PanelCache.panelSettingsKey(session), PanelSettings.from(org.json.JSONObject(settingsJson)))
     }
 
     @After fun tearDown() {
@@ -225,6 +227,35 @@ class PanelSettingsScreenTest {
         assertEquals(1, count(str(R.string.panel_settings_tab_general)))
     }
 
+    @Test fun forbidden_refresh_discards_cached_settings() {
+        PanelCache.clock = { 1_000_000_000L }
+        installDispatcher(settingsResponse = MockResponse().setResponseCode(403))
+        render()
+
+        awaitRequests(1)
+        val key = PanelCache.panelSettingsKey(session)
+        rule.waitUntil(15_000) { PanelCache.get<PanelSettings>(key) == null }
+        assertEquals(0, count(str(R.string.ps_default_method)))
+    }
+
+    @Test fun losing_read_permission_hides_and_invalidates_settings() {
+        installDispatcher()
+        render()
+        assertTrue(count(str(R.string.ps_default_method)) > 0)
+
+        rule.runOnIdle {
+            runBlocking {
+                AdminAccess.refreshWith(session, force = true) {
+                    AdminSelf(id = 2, username = session.username,
+                        permissions = mapOf("settings" to mapOf("update" to 2)))
+                }
+            }
+        }
+        rule.waitUntil(15_000) { PanelCache.get<PanelSettings>(PanelCache.panelSettingsKey(session)) == null }
+        assertEquals(0, count(str(R.string.ps_default_method)))
+        assertEquals(0, count(str(R.string.ps_save)))
+    }
+
     /**
      * نشانهٔ «پاسخِ سرور اعمال شد» کش است، نه گرهٔ semantics: خواندنِ کش در حلقه
      * مجاز است (قاعدهٔ ۲ فقط خواندنِ گره را از داخلِ شرطِ `waitUntil` منع می‌کند)
@@ -232,7 +263,7 @@ class PanelSettingsScreenTest {
      * `persist` بعد از موفقیت در کش می‌گذارد.
      */
     private fun awaitCached(method: String): Boolean {
-        val key = PanelCache.panelSettingsKey(session.baseUrl)
+        val key = PanelCache.panelSettingsKey(session)
         repeat(60) {
             if (PanelCache.get<PanelSettings>(key)?.general?.defaultMethod == method) return true
             rule.waitForIdle()
@@ -242,19 +273,10 @@ class PanelSettingsScreenTest {
     }
 
     /**
-     * مسیرِ ذخیره — تا پیش از ۰٫۱۶٫۰ آزمودنی نبود، چون `saving=true` نشانگرِ
-     * بی‌پایان می‌آورد و `waitForIdle` گیر می‌کرد. حالا که همهٔ نشانگرها از
-     * `MrmBusyIndicator` می‌آیند و `setUp` «کاهش انیمیشن» را روشن می‌کند، همان
-     * نشانگر ساکن است؛ پس این‌جا واقعاً «ذخیره» لمس می‌شود و بدنهٔ `PUT` سنجیده
-     * می‌شود. سه چیز قفل می‌شود که هیچ‌کدام در لایهٔ داده معنا ندارد:
-     *  ۱. یک `PUT /api/settings` با **فقط** بخشِ تبِ باز (`general`) — فرستادنِ
-     *     `subscription` هم‌زمان یعنی بازنویسیِ چیزی که کاربر اصلاً ندیده؛
-     *  ۲. فیلدهایی که کاربر دست نزده (`on_hold_timeout_action`،
-     *     `custom_variables`) عیناً در بدنه می‌مانند — نبودنشان در پنل یعنی
-     *     «برگرد به پیش‌فرض» و متغیرهای زیرساخت پاک می‌شود؛
-     *  ۳. بعد از پاسخ، فرم از `SettingsSchema`ِ تازه سِت می‌شود و «ذخیره» دوباره
-     *     غیرفعال است — موندنِ حالتِ کثیف یعنی یک `PUTِ` بی‌دلیلِ دیگر، و هر
-     *     `PUT` سرویس‌های پنل را ری‌استارت می‌کند.
+     * The UI sends a fresh GET followed by one guarded PUT for the edited section.
+     * Legacy general settings retain unchanged fields, but unchanged virtual
+     * subscription variables are omitted to avoid rewriting the other section.
+     * A confirmed response resets the form's dirty state.
      */
     @Test fun save_sends_one_put_for_the_dirty_section_only() {
         // پنل تغییر را پذیرفته و `SettingsSchema` کاملِ تازه را برگردانده است.
@@ -271,7 +293,8 @@ class PanelSettingsScreenTest {
         rule.onNodeWithText("aes-128-gcm").performClick()
         rule.onNodeWithText(save).performClick()
 
-        awaitRequests(1)
+        awaitRequests(2)
+        rule.waitUntil(15_000) { putBodies.isNotEmpty() }
         val sent = putBodies.toList()
         assertEquals("دقیقاً یک ذخیرهٔ بخش", 1, sent.size)
         val body = org.json.JSONObject(sent.single())
@@ -288,12 +311,9 @@ class PanelSettingsScreenTest {
             "فیلدِ دست‌نخورده باید عیناً بماند",
             "activate", general.getString("on_hold_timeout_action")
         )
-        assertEquals(
-            "متغیرهای سفارشی اگر در بدنه نباشند، در پنل پاک می‌شوند",
-            "BRAND", general.getJSONArray("custom_variables").getJSONObject(0).getString("key")
-        )
-        // «ذخیرهٔ موفق» نباید با GETِ دنبالِ آن همراه باشد: پاسخِ `PUT` خودِ schema کامل است.
-        assertEquals(1, server.requestCount)
+        assertTrue("Unchanged virtual variables must not rewrite subscription", !general.has("custom_variables"))
+        // Exactly one fresh read precedes the one-shot write.
+        assertEquals(2, server.requestCount)
 
         assertTrue("پاسخ باید به کش هم برسد (برگشتن به صفحه دادهٔ تازه می‌خواهد)", awaitCached("aes-128-gcm"))
         rule.waitForIdle()
@@ -317,4 +337,26 @@ class PanelSettingsScreenTest {
         // و هیچ فیلدِ قابلِ ویرایشی هم نباید باشد (همه ردیفِ اطلاعات‌اند).
         assertEquals(0, rule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size)
     }
+    @Test fun compatible_panel_exposes_advanced_settings_without_changing_them() {
+        val json = org.json.JSONObject(settingsJson)
+        json.getJSONObject("general")
+            .put("usage", org.json.JSONObject("""{"record_node_usage":true,"record_node_stats":false,
+                "reset_usage_clean_chart_data":false,"record_outbound_usage":false}"""))
+            .put("node_health", org.json.JSONObject("""{"fail_threshold":3,"recover_threshold":2,"probe_timeout":5,"max_backoff":60}"""))
+            .put("stop_nodes_on_shutdown", true)
+        json.put("cleanup", org.json.JSONObject("""{
+            "expired_users_retention_days":null,"include_limited_users":false,"usage_history_retention_days":null,
+            "node_stats_retention_days":null,"usage_rollup_hourly_after_days":null,
+            "usage_rollup_half_day_after_days":null,"usage_rollup_daily_after_days":null
+        }"""))
+        PanelCache.put(PanelCache.panelSettingsKey(session), PanelSettings.from(json))
+        installDispatcher()
+        render()
+
+        rule.onNodeWithText(str(R.string.panel_settings_tab_advanced)).performClick()
+        assertTrue(count(str(R.string.ps_record_outbound)) > 0)
+        assertTrue(count(str(R.string.ps_cleanup_title)) > 0)
+        assertEquals(0, server.requestCount)
+    }
+
 }

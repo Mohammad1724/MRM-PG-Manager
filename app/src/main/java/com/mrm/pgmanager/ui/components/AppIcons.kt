@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MoreVert
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.rounded.AccessibilityNew
@@ -75,13 +77,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** آیکون‌های یکدست Rounded برای جایگزینی کامل emojiهای رابط. */
-enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder,
+enum class AppIcon { Lock, Link, Device, User, UserAdd, Users, Copy, Qr, Share, Refresh, Delete, Edit, Check, Random, Settings, Palette, Search, Calendar, Template, Reset, Note, Logout, Warning, LightMode, DarkMode, AutoMode, Bell, Tune, Wifi, CheckCircle, OpenNew, GridView, ListRows, DenseList, Gauge, Memory, Storage, Timer, Download, Upload, Prev, Next, Image, Pdf, Receipt, Money, Backup, Restore, Folder, Info,
     // وضعیت کاربر
     StatusActive, StatusDisabled, StatusExpired, StatusLimited, StatusOnHold,
     // نوار ابزار
     Sort, Filter,
     // ناوبری
-    Menu, More, Add, ChevronUp, ChevronDown,
+    Menu, More, Add, Close, ChevronUp, ChevronDown,
     // جریانِ لاگ (فاز ۷) — « Pause/Play»؛ خودِ آیکونِ لاگ لازم نشد،
     // DenseList (ViewHeadline) همان چند خطِ متنی است که صفحهٔ لاگ نشان می‌دهد.
     Pause, Play,
@@ -97,6 +99,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Users -> Icons.Rounded.Group
     AppIcon.Copy -> Icons.Rounded.ContentCopy
     AppIcon.Qr -> Icons.Rounded.QrCode2
+    AppIcon.Share -> Icons.Rounded.Share
     AppIcon.Refresh -> Icons.Rounded.Refresh
     AppIcon.Delete -> Icons.Rounded.DeleteOutline
     AppIcon.Edit -> Icons.Rounded.Edit
@@ -113,6 +116,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     // آیکون‌های جهت‌دار از نسخهٔ AutoMirrored می‌آیند تا در چیدمانِ راست‌به‌چپ خودشان آینه شوند.
     AppIcon.Logout -> Icons.AutoMirrored.Rounded.Logout
     AppIcon.Warning -> Icons.Rounded.WarningAmber
+    AppIcon.Info -> Icons.Rounded.ErrorOutline
     AppIcon.LightMode -> Icons.Rounded.LightMode
     AppIcon.DarkMode -> Icons.Rounded.DarkMode
     AppIcon.AutoMode -> Icons.Rounded.BrightnessAuto
@@ -156,6 +160,7 @@ private fun AppIcon.vector(): ImageVector = when (this) {
     AppIcon.Pause -> Icons.Rounded.Pause
     AppIcon.Play -> Icons.Rounded.PlayArrow
     AppIcon.Add -> Icons.Rounded.Add
+    AppIcon.Close -> Icons.Rounded.Close
     AppIcon.ChevronUp -> Icons.Rounded.KeyboardArrowUp
     AppIcon.ChevronDown -> Icons.Rounded.KeyboardArrowDown
 }

@@ -29,7 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
@@ -69,8 +69,8 @@ fun GroupsScreen(session: Session, onOpenSettings: () -> Unit = {}) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    val groupsKey = PanelCache.groupsKey(session.baseUrl)
-    val inboundsKey = PanelCache.inboundsKey(session.baseUrl)
+    val groupsKey = PanelCache.groupsKey(session)
+    val inboundsKey = PanelCache.inboundsKey(session)
     var groups by remember(session) {
         mutableStateOf(PanelCache.get<List<GroupDetail>>(groupsKey) ?: emptyList())
     }
@@ -436,7 +436,7 @@ private fun GroupEditorDialog(
     }
     val canSave = errorKey == null && !duplicate && !saving
 
-    Dialog(onDismissRequest = { if (!saving) onDismiss() }) {
+    AppDialog(onDismissRequest = { if (!saving) onDismiss() }) {
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Lg).background(theme.cardSurfaceColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg)

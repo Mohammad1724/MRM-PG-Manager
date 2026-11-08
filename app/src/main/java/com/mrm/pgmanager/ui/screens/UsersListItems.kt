@@ -48,6 +48,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -226,7 +227,15 @@ internal fun cardStatusText(user: PanelUser): String = when (user.status) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onCopySub: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: DebtorInfo? = null) {
+internal fun LuxuryGridCard(
+    user: PanelUser,
+    selected: Boolean = false,
+    onSelectToggle: () -> Unit = {},
+    onClick: () -> Unit,
+    onShareSubscription: (PanelUser) -> Unit = {},
+    onLongClick: (PanelUser) -> Unit = {},
+    debtorInfo: DebtorInfo? = null
+) {
     // PasarGuard-faithful: compact, no glass, thin progress, subtle status. Matches reference list screenshot.
     val theme = LocalThemeState.current
     val progressPercent = if (user.dataLimit > 0L) ((user.usedTraffic.toDouble() / user.dataLimit.toDouble()) * 100).toInt().coerceIn(0,100) else 0
@@ -284,10 +293,9 @@ internal fun LuxuryGridCard(user: PanelUser, selected: Boolean = false, onSelect
             }
             // نوارِ نازکِ مصرف — ۴dp، انیمیت‌شونده (PGProgressBar در فازِ draw می‌کشد).
             PGProgressBar(progress = displayProgress, modifier = Modifier.fillMaxWidth(), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
-            // کپی/QR بیرون از اسکرول می‌مانند (همیشه دیده شوند)؛ فقط نشان‌های جانبی اسکرول می‌خورند.
+            // Keep the share action visible while the adjacent badges scroll.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
-                IconGridAction(AppIcon.Copy, contentDesc = stringResource(R.string.us_copy_sub_link)) { onCopySub(user) }
-                IconGridAction(AppIcon.Qr, contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
+                IconGridAction(AppIcon.Share, contentDesc = stringResource(R.string.us_share_subscription, user.username)) { onShareSubscription(user) }
                 Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.heightIn(min = 24.dp).clip(DsRadius.Sm).background(if (user.isOnline) GlassGreen.copy(0.12f) else Color.Gray.copy(0.10f)).border(BorderStroke(DsBorder.Hairline, if (user.isOnline) GlassGreen.copy(0.18f) else Color.Gray.copy(0.12f)), DsRadius.Sm).padding(horizontal = DsSpacing.Md), contentAlignment = Alignment.Center) {
                         OnlineOrLastSeen(user, fontSize = 11.sp, iconSize = 12.dp)
@@ -389,7 +397,7 @@ internal fun IconCardAction(icon: AppIcon, modifier: Modifier = Modifier, conten
         modifier.clip(DsRadius.Sm)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         // ۱۳dp — هم‌اندازهٔ [IconRowAction] تا هر سه نما یک زبانِ آیکونی داشته باشند.
@@ -404,7 +412,7 @@ internal fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, content
         modifier.clip(DsRadius.Sm)
             .background(theme.searchBgColor)
             .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         // ۱۳dp هم‌خانوادهٔ آیکون‌های کارت‌های آماری است و در کادرِ ۲۶dp تناسب دارد.
@@ -415,14 +423,22 @@ internal fun IconRowAction(icon: AppIcon, modifier: Modifier = Modifier, content
 @Composable
 internal fun IconGridAction(icon: AppIcon, contentDesc: String, onClick: () -> Unit) {
     val theme = LocalThemeState.current
-    Box(Modifier.size(40.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(40.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).clickable(role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
         RoundedAppIcon(icon, contentDescription = contentDesc, tint = theme.inkColor, size = 16.dp)
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onCopySub: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: DebtorInfo? = null) {
+internal fun LuxuryCompactRow(
+    user: PanelUser,
+    selected: Boolean = false,
+    onSelectToggle: () -> Unit = {},
+    onClick: () -> Unit,
+    onShareSubscription: (PanelUser) -> Unit = {},
+    onLongClick: (PanelUser) -> Unit = {},
+    debtorInfo: DebtorInfo? = null
+) {
     val theme = LocalThemeState.current
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else 0f
     val shownProgress = if (user.dataLimit > 0L) actualProgress else .035f
@@ -459,8 +475,7 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
                 }
                 UserStatusBadge(user)
                 if (debtorInfo != null) DebtorBadge()
-                IconCardAction(AppIcon.Copy, Modifier.size(COMPACT_ACTION_SIZE), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
-                IconCardAction(AppIcon.Qr, Modifier.size(COMPACT_ACTION_SIZE), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
+                IconCardAction(AppIcon.Share, Modifier.size(COMPACT_ACTION_SIZE), contentDesc = stringResource(R.string.us_share_subscription, user.username)) { onShareSubscription(user) }
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DsSpacing.Xxs)) {
@@ -482,14 +497,9 @@ internal fun LuxuryCompactRow(user: PanelUser, selected: Boolean = false, onSele
 }
 
 /**
- * هندسهٔ ردیفِ micro (گوشیِ ۳۶۰dp): ستونِ مصرف عرضِ ثابتِ کافی دارد تا «used/limit + روزِ مانده» هیچ‌وقت
- * بریده نشود (در رندرِ واقعی دیدیم با weight هر دو ستون «…» می‌خوردند)؛ فقط نام انعطاف‌پذیر است.
- * دکمه‌ها ۲۶dp — ۳۲dp (فاز ۲٫۱ به بعد) از نظرِ کاربر «فضای زیادی اشغال می‌کرد»:
- * دو کادرِ ۳۲dp + فاصله یعنی ۷۰dp از عرضِ ردیف، و کادرها هم‌قدِ ۸۰٪ ارتفاعِ محتوا
- * بودند. ۲۶dp همان آیکون را نگه می‌دارد و ۱۲dp عرض آزاد می‌کند.
- * ارتفاعِ ردیف را این دکمه‌ها تعیین نمی‌کنند (ستونِ متن ۴۰dp است) — عمداً فقط
- * *وزنِ بصری* و عرض کم شد، نه چگالیِ متن.
- * حوزهٔ لمس را خودِ Compose تا ۴۸dp گسترش می‌دهد (تستِ HitArea).
+ * Keep a fixed usage column so traffic and remaining time stay legible; the name uses spare width.
+ * One 26 dp share surface replaces the two former actions without increasing row height.
+ * Compose expands its pointer target toward 48 dp, including within the clickable row.
  */
 internal val MICRO_USAGE_WIDTH = 116.dp
 internal val MICRO_ACTION_SIZE = 26.dp
@@ -497,7 +507,15 @@ internal val COMPACT_ACTION_SIZE = 30.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelectToggle: () -> Unit = {}, onClick: () -> Unit, onQrClick: (PanelUser) -> Unit = {}, onCopySub: (PanelUser) -> Unit = {}, onLongClick: (PanelUser) -> Unit = {}, debtorInfo: DebtorInfo? = null) {
+internal fun LuxuryMicroRow(
+    user: PanelUser,
+    selected: Boolean = false,
+    onSelectToggle: () -> Unit = {},
+    onClick: () -> Unit,
+    onShareSubscription: (PanelUser) -> Unit = {},
+    onLongClick: (PanelUser) -> Unit = {},
+    debtorInfo: DebtorInfo? = null
+) {
     val theme = LocalThemeState.current
     val actualProgress = if (user.dataLimit > 0L) (user.usedTraffic.toFloat() / user.dataLimit.toFloat()).coerceIn(0f, 1f) else .035f
     val progressColor = when { user.dataLimit <= 0L || actualProgress < .70f -> GlassGreen; actualProgress < .90f -> GlassAmber; else -> GlassRed }
@@ -531,8 +549,7 @@ internal fun LuxuryMicroRow(user: PanelUser, selected: Boolean = false, onSelect
                 }
                 PGProgressBar(progress = actualProgress, modifier = Modifier.fillMaxWidth().testTag("micro_bar"), fill = progressColor, track = if (theme.isDark) Color.White.copy(0.12f) else DsNeutral.BackgroundAlt)
             }
-            IconRowAction(AppIcon.Copy, Modifier.size(MICRO_ACTION_SIZE), contentDesc = stringResource(R.string.us_copy)) { onCopySub(user) }
-            IconRowAction(AppIcon.Qr, Modifier.size(MICRO_ACTION_SIZE), contentDesc = stringResource(R.string.us_show_qr)) { onQrClick(user) }
+            IconRowAction(AppIcon.Share, Modifier.size(MICRO_ACTION_SIZE), contentDesc = stringResource(R.string.us_share_subscription, user.username)) { onShareSubscription(user) }
         }
     }
 }

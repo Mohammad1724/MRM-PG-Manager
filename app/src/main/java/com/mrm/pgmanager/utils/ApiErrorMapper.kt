@@ -3,6 +3,7 @@ package com.mrm.pgmanager.utils
 import android.content.Context
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.api.PanelWriteUnconfirmedException
 import com.mrm.pgmanager.data.api.SessionExpiredException
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -17,7 +18,7 @@ import javax.net.ssl.SSLException
  */
 enum class ApiErrorKind {
     OFFLINE, TIMEOUT, TLS, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, VALIDATION, SERVER,
-    LOCAL_PERMISSION, LOCAL_STORAGE, UNKNOWN
+    WRITE_UNCONFIRMED, LOCAL_PERMISSION, LOCAL_STORAGE, UNKNOWN
 }
 
 /** منشأ خطا — تعیین می‌کند «IOException» را شبکه بفهمیم یا فایل. */
@@ -43,7 +44,7 @@ enum class ErrorOrigin { NETWORK, LOCAL }
  */
 object ApiErrorMapper {
 
-    private val httpCode = Regex("""(?:^|[^\d])(\d{3})(?:[^\d]|$)""")
+    private val httpCode = Regex("""^(?:[^:\r\n]*:\s*)?(\d{3})(?:\s|$)""")
     private val jsonDetail = Regex("""\{\s*"detail"\s*:\s*"((?:[^"\\]|\\.)*)"""")
 
     // ── تشخیص (تابعِ خالص — قابلِ تست روی JVM) ───────────────────────────
@@ -67,6 +68,7 @@ object ApiErrorMapper {
         }
 
         when (e) {
+            is PanelWriteUnconfirmedException -> return ApiErrorKind.WRITE_UNCONFIRMED
             is UnknownHostException -> return ApiErrorKind.OFFLINE
             is SocketTimeoutException -> return ApiErrorKind.TIMEOUT
             is SSLException -> return ApiErrorKind.TLS
@@ -167,6 +169,7 @@ object ApiErrorMapper {
             ApiErrorKind.VALIDATION -> panelDetail(e)
                 ?.let { context.getString(R.string.err_validation_fmt, it) }
                 ?: context.getString(R.string.err_generic)
+            ApiErrorKind.WRITE_UNCONFIRMED -> context.getString(R.string.err_write_unconfirmed)
             ApiErrorKind.LOCAL_PERMISSION -> context.getString(R.string.err_local_permission)
             ApiErrorKind.LOCAL_STORAGE -> context.getString(R.string.err_local_storage)
             ApiErrorKind.UNKNOWN -> context.getString(R.string.err_generic)

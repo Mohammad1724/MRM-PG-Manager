@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
 import com.mrm.pgmanager.ui.designsystem.DsAccent
+import com.mrm.pgmanager.ui.designsystem.ProvideAppFontScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -99,13 +100,11 @@ class MainActivity : FragmentActivity() {
 
     override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
         if (overrideConfiguration != null) {
-            val uiMode = overrideConfiguration.uiMode
-            try {
-                overrideConfiguration.setTo(baseContext.resources.configuration)
-            } catch (e: Exception) {
-                // Safe guard during early initialization
+            // Do not replace the override: it carries font scale, orientation and window metrics.
+            runCatching {
+                val language = SessionStore(baseContext).readAppLanguage()
+                com.mrm.pgmanager.utils.LocaleHelper.applyLanguageToOverride(overrideConfiguration, language)
             }
-            overrideConfiguration.uiMode = uiMode
         }
         super.applyOverrideConfiguration(overrideConfiguration)
     }
@@ -193,15 +192,21 @@ fun MRMApp() {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val store = remember { SessionStore(context) }
-    var session by remember { mutableStateOf(store.read()) }
+    var session by remember {
+        com.mrm.pgmanager.data.AdminAccess.reset()
+        com.mrm.pgmanager.data.cache.PanelCache.clear()
+        com.mrm.pgmanager.data.PanelSupport.reset()
+        mutableStateOf(store.read())
+    }
+    var accessRetryToken by remember(session) { mutableIntStateOf(0) }
     // نسخهٔ پنل (دروازهٔ قابلیت‌های 5.5) — از کشِ همان پنل خوانده می‌شود؛ با سوییچِ
     // حساب اول پاک می‌شود تا نسخهٔ پنلِ قبلی روی پنلِ جدید نماند.
-    androidx.compose.runtime.LaunchedEffect(session?.baseUrl) {
+    androidx.compose.runtime.LaunchedEffect(session) {
         com.mrm.pgmanager.data.PanelSupport.reset()
         session?.let { s ->
             com.mrm.pgmanager.data.PanelSupport.updateFrom(
                 com.mrm.pgmanager.data.cache.PanelCache.get<com.mrm.pgmanager.data.model.SystemStats>(
-                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s.baseUrl)
+                    com.mrm.pgmanager.data.cache.PanelCache.statsKey(s)
                 )
             )
         }
@@ -305,11 +310,11 @@ fun MRMApp() {
         }
     }
 
-    // مجوزهای RBAC ادمین (GET /api/admin) — یک‌بار به‌ازای هر نشست؛ صفحه‌ها با AdminAccess.can() دکمه‌ها را گیت می‌کنند.
-    LaunchedEffect(session) {
+    // Permission-dependent controls remain disabled until the panel confirms this account's role.
+    LaunchedEffect(session, accessRetryToken) {
         val current = session
         if (current == null) com.mrm.pgmanager.data.AdminAccess.reset()
-        else com.mrm.pgmanager.data.AdminAccess.refresh(current)
+        else com.mrm.pgmanager.data.AdminAccess.refresh(current, force = accessRetryToken > 0)
     }
 
     LaunchedEffect(session) {
@@ -353,7 +358,8 @@ fun MRMApp() {
         activity?.recreate()
     }
 
-    LiquidGlassTheme(themeState = effectiveTheme) {
+    ProvideAppFontScale(uiPrefs.fontScalePercent) {
+        LiquidGlassTheme(themeState = effectiveTheme) {
       // «کاهش انیمیشن»: قبل از رنگ‌آمیزیِ فریمِ بعد اعمال می‌شود تا هیچ حرکتی جا نماند.
       androidx.compose.runtime.SideEffect {
           com.mrm.pgmanager.ui.designsystem.MotionPrefs.reduceMotion = uiPrefs.reduceMotion
@@ -367,18 +373,35 @@ fun MRMApp() {
             // کشِ حافظه به پنلِ قبلی تعلق دارد؛ اگر پاک نشود، یک لحظه دادهٔ
             // حسابِ قبلی روی حسابِ جدید دیده می‌شود.
             com.mrm.pgmanager.data.cache.PanelCache.clear()
+            com.mrm.pgmanager.data.AdminAccess.reset()
+            com.mrm.pgmanager.data.PanelSupport.reset()
             store.setActive(acc); session = acc; isUnlocked = false; addingAccount = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
         }
         // انقضای نشست (۴۰۱): برخلافِ خروجِ دستی، حساب در لیستِ چندحسابی می‌ماند و
         // صفحهٔ ورود با آدرس/نامِ کاربریِ همان حساب پیش‌پر می‌شود.
-        val onSessionExpired: () -> Unit = {
-            com.mrm.pgmanager.data.cache.PanelCache.clear()
-            store.expireActive(); session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
+        val onSessionExpired: (com.mrm.pgmanager.data.model.Session) -> Unit = { expired ->
+            if (session == expired) {
+                val expiredHere = store.expireActive(expired)
+                // A worker may already have expired the same session. Do not clear a
+                // different account that was activated while the response was in flight.
+                if (expiredHere || store.read() == null) {
+                    com.mrm.pgmanager.ui.feedback.AppFeedback.error(context.getString(R.string.us_session_expired))
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.AdminAccess.reset()
+                    com.mrm.pgmanager.data.PanelSupport.reset()
+                    session = null; isUnlocked = false; showDashboardSettings = false; showPanelScreen = false; showPanelInfra = false; showPanelSettings = false; showApiKeys = false; showAdminsRoles = false; showNodeLogs = false
+                }
+            }
         }
         if (session == null || addingAccount) {
             val expiredAccount = if (addingAccount) null else store.readExpiredAccount()
             LoginScreen(
-                onLoggedIn = { v -> store.save(v); session = v; isUnlocked = true; addingAccount = false },
+                onLoggedIn = { v ->
+                    com.mrm.pgmanager.data.AdminAccess.reset()
+                    com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.PanelSupport.reset()
+                    store.save(v); session = v; isUnlocked = true; addingAccount = false
+                },
                 themeState = effectiveTheme,
                 appLanguage = appLanguage,
                 onLanguageChange = handleLanguageChange,
@@ -391,7 +414,12 @@ fun MRMApp() {
                         val other = store.readAccounts().firstOrNull { acc ->
                             expiredAccount == null || acc.baseUrl != expiredAccount.baseUrl || acc.username != expiredAccount.username
                         }
-                        val switchToOther: (() -> Unit)? = if (other != null) ({ store.setActive(other); session = other }) else null
+                        val switchToOther: (() -> Unit)? = if (other != null) ({
+                            com.mrm.pgmanager.data.AdminAccess.reset()
+                            com.mrm.pgmanager.data.cache.PanelCache.clear()
+                            com.mrm.pgmanager.data.PanelSupport.reset()
+                            store.setActive(other); session = other
+                        }) else null
                         switchToOther
                     }
                     else -> null
@@ -411,7 +439,7 @@ fun MRMApp() {
                         )
                     }
                 },
-                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); session = null; isUnlocked = false }
+                onLogout = { store.clear(); com.mrm.pgmanager.data.cache.PanelCache.clear(); com.mrm.pgmanager.data.AdminAccess.reset(); session = null; isUnlocked = false }
             )
         } else {
             // فعال‌سازی قفل از هر دو مسیر (تنظیمات داشبورد / کاربران) با تأیید بیومتریک انجام می‌شود.
@@ -551,19 +579,20 @@ fun MRMApp() {
                         CompositionLocalProvider(
                             com.mrm.pgmanager.ui.components.LocalPageActive provides (pagerState.settledPage == page)
                         ) {
+                        val pageSession = session!!
                         when (page) {
-                            TAB_DASHBOARD -> DashboardScreen(session!!, monitoringSettings, onSessionExpired = onSessionExpired, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
+                            TAB_DASHBOARD -> DashboardScreen(pageSession, monitoringSettings, onSessionExpired = { onSessionExpired(pageSession) }, onOpenSettings = { showDashboardSettings = true }, onOpenStatistics = { selectedTab = TAB_STATISTICS })
                             TAB_STATISTICS -> StatisticsScreen(
-                                session!!,
+                                pageSession,
                                 onOpenSettings = { showDashboardSettings = true },
                                 // «لاگ» روی کارتِ هر نود؛ همان نود از پیش انتخاب می‌شود.
                                 onOpenNodeLogs = { id -> nodeLogsId = id; showNodeLogs = true }
                             )
-                            TAB_GROUPS -> GroupsScreen(session!!, onOpenSettings = { showDashboardSettings = true })
-                            TAB_TEMPLATES -> TemplatesScreen(session!!, onOpenSettings = { showDashboardSettings = true })
+                            TAB_GROUPS -> GroupsScreen(pageSession, onOpenSettings = { showDashboardSettings = true })
+                            TAB_TEMPLATES -> TemplatesScreen(pageSession, onOpenSettings = { showDashboardSettings = true })
                             else -> UsersScreen(
-                                session = session!!,
-                                onSessionExpired = onSessionExpired,
+                                session = pageSession,
+                                onSessionExpired = { onSessionExpired(pageSession) },
                                 themeState = effectiveTheme,
                                 monitoringSettings = monitoringSettings,
                                 deepLinkUsername = deepLinkUsername,
@@ -630,6 +659,19 @@ fun MRMApp() {
                                 appLockTimeout = store.readAppLockTimeoutSecs()
                                 isAppLockEnabled = store.readAppLock()
                                 com.mrm.pgmanager.data.cache.PanelCache.clear()
+                                // Account restore also changes the active credential in prefs.
+                                // Keep the running UI and its authorization state in sync.
+                                val restoredSession = store.read()
+                                if (restoredSession != session) {
+                                    if (restoredSession != null) switchAccount(restoredSession)
+                                    else {
+                                        com.mrm.pgmanager.data.AdminAccess.reset()
+                                        com.mrm.pgmanager.data.PanelSupport.reset()
+                                        session = null
+                                        isUnlocked = false
+                                        showDashboardSettings = false
+                                    }
+                                }
                             }
                         )
                     }
@@ -764,6 +806,7 @@ fun MRMApp() {
                     showNodeLogs = false
                     store.clear()
                     com.mrm.pgmanager.data.cache.PanelCache.clear()
+                    com.mrm.pgmanager.data.AdminAccess.reset()
                     session = null
                     isUnlocked = false
                 },
@@ -785,6 +828,19 @@ fun MRMApp() {
                 }
             )
         }
+        if (session != null && !addingAccount && (!isAppLockEnabled || isUnlocked) &&
+            com.mrm.pgmanager.data.AdminAccess.state == com.mrm.pgmanager.data.AdminAccessState.Unavailable) {
+            Column(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(DsSpacing.Screen)
+                    .clip(RoundedCornerShape(16.dp)).background(effectiveTheme.dialogBgColor)
+                    .border(BorderStroke(1.dp, effectiveTheme.borderColor), RoundedCornerShape(16.dp))
+                    .padding(DsSpacing.Mid),
+                verticalArrangement = Arrangement.spacedBy(DsSpacing.Sm)
+            ) {
+                Text(stringResource(R.string.access_unavailable), color = effectiveTheme.inkColor, fontSize = 13.sp)
+                PGPrimaryButton(stringResource(R.string.retry), onClick = { accessRetryToken++ }, icon = AppIcon.Refresh)
+            }
+        }
         // میزبانِ بازخوردِ سراسری — بالایِ کپسولِ ناوبری، رویِ همه شاخه‌ها.
         AppFeedbackHost(
             modifier = Modifier
@@ -793,6 +849,7 @@ fun MRMApp() {
                 .navigationBarsPadding()
                 .padding(bottom = 96.dp)
         )
+        }
         }
     }
 }

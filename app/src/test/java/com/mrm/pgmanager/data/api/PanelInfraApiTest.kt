@@ -6,6 +6,7 @@ import com.mrm.pgmanager.data.model.Session
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,17 +17,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * قراردادِ «زیرساختِ پنل» روی سرورِ ساختگی: هاست‌ها، کورها و قالب‌های کلاینت.
- *
- * سه چیز اینجا قفل می‌شود که خطایشان در عمل گران است:
- *  ۱. مسیر و بدنهٔ هر درخواست (پنل برای `PUT /api/cores/{id}` کوئریِ الزامیِ
- *     `restart_nodes` می‌خواهد و برای هاست، بدنهٔ کاملِ `CreateHost`)؛
- *  ۲. **حفظِ فیلدهای ناشناخته** در ویرایشِ هاست (merge روی بدنهٔ خام) — وگرنه
- *     هاستی که در پنلِ وب با transport/ECH ساخته شده با یک ذخیره خراب می‌شود؛
- *  ۳. شکلِ متفاوتِ پاسخ‌ها: `/api/hosts` آرایهٔ خالص است ولی
- *     `/api/client_templates` پوشیده در `{"count", "templates"}`.
- */
+/** Request contracts and safe updates for hosts, cores and client templates. */
 class PanelInfraApiTest {
 
     private lateinit var server: MockWebServer
@@ -85,8 +76,27 @@ class PanelInfraApiTest {
 
         val second = hosts[1]
         assertNull("پورتِ null نباید 0 شود", second.port)
+        assertEquals(0, second.priority)
         assertTrue(second.isDisabled)
         assertEquals("inbound_default", second.security)
+    }
+
+    @Test fun `host priority preserves zero and negative values and distinguishes unknown values`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """[
+                {"id":1,"remark":"zero","priority":0},
+                {"id":2,"remark":"negative","priority":-2},
+                {"id":3,"remark":"missing"},
+                {"id":4,"remark":"null","priority":null},
+                {"id":5,"remark":"numeric string","priority":"3"},
+                {"id":6,"remark":"invalid","priority":"invalid"},
+                {"id":7,"remark":"fractional","priority":1.5}
+            ]"""
+        ))
+        val hosts = PanelApi.hosts(session)
+        assertEquals(listOf(0, -2, null, null, 3, null, null), hosts.map { it.priority })
+        assertTrue(JSONObject(hosts[0].raw).has("priority"))
+        assertFalse(JSONObject(hosts[2].raw).has("priority"))
     }
 
     @Test fun `create host posts the minimal CreateHost body`() = runBlocking {
@@ -221,9 +231,13 @@ class PanelInfraApiTest {
     }
 
     @Test fun `modify core always sends restart_nodes and the full config`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":["a"],
+                "fallbacks_inbound_tags":["b"],"config":{"inbounds":[{"tag":"vless-443"}],"routing":{"rules":[]}}}"""
+        ))
         server.enqueue(
             MockResponse().setBody(
-                """{"id":2,"name":"renamed","type":"wg","exclude_inbound_tags":[],
+                """{"id":2,"name":"renamed","type":"xray","exclude_inbound_tags":[],
                     "fallbacks_inbound_tags":[],"sort_order":1,
                     "config":{"inbounds":[{"tag":"vless-443"}]}}"""
             )
@@ -235,34 +249,279 @@ class PanelInfraApiTest {
         )
         val updated = PanelApi.modifyCore(
             session, core,
-            name = "renamed", type = "wg",
+            name = "renamed", type = "xray",
             excludeInboundTags = emptyList(), fallbacksInboundTags = emptyList(),
             restartNodes = true
         )
+        val read = server.takeRequest()
+        assertEquals("GET", read.method)
+        assertEquals("/api/core/2", read.path)
         val req = server.takeRequest()
         val body = JSONObject(req.body.readUtf8())
 
         assertEquals("PUT", req.method)
-        // بدونِ این کوئری، پنل 422 می‌دهد (پارامتر الزامی است).
-        assertEquals("/api/cores/2?restart_nodes=true", req.path)
+        assertEquals("/api/core/2?restart_nodes=true", req.path)
         assertEquals("renamed", body.getString("name"))
-        assertEquals("wg", body.getString("type"))
+        assertEquals("xray", body.getString("type"))
         assertEquals(0, body.getJSONArray("exclude_inbound_tags").length())
         // routing که در فرم دیده نمی‌شود باید دست‌نخورده بماند.
         assertTrue(body.getJSONObject("config").has("routing"))
         assertEquals("renamed", updated.name)
     }
 
-    @Test fun `core type can be cleared back to auto`() = runBlocking {
-        server.enqueue(MockResponse().setBody("""{"id":2,"name":"main","type":null,"config":{"a":1}}"""))
-        PanelApi.modifyCore(
-            session, PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}"""),
-            name = "main", type = null,
-            excludeInboundTags = emptyList(), fallbacksInboundTags = emptyList(),
-            restartNodes = false
-        )
+    @Test fun `existing core type cannot be cleared when the panel ignores null`() {
+        val core = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, core, "main", null, emptyList(), emptyList(), false) }
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun `an initially null core type remains null when unchanged`() = runBlocking {
+        val coreResponse = """{"id":2,"name":"main","type":null,"exclude_inbound_tags":[],
+            "fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        server.enqueue(MockResponse().setBody(coreResponse))
+        server.enqueue(MockResponse().setBody(coreResponse))
+        val core = PanelCore(id = 2, name = "main", type = null, config = """{"a":1}""")
+        PanelApi.modifyCore(session, core, "renamed", null, emptyList(), emptyList(), false)
+        assertEquals("/api/core/2", server.takeRequest().path)
         val body = JSONObject(server.takeRequest().body.readUtf8())
-        assertTrue("کلیدِ type باید صریحاً null باشد", body.isNull("type"))
+        assertTrue(body.has("type"))
+        assertTrue(body.isNull("type"))
+    }
+
+    @Test fun `core update uses the latest configuration and keeps unrelated server edits`() = runBlocking {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":["server"],
+                "fallbacks_inbound_tags":[],"config":{"inbounds":[{"tag":"server"}],"routing":{"rules":[1]}}}"""
+        ))
+        server.enqueue(MockResponse().setBody("""{"id":2,"name":"renamed","type":"xray","exclude_inbound_tags":["server"],"fallbacks_inbound_tags":[],"config":{"a":1}}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"old":true}""")
+        PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        val put = server.takeRequest()
+        val body = JSONObject(put.body.readUtf8())
+        assertEquals("/api/core/2?restart_nodes=false", put.path)
+        assertEquals("server", body.getJSONObject("config").getJSONArray("inbounds").getJSONObject(0).getString("tag"))
+        assertEquals(1, body.getJSONObject("config").getJSONObject("routing").getJSONArray("rules").getInt(0))
+        assertEquals("server", body.getJSONArray("exclude_inbound_tags").getString(0))
+        assertFalse(body.getJSONObject("config").has("old"))
+    }
+
+    @Test fun `core put retains exact config numbers and escaped nested strings`() = runBlocking {
+        val config = """{"large":9223372036854775807123456789,"precise":0.12345678901234567890123456789,
+            "nested":[{"text":"braces } and ["}],"inbounds":[]}"""
+        val response = """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],
+            "fallbacks_inbound_tags":[],"config":$config}"""
+        server.enqueue(MockResponse().setBody(response))
+        server.enqueue(MockResponse().setBody(response))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = config)
+        PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        val body = server.takeRequest().body.readUtf8()
+        assertTrue(body.contains("\"config\":$config"))
+    }
+
+    @Test fun `ambiguous duplicate config response stops before put`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],
+                "config":{"a":1},"config":{"a":2}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `editing tags does not normalize an untouched existing core name`() = runBlocking {
+        val response = """{"id":2,"name":"  Main  ","type":"xray","exclude_inbound_tags":[],
+            "fallbacks_inbound_tags":[],"config":{"inbounds":[{"tag":"a"}]}}"""
+        server.enqueue(MockResponse().setBody(response))
+        server.enqueue(MockResponse().setBody(response))
+        val initial = PanelCore(id = 2, name = "  Main  ", type = "xray", config = """{"inbounds":[{"tag":"a"}]}""")
+        PanelApi.modifyCore(session, initial, initial.name, initial.type, listOf("a"), emptyList(), false)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("  Main  ", body.getString("name"))
+    }
+
+    @Test fun `unstorable tags are preserved until deliberately removed before put`() {
+        val response = """{"id":2,"name":"main","type":"future-backend","exclude_inbound_tags":["null",""],
+            "fallbacks_inbound_tags":[],"config":{"inbounds":[]}}"""
+        server.enqueue(MockResponse().setBody("""{"cores":[$response]}"""))
+        val initial = runBlocking { PanelApi.cores(session).single() }
+        assertEquals("future-backend", initial.type)
+        assertEquals(setOf("null", ""), initial.excludeInboundTags.toSet())
+        server.enqueue(MockResponse().setBody(response))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "new name", initial.type, initial.excludeInboundTags, emptyList(), false) }
+        }
+        assertEquals(2, server.requestCount)
+
+        server.enqueue(MockResponse().setBody(response))
+        server.enqueue(MockResponse().setBody(response))
+        runBlocking { PanelApi.modifyCore(session, initial, "new name", initial.type, listOf("null"), emptyList(), false) }
+        assertEquals("/api/cores", server.takeRequest().path)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        val body = JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("future-backend", body.getString("type"))
+        val tags = body.getJSONArray("exclude_inbound_tags")
+        assertEquals(listOf("null"), (0 until tags.length()).map { tags.getString(it) })
+    }
+
+    @Test fun `new tags containing commas cannot be silently split by storage`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],
+                "config":{"inbounds":[{"tag":"a,b"}]}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"inbounds":[{"tag":"a,b"}]}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "main", "xray", listOf("a,b"), emptyList(), false) }
+        }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `existing tags may be removed even when inbound options cannot be parsed`() = runBlocking {
+        val response = """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":["old"],
+            "fallbacks_inbound_tags":[],"config":{"inbounds":{}}}"""
+        server.enqueue(MockResponse().setBody(response))
+        server.enqueue(MockResponse().setBody(response))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", excludeInboundTags = listOf("old"),
+            config = """{"inbounds":{}}""")
+        PanelApi.modifyCore(session, initial, "main", "xray", emptyList(), emptyList(), false)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(0, JSONObject(server.takeRequest().body.readUtf8()).getJSONArray("exclude_inbound_tags").length())
+    }
+
+    @Test fun `conflicting core metadata stops before put`() {
+        server.enqueue(MockResponse().setBody("""{"id":2,"name":"remote","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        val error = assertThrows(CoreEditConflictException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "local", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals(listOf("name"), error.fields)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `changing inbound choices stops if the server changed available tags`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],
+                "config":{"inbounds":[{"tag":"new"}]}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"inbounds":[{"tag":"old"}]}""")
+        val error = assertThrows(CoreEditConflictException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "main", "xray", listOf("old"), emptyList(), false) }
+        }
+        assertEquals(listOf("inbounds"), error.fields)
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `unavailable fresh core never sends cached configuration`() {
+        server.enqueue(MockResponse().setResponseCode(403).setBody("""{"detail":"example-sensitive-value"}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        val error = assertThrows(IllegalStateException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertFalse(error.message.orEmpty().contains("example-sensitive-value"))
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `an invalid update response is not reported as success`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        server.enqueue(MockResponse().setBody("""{"id":9}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(CoreUpdateUnconfirmedException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals("/api/core/2?restart_nodes=false", server.takeRequest().path)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `a disconnected core put is not retried and its result remains unconfirmed`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(CoreUpdateUnconfirmedException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), true) }
+        }
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals("/api/core/2?restart_nodes=true", server.takeRequest().path)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `a core update does not replay a 503 immediate retry hint`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        server.enqueue(MockResponse().setResponseCode(503).setHeader("Retry-After", "0"))
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"renamed","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(CoreUpdateUnconfirmedException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals("GET", server.takeRequest().method)
+        assertEquals("PUT", server.takeRequest().method)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `an incomplete update response warns that the result is unconfirmed`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        server.enqueue(MockResponse().setBody("""{"id":2,"name":"renamed"}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(CoreUpdateUnconfirmedException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test fun `wireguard update with excluded or fallback tags is rejected before put`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":2,"name":"main","type":"xray","exclude_inbound_tags":["old"],"fallbacks_inbound_tags":[],
+                "config":{"inbounds":[{"tag":"old"}]}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", excludeInboundTags = listOf("old"),
+            config = """{"inbounds":[{"tag":"old"}]}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "main", "wg", listOf("old"), emptyList(), false) }
+        }
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `mismatched core identity prevents put`() {
+        server.enqueue(MockResponse().setBody(
+            """{"id":9,"name":"main","type":"xray","exclude_inbound_tags":[],"fallbacks_inbound_tags":[],"config":{"a":1}}"""
+        ))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test fun `incomplete fresh core is rejected rather than overwriting unknown fields`() {
+        server.enqueue(MockResponse().setBody("""{"id":2,"name":"main","type":"xray","config":{"a":1}}"""))
+        val initial = PanelCore(id = 2, name = "main", type = "xray", config = """{"a":1}""")
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { PanelApi.modifyCore(session, initial, "renamed", "xray", emptyList(), emptyList(), false) }
+        }
+        assertEquals("/api/core/2", server.takeRequest().path)
+        assertEquals(1, server.requestCount)
     }
 
     @Test fun `restart and delete core use their own routes`() = runBlocking {
@@ -270,13 +529,13 @@ class PanelInfraApiTest {
         PanelApi.restartCore(session, 4)
         val restart = server.takeRequest()
         assertEquals("POST", restart.method)
-        assertEquals("/api/cores/4/restart", restart.path)
+        assertEquals("/api/core/4/restart", restart.path)
 
         server.enqueue(MockResponse().setResponseCode(204))
         PanelApi.deleteCore(session, 4, restartNodes = true)
         val delete = server.takeRequest()
         assertEquals("DELETE", delete.method)
-        assertEquals("/api/cores/4?restart_nodes=true", delete.path)
+        assertEquals("/api/core/4?restart_nodes=true", delete.path)
     }
 
     // ── قالب‌های کلاینت ──────────────────────────────────────────────────

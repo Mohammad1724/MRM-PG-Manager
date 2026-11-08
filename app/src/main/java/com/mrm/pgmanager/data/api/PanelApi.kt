@@ -24,6 +24,7 @@ import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TemplateOptions
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.NodeUsage
+import com.mrm.pgmanager.data.model.OutboundUsage
 import com.mrm.pgmanager.data.model.NodeTrafficPoint
 import com.mrm.pgmanager.data.model.OnlineIp
 import com.mrm.pgmanager.data.model.SubUpdate
@@ -37,22 +38,32 @@ import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.CreatedApiKey
+import com.mrm.pgmanager.data.model.ApiKeyQuota
 import com.mrm.pgmanager.data.model.PanelGeneralSection
 import com.mrm.pgmanager.data.model.PanelSubscriptionSection
 import com.mrm.pgmanager.data.model.PanelHwidSection
 import com.mrm.pgmanager.data.model.PanelNotificationSection
+import com.mrm.pgmanager.data.model.PanelRuntimeSettings
+import com.mrm.pgmanager.data.model.PanelCleanupSettings
+import com.mrm.pgmanager.data.storage.offlineCacheOwner
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
 import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
-import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
@@ -61,10 +72,16 @@ import java.io.IOException
  */
 class SessionExpiredException(message: String = "401 Unauthorized: session expired") : RuntimeException(message)
 
+/** The server may have applied a mutation even though its result could not be confirmed. */
+class PanelWriteUnconfirmedException(cause: java.io.IOException? = null) :
+    java.io.IOException("The panel operation could not be confirmed", cause)
+
 object PanelApi {
-    /** تشخیصِ یکپارچهٔ «نشست منقضی شده» — به‌جای `message.contains("401")` پراکنده. */
+    private val unauthorizedCode = Regex("""^(?:[^:\r\n]*:\s*)?401(?:\s|$)""")
+
+    /** Recognize typed session expiry and the legacy `...: 401 ...` login error. */
     fun isUnauthorized(e: Throwable?): Boolean =
-        e is SessionExpiredException || e?.message?.contains("401") == true
+        e is SessionExpiredException || e?.message?.let(unauthorizedCode::containsMatchIn) == true
 
     /**
      * کلاینتی که **فقط TLS 1.2** حرف می‌زند.
@@ -87,6 +104,11 @@ object PanelApi {
     /** آدرسِ نرمال‌شده با همان قاعده‌ای که خودِ اپ استفاده می‌کند (برای ابزارِ تشخیصی). */
     internal fun normalizedBaseForDiagnostics(address: String): String = baseUrl(address)
 
+    private object CoreWriteMarker
+    private object NodeWriteMarker
+    private object NodeLogMarker
+    private object ReadOnlyPostMarker
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -106,38 +128,87 @@ object PanelApi {
             response
         }
         .addInterceptor { chain ->
-            // برای متدهای امن (GET/PUT/DELETE) در صورتِ خطای شبکه‌ای، تا ۳ بار retry می‌کنیم.
-            // POST retry نمی‌شود (برای جلوگیری از ساختِ کاربرِ تکراری).
             val request = chain.request()
-            if (request.method == "POST") return@addInterceptor chain.proceed(request)
+            val isRead = request.method == "GET" || request.method == "HEAD"
+            if (!isRead) {
+                // An IO failure or a 503 can arrive after a mutation was applied. Do not
+                // repeat it, including OkHttp's own Retry-After: 0 follow-up. DELETE's
+                // usual empty body is wrapped too; some endpoints mutate without a body.
+                val body = request.body ?: "".toRequestBody()
+                val singleAttempt = request.newBuilder()
+                    .method(request.method, if (body.isOneShot()) body else oneShot(body))
+                    .build()
+                val authenticated = request.header("Authorization") != null || request.header("X-Api-Key") != null
+                val isMutation = authenticated && request.tag(ReadOnlyPostMarker::class.java) == null
+                try {
+                    val response = chain.proceed(singleAttempt)
+                    if (isMutation && response.code >= 500) {
+                        response.close()
+                        throw PanelWriteUnconfirmedException()
+                    }
+                    return@addInterceptor response
+                } catch (error: java.io.IOException) {
+                    if (!isMutation || chain.call().isCanceled() || error is PanelWriteUnconfirmedException) throw error
+                    throw PanelWriteUnconfirmedException(error)
+                }
+            }
+            // A log connection has its own bounded reconnect policy, not the read retry loop.
+            if (request.tag(NodeLogMarker::class.java) != null) return@addInterceptor chain.proceed(request)
             var lastError: java.io.IOException? = null
             for (attempt in 0 until 3) {
                 try {
                     return@addInterceptor chain.proceed(request)
                 } catch (e: java.io.IOException) {
+                    if (chain.call().isCanceled()) throw e
                     lastError = e
                     if (attempt < 2) Thread.sleep(400)
                 }
             }
             throw lastError ?: java.io.IOException("retry exhausted")
         }
+        .addNetworkInterceptor { chain ->
+            val request = chain.request()
+            val response = chain.proceed(request)
+            if (!response.isRedirect) return@addNetworkInterceptor response
+            val target = response.header("Location")?.let { request.url.resolve(it) }
+            val sameOrigin = target != null && target.scheme == request.url.scheme &&
+                target.host == request.url.host && target.port == request.url.port
+            val isRead = request.method == "GET" || request.method == "HEAD"
+            // OkHttp strips Authorization on cross-origin redirects, but not X-Api-Key.
+            // Keep same-origin read redirects for compatibility; never redirect a write.
+            if (!isRead || !sameOrigin) response.newBuilder().removeHeader("Location").build()
+            else response
+        }
         .build()
+    // Sensitive infrastructure requests do not forward custom API-key headers through redirects.
+    private val infrastructureReadClient: OkHttpClient by lazy {
+        client.newBuilder().followRedirects(false).followSslRedirects(false).build()
+    }
+    private val infrastructureWriteClient: OkHttpClient by lazy {
+        infrastructureReadClient.newBuilder().retryOnConnectionFailure(false).build()
+    }
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
-    /**
-     * کلاینتِ جریان‌ها (لاگِ زندهٔ نود).
-     *
-     * دو تفاوت با [client]، هر دو از روی همان سازنده تا یک منبعِ حقیقت بماند:
-     * `readTimeout = 0` چون لاگ می‌تواند دقایق ساکت بماند، و
-     * `retryOnConnectionFailure(false)` چون تلاشِ دوبارهٔ OkHttp روی پاسخِ
-     * نیمه‌کارهٔ streaming یعنی دو جریانِ هم‌زمان و خط‌های تکراری روی صفحه.
-     * interceptorها (نگاشتِ ۴۰۱ به [SessionExpiredException]، retryِ متدهای امن)
-     * سرِ جایشان می‌مانند.
-     */
+    /** OkHttp can retry a 503 with Retry-After: 0 even when connection retries are disabled. */
+    private fun oneShot(body: RequestBody): RequestBody = object : RequestBody() {
+        override fun contentType() = body.contentType()
+        override fun contentLength() = body.contentLength()
+        override fun writeTo(sink: BufferedSink) = body.writeTo(sink)
+        override fun isOneShot() = true
+    }
+
+    /** A quiet SSE connection has no read timeout, redirects or network/503 handshake replay. */
     private val streamClient: OkHttpClient by lazy {
-        client.newBuilder()
+        infrastructureReadClient.newBuilder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .retryOnConnectionFailure(false)
+            .addNetworkInterceptor { chain ->
+                val response = chain.proceed(chain.request())
+                // OkHttp follows 503 Retry-After: 0 even when connection retries are disabled.
+                if (response.code == 503 && response.header("Retry-After")?.toLongOrNull() == 0L) {
+                    response.newBuilder().removeHeader("Retry-After").build()
+                } else response
+            }
             .build()
     }
 
@@ -355,19 +426,30 @@ object PanelApi {
         )
     }
 
-    suspend fun systemStats(session: Session): SystemStats = withContext(Dispatchers.IO) {
+    suspend fun systemStats(session: Session): SystemStats = coroutineScope {
         val request = requestBuilder(session, "${session.baseUrl}/api/system").get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("System stats failed: ${response.code}")
-            val o = JSONObject(response.body?.string() ?: "{}")
-            SystemStats(
-                uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
-                diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
-                totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
-                expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
-                incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
-                version = o.optString("version").takeIf { it != "null" }.orEmpty()
-            )
+        suspendCancellableCoroutine { continuation ->
+            val call = client.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            launch(Dispatchers.IO) {
+                try {
+                    val stats = call.execute().use { response ->
+                        if (!response.isSuccessful) error("System stats failed: ${response.code}")
+                        val o = JSONObject(response.body?.string() ?: "{}")
+                        SystemStats(
+                            uptimeSeconds = o.optLong("uptime_seconds"), memTotal = o.optLong("mem_total"), memUsed = o.optLong("mem_used"),
+                            diskTotal = o.optLong("disk_total"), diskUsed = o.optLong("disk_used"), cpuCores = o.optInt("cpu_cores"), cpuUsage = o.optDouble("cpu_usage").toFloat(),
+                            totalUsers = o.optInt("total_user"), onlineUsers = o.optInt("online_users"), activeUsers = o.optInt("active_users"),
+                            expiredUsers = o.optInt("expired_users"), limitedUsers = o.optInt("limited_users"), disabledUsers = o.optInt("disabled_users"), onHoldUsers = o.optInt("on_hold_users"),
+                            incomingBandwidth = o.optLong("incoming_bandwidth"), outgoingBandwidth = o.optLong("outgoing_bandwidth"),
+                            version = o.optString("version").takeIf { it != "null" }.orEmpty()
+                        )
+                    }
+                    if (continuation.isActive) continuation.resume(stats)
+                } catch (error: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
+            }
         }
     }
 
@@ -482,6 +564,22 @@ object PanelApi {
         }
     }
 
+    /** PasarGuard 5.6: usage per outbound tag, for all nodes or a selected node. */
+    suspend fun outboundUsage(
+        session: Session,
+        range: StatsRange = StatsRange.LAST_24H,
+        nodeId: Int? = null
+    ): List<OutboundUsage> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/node/usage/outbounds")
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+            if (nodeId != null) { append("&node_id="); append(nodeId) }
+        }
+        val request = requestBuilder(session, url).get().build()
+        OutboundUsage.fromResponse(executeCancellableInfrastructureJson(request))
+    }
+
     /**
      * نمودارِ تعدادِ کاربران بر اساس یک متریک (online / expired / limited).
      * اندپوینت: `GET /api/users/counts/{metric}` — پاسخ همان ساختارِ usage است
@@ -530,21 +628,36 @@ object PanelApi {
      * ولی خطای گذرای شبکه باید پرتاب شود تا فراخوان لیستِ کش‌شده‌اش را نگه دارد و
      * صفحه «این پنل نودی ندارد»ِ دروغ نشان ندهد (هم‌راستا با رفع D3 داشبورد).
      */
-    suspend fun nodes(session: Session): List<PanelNode> = withContext(Dispatchers.IO) {
+    suspend fun nodes(session: Session): List<PanelNode> = fetchNodes(session, strict = false)
+
+    /** Management and logs must distinguish forbidden or malformed responses from an empty list. */
+    internal suspend fun nodesStrict(session: Session): List<PanelNode> = fetchNodes(session, strict = true)
+
+    private suspend fun fetchNodes(session: Session, strict: Boolean): List<PanelNode> = withContext(Dispatchers.IO) {
         val req = requestBuilder(session, "${session.baseUrl}/api/nodes").get().build()
-        client.newCall(req).execute().use { res ->
-            if (res.code == 403) return@withContext emptyList()
+        val httpClient = if (strict) infrastructureReadClient else client
+        httpClient.newCall(req).execute().use { res ->
+            if (res.code == 403 && !strict) return@withContext emptyList()
             if (!res.isSuccessful) error("Nodes request failed: ${res.code} ${errorDetail(res.body?.string())}".trim())
             val body = res.body?.string() ?: "{}"
             val arr = runCatching { JSONObject(body).optJSONArray("nodes") }.getOrNull()
                 ?: runCatching { org.json.JSONArray(body) }.getOrNull()
-                ?: return@withContext emptyList<PanelNode>()
+                ?: if (strict) throw IllegalArgumentException("Invalid nodes response") else return@withContext emptyList<PanelNode>()
             // `sortedBy` پایدار است: نودهای بدونِ `sort_order` (همه `0`) ترتیبِ خودِ
             // پاسخ را نگه می‌دارند و بقیه همان‌جای پنل می‌نشینند.
+            val seenIds = mutableSetOf<Int>()
             List(arr.length()) { i ->
                 val n = arr.getJSONObject(i)
+                val id = n.optInt("id")
+                if (strict) {
+                    val rawId = n.opt("id") as? Number
+                    require(rawId != null && id > 0 && rawId.toDouble() == id.toDouble() && seenIds.add(id) &&
+                        n.opt("name") is String && n.opt("address") is String && n.opt("status") is String) {
+                        "Invalid nodes response"
+                    }
+                }
                 PanelNode(
-                    id = n.optInt("id"),
+                    id = id,
                     name = n.optString("name", "Node #${n.optInt("id")}"),
                     address = n.optString("address", ""),
                     status = n.optString("status", ""),
@@ -590,12 +703,122 @@ object PanelApi {
         }
     }
 
-    /** تلاشِ دوبارهٔ اتصال به یک نود — `POST /api/node/{id}/reconnect`. */
+    /** Read-only infrastructure endpoints; HTTP errors are not converted to empty lists. */
+    internal suspend fun inboundDetails(session: Session): List<InboundDetail> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/inbounds/details").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Inbounds request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            parseInboundDetails(response.body?.string() ?: throw IllegalArgumentException("Empty inbounds response"))
+        }
+    }
+
+    internal suspend fun wireGuardSubnets(session: Session): List<WireGuardSubnet> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/wireguard/subnets").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("WireGuard request failed: ${response.code} ${errorDetail(response.body?.string())}".trim())
+            parseWireGuardSubnets(response.body?.string() ?: throw IllegalArgumentException("Empty WireGuard response"))
+        }
+    }
+
+    /** The returned snapshot keeps only hashes of credentials and never enters the shared cache. */
+    internal suspend fun nodeSnapshot(session: Session, nodeId: Int): NodeSnapshot = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId").get().build()
+        infrastructureReadClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) error("Node read failed: ${response.code}")
+            parseNodeSnapshot(response.body?.string() ?: throw IllegalArgumentException("Empty node response"), nodeId)
+        }
+    }
+
+    /** Never replay a side-effecting node request; a lost response has an uncertain outcome. */
+    private fun executeNodeWrite(request: Request, expectedId: Int? = null, requireResponseId: Boolean = false) {
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw NodeWriteUnconfirmedException()
+                // Validation bodies can echo credentials, so never copy them into an exception.
+                if (!response.isSuccessful) error("Node request failed: ${response.code}")
+                if (requireResponseId) {
+                    val id = runCatching {
+                        (JSONObject(response.body?.string().orEmpty()).opt("id") as? Number)?.toString()?.toIntOrNull()
+                    }.getOrNull()
+                    if (id == null || id <= 0 || (expectedId != null && id != expectedId)) throw NodeWriteUnconfirmedException()
+                }
+            }
+        } catch (_: java.io.IOException) {
+            throw NodeWriteUnconfirmedException()
+        }
+    }
+
+    internal suspend fun createNode(session: Session, draft: NodeDraft) = withContext(Dispatchers.IO) {
+        val body = oneShot(NodeEditMerge.create(draft).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request, requireResponseId = true)
+    }
+
+    internal suspend fun modifyNode(session: Session, initial: NodeSnapshot, draft: NodeDraft) = withContext(Dispatchers.IO) {
+        val latest = nodeSnapshot(session, initial.id)
+        val changes = NodeEditMerge.update(initial, latest, draft)
+        // A PUT restarts an enabled node, so an already-satisfied edit must not send one.
+        if (changes.length() == 1 && changes.optInt("api_port", -1) == latest.apiPort) return@withContext
+        val body = oneShot(changes.toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/${initial.id}")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).put(body).build()
+        executeNodeWrite(request, expectedId = initial.id, requireResponseId = true)
+    }
+
+    internal suspend fun deleteNode(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).delete(oneShot("".toRequestBody())).build()
+        executeNodeWrite(request)
+    }
+
+    /** This synchronizes users, not the node software. The panel defaults flush_users to true. */
+    internal suspend fun syncNodeUsers(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/sync?flush_users=true")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).put(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request, expectedId = nodeId, requireResponseId = true)
+    }
+
+    /** Request a node reconnection without replaying an uncertain result. */
     suspend fun reconnectNode(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
-        executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reconnect")
-                .post("".toRequestBody(jsonType)).build()
-        )
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reconnect")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request)
+    }
+
+    /** Node maintenance is side-effecting and is never automatically replayed. */
+    internal suspend fun resetNodeUsage(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/reset")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request, expectedId = nodeId, requireResponseId = true)
+    }
+
+    internal suspend fun updateNodeSoftware(session: Session, nodeId: Int) = withContext(Dispatchers.IO) {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/update")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(oneShot("".toRequestBody(jsonType))).build()
+        executeNodeWrite(request)
+    }
+
+    internal suspend fun updateNodeCore(session: Session, nodeId: Int, version: String) = withContext(Dispatchers.IO) {
+        require(nodeId > 0 && Regex("^(latest|v?\\d+\\.\\d+\\.\\d+)$").matches(version))
+        val body = oneShot(JSONObject().put("core_version", version).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/core_update")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request)
+    }
+
+    internal suspend fun updateNodeGeofiles(session: Session, nodeId: Int, region: String) = withContext(Dispatchers.IO) {
+        require(nodeId > 0 && region in setOf("iran", "china", "russia"))
+        val body = oneShot(JSONObject().put("region", region).toString().toRequestBody(jsonType))
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/geofiles")
+            .tag(NodeWriteMarker::class.java, NodeWriteMarker).post(body).build()
+        executeNodeWrite(request)
     }
 
     // ── جریانِ لاگِ نود (SSE) ──────────────────────────────────────────────
@@ -617,26 +840,15 @@ object PanelApi {
      * خطاها مثلِ بقیهٔ مسیرها `detail`ِ پنل را در message نگه می‌دارند تا
      * `ApiErrorMapper` بتواند ۴۰۳ «مجوزِ nodes.logs نداری» را خوانا نشان بدهد.
      */
-    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection =
-        withContext(Dispatchers.IO) {
-            val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
-                .header("Accept", "text/event-stream")
-                .header("Cache-Control", "no-cache")
-                .get().build()
-            val call = streamClient.newCall(request)
-            val response = try {
-                call.execute()
-            } catch (e: IOException) {
-                call.cancel()
-                throw e
-            }
-            if (!response.isSuccessful) {
-                val detail = errorDetail(response.body?.string())
-                response.close()
-                error("Node logs failed: ${response.code} $detail".trim())
-            }
-            NodeLogConnection(call, response)
-        }
+    internal suspend fun openNodeLogs(session: Session, nodeId: Int): NodeLogConnection {
+        require(nodeId > 0)
+        val request = requestBuilder(session, "${session.baseUrl}/api/node/$nodeId/logs")
+            .tag(NodeLogMarker::class.java, NodeLogMarker)
+            .header("Accept", "text/event-stream")
+            .header("Cache-Control", "no-cache")
+            .get().build()
+        return connectNodeLog(streamClient.newCall(request), ::errorDetail)
+    }
 
     /** دستگاه‌های ثبت‌شدهٔ کاربر — `GET /api/user/{user_id}/hwids`. */
     /**
@@ -811,27 +1023,53 @@ object PanelApi {
         }
     }
 
-    /**
-     * نگاشتِ id→name گروه‌ها با کشِ کوتاهِ درون‌حافظه‌ای (به‌ازای هر پنل).
-     *
-     * هر صفحهٔ کاربران (و هر رفرشِ خودکار، که می‌تواند هر ۵ ثانیه باشد) به این
-     * نگاشت نیاز دارد؛ بدونِ کش هر بار یک `GET /api/groups/simple` اضافه می‌رفت.
-     * گروه‌ها به‌ندرت عوض می‌شوند، و ساخت/ویرایش/حذفِ گروه از همین اپ کش را باطل می‌کند.
-     */
-    private val groupNameCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Map<Int, String>>>()
+    /** Cache group labels per exact credential; two accounts can see different groups. */
+    private data class CachedGroupNames(val baseUrl: String, val at: Long, val names: Map<Int, String>)
+    private val groupNameLock = Any()
+    private val groupNameCache = mutableMapOf<String, CachedGroupNames>()
+    private var groupNameGeneration = 0L
     private const val GROUP_NAME_CACHE_MS = 60_000L
 
     private suspend fun groupNameMap(session: Session): Map<Int, String> {
-        // nanoTime (یکنواخت و بدونِ وابستگی به اندروید — تست‌های JVM هم از این مسیر می‌گذرند).
         val now = System.nanoTime() / 1_000_000L
-        groupNameCache[session.baseUrl]?.let { (at, map) -> if (now - at < GROUP_NAME_CACHE_MS && map.isNotEmpty()) return map }
-        val map = runCatching { groups(session) }.getOrDefault(emptyList()).associate { it.id to it.name }
-        if (map.isNotEmpty()) groupNameCache[session.baseUrl] = now to map
-        return map
+        val key = offlineCacheOwner(session)
+        val generation = synchronized(groupNameLock) {
+            // Expired credentials should not accumulate across repeated logins.
+            groupNameCache.entries.removeAll { now - it.value.at >= GROUP_NAME_CACHE_MS }
+            groupNameCache[key]?.let { return it.names }
+            groupNameGeneration
+        }
+        val groups = try {
+            groups(session)
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (error: SessionExpiredException) {
+            throw error
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val map = groups.associate { it.id to it.name }
+        return synchronized(groupNameLock) {
+            // Do not reinstall a response after a permission refresh or group change.
+            if (generation != groupNameGeneration) return@synchronized emptyMap()
+            if (map.isNotEmpty()) groupNameCache[key] = CachedGroupNames(session.baseUrl, now, map)
+            map
+        }
     }
 
-    /** پس از ساخت/ویرایش/حذفِ گروه صدا زده می‌شود تا نامِ تازه فوراً روی کاربران بنشیند. */
-    private fun invalidateGroupNames(session: Session) { groupNameCache.remove(session.baseUrl) }
+    /** A group change can affect every account connected to the same panel. */
+    private fun invalidateGroupNames(session: Session) = synchronized(groupNameLock) {
+        groupNameGeneration++
+        groupNameCache.entries.removeAll { it.value.baseUrl == session.baseUrl }
+        Unit
+    }
+
+    /** Refreshing permissions also invalidates in-flight and cached group labels. */
+    internal fun invalidateGroupNameAccess(session: Session) = synchronized(groupNameLock) {
+        groupNameGeneration++
+        groupNameCache.remove(offlineCacheOwner(session))
+        Unit
+    }
 
     /**
      * افزودن یا برداشتنِ گروه برای چند کاربر یک‌جا —
@@ -875,16 +1113,17 @@ object PanelApi {
      * به‌جای `expire` فقط `on_hold_expire_duration` (ثانیه، > 0) فرستاده می‌شود؛ شمارش اعتبار
      * با اولین اتصال کاربر شروع می‌شود.
      */
-    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+    suspend fun createUser(session: Session, username: String, limitGb: Double, expireIso: String, note: String = "", hwidLimit: Int? = null, groupIds: List<Int> = emptyList(), nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null, dataLimitBytes: Long? = null) = withContext(Dispatchers.IO) {
+        validateOnHold(status, onHoldExpireSeconds, onHoldTimeoutSeconds)
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
-        val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", gbToBytes(limitGb))
+        val body = JSONObject().put("username", username).put("status", if (onHold) "on_hold" else "active").put("data_limit", dataLimitBytes ?: gbToBytes(limitGb))
         if (onHold) {
             body.put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
             // پنل عددِ صحیح را «ثانیه از الان» تعبیر می‌کند.
             if (onHoldTimeoutSeconds != null && onHoldTimeoutSeconds > 0L) body.put("on_hold_timeout", onHoldTimeoutSeconds)
         } else body.put("expire", expireValue(expireIso))
         if (note.isNotBlank()) body.put("note", note)
-        if (hwidLimit != null && hwidLimit > 0) body.put("hwid_limit", hwidLimit)
+        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
         if (groupIds.isNotEmpty()) body.put("group_ids", org.json.JSONArray(groupIds))
         nextPlanJson(nextPlan)?.let { body.put("next_plan", it) }
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
@@ -901,36 +1140,51 @@ object PanelApi {
      * قواعدِ «دست‌نزدن» (همه بر اساسِ `crud.modify_user` پنل v5.4.1):
      *  - `expireIso == null` → کلیدِ `expire` اصلاً فرستاده نمی‌شود (پنل تاریخِ فعلی را نگه می‌دارد).
      *    `""` همچنان یعنی «نامحدود» (expire = 0).
-     *  - `note` همیشه فرستاده می‌شود، چون پنل `""` را «پاک کن» می‌فهمد و اگر کلید نیاید
-     *    یادداشتِ قبلی می‌ماند — قبلاً امکانِ پاک‌کردنِ یادداشت وجود نداشت.
-     *  - `next_plan`: پنل اگر این کلید در بدنه **نباشد**، پلنِ بعدیِ موجود را حذف می‌کند
-     *    (`elif db_user.next_plan is not None: delete`). پس اگر صداکننده چیزی نداده،
-     *    پلنِ فعلیِ خودِ کاربر دوباره فرستاده می‌شود تا با یک «تمدید» بی‌صدا از بین نرود.
+     *  - `note`: null omits it; an explicitly edited empty string clears it.
+     *  - `next_plan`: panel 5.5.1 checks model_fields_set; omission preserves the current plan,
+     *    while an explicit null clears it. Do not re-send a potentially stale snapshot.
      */
-    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String?, note: String = "", hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null) = withContext(Dispatchers.IO) {
+    suspend fun modifyUser(session: Session, user: PanelUser, limitGb: Double, expireIso: String?, note: String? = null, hwidLimit: Int? = null, groupIds: List<Int>? = null, nextPlan: NextPlan? = null, resetStrategy: String? = null, autoDeleteDays: Int? = null, status: String? = null, onHoldExpireSeconds: Long? = null, onHoldTimeoutSeconds: Long? = null, dataLimitBytes: Long? = null, keepDataLimit: Boolean = false, clearHwidLimit: Boolean = false) = withContext(Dispatchers.IO) {
+        require(autoDeleteDays == null || autoDeleteDays == user.autoDeleteDays) {
+            "Panel 5.5.1 ignores auto-delete changes on user updates"
+        }
+        require(!(status == "active" && (user.status == "on_hold" ||
+            (user.status == "disabled" && user.onHoldExpireDuration != null)))) {
+            "Panel 5.5.1 cannot clear the stored on-hold duration through this endpoint"
+        }
+        validateOnHold(status, onHoldExpireSeconds, onHoldTimeoutSeconds)
+        require(!(user.onHoldTimeout != null && onHoldTimeoutSeconds == 0L)) {
+            "Panel 5.5.1 cannot clear an existing on-hold deadline through this endpoint"
+        }
         val onHold = isOnHoldRequest(status, onHoldExpireSeconds)
-        val body = JSONObject().put("data_limit", gbToBytes(limitGb))
+        val body = JSONObject()
+        if (!keepDataLimit) body.put("data_limit", dataLimitBytes ?: gbToBytes(limitGb))
         if (onHold) {
             body.put("status", "on_hold").put("on_hold_expire_duration", (onHoldExpireSeconds ?: 0L).coerceIn(0L, MAX_PLAN_SECONDS))
-            // null یعنی «دست نزن»، 0 یعنی «مهلت را بردار»، عددِ مثبت یعنی «ثانیه از الان».
-            onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it.coerceAtLeast(0L)) }
         } else {
             if (expireIso != null) body.put("expire", expireValue(expireIso))
-            if (status == "active") body.put("status", "active")
+            if (status == "active" || status == "disabled") body.put("status", status)
         }
-        body.put("note", note.trim())
-        if (hwidLimit != null) body.put("hwid_limit", hwidLimit)  // 0 = نامحدود
+        // Timeout edits do not require resending an unchanged on-hold duration.
+        onHoldTimeoutSeconds?.let { body.put("on_hold_timeout", it) }
+        note?.let { body.put("note", it.trim()) }
+        if (clearHwidLimit) body.put("hwid_limit", JSONObject.NULL)
+        else if (hwidLimit != null) body.put("hwid_limit", hwidLimit)
         if (groupIds != null) body.put("group_ids", org.json.JSONArray(groupIds))
-        // null یعنی «دست نزن» → پلنِ فعلیِ کاربر دوباره فرستاده می‌شود؛ قالبِ خالی یعنی «پاکش کن».
-        val planToSend = nextPlan ?: user.nextPlan
-        if (planToSend != null) body.put("next_plan", nextPlanJson(planToSend) ?: JSONObject.NULL)
+        // A null argument omits the field; an explicitly empty plan clears it.
+        if (nextPlan != null) body.put("next_plan", nextPlanJson(nextPlan) ?: JSONObject.NULL)
         resetStrategy?.let { body.put("data_limit_reset_strategy", it) }
-        // null یعنی «دست نزن»، عددِ صفر یعنی «حذفِ خودکار را بردار».
-        autoDeleteDays?.let { body.put("auto_delete_in_days", if (it > 0) it else JSONObject.NULL) }
+        // Panel 5.5.1 does not apply auto_delete_in_days in its user update path.
         executeJson(requestBuilder(session, userUrl(session, user)).put(body.toString().toRequestBody(jsonType)).build())
     }
 
-    /** on_hold فقط وقتی معتبر است که مدتِ مثبت داشته باشد؛ در غیر این صورت مثل درخواستِ عادی رفتار می‌شود. */
+    private fun validateOnHold(status: String?, duration: Long?, timeout: Long?) {
+        if (status == "on_hold") {
+            require(duration != null && duration in 1L..MAX_PLAN_SECONDS) { "Invalid on-hold duration" }
+        }
+        require(timeout == null || timeout in 0L..MAX_PLAN_SECONDS) { "Invalid on-hold deadline" }
+    }
+
     private fun isOnHoldRequest(status: String?, onHoldExpireSeconds: Long?): Boolean =
         status == "on_hold" && (onHoldExpireSeconds ?: 0L) > 0L
 
@@ -1030,7 +1284,7 @@ object PanelApi {
             onlineAt = onlineAtStr,
             isOnline = isOnline,
             note = if (user.isNull("note")) null else user.optString("note").takeIf { it.isNotBlank() && it != "null" },
-            hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it > 0 },
+            hwidLimit = if (user.isNull("hwid_limit")) null else user.optInt("hwid_limit").takeIf { it >= 0 },
             groupIds = groupIds,
             groupNames = groupNames,
             lifetimeUsedTraffic = user.optLong("lifetime_used_traffic", 0L),
@@ -1048,7 +1302,7 @@ object PanelApi {
             onHoldExpireDuration = if (user.isNull("on_hold_expire_duration")) null else user.optLong("on_hold_expire_duration").takeIf { it > 0L },
             onHoldTimeout = if (user.isNull("on_hold_timeout")) null else user.optString("on_hold_timeout").takeIf { it.isNotBlank() && it != "null" },
             dataLimitResetStrategy = if (user.isNull("data_limit_reset_strategy")) null else user.optString("data_limit_reset_strategy").takeIf { it.isNotBlank() && it != "null" },
-            autoDeleteDays = if (user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days").takeIf { it > 0 },
+            autoDeleteDays = if (!user.has("auto_delete_in_days") || user.isNull("auto_delete_in_days")) null else user.optInt("auto_delete_in_days"),
             // PasarGuard v5.5: تعداد دستگاه در خودِ پاسخِ لیست می‌آید (بدونِ درخواستِ جداگانهٔ HWID).
             // `null` = عدد در دسترس نیست؛ صفر یک مقدارِ واقعی است («دستگاهی ثبت نشده»).
             hwidCount = if (user.isNull("hwid_count")) null else user.optInt("hwid_count").takeIf { it >= 0 }
@@ -1192,7 +1446,10 @@ object PanelApi {
                         Group(id = g.optInt("id"), name = g.optString("name"))
                     }
                 }
-            }.getOrNull()
+            }.getOrElse { error ->
+                if (error is kotlinx.coroutines.CancellationException || error is SessionExpiredException) throw error
+                null
+            }
             if (chunk == null) break
             all.addAll(chunk)
             if (chunk.size < limit) break
@@ -1215,7 +1472,10 @@ object PanelApi {
                         Group(id = g.optInt("id"), name = g.optString("name"))
                     }
                 }
-            }.getOrDefault(emptyList())
+            }.getOrElse { error ->
+                if (error is kotlinx.coroutines.CancellationException || error is SessionExpiredException) throw error
+                emptyList()
+            }
             all.addAll(chunk)
             if (chunk.size < limit) break
             offset += limit
@@ -1259,25 +1519,33 @@ object PanelApi {
     }
 
     /** تگ‌های inbound موجود در پنل — برای انتخاب در فرمِ گروه. */
-    suspend fun inboundTags(session: Session): List<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
-            client.newCall(req).execute().use { res ->
-                if (!res.isSuccessful) return@runCatching emptyList<String>()
-                val raw = res.body?.string().orEmpty()
-                // پنل list[str] برمی‌گرداند؛ ولی برای مقاومت، حالتِ آبجکت هم پوشش داده شده.
-                val trimmed = raw.trim()
-                val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
-                else JSONObject(trimmed.ifBlank { "{}" }).optJSONArray("inbounds") ?: org.json.JSONArray()
-                (0 until arr.length()).mapNotNull { i ->
-                    when (val item = arr.opt(i)) {
-                        is String -> item.takeIf { it.isNotBlank() }
-                        is JSONObject -> item.optString("tag").takeIf { it.isNotBlank() }
-                        else -> null
-                    }
-                }.distinct()
-            }
-        }.getOrDefault(emptyList())
+    suspend fun inboundTags(session: Session): List<String> = try {
+        inboundTagsStrict(session)
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptyList()
+    }
+
+    /** Keep network, permission and malformed-response errors distinct from a genuinely empty list. */
+    suspend fun inboundTagsStrict(session: Session): List<String> = withContext(Dispatchers.IO) {
+        val req = requestBuilder(session, "${session.baseUrl}/api/inbounds").get().build()
+        client.newCall(req).execute().use { res ->
+            val raw = res.body?.string().orEmpty()
+            if (!res.isSuccessful) error("Load inbounds failed: ${res.code} ${errorDetail(raw)}".trim())
+            val trimmed = raw.trim()
+            val arr = if (trimmed.startsWith("[")) org.json.JSONArray(trimmed)
+            else JSONObject(trimmed).getJSONArray("inbounds")
+            (0 until arr.length()).map { i ->
+                val tag = when (val item = arr.opt(i)) {
+                    is String -> item
+                    is JSONObject -> item.opt("tag") as? String ?: error("Invalid inbound tag")
+                    else -> error("Invalid inbound entry")
+                }
+                require(tag.isNotBlank()) { "Invalid inbound tag" }
+                tag
+            }.distinct()
+        }
     }
 
     /** ساخت گروه. پنل حداقل یک inbound tag می‌خواهد. */
@@ -1588,6 +1856,7 @@ object PanelApi {
             put("dry_run", true)
         }
         val request = requestBuilder(session, "${session.baseUrl}/api/users/bulk/$path")
+            .tag(ReadOnlyPostMarker::class.java, ReadOnlyPostMarker)
             .post(body.toString().toRequestBody(jsonType)).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Preview failed: ${response.code}")
@@ -1723,6 +1992,29 @@ object PanelApi {
         }
     }
 
+    /** Lazy read for the host editor; the panel enforces settings.read_general. */
+    internal suspend fun hostCustomVariables(session: Session): List<HostCustomVariable> = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/settings/general").get().build()
+        val body = client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Custom variables request failed: ${response.code} ${errorDetail(text)}".trim())
+            JSONObject(text)
+        }
+        require(body.has("custom_variables")) { "Custom variables are not provided by this panel" }
+        val raw = body.opt("custom_variables")
+        if (raw == null || raw === JSONObject.NULL) return@withContext emptyList()
+        require(raw is org.json.JSONArray) { "Invalid custom variables response" }
+        val result = mutableListOf<HostCustomVariable>()
+        for (index in 0 until raw.length()) {
+            val item = raw.opt(index) as? JSONObject ?: error("Invalid custom variable")
+            val key = item.opt("key") as? String ?: error("Invalid custom variable key")
+            val value = item.opt("value")
+            require(value == null || value === JSONObject.NULL || value is String) { "Invalid custom variable value" }
+            if (key.isNotBlank()) result += HostCustomVariable(key, value as? String ?: "")
+        }
+        result
+    }
+
     suspend fun bulkApplyTemplate(session: Session, userIds: Set<Long>, templateId: Int, note: String = "") = withContext(Dispatchers.IO) {
         val body = JSONObject().apply {
             put("ids", org.json.JSONArray(userIds))
@@ -1759,6 +2051,18 @@ object PanelApi {
         }
     }
 
+    /** Fetch a complete host immediately before a guarded edit. */
+    internal suspend fun host(session: Session, hostId: Int): PanelHost = withContext(Dispatchers.IO) {
+        val request = requestBuilder(session, "${session.baseUrl}/api/host/$hostId").get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load host failed: ${response.code} ${errorDetail(raw)}".trim())
+            val body = JSONObject(raw)
+            require(body.has("id") && body.optInt("id", -1) == hostId) { "Invalid host response" }
+            parseHost(body)
+        }
+    }
+
     /**
      * ساختِ هاست — `POST /api/host/` (مجوزِ `hosts.create`).
      *
@@ -1773,6 +2077,16 @@ object PanelApi {
         inboundTag: String? = null,
         port: Int? = null,
         security: String = "inbound_default"
+    ): PanelHost = createHostWithChanges(session, remark, addresses, inboundTag, port, security, emptyList())
+
+    internal suspend fun createHostWithChanges(
+        session: Session,
+        remark: String,
+        addresses: List<String>,
+        inboundTag: String?,
+        port: Int?,
+        security: String,
+        changes: List<HostFieldChange>
     ): PanelHost = withContext(Dispatchers.IO) {
         require(remark.isNotBlank()) { "Remark cannot be empty" }
         val cleanAddresses = addresses.map { it.trim() }.filter { it.isNotEmpty() }
@@ -1786,6 +2100,7 @@ object PanelApi {
             .put("alpn", org.json.JSONArray())
         if (!inboundTag.isNullOrBlank()) body.put("inbound_tag", inboundTag)
         port?.let { body.put("port", it) }
+        HostEditMerge.apply(body, changes)
         val response = executeJsonForBody(
             requestBuilder(session, "${session.baseUrl}/api/host/")
                 .post(body.toString().toRequestBody(jsonType)).build()
@@ -1821,6 +2136,25 @@ object PanelApi {
             parseHost(response)
         }
 
+    /**
+     * Read the latest complete body and merge only intentional edits. Do not fall back to
+     * a cached body when the GET fails: doing so could silently erase newer settings.
+     */
+    internal suspend fun modifyHostSafely(
+        session: Session,
+        initial: PanelHost,
+        changes: List<HostFieldChange>
+    ): PanelHost = withContext(Dispatchers.IO) {
+        require(changes.isNotEmpty()) { "No host changes" }
+        val latest = host(session, initial.id)
+        val body = HostEditMerge.merge(initial.raw, latest.raw, initial.id, changes)
+        val response = executeJsonForBody(
+            requestBuilder(session, "${session.baseUrl}/api/host/${initial.id}")
+                .put(body.toString().toRequestBody(jsonType)).build()
+        )
+        parseHost(response)
+    }
+
     /** حذفِ هاست — `DELETE /api/host/{id}` (مجوزِ `hosts.update`، پاسخ ۲۰۴). */
     suspend fun deleteHost(session: Session, hostId: Int) = withContext(Dispatchers.IO) {
         executeJson(requestBuilder(session, "${session.baseUrl}/api/host/$hostId").delete().build())
@@ -1851,19 +2185,63 @@ object PanelApi {
         val request = requestBuilder(session, "${session.baseUrl}/api/cores").get().build()
         client.newCall(request).execute().use { response ->
             val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) error("Load cores failed: ${response.code} ${errorDetail(raw)}".trim())
+            if (!response.isSuccessful) error("Load cores failed: ${response.code}")
             val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("cores") ?: org.json.JSONArray()
             List(arr.length()) { i -> parseCore(arr.getJSONObject(i)) }
         }
     }
 
+    private class CoreHttpBody(val raw: String, val json: JSONObject) {
+        override fun toString(): String = "CoreHttpBody(redacted)"
+    }
+
+    /** Core errors must not retain server-echoed configuration or credentials. */
+    private fun executeCoreForBody(
+        request: Request,
+        httpClient: OkHttpClient = client,
+        unconfirmedOnServerError: Boolean = false
+    ): CoreHttpBody = httpClient.newCall(request).execute().use { response ->
+            if (unconfirmedOnServerError && response.code >= 500) throw CoreUpdateUnconfirmedException()
+            if (!response.isSuccessful) error("Request failed: ${response.code}")
+            val raw = response.body?.string().orEmpty()
+            val json = runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
+            CoreHttpBody(raw, json)
+        }
+
+    /** Fetch one current core before a full-body update. Requires cores.read. */
+    internal suspend fun core(session: Session, coreId: Int): PanelCore = withContext(Dispatchers.IO) {
+        require(coreId > 0) { "Invalid core id" }
+        val response = executeCoreForBody(
+            requestBuilder(session, "${session.baseUrl}/api/core/$coreId").get().build(),
+            infrastructureReadClient
+        )
+        parseCompleteCore(response, coreId)
+    }
+
+    /** Require fields needed for a trustworthy update or update confirmation. */
+    private fun parseCompleteCore(body: CoreHttpBody, coreId: Int): PanelCore {
+        val response = body.json
+        require(response.has("id") && response.optInt("id", -1) == coreId) { "Invalid core response" }
+        require(response.opt("name") is String && response.optJSONObject("config") != null) { "Incomplete core response" }
+        val type = response.opt("type")
+        require(response.has("type") && (type === JSONObject.NULL || (type is String && type.isNotBlank()))) {
+            "Incomplete core response"
+        }
+        for (key in listOf("exclude_inbound_tags", "fallbacks_inbound_tags")) {
+            val tags = response.optJSONArray(key) ?: throw IllegalArgumentException("Incomplete core response")
+            require((0 until tags.length()).all { index ->
+                val tag = tags.opt(index)
+                tag is String
+            }) { "Invalid core tags" }
+        }
+        val config = rawJsonObjectField(body.raw, "config") ?: throw IllegalArgumentException("Invalid core response")
+        return parseCore(response).copy(config = config)
+    }
+
     /**
-     * ویرایشِ کور — `PUT /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.update`).
-     *
-     * دو نکتهٔ قرارداد که اگر رعایت نشوند درخواست همیشه ۴۲۲ می‌گیرد:
-     *  ۱. `restart_nodes` یک query paramِ **الزامی** است (بدونِ مقدارِ پیش‌فرض در پنل)؛
-     *  ۲. بدنه باید `config` کامل را داشته باشد — پس [PanelCore.config] خام و
-     *     دست‌نخورده دوباره فرستاده می‌شود و فقط فیلدهای فرم عوض می‌شوند.
+     * The panel requires a complete config and the restart_nodes query for PUT.
+     * Merge only user-edited metadata into a fresh core; never resend a cached config.
+     * This reduces lost updates but is not atomic without a server-side precondition.
      */
     suspend fun modifyCore(
         session: Session,
@@ -1875,37 +2253,81 @@ object PanelApi {
         restartNodes: Boolean
     ): PanelCore = withContext(Dispatchers.IO) {
         require(name.isNotBlank()) { "Core name cannot be empty" }
-        val config = runCatching { JSONObject(core.config) }.getOrElse { JSONObject() }
-        require(config.length() > 0) { "Core config cannot be empty" }
-        val body = JSONObject()
-            .put("name", name.trim())
-            .put("config", config)
-            .put("exclude_inbound_tags", org.json.JSONArray(excludeInboundTags))
-            .put("fallbacks_inbound_tags", org.json.JSONArray(fallbacksInboundTags))
-        if (type.isNullOrBlank()) body.put("type", JSONObject.NULL) else body.put("type", type)
-        val url = "${session.baseUrl}/api/cores/${core.id}?restart_nodes=$restartNodes"
-        parseCore(
-            executeJsonForBody(
-                requestBuilder(session, url).put(body.toString().toRequestBody(jsonType)).build()
-            )
+        val requestedType = type?.takeIf { it.isNotBlank() }
+        // CoreCreate is dumped with exclude_none=True; null cannot clear an existing type.
+        require(core.type == null || requestedType != null) { "The panel cannot clear an existing core type" }
+        val latest = core(session, core.id)
+        val addedTags = (excludeInboundTags.toSet() - core.excludeInboundTags.toSet()) +
+            (fallbacksInboundTags.toSet() - core.fallbacksInboundTags.toSet())
+        if (addedTags.isNotEmpty()) {
+            val previousTags = coreConfigInboundTags(core.config, core.type)
+            val currentTags = coreConfigInboundTags(latest.config, latest.type)
+            if (previousTags == null || currentTags == null || previousTags.toSet() != currentTags.toSet()) {
+                throw CoreEditConflictException(listOf("inbounds"))
+            }
+            val offeredTags = currentTags.toSet() + core.excludeInboundTags + core.fallbacksInboundTags
+            require(addedTags.all { it in offeredTags }) { "Core tag is not available" }
+        }
+        val merged = CoreEditMerge.merge(
+            initial = core,
+            latest = latest,
+            edit = CoreEditValues(name, requestedType, excludeInboundTags, fallbacksInboundTags)
         )
+        require(merged.name.isNotBlank() && merged.name.codePointCount(0, merged.name.length) <= 256) {
+            "Invalid core name"
+        }
+        for (tags in listOf(merged.excludeInboundTags, merged.fallbacksInboundTags)) {
+            val serialized = tags.joinToString(",")
+            require(tags.all(::coreTagCanRoundTrip) && serialized.codePointCount(0, serialized.length) <= 2048) {
+                "Core tags cannot be stored by the panel"
+            }
+        }
+        require(merged.type != com.mrm.pgmanager.data.model.CoreType.WG ||
+            (merged.excludeInboundTags.isEmpty() && merged.fallbacksInboundTags.isEmpty())) {
+            "WireGuard cores do not support excluded or fallback tags"
+        }
+        val config = runCatching { JSONObject(latest.config) }.getOrElse { JSONObject() }
+        require(config.length() > 0) { "Core config cannot be empty" }
+        val metadata = JSONObject()
+            .put("name", merged.name)
+            .put("exclude_inbound_tags", org.json.JSONArray(merged.excludeInboundTags))
+            .put("fallbacks_inbound_tags", org.json.JSONArray(merged.fallbacksInboundTags))
+        if (merged.type.isNullOrBlank()) metadata.put("type", JSONObject.NULL) else metadata.put("type", merged.type)
+        // JSON number parsing can lose precision. Embed the freshly read config verbatim.
+        val body = metadata.toString().dropLast(1) + ",\"config\":" + latest.config + "}"
+        val url = "${session.baseUrl}/api/core/${core.id}?restart_nodes=$restartNodes"
+        val updated = try {
+            val request = requestBuilder(session, url).tag(CoreWriteMarker::class.java, CoreWriteMarker)
+                .put(oneShot(body.toRequestBody(jsonType))).build()
+            executeCoreForBody(request, infrastructureWriteClient, unconfirmedOnServerError = true)
+        } catch (_: java.io.IOException) {
+            // The write may already have reached the server; do not invite a blind retry.
+            throw CoreUpdateUnconfirmedException()
+        }
+        try {
+            parseCompleteCore(updated, core.id)
+        } catch (_: IllegalArgumentException) {
+            throw CoreUpdateUnconfirmedException()
+        }
     }
 
-    /** ری‌استارتِ نودهای یک کور — `POST /api/cores/{id}/restart` (مجوزِ `cores.update`، ۲۰۴). */
+    /** Restart nodes assigned to a core: POST /api/core/{id}/restart. */
     suspend fun restartCore(session: Session, coreId: Int) = withContext(Dispatchers.IO) {
-        executeJson(
-            requestBuilder(session, "${session.baseUrl}/api/cores/$coreId/restart")
+        executeCoreForBody(
+            requestBuilder(session, "${session.baseUrl}/api/core/$coreId/restart")
                 .post("".toRequestBody(jsonType)).build()
         )
+        Unit
     }
 
-    /** حذفِ کور — `DELETE /api/cores/{id}?restart_nodes=…` (مجوزِ `cores.delete`، ۲۰۴). */
+    /** Delete a core: DELETE /api/core/{id}?restart_nodes=... */
     suspend fun deleteCore(session: Session, coreId: Int, restartNodes: Boolean = false) =
         withContext(Dispatchers.IO) {
-            executeJson(
-                requestBuilder(session, "${session.baseUrl}/api/cores/$coreId?restart_nodes=$restartNodes")
+            executeCoreForBody(
+                requestBuilder(session, "${session.baseUrl}/api/core/$coreId?restart_nodes=$restartNodes")
                     .delete().build()
             )
+            Unit
         }
 
     /**
@@ -1920,6 +2342,26 @@ object PanelApi {
             if (!response.isSuccessful) error("Load client templates failed: ${response.code} ${errorDetail(raw)}".trim())
             val arr = JSONObject(raw.ifBlank { "{}" }).optJSONArray("templates") ?: org.json.JSONArray()
             List(arr.length()) { i -> parseClientTemplate(arr.getJSONObject(i)) }
+        }
+    }
+
+    /**
+     * The host editor needs names and ids, not template contents. This endpoint uses
+     * client_templates.read_simple, matching the web panel's least-privilege selector.
+     */
+    internal suspend fun hostXrayTemplates(session: Session): List<HostXrayTemplate> = withContext(Dispatchers.IO) {
+        val url = "${session.baseUrl}/api/client_templates/simple?template_type=xray_subscription&all=true"
+        val request = requestBuilder(session, url).get().build()
+        client.newCall(request).execute().use { response ->
+            val raw = response.body?.string().orEmpty()
+            if (!response.isSuccessful) error("Load templates failed: ${response.code} ${errorDetail(raw)}".trim())
+            val templates = JSONObject(raw).getJSONArray("templates")
+            (0 until templates.length()).mapNotNull { index ->
+                val item = templates.getJSONObject(index)
+                val id = item.getInt("id")
+                if (id <= 0 || item.optBoolean("is_default") || item.optString("template_type") != "xray_subscription") null
+                else HostXrayTemplate(id, item.getString("name"))
+            }.distinctBy { it.id }
         }
     }
 
@@ -1990,7 +2432,7 @@ object PanelApi {
     suspend fun apiKeys(session: Session, limit: Int = 200): List<PanelApiKey> = withContext(Dispatchers.IO) {
         val request = requestBuilder(session, "${session.baseUrl}/api/api_keys?offset=0&limit=$limit")
             .get().build()
-        val body = executeJsonForBody(request)
+        val body = executeInfrastructureJsonForBody(request)
         val arr = body.optJSONArray("api_keys") ?: return@withContext emptyList()
         List(arr.length()) { i -> parseApiKey(arr.getJSONObject(i)) }
     }
@@ -2005,19 +2447,79 @@ object PanelApi {
         session: Session,
         name: String,
         note: String = "",
-        expireDays: Long? = null
+        expireDays: Long? = null,
+        quota: ApiKeyQuota? = null
     ): CreatedApiKey = withContext(Dispatchers.IO) {
         require(name.isNotBlank()) { "API key name cannot be empty" }
+        require(quota == null || (quota.isValid() && quota.maxRequests != null)) { "Invalid API key quota" }
+        if (quota != null && apiKeys(session).none { it.supportsRequestLimits }) {
+            throw ApiKeyQuotaUnsupportedException()
+        }
         val body = JSONObject()
             .put("name", name.trim())
             .put("note", note.trim().ifBlank { JSONObject.NULL })
             .put("expire_date", expireDays?.let { DateLogic.isoFromNow(it) } ?: JSONObject.NULL)
-        parseCreatedApiKey(
-            executeJsonForBody(
-                requestBuilder(session, "${session.baseUrl}/api/api_key")
-                    .post(body.toString().toRequestBody(jsonType)).build()
-            )
-        )
+        if (quota != null) {
+            body.put("max_requests", quota.maxRequests)
+            body.put("delete_on_limit", quota.deleteOnLimit)
+        }
+        val request = requestBuilder(session, "${session.baseUrl}/api/api_key")
+            .post(oneShot(body.toString().toRequestBody(jsonType))).build()
+        val created = parseCreatedApiKey(executeApiKeyWrite(request, requireSecret = true))
+        // Return the secret even when a nonconforming server ignores the requested limit.
+        val confirmed = quota == null || (created.item.supportsRequestLimits &&
+            created.item.maxRequests == quota.maxRequests && created.item.deleteOnLimit == quota.deleteOnLimit)
+        created.copy(requestLimitConfirmed = confirmed)
+    }
+
+    /** Update only explicitly changed quota fields. The server does not reset request_count. */
+    internal suspend fun updateApiKeyQuota(session: Session, base: PanelApiKey, quota: ApiKeyQuota): PanelApiKey =
+        withContext(Dispatchers.IO) {
+            require(base.id > 0 && quota.isValid(base.maxRequests)) { "Invalid API key quota" }
+            if (!base.supportsRequestLimits) throw ApiKeyQuotaUnsupportedException()
+            val read = requestBuilder(session, "${session.baseUrl}/api/api_key/${base.id}").get().build()
+            val latest = parseApiKey(executeInfrastructureJsonForBody(read))
+            if (latest.id != base.id || !latest.supportsRequestLimits) throw ApiKeyQuotaUnsupportedException()
+            val body = JSONObject()
+            if (quota.maxRequests != base.maxRequests) {
+                if (latest.maxRequests != base.maxRequests && latest.maxRequests != quota.maxRequests) {
+                    throw ApiKeyQuotaConflictException()
+                }
+                if (latest.maxRequests != quota.maxRequests) body.put("max_requests", quota.maxRequests ?: JSONObject.NULL)
+            }
+            if (quota.deleteOnLimit != base.deleteOnLimit) {
+                if (latest.deleteOnLimit != base.deleteOnLimit && latest.deleteOnLimit != quota.deleteOnLimit) {
+                    throw ApiKeyQuotaConflictException()
+                }
+                if (latest.deleteOnLimit != quota.deleteOnLimit) body.put("delete_on_limit", quota.deleteOnLimit)
+            }
+            if (body.length() == 0) return@withContext latest
+            val request = requestBuilder(session, "${session.baseUrl}/api/api_key/${base.id}")
+                .tag(CoreWriteMarker::class.java, CoreWriteMarker)
+                .patch(oneShot(body.toString().toRequestBody(jsonType))).build()
+            val updated = parseApiKey(executeApiKeyWrite(request))
+            if (updated.id != base.id || !updated.supportsRequestLimits ||
+                (body.has("max_requests") && updated.maxRequests != quota.maxRequests) ||
+                (body.has("delete_on_limit") && updated.deleteOnLimit != quota.deleteOnLimit)
+            ) throw ApiKeyWriteUnconfirmedException()
+            updated
+        }
+
+    private fun executeApiKeyWrite(request: Request, requireSecret: Boolean = false): JSONObject {
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw ApiKeyWriteUnconfirmedException()
+                if (!response.isSuccessful) error("API key request failed: ${response.code}")
+                val json = runCatching { JSONObject(response.body?.string().orEmpty()) }.getOrNull()
+                    ?: throw ApiKeyWriteUnconfirmedException()
+                if (json.optInt("id", 0) <= 0 || (requireSecret && json.optString("api_key").isBlank())) {
+                    throw ApiKeyWriteUnconfirmedException()
+                }
+                return json
+            }
+        } catch (_: java.io.IOException) {
+            throw ApiKeyWriteUnconfirmedException()
+        }
     }
 
     /**
@@ -2058,68 +2560,146 @@ object PanelApi {
         )
     }
 
-    private fun parseApiKey(o: JSONObject): PanelApiKey = PanelApiKey(
-        id = o.optInt("id"),
-        name = o.optString("name"),
-        trimmed = o.optString("api_key_trimmed"),
-        status = o.optString("status", PanelApiKey.ACTIVE),
-        note = optionalString(o, "note"),
-        adminId = o.optInt("admin_id"),
-        createdAt = optionalString(o, "created_at"),
-        expireDate = optionalString(o, "expire_date"),
-        isExpired = o.optBoolean("is_expired", false),
-        inheritPermissions = o.optBoolean("inherit_permissions", true)
-    )
+    private fun parseApiKey(o: JSONObject): PanelApiKey {
+        fun integer(name: String): Long? = when (val value = o.opt(name)) {
+            is Int -> value.toLong()
+            is Long -> value
+            else -> null
+        }
+        val limit = integer("max_requests")?.takeIf { it > 0 }
+        val limitUnknown = o.has("max_requests") && !o.isNull("max_requests") && limit == null
+        return PanelApiKey(
+            id = o.optInt("id"),
+            name = o.optString("name"),
+            trimmed = o.optString("api_key_trimmed"),
+            status = o.optString("status", PanelApiKey.ACTIVE),
+            note = optionalString(o, "note"),
+            adminId = o.optInt("admin_id"),
+            createdAt = optionalString(o, "created_at"),
+            expireDate = optionalString(o, "expire_date"),
+            isExpired = o.optBoolean("is_expired", false),
+            inheritPermissions = o.optBoolean("inherit_permissions", true),
+            maxRequests = limit,
+            requestCount = integer("request_count")?.takeIf { it >= 0 },
+            deleteOnLimit = o.opt("delete_on_limit") as? Boolean,
+            requestLimitReported = o.has("max_requests"),
+            requestLimitUnknown = limitUnknown
+        )
+    }
 
     private fun parseCreatedApiKey(o: JSONObject): CreatedApiKey =
         CreatedApiKey(key = o.optString("api_key"), item = parseApiKey(o))
 
-    // ═══════════════════ تنظیماتِ پنل (فازِ ۵) ═══════════════════
-    //
-    // پنل تنظیماتش را در بخش‌های مستقل نگه می‌دارد و `PUT /api/settings` هر بخشِ
-    // فرستاده‌شده را **کامل** جایگزین می‌کند (`model_dump(exclude_none=True)`).
-    // پس هر تابعِ ذخیره، بخشِ کامل می‌فرستد و برای فیلدهای ناشناخته بدنهٔ خامِ
-    // قبلی را نگه می‌دارد (همان قاعدهٔ هاست‌ها در فاز ۲). مجوزها:
-    // `settings.read` برای خواندن و `settings.update` برای نوشتن؛ ۴۰۳ با `detail`
-    // خودِ پنل به UI می‌رسد.
-
-    /** بخش‌های مجازِ `PUT /api/settings` — نگهبانِ محلی برای اینکه کلیدِ اشتباه نرود. */
+    // Settings sections other than general are replaced by the panel. Always rebase
+    // the user's edits onto a fresh read; no server-side atomic precondition exists.
     private val PANEL_SETTINGS_SECTIONS =
-        setOf("general", "subscription", "hwid", "notification_settings")
+        setOf("general", "subscription", "hwid", "notification_settings", "cleanup")
 
-    /** همهٔ تنظیماتِ پنل — `GET /api/settings` (مجوزِ `settings.read`). */
     suspend fun panelSettings(session: Session): PanelSettings = withContext(Dispatchers.IO) {
         PanelSettings.from(
-            executeJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
+            executeInfrastructureJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
         )
     }
 
-    /**
-     * نوشتنِ یک بخش — `PUT /api/settings` با `{section: body}`.
-     *
-     * پاسخ، `SettingsSchema` کاملِ تازه است؛ همان را برمی‌گردانیم تا UI مقدارِ
-     * نرمال‌شدهٔ سرور را نشان بدهد (مثلاً `url_prefix` که پنل `/`های دو طرف را
-     * می‌بُرد، یا `custom_variables` که از `general` به `subscription` منتقل می‌شود).
-     */
-    private fun putPanelSection(session: Session, section: String, body: JSONObject): PanelSettings {
-        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section: $section" }
+    private fun putPanelSection(session: Session, section: String, body: JSONObject, merged: SettingsEditMerge.Result): PanelSettings {
+        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section" }
         val payload = JSONObject().put(section, body)
         val request = requestBuilder(session, "${session.baseUrl}/api/settings")
-            .put(payload.toString().toRequestBody(jsonType)).build()
-        return PanelSettings.from(executeJsonForBody(request))
+            .tag(CoreWriteMarker::class.java, CoreWriteMarker)
+            .put(oneShot(payload.toString().toRequestBody(jsonType))).build()
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw SettingsWriteUnconfirmedException()
+                // Settings and validation bodies can contain secrets; never include them in an error.
+                if (!response.isSuccessful) error("Settings request failed: ${response.code}")
+                val parsed = runCatching { JSONObject(response.body?.string().orEmpty()) }.getOrNull()
+                    ?: throw SettingsWriteUnconfirmedException()
+                val returned = parsed.optJSONObject(section) ?: throw SettingsWriteUnconfirmedException()
+                if (!SettingsEditMerge.changesApplied(merged, returned)) throw SettingsWriteUnconfirmedException()
+                return PanelSettings.from(parsed)
+            }
+        } catch (_: java.io.IOException) {
+            throw SettingsWriteUnconfirmedException()
+        }
     }
 
-    suspend fun savePanelGeneral(session: Session, section: PanelGeneralSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "general", section.toJson()) }
+    suspend fun savePanelGeneral(
+        session: Session, base: PanelGeneralSection, draft: PanelGeneralSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.general.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.general.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        val body = if (latest.runtime != null) merged.changes else merged.complete
+        // custom_variables are stored in subscription and trigger a second full-section write.
+        if (!merged.changes.has("custom_variables")) body.remove("custom_variables")
+        putPanelSection(session, "general", body, merged)
+    }
 
-    suspend fun savePanelSubscription(session: Session, section: PanelSubscriptionSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "subscription", section.toJson()) }
+    suspend fun savePanelSubscription(
+        session: Session, base: PanelSubscriptionSection, draft: PanelSubscriptionSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.subscription.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.subscription.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        // Subscription.rules is required even when the list is empty.
+        if (!merged.complete.has("rules")) merged.complete.put("rules", org.json.JSONArray())
+        putPanelSection(session, "subscription", merged.complete, merged)
+    }
 
-    suspend fun savePanelHwid(session: Session, section: PanelHwidSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "hwid", section.toJson()) }
+    suspend fun savePanelHwid(
+        session: Session, base: PanelHwidSection, draft: PanelHwidSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.hwid.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.hwid.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        putPanelSection(session, "hwid", merged.complete, merged)
+    }
 
-    suspend fun savePanelNotifications(session: Session, section: PanelNotificationSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "notification_settings", section.toJson()) }
+    suspend fun savePanelNotifications(
+        session: Session, base: PanelNotificationSection, draft: PanelNotificationSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.notifications.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.notifications.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        // A full replacement cannot preserve a server-masked token. Require the actual token.
+        if (latest.notifications.tokenMasked && !merged.changes.has("telegram_api_token")) {
+            throw SettingsMaskedSecretException()
+        }
+        putPanelSection(session, "notification_settings", merged.complete, merged)
+    }
+
+    suspend fun savePanelRuntime(
+        session: Session, base: PanelRuntimeSettings, draft: PanelRuntimeSettings
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        require(draft.isValid()) { "Invalid runtime settings" }
+        val latest = panelSettings(session)
+        val current = latest.runtime ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), current.toJson(), current.raw)
+        if (!merged.changed) return@withContext latest
+        putPanelSection(session, "general", merged.changes, merged)
+    }
+
+    suspend fun savePanelCleanup(
+        session: Session, base: PanelCleanupSettings, draft: PanelCleanupSettings
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        require(draft.isValid()) { "Invalid cleanup settings" }
+        val latest = panelSettings(session)
+        val current = latest.cleanup ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), current.toJson(), current.raw)
+        if (!merged.changed) return@withContext latest
+        if (PanelCleanupSettings.from(merged.complete)?.isValid() != true) {
+            throw SettingsEditConflictException(listOf("cleanup"))
+        }
+        putPanelSection(session, "cleanup", merged.complete, merged)
+    }
 
     // ── پارسِ زیرساخت ────────────────────────────────────────────────────
 
@@ -2136,7 +2716,10 @@ object PanelApi {
         alpn = jsonStringList(o, "alpn"),
         fingerprint = optionalString(o, "fingerprint") ?: "none",
         isDisabled = o.optBoolean("is_disabled", false),
-        priority = o.optInt("priority", 0),
+        priority = when (val value = o.opt("priority")) {
+            is Number, is String -> value.toString().toIntOrNull()
+            else -> null
+        },
         status = jsonStringList(o, "status"),
         useSniAsHost = o.optBoolean("use_sni_as_host", false),
         randomUserAgent = o.optBoolean("random_user_agent", false),
@@ -2146,11 +2729,11 @@ object PanelApi {
     private fun parseCore(o: JSONObject): PanelCore = PanelCore(
         id = o.optInt("id"),
         name = o.optString("name"),
-        type = optionalString(o, "type"),
-        excludeInboundTags = jsonStringList(o, "exclude_inbound_tags"),
-        fallbacksInboundTags = jsonStringList(o, "fallbacks_inbound_tags"),
+        type = (o.opt("type") as? String)?.takeIf { it.isNotBlank() },
+        excludeInboundTags = jsonCoreTags(o, "exclude_inbound_tags"),
+        fallbacksInboundTags = jsonCoreTags(o, "fallbacks_inbound_tags"),
         sortOrder = o.optInt("sort_order", 0),
-        // کانفیگ رشتهٔ خام می‌ماند تا PUT بعدی عیناً همان را برگرداند.
+        // Keep the snapshot for viewing; updates fetch a fresh configuration.
         config = o.optJSONObject("config")?.toString() ?: "{}"
     )
 
@@ -2176,15 +2759,42 @@ object PanelApi {
         return List(arr.length()) { i -> arr.optString(i) }.filter { it.isNotBlank() && it != "null" }
     }
 
+    /** Preserve unusual but valid string tags; JSON null is not the string "null". */
+    private fun jsonCoreTags(o: JSONObject, key: String): List<String> {
+        val array = o.optJSONArray(key) ?: return emptyList()
+        return (0 until array.length()).mapNotNull { array.opt(it) as? String }.distinct()
+    }
+
     /** مثلِ [executeJson] ولی بدنهٔ پاسخ را هم برمی‌گرداند (برای POST/PUT که آبجکت می‌دهند). */
-    private fun executeJsonForBody(request: Request): JSONObject {
-        client.newCall(request).execute().use { response ->
-            val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+    private fun executeJsonForBody(request: Request): JSONObject =
+        client.newCall(request).execute().use { parseJsonResponse(it) }
+
+    /** Do not forward API-key headers through a redirect from a sensitive endpoint. */
+    private fun executeInfrastructureJsonForBody(request: Request): JSONObject =
+        infrastructureReadClient.newCall(request).execute().use { parseJsonResponse(it) }
+
+    /** Cancel a pending statistics request when its filter or screen goes away. */
+    private suspend fun executeCancellableInfrastructureJson(request: Request): JSONObject = coroutineScope {
+        suspendCancellableCoroutine { continuation ->
+            val call = infrastructureReadClient.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            launch(Dispatchers.IO) {
+                try {
+                    val result = call.execute().use { parseJsonResponse(it) }
+                    if (continuation.isActive) continuation.resume(result)
+                } catch (error: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
             }
-            return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
         }
+    }
+
+    private fun parseJsonResponse(response: okhttp3.Response): JSONObject {
+        val raw = response.body?.string().orEmpty()
+        if (!response.isSuccessful) {
+            error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+        }
+        return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()

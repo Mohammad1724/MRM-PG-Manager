@@ -11,6 +11,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -47,6 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.ui.designsystem.AppDialog
+import com.mrm.pgmanager.ui.designsystem.pgFieldSurface
 import com.mrm.pgmanager.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -57,7 +62,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import kotlin.math.roundToInt
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.storage.SessionStore
@@ -117,65 +121,91 @@ fun DebtorEditDialog(
     onSave: (amount: Long, notes: String) -> Unit,
     onClear: () -> Unit
 ) {
+    AppDialog(onDismissRequest = onDismiss) {
+        DebtorEditContent(user, existing, currency, onDismiss, onSave, onClear)
+    }
+}
+
+@Composable
+internal fun DebtorEditContent(
+    user: PanelUser,
+    existing: DebtorInfo?,
+    currency: String,
+    onDismiss: () -> Unit,
+    onSave: (amount: Long, notes: String) -> Unit,
+    onClear: () -> Unit
+) {
     val theme = LocalThemeState.current
     var amountText by remember { mutableStateOf(existing?.amount?.toString() ?: "") }
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
+    val amountInteraction = remember { MutableInteractionSource() }
+    val notesInteraction = remember { MutableInteractionSource() }
+    val amountFocused by amountInteraction.collectIsFocusedAsState()
+    val notesFocused by notesInteraction.collectIsFocusedAsState()
+    val amountLabel = stringResource(R.string.us_debt_amount_hint)
+    val notesLabel = stringResource(R.string.us_debt_note_hint)
     val amountLong = com.mrm.pgmanager.utils.normalizePersianDigits(amountText).filter { it.isDigit() }.toLongOrNull() ?: 0L
-    Dialog(onDismissRequest = onDismiss) {
-        Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
-            Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
-                Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
-                if (existing != null) {
-                    Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
-                }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
-                        Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
-                        androidx.compose.foundation.text.BasicTextField(
-                            value = amountText,
-                            onValueChange = { raw ->
-                                val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
-                                amountText = n.filter { c -> c.isDigit() }
-                            },
-                            singleLine = true,
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                            textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { inner ->
-                                if (amountText.isEmpty()) Text(stringResource(R.string.us_debt_amount_hint), color = theme.mutedColor.copy(0.6f), fontSize = 12.sp)
+    Box(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl).padding(DsSpacing.Dialog)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Lg)) {
+            Text(if (existing != null) stringResource(R.string.us_debt_edit_title, user.username) else stringResource(R.string.us_debt_add_title, user.username), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
+            if (existing != null) {
+                Text(stringResource(R.string.us_debt_marked_at, java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.US).format(java.util.Date(existing.markedAt))), fontSize = 11.sp, color = theme.mutedColor)
+            }
+            Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme, amountFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md), modifier = Modifier.fillMaxWidth()) {
+                    Text(currency, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = theme.mutedColor)
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = amountText,
+                        onValueChange = { raw ->
+                            val n = com.mrm.pgmanager.utils.normalizePersianDigits(raw)
+                            amountText = n.filter { c -> c.isDigit() }
+                        },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        interactionSource = amountInteraction,
+                        cursorBrush = SolidColor(theme.inkColor),
+                        textStyle = TextStyle(color = theme.inkColor, fontSize = 15.sp, fontWeight = FontWeight.Bold, textDirection = TextDirection.Ltr),
+                        modifier = Modifier.weight(1f).semantics { contentDescription = amountLabel },
+                        decorationBox = { inner ->
+                            Box(contentAlignment = Alignment.CenterStart) {
+                                if (amountText.isEmpty()) Text(amountLabel, color = theme.tertiaryColor, fontSize = 12.sp)
                                 inner()
                             }
-                        )
-                    }
-                }
-                Box(Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Sm).background(theme.searchBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Sm).padding(horizontal = DsSpacing.FieldHorizontal), contentAlignment = Alignment.CenterStart) {
-                    androidx.compose.foundation.text.BasicTextField(
-                        value = notes,
-                        onValueChange = { notes = it.take(200) },
-                        singleLine = false,
-                        textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { inner ->
-                            if (notes.isEmpty()) Text(stringResource(R.string.us_debt_note_hint), color = theme.mutedColor.copy(0.6f), fontSize = 11.sp)
-                            inner()
                         }
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
-                    PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
-                    if (existing != null) {
-                        PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
-                    } else {
-                        Box(Modifier.weight(1f))
+            }
+            Box(Modifier.fillMaxWidth().heightIn(min = 48.dp, max = 120.dp).pgFieldSurface(theme, notesFocused).padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs), contentAlignment = Alignment.CenterStart) {
+                androidx.compose.foundation.text.BasicTextField(
+                    value = notes,
+                    onValueChange = { notes = it.take(200) },
+                    singleLine = false,
+                    interactionSource = notesInteraction,
+                    cursorBrush = SolidColor(theme.inkColor),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 12.sp),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = notesLabel },
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (notes.isEmpty()) Text(notesLabel, color = theme.tertiaryColor, fontSize = 11.sp)
+                            inner()
+                        }
                     }
-                }
-                PGPrimaryButton(
-                    text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
-                    enabled = amountLong > 0L,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onSave(amountLong, notes) }
                 )
             }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DsSpacing.Md)) {
+                PGSecondaryButton(stringResource(R.string.us_cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
+                if (existing != null) {
+                    PGPrimaryButton(stringResource(R.string.us_debt_settle), onClick = { onClear() }, modifier = Modifier.weight(1f))
+                } else {
+                    Box(Modifier.weight(1f))
+                }
+            }
+            PGPrimaryButton(
+                text = if (existing != null) stringResource(R.string.us_debt_save) else stringResource(R.string.us_debt_mark),
+                enabled = amountLong > 0L,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onSave(amountLong, notes) }
+            )
         }
     }
 }
@@ -197,8 +227,11 @@ private fun InactiveCleanupDialog(ui: UsersUiState, session: Session) {
     var days by remember { mutableStateOf("30") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val daysLabel = stringResource(R.string.us_cleanup_inactive_days)
     val invalidMsg = stringResource(R.string.us_cleanup_inactive_invalid)
-    Dialog(onDismissRequest = { if (!loading) ui.inactiveCleanupOpen = false }) {
+    AppDialog(onDismissRequest = { if (!loading) ui.inactiveCleanupOpen = false }) {
         Column(
             Modifier.fillMaxWidth().imePadding().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -210,11 +243,10 @@ private fun InactiveCleanupDialog(ui: UsersUiState, session: Session) {
                 fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = theme.inkColor
             )
             Text(stringResource(R.string.us_cleanup_inactive_desc), fontSize = 11.sp, color = theme.mutedColor)
-            Text(stringResource(R.string.us_cleanup_inactive_days), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
+            Text(daysLabel, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = theme.mutedColor)
             Box(
-                Modifier.fillMaxWidth().height(48.dp).clip(DsRadius.Md).background(theme.searchBgColor)
-                    .border(BorderStroke(DsBorder.Hairline, theme.controlBorderColor), DsRadius.Md)
-                    .padding(horizontal = DsSpacing.FieldHorizontal),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).pgFieldSurface(theme, focused)
+                    .padding(horizontal = DsSpacing.FieldHorizontal, vertical = DsSpacing.Xs),
                 contentAlignment = Alignment.CenterStart
             ) {
                 BasicTextField(
@@ -224,8 +256,10 @@ private fun InactiveCleanupDialog(ui: UsersUiState, session: Session) {
                         days = com.mrm.pgmanager.utils.normalizePersianDigits(raw).filter(Char::isDigit)
                         error = null
                     },
-                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                    modifier = Modifier.fillMaxWidth(),
+                    interactionSource = interaction,
+                    cursorBrush = SolidColor(theme.inkColor),
+                    textStyle = TextStyle(color = theme.inkColor, fontSize = 14.sp, fontWeight = FontWeight.Bold, textDirection = TextDirection.Ltr),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = daysLabel },
                     enabled = !loading
                 )
             }
@@ -322,7 +356,7 @@ internal fun UsersScreenDialogs(
         // کاربرِ بدونِ تاریخِ انقضا در «افزودن روز» و کاربرِ بی‌سقف در «افزودن حجم»
         // هدفِ معتبر نیستند؛ عددِ واقعی جلوی اشتباهِ ادمین را می‌گیرد.
         LaunchedEffect(kind, ids) { ui.loadBulkPreview(kind, ids) }
-        Dialog(onDismissRequest = { ui.bulkAmountKind = null }) {
+        AppDialog(onDismissRequest = { ui.bulkAmountKind = null }) {
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -467,7 +501,7 @@ internal fun UsersScreenDialogs(
     if (ui.bulkGroupPicker) {
         val ids = ui.selectedUserIds.toSet()
         val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { ui.bulkGroupPicker = false }) {
+        AppDialog(onDismissRequest = { ui.bulkGroupPicker = false }) {
             Column(
                 Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.cardSurfaceColor)
                     .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
@@ -580,7 +614,7 @@ internal fun UsersScreenDialogs(
                 ) { PanelApi.setDisabled(session, u, nowDisabled) }
             },
             onCopySub = { ui.copySubWithFetch(u) },
-            onQr = { ui.qrUser = u },
+            onQr = { ui.qrWithFetch(u) },
             onEdit = { ui.selectedUser = u },
             onResetUsage = { ui.runOptimistic(
                 ids = setOf(u.id),
@@ -611,7 +645,20 @@ internal fun UsersScreenDialogs(
             user = user,
             onDismiss = { ui.selectedUser = null },
             onSave = { limitGb, expireShamsi ->
-                ui.selectedUser = null; ui.runAction { val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.modifyUser(session, user, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds); if (iso != null) store.saveRenewalDate(session.baseUrl, user.id, LocalDate.now().toString()) }
+                ui.selectedUser = null
+                ui.runAction {
+                    val iso = if (limitGb.keepExpire) null else JalaliCalendar.shamsiToIso(expireShamsi)
+                    PanelApi.modifyUser(
+                        session, user, limitGb.value, iso,
+                        if (limitGb.keepNote) null else limitGb.note, limitGb.hwidLimit,
+                        if (limitGb.keepGroupIds) null else limitGb.groupIds,
+                        limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status,
+                        limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds,
+                        dataLimitBytes = limitGb.dataLimitBytes, keepDataLimit = limitGb.keepDataLimit,
+                        clearHwidLimit = limitGb.clearHwidLimit
+                    )
+                    if (iso != null) store.saveRenewalDate(session.baseUrl, user.id, LocalDate.now().toString())
+                }
             },
             onToggle = {
                 ui.selectedUser = null
@@ -636,7 +683,7 @@ internal fun UsersScreenDialogs(
                 ui.selectedUser = null; ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, user.username, days)) {
                     val renewedOn = LocalDate.now()
                     val newExpire = renewedOn.plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, user.note ?: "", user.hwidLimit, user.groupIds)
+                    PanelApi.modifyUser(session, user, user.dataLimit.toDouble() / 1073741824.0, newExpire, keepDataLimit = true)
                     store.saveRenewalDate(session.baseUrl, user.id, renewedOn.toString())
                 }
             },
@@ -675,7 +722,7 @@ internal fun UsersScreenDialogs(
         )
     }
     if (ui.createMenuOpen) {
-        Dialog(onDismissRequest = { ui.createMenuOpen = false }) {
+        AppDialog(onDismissRequest = { ui.createMenuOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_create_title), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 SettingsActionRow(stringResource(R.string.us_create_single), stringResource(R.string.us_create_single_desc), AppIcon.UserAdd, themeState.accentPrimary) { ui.createMenuOpen = false; ui.createUser = true }
@@ -688,7 +735,7 @@ internal fun UsersScreenDialogs(
         BulkCreateUsersDialog(session = session, onDismiss = { ui.bulkCreateOpen = false }, onFinished = { n -> ui.bulkCreateOpen = false; if (n > 0) ui.load(resetHeader = false, silent = true) })
     }
     if (ui.exportChooserOpen) {
-        Dialog(onDismissRequest = { ui.exportChooserOpen = false }) {
+        AppDialog(onDismissRequest = { ui.exportChooserOpen = false }) {
             Column(Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(themeState.dialogBgColor).border(BorderStroke(DsBorder.Hairline, themeState.borderColor), DsRadius.Xxl).padding(DsSpacing.Xl), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
                 Text(stringResource(R.string.us_export_title, ui.selectedUserIds.size), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = themeState.inkColor)
                 Text(stringResource(R.string.us_export_desc), fontSize = 11.sp, color = themeState.mutedColor)
@@ -699,13 +746,21 @@ internal fun UsersScreenDialogs(
         }
     }
     if (ui.createUser) UserEditorDialog(initial = null, onDismiss = { ui.createUser = false }, onSave = { limitGb, expireShamsi ->
-        ui.createUser = false; ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) { val iso = JalaliCalendar.shamsiToIso(expireShamsi); PanelApi.createUser(session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds, limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status, limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds) }
-    }, onToggle = null, onSaveWithTemplate = { username, templateId, note ->
+        ui.createUser = false
+        ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_body, limitGb.username)) {
+            val iso = JalaliCalendar.shamsiToIso(expireShamsi)
+            PanelApi.createUser(
+                session, limitGb.username, limitGb.value, iso, limitGb.note, limitGb.hwidLimit, limitGb.groupIds,
+                limitGb.nextPlan, limitGb.resetStrategy, limitGb.autoDeleteDays, limitGb.status,
+                limitGb.onHoldExpireSeconds, limitGb.onHoldTimeoutSeconds, dataLimitBytes = limitGb.dataLimitBytes
+            )
+        }
+    }, onSaveWithTemplate = { username, templateId, note ->
         ui.createUser = false; ui.runAction(notification = context.getString(R.string.us_n_created) to context.getString(R.string.us_n_created_tpl_body, username)) { PanelApi.createUserFromTemplate(session, username, templateId, note) }
     }, session = session)
     ui.deleteUser?.let { user ->
         val theme = LocalThemeState.current
-        Dialog(onDismissRequest = { ui.deleteUser = null }) {
+        AppDialog(onDismissRequest = { ui.deleteUser = null }) {
             Box(Modifier.fillMaxWidth().padding(horizontal = DsSpacing.Lg).clip(DsRadius.Lg).background(theme.dialogBgColor).border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Lg).padding(DsSpacing.Xxxl)) {
                 Column(verticalArrangement = Arrangement.spacedBy(DsSpacing.Screen)) {
                     Text(stringResource(R.string.us_delete_user_title, user.username), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = theme.inkColor)
@@ -822,7 +877,7 @@ internal fun UsersScreenDialogs(
                 ui.runAction(notification = context.getString(R.string.us_n_reset_time) to context.getString(R.string.us_n_reset_time_body, targetUser.username, days)) {
                     val renewedOn = LocalDate.now()
                     val newExpire = renewedOn.plusDays(days.toLong()).toString()
-                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, targetUser.note ?: "", targetUser.hwidLimit, targetUser.groupIds)
+                    PanelApi.modifyUser(session, targetUser, targetUser.dataLimit.toDouble() / 1073741824.0, newExpire, keepDataLimit = true)
                     store.saveRenewalDate(session.baseUrl, targetUser.id, renewedOn.toString())
                 }
             }

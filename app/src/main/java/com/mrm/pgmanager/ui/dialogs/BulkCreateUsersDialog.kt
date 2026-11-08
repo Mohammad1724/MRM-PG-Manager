@@ -20,12 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.ui.dialogs.paneTitle
 import androidx.compose.ui.unit.dp
 import com.mrm.pgmanager.ui.designsystem.DsSpacing
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.mrm.pgmanager.data.api.PanelApi
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.UserTemplateItem
@@ -149,7 +149,7 @@ fun BulkCreateUsersDialog(
         }
     }
 
-    Dialog(onDismissRequest = { if (!running) onDismiss() }) {
+    AppDialog(onDismissRequest = { if (!running) onDismiss() }) {
         Box(
             Modifier.fillMaxWidth().paneTitle(stringResource(R.string.bc_title)).imePadding().heightIn(max = 640.dp).clip(DsRadius.Xxl)
                 .background(theme.dialogBgColor)

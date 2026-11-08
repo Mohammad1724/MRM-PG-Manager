@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.model.PanelNode
 import com.mrm.pgmanager.ui.components.AppIcon
@@ -60,7 +60,7 @@ fun NodeOrderDialog(
         dirty.value = true
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    AppDialog(onDismissRequest = onDismiss) {
         Column(
             Modifier
                 .fillMaxWidth()
