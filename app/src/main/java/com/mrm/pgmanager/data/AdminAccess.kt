@@ -16,19 +16,24 @@ internal enum class AdminAccessState { Unknown, Loading, Ready, Unavailable }
 
 /** The panel is authoritative; unknown permissions must not be presented as granted. */
 object AdminAccess {
-    var current: AdminSelf? by mutableStateOf(null)
-        private set
+    private data class VerifiedAccess(val session: Session, val admin: AdminSelf)
+
+    // Publish identity and permissions together so Compose observes a session change
+    // even when both accounts return structurally identical admin data.
+    private var verified: VerifiedAccess? by mutableStateOf(null)
+    val current: AdminSelf? get() = verified?.admin
     internal var state: AdminAccessState by mutableStateOf(AdminAccessState.Unknown)
         private set
 
-    private var loadedFor: Session? = null
+    private val lock = Any()
     private var generation = 0L
 
     fun reset() {
-        generation++
-        current = null
-        loadedFor = null
-        state = AdminAccessState.Unknown
+        synchronized(lock) {
+            generation++
+            verified = null
+            state = AdminAccessState.Unknown
+        }
     }
 
     /** A stale or cancelled request cannot install permissions from a different account. */
@@ -37,30 +42,42 @@ object AdminAccess {
     }
 
     internal suspend fun refreshWith(session: Session, force: Boolean = false, load: suspend (Session) -> AdminSelf) {
-        if (!force && loadedFor == session && current != null) return
-        val request = ++generation
-        current = null
-        loadedFor = null
-        state = AdminAccessState.Loading
+        val request = synchronized(lock) {
+            if (!force && verified?.session == session) return
+            generation++
+            verified = null
+            state = AdminAccessState.Loading
+            generation
+        }
         try {
             val admin = load(session)
-            currentCoroutineContext().ensureActive()
-            if (request == generation) {
-                current = admin
-                loadedFor = session
-                state = AdminAccessState.Ready
+            val context = currentCoroutineContext()
+            context.ensureActive()
+            synchronized(lock) {
+                if (request == generation && context.isActive) {
+                    verified = VerifiedAccess(session, admin)
+                    state = AdminAccessState.Ready
+                }
             }
         } catch (error: CancellationException) {
-            if (request == generation) state = AdminAccessState.Unknown
+            synchronized(lock) { if (request == generation) state = AdminAccessState.Unknown }
             throw error
         } catch (_: Exception) {
-            val active = currentCoroutineContext().isActive
-            if (request == generation) state = if (active) AdminAccessState.Unavailable else AdminAccessState.Unknown
-            currentCoroutineContext().ensureActive()
+            val context = currentCoroutineContext()
+            synchronized(lock) {
+                if (request == generation) state = if (context.isActive) AdminAccessState.Unavailable else AdminAccessState.Unknown
+            }
+            context.ensureActive()
         }
     }
 
     fun can(resource: String, action: String): Boolean = current?.can(resource, action) ?: false
+
+    /** Permissions from another session must never authorize this session's data or responses. */
+    fun canFor(session: Session, resource: String, action: String): Boolean {
+        val access = verified
+        return access?.session == session && access.admin.can(resource, action)
+    }
 
     fun scopeAll(resource: String, action: String): Boolean =
         (current?.scope(resource, action) ?: PermissionScope.NONE) >= PermissionScope.ALL

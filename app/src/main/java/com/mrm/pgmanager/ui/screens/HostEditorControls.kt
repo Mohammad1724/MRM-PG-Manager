@@ -414,12 +414,12 @@ internal fun hostEditorFieldLabel(key: String): Int = when (key) {
     "transport_settings.kcp_settings.read_buffer_size" -> R.string.host_editor_kcp_read
     "transport_settings.kcp_settings.write_buffer_size" -> R.string.host_editor_kcp_write
     "transport_settings.masque_settings.remote_dns" -> R.string.host_editor_masque_dns
-    "transport_settings.xhttp_settings.xmux.max_concurrency", "transport_settings.masque_settings.xmux.max_concurrency" -> R.string.host_editor_xmux_max_concurrency
-    "transport_settings.xhttp_settings.xmux.max_connections", "transport_settings.masque_settings.xmux.max_connections" -> R.string.host_editor_xmux_max_connections
-    "transport_settings.xhttp_settings.xmux.c_max_reuse_times", "transport_settings.masque_settings.xmux.c_max_reuse_times" -> R.string.host_editor_xmux_reuse
-    "transport_settings.xhttp_settings.xmux.h_max_reusable_secs", "transport_settings.masque_settings.xmux.h_max_reusable_secs" -> R.string.host_editor_xmux_seconds
-    "transport_settings.xhttp_settings.xmux.h_max_request_times", "transport_settings.masque_settings.xmux.h_max_request_times" -> R.string.host_editor_xmux_requests
-    "transport_settings.xhttp_settings.xmux.h_keep_alive_period", "transport_settings.masque_settings.xmux.h_keep_alive_period" -> R.string.host_editor_xmux_keepalive
+    "transport_settings.xhttp_settings.xmux.max_concurrency", "transport_settings.masque_settings.xmux.max_concurrency", "transport_settings.xdrive_settings.xmux.max_concurrency" -> R.string.host_editor_xmux_max_concurrency
+    "transport_settings.xhttp_settings.xmux.max_connections", "transport_settings.masque_settings.xmux.max_connections", "transport_settings.xdrive_settings.xmux.max_connections" -> R.string.host_editor_xmux_max_connections
+    "transport_settings.xhttp_settings.xmux.c_max_reuse_times", "transport_settings.masque_settings.xmux.c_max_reuse_times", "transport_settings.xdrive_settings.xmux.c_max_reuse_times" -> R.string.host_editor_xmux_reuse
+    "transport_settings.xhttp_settings.xmux.h_max_reusable_secs", "transport_settings.masque_settings.xmux.h_max_reusable_secs", "transport_settings.xdrive_settings.xmux.h_max_reusable_secs" -> R.string.host_editor_xmux_seconds
+    "transport_settings.xhttp_settings.xmux.h_max_request_times", "transport_settings.masque_settings.xmux.h_max_request_times", "transport_settings.xdrive_settings.xmux.h_max_request_times" -> R.string.host_editor_xmux_requests
+    "transport_settings.xhttp_settings.xmux.h_keep_alive_period", "transport_settings.masque_settings.xmux.h_keep_alive_period", "transport_settings.xdrive_settings.xmux.h_keep_alive_period" -> R.string.host_editor_xmux_keepalive
     "transport_settings.grpc_settings.multi_mode" -> R.string.host_editor_grpc_multi
     "transport_settings.grpc_settings.idle_timeout" -> R.string.host_editor_grpc_idle
     "transport_settings.grpc_settings.health_check_timeout" -> R.string.host_editor_grpc_health

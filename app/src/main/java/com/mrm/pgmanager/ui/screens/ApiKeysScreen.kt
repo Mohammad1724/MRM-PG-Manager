@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,8 +44,12 @@ import com.mrm.pgmanager.ui.designsystem.AppDialog
 import com.mrm.pgmanager.R
 import com.mrm.pgmanager.data.AdminAccess
 import com.mrm.pgmanager.data.api.PanelApi
+import com.mrm.pgmanager.data.api.ApiKeyQuotaConflictException
+import com.mrm.pgmanager.data.api.ApiKeyQuotaUnsupportedException
+import com.mrm.pgmanager.data.api.ApiKeyWriteUnconfirmedException
 import com.mrm.pgmanager.data.cache.PanelCache
 import com.mrm.pgmanager.data.model.CreatedApiKey
+import com.mrm.pgmanager.data.model.ApiKeyQuota
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.ui.components.AppIcon
@@ -58,6 +65,7 @@ import com.mrm.pgmanager.ui.dialogs.ChipSelector
 import com.mrm.pgmanager.ui.dialogs.CompactGlassField
 import com.mrm.pgmanager.ui.dialogs.ConfirmActionDialog
 import com.mrm.pgmanager.ui.dialogs.SettingsInfoRow
+import com.mrm.pgmanager.ui.dialogs.SettingsSwitchRow
 import com.mrm.pgmanager.ui.designsystem.DsBorder
 import com.mrm.pgmanager.ui.designsystem.DsRadius
 import com.mrm.pgmanager.ui.designsystem.DsSemantic
@@ -66,9 +74,13 @@ import com.mrm.pgmanager.ui.designsystem.rememberListIntro
 import com.mrm.pgmanager.ui.designsystem.listIntro
 import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
+import com.mrm.pgmanager.utils.ApiErrorKind
 import com.mrm.pgmanager.utils.ApiErrorMapper
 import com.mrm.pgmanager.utils.DateLogic
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 /**
@@ -94,48 +106,79 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
     val theme = LocalThemeState.current
     val scope = rememberCoroutineScope()
 
-    val cacheKey = PanelCache.apiKeysKey(session.baseUrl)
-    var keys by remember(session) { mutableStateOf(PanelCache.get<List<PanelApiKey>>(cacheKey) ?: emptyList()) }
-    var loading by remember(session) { mutableStateOf(PanelCache.get<List<PanelApiKey>>(cacheKey) == null) }
-    var loadError by remember(session) { mutableStateOf<String?>(null) }
-    var banner by remember { mutableStateOf<String?>(null) }
-    var toast by remember { mutableStateOf<String?>(null) }
-    var busyId by remember { mutableStateOf<Int?>(null) }
+    val cacheKey = remember(session) { PanelCache.apiKeysKey(session) }
+    val canRead = AdminAccess.canFor(session, "api_keys", "read")
+    var keys by remember(session, canRead) {
+        mutableStateOf(if (canRead) PanelCache.get<List<PanelApiKey>>(cacheKey) ?: emptyList() else emptyList())
+    }
+    var loading by remember(session, canRead) {
+        mutableStateOf(canRead && PanelCache.get<List<PanelApiKey>>(cacheKey) == null)
+    }
+    var loadError by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var loadRequest by remember(session) { mutableStateOf(0L) }
+    var banner by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var toast by remember(session, canRead) { mutableStateOf<String?>(null) }
+    var busyId by remember(session, canRead) { mutableStateOf<Int?>(null) }
 
-    var creating by remember { mutableStateOf(false) }
-    var revealed by remember { mutableStateOf<CreatedApiKey?>(null) }
-    var rotating by remember { mutableStateOf<PanelApiKey?>(null) }
-    var deleting by remember { mutableStateOf<PanelApiKey?>(null) }
+    var creating by remember(session, canRead) { mutableStateOf(false) }
+    var revealed by remember(session, canRead) { mutableStateOf<CreatedApiKey?>(null) }
+    var rotating by remember(session, canRead) { mutableStateOf<PanelApiKey?>(null) }
+    var deleting by remember(session, canRead) { mutableStateOf<PanelApiKey?>(null) }
+    var editingQuota by remember(session, canRead) { mutableStateOf<PanelApiKey?>(null) }
 
-    val canCreate = AdminAccess.can("api_keys", "create")
-    val canUpdate = AdminAccess.can("api_keys", "update")
-    val canDelete = AdminAccess.can("api_keys", "delete")
+    val canCreate = canRead && AdminAccess.canFor(session, "api_keys", "create")
+    val canUpdate = canRead && AdminAccess.canFor(session, "api_keys", "update")
+    val canDelete = canRead && AdminAccess.canFor(session, "api_keys", "delete")
 
     val msgRotated = stringResource(R.string.ak_rotated)
     val msgDeleted = stringResource(R.string.ak_deleted)
     val msgEnabled = stringResource(R.string.ak_enabled_msg)
     val msgDisabled = stringResource(R.string.ak_disabled_msg)
+    val msgQuotaSaved = stringResource(R.string.ak_quota_saved)
+
+    fun keyError(error: Throwable): String = when (error) {
+        is ApiKeyQuotaConflictException -> context.getString(R.string.ak_quota_conflict)
+        is ApiKeyQuotaUnsupportedException -> context.getString(R.string.ak_quota_unavailable)
+        is ApiKeyWriteUnconfirmedException -> context.getString(R.string.ak_write_unconfirmed)
+        else -> ApiErrorMapper.friendly(context, error)
+    }
 
     suspend fun load() {
-        runCatching { PanelApi.apiKeys(session) }
-            .onSuccess {
-                keys = it
+        if (!AdminAccess.canFor(session, "api_keys", "read")) return
+        val request = ++loadRequest
+        try {
+            val result = PanelApi.apiKeys(session)
+            currentCoroutineContext().ensureActive()
+            if (request == loadRequest && AdminAccess.canFor(session, "api_keys", "read")) {
+                keys = result
                 loadError = null
                 banner = null
-                PanelCache.put(cacheKey, it)
+                PanelCache.put(cacheKey, result)
             }
-            .onFailure {
-                val message = ApiErrorMapper.friendly(context, it)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            currentCoroutineContext().ensureActive()
+            if (request == loadRequest && AdminAccess.canFor(session, "api_keys", "read")) {
+                val kind = ApiErrorMapper.kindOf(error)
+                if (kind == ApiErrorKind.FORBIDDEN || kind == ApiErrorKind.UNAUTHORIZED) {
+                    keys = emptyList()
+                    PanelCache.invalidate(cacheKey)
+                }
+                val message = ApiErrorMapper.friendly(context, error)
                 loadError = message
                 if (keys.isNotEmpty()) banner = message
             }
-        loading = false
+        } finally {
+            if (request == loadRequest) loading = false
+        }
     }
 
-    // مثلِ بقیهٔ صفحه‌های سطح‌سرور: با کشِ تازه دوباره کشیده نمی‌شود. برگشتن از
-    // دیالوگِ چرخش/حذف خودش `load()` را صدا می‌زند، پس این گیت هیچ دادهٔ
-    // کهنه‌ای روی صفحه نگه نمی‌دارد.
-    LaunchedEffect(session) { if (!PanelCache.isFresh(cacheKey)) load() }
+    LaunchedEffect(session, canRead) {
+        loadRequest++
+        if (!canRead) PanelCache.invalidate(cacheKey)
+        else if (!PanelCache.isFresh(cacheKey)) load()
+    }
     LaunchedEffect(toast) {
         if (toast != null) {
             delay(2200)
@@ -144,14 +187,25 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
     }
 
     fun toggle(key: PanelApiKey) {
+        if (!AdminAccess.canFor(session, "api_keys", "update")) return
         busyId = key.id
         scope.launch {
-            runCatching { PanelApi.setApiKeyDisabled(session, key.id, disabled = key.isActive) }
+            if (!AdminAccess.canFor(session, "api_keys", "update")) {
+                busyId = null
+                return@launch
+            }
+            runCatching { PanelApi.setApiKeyDisabled(session, key.id, disabled = key.isEnabled) }
                 .onSuccess {
-                    toast = if (key.isActive) msgDisabled else msgEnabled
-                    load()
+                    currentCoroutineContext().ensureActive()
+                    if (AdminAccess.canFor(session, "api_keys", "read")) {
+                        toast = if (key.isEnabled) msgDisabled else msgEnabled
+                        load()
+                    }
                 }
-                .onFailure { banner = ApiErrorMapper.friendly(context, it) }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    if (AdminAccess.canFor(session, "api_keys", "read")) banner = ApiErrorMapper.friendly(context, it)
+                }
             busyId = null
         }
     }
@@ -171,7 +225,7 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
             onBack = onBack
         ) {
             if (keys.isNotEmpty()) PGBadge("${keys.size}")
-            InfraIconButton(
+            if (canRead) InfraIconButton(
                 icon = AppIcon.Refresh,
                 description = stringResource(R.string.refresh),
                 tint = theme.mutedColor,
@@ -189,6 +243,7 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
         banner?.let { InfraBanner(text = it, success = false) { banner = null } }
 
         when {
+            !canRead -> Text(stringResource(R.string.err_forbidden_panel), color = theme.mutedColor)
             loading && keys.isEmpty() -> Box(
                 Modifier.fillMaxWidth().heightIn(min = 160.dp),
                 contentAlignment = Alignment.Center
@@ -226,8 +281,9 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
                                 key = key,
                                 busy = busyId == key.id,
                                 onToggle = if (canUpdate) ({ toggle(key) }) else null,
-                                onRotate = if (canUpdate) ({ rotating = key }) else null,
-                                onDelete = if (canDelete) ({ deleting = key }) else null
+                                onRotate = if (canDelete) ({ rotating = key }) else null,
+                                onDelete = if (canDelete) ({ deleting = key }) else null,
+                                onEditQuota = if (canUpdate && key.supportsRequestLimits) ({ editingQuota = key }) else null
                             )
                         }
                     }
@@ -238,22 +294,55 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
 
     // ── ساخت
     if (creating) CreateApiKeyDialog(
+        quotaSupported = keys.any { it.supportsRequestLimits },
         onDismiss = { creating = false },
         // نامِ پارامتر `onCreate` نبود: با `override fun onCreate(savedInstanceState)`
         // اکتیویتی هم‌نام می‌شد و ابزارِ `kt-lambdaargs` این فراخوانی را با آن امضا
         // مقایسه می‌کرد؛ نامِ یکتا هم خواناست هم تله را برمی‌دارد.
-        submit = { name, note, days, onResult ->
+        submit = { name, note, days, quota, onResult ->
             scope.launch {
-                runCatching { PanelApi.createApiKey(session, name, note, days) }
+                if (!AdminAccess.canFor(session, "api_keys", "create")) return@launch
+                runCatching { PanelApi.createApiKey(session, name, note, days, quota) }
                     .onSuccess {
-                        creating = false
-                        revealed = it
-                        load()
+                        currentCoroutineContext().ensureActive()
+                        if (AdminAccess.canFor(session, "api_keys", "read")) {
+                            creating = false
+                            revealed = it
+                            load()
+                        }
                     }
-                    .onFailure { e -> onResult(ApiErrorMapper.friendly(context, e)) }
+                    .onFailure { e ->
+                        if (e is CancellationException) throw e
+                        if (AdminAccess.canFor(session, "api_keys", "read")) onResult(keyError(e))
+                    }
             }
         }
     )
+
+    editingQuota?.let { target ->
+        ApiKeyQuotaDialog(
+            key = target,
+            onDismiss = { editingQuota = null },
+            onSave = { quota, onError ->
+                scope.launch {
+                    if (!AdminAccess.canFor(session, "api_keys", "update")) return@launch
+                    runCatching { PanelApi.updateApiKeyQuota(session, target, quota) }
+                        .onSuccess {
+                            currentCoroutineContext().ensureActive()
+                            if (AdminAccess.canFor(session, "api_keys", "read")) {
+                                editingQuota = null
+                                toast = msgQuotaSaved
+                                load()
+                            }
+                        }
+                        .onFailure {
+                            if (it is CancellationException) throw it
+                            if (AdminAccess.canFor(session, "api_keys", "read")) onError(keyError(it))
+                        }
+                }
+            }
+        )
+    }
 
     // ── نمایشِ یک‌بارهٔ متنِ کلید (پس از ساخت یا چرخش)
     // قابِ دیالوگ اینجا است و محتوا بیرون (`ApiKeyRevealContent`)، تا همان محتوا در
@@ -279,13 +368,23 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
             onConfirm = {
                 busyId = target.id
                 scope.launch {
+                    if (!AdminAccess.canFor(session, "api_keys", "delete")) {
+                        busyId = null
+                        return@launch
+                    }
                     runCatching { PanelApi.rotateApiKey(session, target.id) }
                         .onSuccess {
-                            toast = msgRotated
-                            revealed = it
-                            load()
+                            currentCoroutineContext().ensureActive()
+                            if (AdminAccess.canFor(session, "api_keys", "read")) {
+                                toast = msgRotated
+                                revealed = it
+                                load()
+                            }
                         }
-                        .onFailure { banner = ApiErrorMapper.friendly(context, it) }
+                        .onFailure {
+                            if (it is CancellationException) throw it
+                            if (AdminAccess.canFor(session, "api_keys", "read")) banner = ApiErrorMapper.friendly(context, it)
+                        }
                     busyId = null
                     rotating = null
                 }
@@ -304,9 +403,19 @@ fun ApiKeysScreen(session: Session, onBack: () -> Unit) {
             onConfirm = {
                 busyId = target.id
                 scope.launch {
+                    if (!AdminAccess.canFor(session, "api_keys", "delete")) {
+                        busyId = null
+                        return@launch
+                    }
                     runCatching { PanelApi.deleteApiKey(session, target.id) }
-                        .onSuccess { toast = msgDeleted; load() }
-                        .onFailure { banner = ApiErrorMapper.friendly(context, it) }
+                        .onSuccess {
+                            currentCoroutineContext().ensureActive()
+                            if (AdminAccess.canFor(session, "api_keys", "read")) { toast = msgDeleted; load() }
+                        }
+                        .onFailure {
+                            if (it is CancellationException) throw it
+                            if (AdminAccess.canFor(session, "api_keys", "read")) banner = ApiErrorMapper.friendly(context, it)
+                        }
                     busyId = null
                     deleting = null
                 }
@@ -339,6 +448,9 @@ internal fun ApiKeyRevealContent(fresh: CreatedApiKey, onDismiss: () -> Unit) {
         Text(
             stringResource(R.string.ak_reveal_hint), fontSize = 11.sp, color = theme.mutedColor
         )
+        if (!fresh.requestLimitConfirmed) {
+            InfraBanner(text = stringResource(R.string.ak_quota_not_confirmed), success = false)
+        }
         SettingsInfoRow(
             label = fresh.item.name,
             value = fresh.key,
@@ -359,17 +471,22 @@ private fun ApiKeyRow(
     busy: Boolean,
     onToggle: (() -> Unit)?,
     onRotate: (() -> Unit)?,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    onEditQuota: (() -> Unit)?
 ) {
     val theme = LocalThemeState.current
     val daysLeft = DateLogic.remainingDays(key.expireDate)
     val statusColor = when {
         key.isExpired || (daysLeft != null && daysLeft < 0) -> DsSemantic.Danger
+        key.isEnabled && key.isRequestLimitReached -> DsSemantic.Danger
         key.isActive -> DsSemantic.Success
         else -> theme.mutedColor
     }
     val statusText = when {
         key.isExpired -> stringResource(R.string.ak_status_expired)
+        key.isEnabled && key.isRequestLimitReached -> stringResource(R.string.ak_status_limit_reached)
+        key.isEnabled && key.requestLimitUnknown -> stringResource(R.string.ak_status_limit_unknown)
+        key.isEnabled && key.isRequestCountUnknown -> stringResource(R.string.ak_status_count_unknown)
         key.isActive -> stringResource(R.string.ak_status_active)
         else -> stringResource(R.string.ak_status_disabled)
     }
@@ -402,9 +519,25 @@ private fun ApiKeyRow(
         if (!key.note.isNullOrBlank()) Text(
             key.note.orEmpty(), fontSize = 10.sp, color = theme.mutedColor, maxLines = 2
         )
+        key.requestCount?.let { count ->
+            val summary = key.maxRequests?.let { limit ->
+                stringResource(R.string.ak_request_usage_limited, count.toString(), limit.toString())
+            } ?: stringResource(R.string.ak_request_usage, count.toString())
+            Text(summary, fontSize = 10.sp, color = theme.mutedColor)
+        }
+        if (key.deleteOnLimit == true) {
+            Text(stringResource(R.string.ak_delete_on_limit), fontSize = 10.sp, color = theme.mutedColor)
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DsSpacing.Sm)) {
             Text(expiryText, fontSize = 10.sp, color = theme.mutedColor, modifier = Modifier.weight(1f))
             if (busy) MrmBusyIndicator(color = theme.accentPrimary, size = 16.dp, strokeWidth = 2.dp)
+            if (onEditQuota != null) InfraIconButton(
+                icon = AppIcon.Tune,
+                description = stringResource(R.string.ak_edit_quota),
+                tint = theme.accentPrimary,
+                onClick = onEditQuota,
+                enabled = !busy
+            )
             if (onRotate != null) InfraIconButton(
                 icon = AppIcon.Random,
                 description = stringResource(R.string.ak_rotate),
@@ -413,9 +546,9 @@ private fun ApiKeyRow(
                 enabled = !busy
             )
             if (onToggle != null) InfraIconButton(
-                icon = if (key.isActive) AppIcon.StatusDisabled else AppIcon.StatusActive,
+                icon = if (key.isEnabled) AppIcon.StatusDisabled else AppIcon.StatusActive,
                 description = stringResource(
-                    if (key.isActive) R.string.ak_disable else R.string.ak_enable
+                    if (key.isEnabled) R.string.ak_disable else R.string.ak_enable
                 ),
                 tint = theme.mutedColor,
                 onClick = onToggle,
@@ -440,16 +573,20 @@ private fun ApiKeyRow(
  */
 @Composable
 private fun CreateApiKeyDialog(
+    quotaSupported: Boolean,
     onDismiss: () -> Unit,
-    submit: (name: String, note: String, days: Long?, onResult: (String) -> Unit) -> Unit
+    submit: (name: String, note: String, days: Long?, quota: ApiKeyQuota?, onResult: (String) -> Unit) -> Unit
 ) {
     val theme = LocalThemeState.current
     var name by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var days by remember { mutableStateOf("0") }
+    var limit by remember { mutableStateOf("") }
+    var deleteOnLimit by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
+    val invalidQuota = stringResource(R.string.ak_quota_invalid)
     val never = stringResource(R.string.ak_never)
     val labels = listOf(
         never,
@@ -463,7 +600,7 @@ private fun CreateApiKeyDialog(
         Column(
             Modifier.fillMaxWidth().clip(DsRadius.Xxl).background(theme.dialogBgColor)
                 .border(BorderStroke(DsBorder.Hairline, theme.borderColor), DsRadius.Xxl)
-                .padding(DsSpacing.Xl),
+                .verticalScroll(rememberScrollState()).imePadding().padding(DsSpacing.Xl),
             verticalArrangement = Arrangement.spacedBy(DsSpacing.Md)
         ) {
             Text(
@@ -489,6 +626,19 @@ private fun CreateApiKeyDialog(
             )
             InfraFieldLabel(stringResource(R.string.ak_expiry))
             ChipSelector(values = values, labels = labels, selected = days, onSelect = { days = it })
+            if (quotaSupported) {
+                InfraFieldLabel(stringResource(R.string.ak_max_requests))
+                CompactGlassField(value = limit, onValueChange = { limit = it.trim(); error = null },
+                    placeholder = stringResource(R.string.ak_quota_unlimited),
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+                Text(stringResource(R.string.ak_quota_hint), fontSize = 10.sp, color = theme.mutedColor)
+                SettingsSwitchRow(title = stringResource(R.string.ak_delete_on_limit),
+                    subtitle = stringResource(R.string.ak_delete_on_limit_hint),
+                    checked = deleteOnLimit, enabled = limit.isNotBlank(),
+                    onChange = { deleteOnLimit = it })
+            } else {
+                Text(stringResource(R.string.ak_quota_capability_hint), fontSize = 10.sp, color = theme.mutedColor)
+            }
             error?.let { InfraBanner(text = it, success = false) }
             Row(
                 Modifier.fillMaxWidth(),
@@ -505,10 +655,16 @@ private fun CreateApiKeyDialog(
                     // دیگر بینِ عنوان و دکمه اشتباه نمی‌کند).
                     text = stringResource(R.string.ak_create_action),
                     onClick = {
-                        busy = true
-                        submit(name.trim(), note.trim(), days.toLongOrNull()?.takeIf { it > 0 }) { message ->
-                            busy = false
-                            error = message
+                        val parsed = limit.toLongOrNull()
+                        val quota = if (quotaSupported && parsed != null) ApiKeyQuota(parsed, deleteOnLimit) else null
+                        if (quotaSupported && limit.isNotBlank() && (quota == null || !quota.isValid())) {
+                            error = invalidQuota
+                        } else {
+                            busy = true
+                            submit(name.trim(), note.trim(), days.toLongOrNull()?.takeIf { it > 0 }, quota) { message ->
+                                busy = false
+                                error = message
+                            }
                         }
                     },
                     enabled = name.isNotBlank() && !busy,

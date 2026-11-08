@@ -154,4 +154,38 @@ class HostEditMergeTest {
         }
     }
 
+    @Test fun `xdrive camel aliases merge safely and keep unknown siblings`() {
+        val first = """{"id":7,"transport_settings":{"xdrive_settings":{"xmux":{"maxConcurrency":"2-4","future":"old"}}}}"""
+        val latest = JSONObject(first)
+        latest.getJSONObject("transport_settings").getJSONObject("xdrive_settings").getJSONObject("xmux").put("future", "new")
+        val path = listOf("transport_settings", "xdrive_settings", "xmux", "max_concurrency")
+        val result = HostEditMerge.merge(first, latest.toString(), 7, listOf(HostFieldChange(path, "5-8")))
+        val xmux = result.getJSONObject("transport_settings").getJSONObject("xdrive_settings").getJSONObject("xmux")
+        assertEquals("5-8", xmux.getString("maxConcurrency"))
+        assertEquals("5-8", xmux.getString("max_concurrency"))
+        assertEquals("new", xmux.getString("future"))
+    }
+
+    @Test fun `xdrive rejects concurrent mutually exclusive connection limits`() {
+        val first = """{"id":7,"transport_settings":{"xdrive_settings":{"xmux":{"maxConcurrency":null,"maxConnections":null}}}}"""
+        val latest = JSONObject(first)
+        latest.getJSONObject("transport_settings").getJSONObject("xdrive_settings").getJSONObject("xmux")
+            .put("maxConnections", "3")
+        val path = listOf("transport_settings", "xdrive_settings", "xmux", "max_concurrency")
+        assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(first, latest.toString(), 7, listOf(HostFieldChange(path, "2")))
+        }
+    }
+
+    @Test fun `xdrive rejects edits when the same alias changed on the server`() {
+        val first = """{"id":7,"transport_settings":{"xdrive_settings":{"xmux":{"hMaxRequestTimes":"2"}}}}}"""
+        val latest = JSONObject(first)
+        latest.getJSONObject("transport_settings").getJSONObject("xdrive_settings").getJSONObject("xmux")
+            .put("hMaxRequestTimes", "3")
+        val path = listOf("transport_settings", "xdrive_settings", "xmux", "h_max_request_times")
+        assertThrows(HostEditConflictException::class.java) {
+            HostEditMerge.merge(first, latest.toString(), 7, listOf(HostFieldChange(path, "4")))
+        }
+    }
+
 }

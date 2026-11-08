@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import com.mrm.pgmanager.R
+import com.mrm.pgmanager.data.PanelSupport
+import com.mrm.pgmanager.utils.PanelVersion
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 
 @Composable
@@ -40,7 +42,7 @@ internal fun HostTransportSections(draft: HostDraft, enabled: Boolean, onChange:
             DraftText(draft, xhttp + "seq_key", enabled, onChange)
         }
         HostEditorSection(stringResource(R.string.host_editor_xmux), "transport_xhttp_xmux", enabled) {
-            HostXmuxFields(draft, xhttp + "xmux.", enabled, onChange, includeMaxRequests = true)
+            HostXmuxFields(draft, xhttp + "xmux.", enabled, onChange)
         }
         DraftText(draft, xhttp + "download_settings", enabled, onChange, number = true,
             help = stringResource(R.string.host_editor_xhttp_download_help))
@@ -72,16 +74,21 @@ internal fun HostTransportSections(draft: HostDraft, enabled: Boolean, onChange:
         DraftText(draft, prefix + "remote_dns", enabled, onChange,
             hint = stringResource(R.string.host_editor_comma_list), singleLine = false)
         HostEditorSection(stringResource(R.string.host_editor_xmux), "transport_masque_xmux", enabled) {
-            HostXmuxFields(draft, prefix + "xmux.", enabled, onChange, includeMaxRequests = false)
+            HostXmuxFields(draft, prefix + "xmux.", enabled, onChange)
+        }
+    }
+    if (draft.xdriveReported || PanelVersion.isAtLeast(PanelSupport.version, "5.6.0") == true) {
+        HostEditorSection(stringResource(R.string.host_editor_xdrive), "transport_xdrive", enabled) {
+            Text(stringResource(R.string.host_editor_xdrive_hint), fontSize = 12.sp, color = theme.mutedColor)
+            HostXmuxFields(draft, "transport_settings.xdrive_settings.xmux.", enabled, onChange)
         }
     }
 }
 
 @Composable
-private fun HostXmuxFields(draft: HostDraft, prefix: String, enabled: Boolean, onChange: (HostDraft) -> Unit, includeMaxRequests: Boolean) {
+private fun HostXmuxFields(draft: HostDraft, prefix: String, enabled: Boolean, onChange: (HostDraft) -> Unit) {
     val range = stringResource(R.string.host_editor_range_hint)
-    val keys = listOf("max_concurrency", "max_connections", "c_max_reuse_times", "h_max_reusable_secs") +
-        if (includeMaxRequests) listOf("h_max_request_times") else emptyList()
+    val keys = listOf("max_concurrency", "max_connections", "c_max_reuse_times", "h_max_reusable_secs", "h_max_request_times")
     keys.forEach { DraftText(draft, prefix + it, enabled, onChange, hint = range, normalizeDigits = true) }
     DraftText(draft, prefix + "h_keep_alive_period", enabled, onChange, number = true)
 }

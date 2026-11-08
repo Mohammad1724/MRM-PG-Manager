@@ -1,5 +1,6 @@
 package com.mrm.pgmanager.data.cache
 
+import com.mrm.pgmanager.data.model.Session
 import com.mrm.pgmanager.data.model.TrafficPoint
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -84,6 +85,23 @@ class PanelCacheTest {
         PanelCache.invalidate(nodesKey)
         assertNull(PanelCache.get<Any>(nodesKey))
         assertEquals("stats", PanelCache.get<String>(statsKey))
+    }
+
+    @Test fun `sensitive cache entries are isolated by session without embedding credentials`() {
+        val first = Session("https://panel.example", "token-one", "alice")
+        val otherToken = first.copy(token = "token-two")
+        val otherUser = first.copy(username = "bob")
+        val settings = PanelCache.panelSettingsKey(first)
+        val keys = PanelCache.apiKeysKey(first)
+        PanelCache.put(settings, "settings")
+        PanelCache.put(keys, "keys")
+        assertEquals(settings, PanelCache.panelSettingsKey(first.copy()))
+        assertNotEquals(settings, PanelCache.panelSettingsKey(otherToken))
+        assertNotEquals(keys, PanelCache.apiKeysKey(otherUser))
+        assertNull(PanelCache.get<Any>(PanelCache.panelSettingsKey(otherToken)))
+        assertNull(PanelCache.get<Any>(PanelCache.apiKeysKey(otherUser)))
+        assertFalse(settings.contains(first.token))
+        assertFalse(keys.contains(first.token))
     }
 
     @Test fun `clear wipes every range for the account`() {

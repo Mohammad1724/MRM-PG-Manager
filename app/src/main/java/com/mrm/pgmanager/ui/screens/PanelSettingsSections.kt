@@ -183,6 +183,7 @@ internal fun SubscriptionSettingsTab(
     val theme = LocalThemeState.current
     var draft by remember(section) { mutableStateOf(section) }
     var error by remember(section) { mutableStateOf<String?>(null) }
+    var clientsLimit by remember(section) { mutableStateOf(section.clientsLimit?.toString().orEmpty()) }
 
     val linkTitle = stringResource(R.string.ps_sub_link_card)
     val prefixLabel = stringResource(R.string.ps_url_prefix)
@@ -302,6 +303,16 @@ internal fun SubscriptionSettingsTab(
                 enabled = canEdit,
                 onChange = { draft = draft.copy(randomizeOrder = it) }
             )
+            if (section.clientsLimit != null) {
+                LabeledField(
+                    label = stringResource(R.string.ps_clients_limit),
+                    value = clientsLimit,
+                    enabled = canEdit,
+                    keyboardType = KeyboardType.Number,
+                    onChange = { clientsLimit = it.trim(); error = null }
+                )
+                Text(stringResource(R.string.ps_clients_limit_hint), fontSize = 10.sp, color = theme.mutedColor)
+            }
         }
 
         SettingsCard(title = formatsTitle, icon = AppIcon.Template) {
@@ -320,17 +331,24 @@ internal fun SubscriptionSettingsTab(
         }
 
         DraftFooter(
-            dirty = draft != section,
+            dirty = draft != section || clientsLimit != section.clientsLimit?.toString().orEmpty(),
             canEdit = canEdit,
             saving = saving,
             error = error,
             onSave = {
-                val problem = draft.validate()
+                val parsedLimit = clientsLimit.toIntOrNull()
+                val candidate = if (section.clientsLimit != null && parsedLimit != null) {
+                    draft.copy(clientsLimit = parsedLimit)
+                } else draft
+                val problem = if (section.clientsLimit != null && parsedLimit == null) {
+                    "settings_err_integer"
+                } else candidate.validate()
                 error = problem
-                if (problem == null) onSave(draft)
+                if (problem == null) onSave(candidate)
             },
             onRevert = {
                 draft = section
+                clientsLimit = section.clientsLimit?.toString().orEmpty()
                 error = null
             }
         )
@@ -746,5 +764,6 @@ private fun settingsErrorText(code: String): String = when (code) {
     PanelSettingsErrors.URL_INVALID -> stringResource(R.string.settings_err_url)
     PanelSettingsErrors.LIMITS_ORDER -> stringResource(R.string.settings_err_limits)
     PanelSettingsErrors.RETRIES_RANGE -> stringResource(R.string.settings_err_retries)
+    "settings_err_integer" -> stringResource(R.string.settings_err_integer)
     else -> code
 }

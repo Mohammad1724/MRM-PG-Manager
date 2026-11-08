@@ -1,6 +1,8 @@
 package com.mrm.pgmanager.data.cache
 
 import android.os.SystemClock
+import com.mrm.pgmanager.data.model.Session
+import com.mrm.pgmanager.data.storage.offlineCacheOwner
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -110,9 +112,12 @@ object PanelCache {
      * تازه جای همین می‌نشیند.
      */
     fun panelSettingsKey(baseUrl: String) = "panelsettings:$baseUrl"
+    // Sensitive data must not reuse another account's cache on the same panel.
+    fun panelSettingsKey(session: Session) = "panelsettings:session:${offlineCacheOwner(session)}"
 
     /** فهرستِ کلیدهای API — همان قاعدهٔ کشِ کوتاه‌مدتِ داده‌های سطحِ سرور. */
     fun apiKeysKey(baseUrl: String) = "apikeys:$baseUrl"
+    fun apiKeysKey(session: Session) = "apikeys:session:${offlineCacheOwner(session)}"
 
     /** اپراتورها و نقش‌ها (صفحهٔ «اپراتورها و نقش‌ها») — دو کلیدِ جدا. */
     fun adminsKey(baseUrl: String) = "admins:$baseUrl"

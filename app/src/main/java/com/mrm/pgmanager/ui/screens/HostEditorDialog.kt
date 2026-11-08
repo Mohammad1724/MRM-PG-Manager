@@ -224,6 +224,7 @@ internal fun HostEditorContent(
         "final_mask_unsupported" -> stringResource(R.string.host_editor_final_mask_unsupported)
         "final_mask_invalid" -> stringResource(R.string.host_editor_final_mask_invalid)
         "masque_xmux_conflict" -> stringResource(R.string.host_editor_masque_conflict)
+        "xdrive_xmux_conflict" -> stringResource(R.string.host_editor_xdrive_conflict)
         "advanced" -> stringResource(
             R.string.host_editor_invalid_field,
             stringResource(hostEditorFieldLabel(validation.field.orEmpty()))

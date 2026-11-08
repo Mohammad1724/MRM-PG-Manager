@@ -53,6 +53,17 @@ internal object HostEditMerge {
         // If a response alias existed, keep it in sync with the intentional edit.
         // Otherwise a stale camelCase value could overwrite the edited snake_case value.
         syncEditedAliases(latest, changes)
+        for (transport in listOf("masque_settings", "xdrive_settings")) {
+            val parent = listOf("transport_settings", transport, "xmux")
+            if (changes.any { it.path == parent + "max_connections" || it.path == parent + "max_concurrency" }) {
+                fun upper(name: String): Long = (editorValue(latest, parent + name) as? String)
+                    ?.substringAfterLast('-')?.toLongOrNull() ?: 0L
+                if (upper("max_connections") > 0L && upper("max_concurrency") > 0L) {
+                    throw HostEditConflictException(listOf((parent + "max_connections").joinToString("."),
+                        (parent + "max_concurrency").joinToString(".")))
+                }
+            }
+        }
         return latest
     }
 
@@ -66,7 +77,7 @@ internal object HostEditMerge {
         val mux = listOf("mux_settings", "xray")
         add(Alias(mux, "xudpConcurrency", "xudp_concurrency"))
         add(Alias(mux, "xudpProxyUDP443", "xudp_proxy_udp_443"))
-        for (transport in listOf("xhttp_settings", "masque_settings")) {
+        for (transport in listOf("xhttp_settings", "masque_settings", "xdrive_settings")) {
             val parent = listOf("transport_settings", transport, "xmux")
             listOf(
                 "maxConcurrency" to "max_concurrency",

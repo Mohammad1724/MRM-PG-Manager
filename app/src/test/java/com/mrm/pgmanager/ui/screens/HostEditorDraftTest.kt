@@ -321,6 +321,23 @@ class HostEditorDraftTest {
             .withField("transport_settings.xhttp_settings.session_id_table", "غيرASCII").validation(original)?.field)
     }
 
+    @Test fun `masque max request times alias can be edited without changing siblings`() {
+        val raw = JSONObject(original.raw).put("transport_settings", JSONObject().put("masque_settings",
+            JSONObject().put("xmux", JSONObject().put("hMaxRequestTimes", "4-8").put("future", true))))
+        val host = original.copy(raw = raw.toString())
+        val key = "transport_settings.masque_settings.xmux.h_max_request_times"
+        val draft = HostDraft.from(host)
+        assertEquals("4-8", draft.field(key))
+        assertEquals(key, draft.withField(key, "9-2").validation(host)?.field)
+        val edited = draft.withField(key, "10-20")
+        assertNull(edited.validation(host))
+        val xmux = HostEditMerge.merge(host.raw, host.raw, host.id, edited.changes(host))
+            .getJSONObject("transport_settings").getJSONObject("masque_settings").getJSONObject("xmux")
+        assertEquals("10-20", xmux.getString("h_max_request_times"))
+        assertEquals("10-20", xmux.getString("hMaxRequestTimes"))
+        assertTrue(xmux.getBoolean("future"))
+    }
+
     @Test fun `masque xmux validates ordered bounded ranges and mutually exclusive positive limits`() {
         val draft = HostDraft.from(original)
         val prefix = "transport_settings.masque_settings.xmux."
@@ -498,6 +515,24 @@ class HostEditorDraftTest {
         }
         val result = HostEditMerge.merge(host.raw, host.raw, host.id, listOf(change))
         assertTrue(result.getJSONObject("transport_settings").getJSONObject("tcp_settings").getJSONObject("request").isNull("headers"))
+    }
+
+    @Test fun `xdrive xmux reads camel aliases and validates edits`() {
+        val transport = JSONObject("""{"xdrive_settings":{"xmux":{"maxConcurrency":"2-4","hMaxRequestTimes":"10"}}}""")
+        val raw = JSONObject(original.raw).put("transport_settings", transport)
+        val host = original.copy(raw = raw.toString())
+        val draft = HostDraft.from(host)
+        assertTrue(draft.xdriveReported)
+        val prefix = "transport_settings.xdrive_settings.xmux."
+        assertEquals("2-4", draft.field(prefix + "max_concurrency"))
+        assertEquals("10", draft.field(prefix + "h_max_request_times"))
+        assertEquals("xdrive_xmux_conflict", draft.withField(prefix + "max_connections", "2").validation(host)?.code)
+        assertEquals(prefix + "h_max_request_times", draft.withField(prefix + "h_max_request_times", "9-1").validation(host)?.field)
+        val edit = draft.withField(prefix + "h_max_request_times", "11-20")
+        assertNull(edit.validation(host))
+        val merged = HostEditMerge.merge(host.raw, host.raw, host.id, edit.changes(host))
+        assertEquals("11-20", merged.getJSONObject("transport_settings").getJSONObject("xdrive_settings")
+            .getJSONObject("xmux").getString("hMaxRequestTimes"))
     }
 
 }

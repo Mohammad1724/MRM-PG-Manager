@@ -55,7 +55,11 @@ import com.mrm.pgmanager.ui.designsystem.MrmBusyIndicator
 import com.mrm.pgmanager.ui.theme.LocalThemeState
 import com.mrm.pgmanager.ui.theme.primarySurface
 import com.mrm.pgmanager.utils.formatBytes
+import com.mrm.pgmanager.utils.ApiErrorMapper
+import com.mrm.pgmanager.utils.PanelVersion
 import com.mrm.pgmanager.utils.formatPercent
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +92,7 @@ fun StatisticsScreen(
     // ترافیکِ گزارش‌شده توسطِ خودِ نودها (`/api/node/usage`) — null یعنی هنوز نیامده یا نقش اجازه ندارد.
     val nodeUsageKey = PanelCache.statsNodeUsageKey(session.baseUrl)
     var nodeUsage by remember(session) { mutableStateOf(PanelCache.get<List<NodeUsage>>(nodeUsageKey)) }
-    val canNodeStats = AdminAccess.can("nodes", "stats")
+    val canNodeStats = AdminAccess.canFor(session, "nodes", "stats")
     // آمارِ زندهٔ نودها. تا امروز فقط برای اعلانِ «نود آفلاین شد» گرفته می‌شد و
     // هیچ‌جا روی صفحه دیده نمی‌شد.
     var nodeStats by remember(session) { mutableStateOf<Map<Int, com.mrm.pgmanager.data.model.NodeRealtime>>(emptyMap()) }
@@ -111,6 +115,39 @@ fun StatisticsScreen(
     var countRange by remember { mutableStateOf(StatsRange.LAST_24H) }
     var countMetric by remember { mutableStateOf(CountMetric.ONLINE) }
     var metricMenuOpen by remember { mutableStateOf(false) }
+    var outboundState by remember(session, trafficRange, selectedNode?.id, canNodeStats) {
+        mutableStateOf<OutboundLoadState>(OutboundLoadState.Loading)
+    }
+    var outboundRequest by remember(session) { mutableStateOf(0L) }
+
+    suspend fun loadOutbound() {
+        if (!AdminAccess.canFor(session, "nodes", "stats")) return
+        val request = ++outboundRequest
+        if (PanelVersion.isAtLeast(stats?.version, "5.6.0") == false) {
+            outboundState = OutboundLoadState.Unsupported
+            return
+        }
+        runCatching { PanelApi.outboundUsage(session, trafficRange, selectedNode?.id) }
+            .onSuccess {
+                currentCoroutineContext().ensureActive()
+                if (request == outboundRequest && AdminAccess.canFor(session, "nodes", "stats")) {
+                    outboundState = OutboundLoadState.Ready(it)
+                }
+            }
+            .onFailure {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                currentCoroutineContext().ensureActive()
+                if (request == outboundRequest && AdminAccess.canFor(session, "nodes", "stats")) {
+                    outboundState = if (ApiErrorMapper.httpCodeOf(it) == 404) OutboundLoadState.Unsupported
+                    else OutboundLoadState.Failed(ApiErrorMapper.friendly(context, it))
+                }
+            }
+    }
+
+    LaunchedEffect(session, trafficRange, selectedNode?.id, canNodeStats) {
+        outboundRequest++
+        loadOutbound()
+    }
 
     suspend fun load(silent: Boolean = false) {
         if (!silent) loading = true
@@ -148,7 +185,7 @@ fun StatisticsScreen(
         if (changed || !PanelCache.isFresh(statsKey)) load(silent = stats != null)
     }
     val pullState = rememberPullToRefreshState()
-    PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } }, state = pullState,
+    PullToRefreshBox(isRefreshing = refreshing, onRefresh = { scope.launch { refreshing = true; load(true); loadOutbound(); refreshing = false } }, state = pullState,
         indicator = { PullToRefreshDefaults.Indicator(isRefreshing = refreshing, state = pullState, modifier = Modifier.align(Alignment.TopCenter), containerColor = theme.cardSurfaceColor, color = theme.accentTextColor) }) {
 
         Column(Modifier.fillMaxSize().background(theme.backgroundColor).statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = DsSpacing.Screen, end = DsSpacing.Screen, top = DsSpacing.Mid, bottom = DsSpacing.Mid), verticalArrangement = Arrangement.spacedBy(DsSpacing.Mid)) {
@@ -157,7 +194,7 @@ fun StatisticsScreen(
                 title = stringResource(R.string.statistics),
                 subtitle = stringResource(R.string.statistics_subtitle),
                 refreshing = refreshing,
-                onRefresh = { scope.launch { refreshing = true; load(true); refreshing = false } },
+                onRefresh = { scope.launch { refreshing = true; load(true); loadOutbound(); refreshing = false } },
                 onOpenSettings = onOpenSettings,
                 settingsLabel = settingsLabel,
                 refreshLabel = refreshLabel
@@ -193,6 +230,12 @@ fun StatisticsScreen(
             }
             if (!loading && stats == null && loadError != null) {
                 MrmErrorState(onRetry = { scope.launch { load() } }, message = loadError)
+            }
+
+            if (canNodeStats && stats == null) {
+                OutboundUsageCard(outboundState, trafficRange,
+                    selectedNode?.name ?: stringResource(R.string.all_nodes),
+                    onRefresh = { scope.launch { loadOutbound() } })
             }
 
             stats?.let { s ->
@@ -492,6 +535,12 @@ fun StatisticsScreen(
                         scopeLabel = selectedNode?.name ?: stringResource(R.string.all_nodes),
                         onRefresh = { scope.launch { load(silent = true) } }
                     )
+                }
+
+                if (canNodeStats) {
+                    OutboundUsageCard(outboundState, trafficRange,
+                        selectedNode?.name ?: stringResource(R.string.all_nodes),
+                        onRefresh = { scope.launch { loadOutbound() } })
                 }
 
                 // ── User Count

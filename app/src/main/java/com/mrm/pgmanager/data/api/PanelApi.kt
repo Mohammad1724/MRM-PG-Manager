@@ -24,6 +24,7 @@ import com.mrm.pgmanager.data.model.SystemStats
 import com.mrm.pgmanager.data.model.TemplateOptions
 import com.mrm.pgmanager.data.model.TrafficPoint
 import com.mrm.pgmanager.data.model.NodeUsage
+import com.mrm.pgmanager.data.model.OutboundUsage
 import com.mrm.pgmanager.data.model.NodeTrafficPoint
 import com.mrm.pgmanager.data.model.OnlineIp
 import com.mrm.pgmanager.data.model.SubUpdate
@@ -37,11 +38,17 @@ import com.mrm.pgmanager.data.model.PanelHost
 import com.mrm.pgmanager.data.model.PanelSettings
 import com.mrm.pgmanager.data.model.PanelApiKey
 import com.mrm.pgmanager.data.model.CreatedApiKey
+import com.mrm.pgmanager.data.model.ApiKeyQuota
 import com.mrm.pgmanager.data.model.PanelGeneralSection
 import com.mrm.pgmanager.data.model.PanelSubscriptionSection
 import com.mrm.pgmanager.data.model.PanelHwidSection
 import com.mrm.pgmanager.data.model.PanelNotificationSection
+import com.mrm.pgmanager.data.model.PanelRuntimeSettings
+import com.mrm.pgmanager.data.model.PanelCleanupSettings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
@@ -54,6 +61,8 @@ import org.json.JSONObject
 import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * پنل به درخواستِ احرازهویت‌شده ۴۰۱ داده: JWT منقضی/باطل شده (مثلاً پس از تغییرِ رمز)
@@ -122,6 +131,7 @@ object PanelApi {
                 try {
                     return@addInterceptor chain.proceed(request)
                 } catch (e: java.io.IOException) {
+                    if (chain.call().isCanceled()) throw e
                     lastError = e
                     if (attempt < 2) Thread.sleep(400)
                 }
@@ -500,6 +510,22 @@ object PanelApi {
                 NodeUsage(id, points)
             }.sortedByDescending { it.total }.toList()
         }
+    }
+
+    /** PasarGuard 5.6: usage per outbound tag, for all nodes or a selected node. */
+    suspend fun outboundUsage(
+        session: Session,
+        range: StatsRange = StatsRange.LAST_24H,
+        nodeId: Int? = null
+    ): List<OutboundUsage> = withContext(Dispatchers.IO) {
+        val url = buildString {
+            append(session.baseUrl); append("/api/node/usage/outbounds")
+            append("?period="); append(range.period)
+            append("&start="); append(URLEncoder.encode(range.startIso(), "UTF-8"))
+            if (nodeId != null) { append("&node_id="); append(nodeId) }
+        }
+        val request = requestBuilder(session, url).get().build()
+        OutboundUsage.fromResponse(executeCancellableInfrastructureJson(request))
     }
 
     /**
@@ -2321,7 +2347,7 @@ object PanelApi {
     suspend fun apiKeys(session: Session, limit: Int = 200): List<PanelApiKey> = withContext(Dispatchers.IO) {
         val request = requestBuilder(session, "${session.baseUrl}/api/api_keys?offset=0&limit=$limit")
             .get().build()
-        val body = executeJsonForBody(request)
+        val body = executeInfrastructureJsonForBody(request)
         val arr = body.optJSONArray("api_keys") ?: return@withContext emptyList()
         List(arr.length()) { i -> parseApiKey(arr.getJSONObject(i)) }
     }
@@ -2336,19 +2362,79 @@ object PanelApi {
         session: Session,
         name: String,
         note: String = "",
-        expireDays: Long? = null
+        expireDays: Long? = null,
+        quota: ApiKeyQuota? = null
     ): CreatedApiKey = withContext(Dispatchers.IO) {
         require(name.isNotBlank()) { "API key name cannot be empty" }
+        require(quota == null || (quota.isValid() && quota.maxRequests != null)) { "Invalid API key quota" }
+        if (quota != null && apiKeys(session).none { it.supportsRequestLimits }) {
+            throw ApiKeyQuotaUnsupportedException()
+        }
         val body = JSONObject()
             .put("name", name.trim())
             .put("note", note.trim().ifBlank { JSONObject.NULL })
             .put("expire_date", expireDays?.let { DateLogic.isoFromNow(it) } ?: JSONObject.NULL)
-        parseCreatedApiKey(
-            executeJsonForBody(
-                requestBuilder(session, "${session.baseUrl}/api/api_key")
-                    .post(body.toString().toRequestBody(jsonType)).build()
-            )
-        )
+        if (quota != null) {
+            body.put("max_requests", quota.maxRequests)
+            body.put("delete_on_limit", quota.deleteOnLimit)
+        }
+        val request = requestBuilder(session, "${session.baseUrl}/api/api_key")
+            .post(oneShot(body.toString().toRequestBody(jsonType))).build()
+        val created = parseCreatedApiKey(executeApiKeyWrite(request, requireSecret = true))
+        // Return the secret even when a nonconforming server ignores the requested limit.
+        val confirmed = quota == null || (created.item.supportsRequestLimits &&
+            created.item.maxRequests == quota.maxRequests && created.item.deleteOnLimit == quota.deleteOnLimit)
+        created.copy(requestLimitConfirmed = confirmed)
+    }
+
+    /** Update only explicitly changed quota fields. The server does not reset request_count. */
+    internal suspend fun updateApiKeyQuota(session: Session, base: PanelApiKey, quota: ApiKeyQuota): PanelApiKey =
+        withContext(Dispatchers.IO) {
+            require(base.id > 0 && quota.isValid(base.maxRequests)) { "Invalid API key quota" }
+            if (!base.supportsRequestLimits) throw ApiKeyQuotaUnsupportedException()
+            val read = requestBuilder(session, "${session.baseUrl}/api/api_key/${base.id}").get().build()
+            val latest = parseApiKey(executeInfrastructureJsonForBody(read))
+            if (latest.id != base.id || !latest.supportsRequestLimits) throw ApiKeyQuotaUnsupportedException()
+            val body = JSONObject()
+            if (quota.maxRequests != base.maxRequests) {
+                if (latest.maxRequests != base.maxRequests && latest.maxRequests != quota.maxRequests) {
+                    throw ApiKeyQuotaConflictException()
+                }
+                if (latest.maxRequests != quota.maxRequests) body.put("max_requests", quota.maxRequests ?: JSONObject.NULL)
+            }
+            if (quota.deleteOnLimit != base.deleteOnLimit) {
+                if (latest.deleteOnLimit != base.deleteOnLimit && latest.deleteOnLimit != quota.deleteOnLimit) {
+                    throw ApiKeyQuotaConflictException()
+                }
+                if (latest.deleteOnLimit != quota.deleteOnLimit) body.put("delete_on_limit", quota.deleteOnLimit)
+            }
+            if (body.length() == 0) return@withContext latest
+            val request = requestBuilder(session, "${session.baseUrl}/api/api_key/${base.id}")
+                .tag(CoreWriteMarker::class.java, CoreWriteMarker)
+                .patch(oneShot(body.toString().toRequestBody(jsonType))).build()
+            val updated = parseApiKey(executeApiKeyWrite(request))
+            if (updated.id != base.id || !updated.supportsRequestLimits ||
+                (body.has("max_requests") && updated.maxRequests != quota.maxRequests) ||
+                (body.has("delete_on_limit") && updated.deleteOnLimit != quota.deleteOnLimit)
+            ) throw ApiKeyWriteUnconfirmedException()
+            updated
+        }
+
+    private fun executeApiKeyWrite(request: Request, requireSecret: Boolean = false): JSONObject {
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw ApiKeyWriteUnconfirmedException()
+                if (!response.isSuccessful) error("API key request failed: ${response.code}")
+                val json = runCatching { JSONObject(response.body?.string().orEmpty()) }.getOrNull()
+                    ?: throw ApiKeyWriteUnconfirmedException()
+                if (json.optInt("id", 0) <= 0 || (requireSecret && json.optString("api_key").isBlank())) {
+                    throw ApiKeyWriteUnconfirmedException()
+                }
+                return json
+            }
+        } catch (_: java.io.IOException) {
+            throw ApiKeyWriteUnconfirmedException()
+        }
     }
 
     /**
@@ -2389,68 +2475,146 @@ object PanelApi {
         )
     }
 
-    private fun parseApiKey(o: JSONObject): PanelApiKey = PanelApiKey(
-        id = o.optInt("id"),
-        name = o.optString("name"),
-        trimmed = o.optString("api_key_trimmed"),
-        status = o.optString("status", PanelApiKey.ACTIVE),
-        note = optionalString(o, "note"),
-        adminId = o.optInt("admin_id"),
-        createdAt = optionalString(o, "created_at"),
-        expireDate = optionalString(o, "expire_date"),
-        isExpired = o.optBoolean("is_expired", false),
-        inheritPermissions = o.optBoolean("inherit_permissions", true)
-    )
+    private fun parseApiKey(o: JSONObject): PanelApiKey {
+        fun integer(name: String): Long? = when (val value = o.opt(name)) {
+            is Int -> value.toLong()
+            is Long -> value
+            else -> null
+        }
+        val limit = integer("max_requests")?.takeIf { it > 0 }
+        val limitUnknown = o.has("max_requests") && !o.isNull("max_requests") && limit == null
+        return PanelApiKey(
+            id = o.optInt("id"),
+            name = o.optString("name"),
+            trimmed = o.optString("api_key_trimmed"),
+            status = o.optString("status", PanelApiKey.ACTIVE),
+            note = optionalString(o, "note"),
+            adminId = o.optInt("admin_id"),
+            createdAt = optionalString(o, "created_at"),
+            expireDate = optionalString(o, "expire_date"),
+            isExpired = o.optBoolean("is_expired", false),
+            inheritPermissions = o.optBoolean("inherit_permissions", true),
+            maxRequests = limit,
+            requestCount = integer("request_count")?.takeIf { it >= 0 },
+            deleteOnLimit = o.opt("delete_on_limit") as? Boolean,
+            requestLimitReported = o.has("max_requests"),
+            requestLimitUnknown = limitUnknown
+        )
+    }
 
     private fun parseCreatedApiKey(o: JSONObject): CreatedApiKey =
         CreatedApiKey(key = o.optString("api_key"), item = parseApiKey(o))
 
-    // ═══════════════════ تنظیماتِ پنل (فازِ ۵) ═══════════════════
-    //
-    // پنل تنظیماتش را در بخش‌های مستقل نگه می‌دارد و `PUT /api/settings` هر بخشِ
-    // فرستاده‌شده را **کامل** جایگزین می‌کند (`model_dump(exclude_none=True)`).
-    // پس هر تابعِ ذخیره، بخشِ کامل می‌فرستد و برای فیلدهای ناشناخته بدنهٔ خامِ
-    // قبلی را نگه می‌دارد (همان قاعدهٔ هاست‌ها در فاز ۲). مجوزها:
-    // `settings.read` برای خواندن و `settings.update` برای نوشتن؛ ۴۰۳ با `detail`
-    // خودِ پنل به UI می‌رسد.
-
-    /** بخش‌های مجازِ `PUT /api/settings` — نگهبانِ محلی برای اینکه کلیدِ اشتباه نرود. */
+    // Settings sections other than general are replaced by the panel. Always rebase
+    // the user's edits onto a fresh read; no server-side atomic precondition exists.
     private val PANEL_SETTINGS_SECTIONS =
-        setOf("general", "subscription", "hwid", "notification_settings")
+        setOf("general", "subscription", "hwid", "notification_settings", "cleanup")
 
-    /** همهٔ تنظیماتِ پنل — `GET /api/settings` (مجوزِ `settings.read`). */
     suspend fun panelSettings(session: Session): PanelSettings = withContext(Dispatchers.IO) {
         PanelSettings.from(
-            executeJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
+            executeInfrastructureJsonForBody(requestBuilder(session, "${session.baseUrl}/api/settings").get().build())
         )
     }
 
-    /**
-     * نوشتنِ یک بخش — `PUT /api/settings` با `{section: body}`.
-     *
-     * پاسخ، `SettingsSchema` کاملِ تازه است؛ همان را برمی‌گردانیم تا UI مقدارِ
-     * نرمال‌شدهٔ سرور را نشان بدهد (مثلاً `url_prefix` که پنل `/`های دو طرف را
-     * می‌بُرد، یا `custom_variables` که از `general` به `subscription` منتقل می‌شود).
-     */
-    private fun putPanelSection(session: Session, section: String, body: JSONObject): PanelSettings {
-        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section: $section" }
+    private fun putPanelSection(session: Session, section: String, body: JSONObject, merged: SettingsEditMerge.Result): PanelSettings {
+        require(section in PANEL_SETTINGS_SECTIONS) { "Unknown settings section" }
         val payload = JSONObject().put(section, body)
         val request = requestBuilder(session, "${session.baseUrl}/api/settings")
-            .put(payload.toString().toRequestBody(jsonType)).build()
-        return PanelSettings.from(executeJsonForBody(request))
+            .tag(CoreWriteMarker::class.java, CoreWriteMarker)
+            .put(oneShot(payload.toString().toRequestBody(jsonType))).build()
+        try {
+            infrastructureWriteClient.newCall(request).execute().use { response ->
+                if (response.code >= 500) throw SettingsWriteUnconfirmedException()
+                // Settings and validation bodies can contain secrets; never include them in an error.
+                if (!response.isSuccessful) error("Settings request failed: ${response.code}")
+                val parsed = runCatching { JSONObject(response.body?.string().orEmpty()) }.getOrNull()
+                    ?: throw SettingsWriteUnconfirmedException()
+                val returned = parsed.optJSONObject(section) ?: throw SettingsWriteUnconfirmedException()
+                if (!SettingsEditMerge.changesApplied(merged, returned)) throw SettingsWriteUnconfirmedException()
+                return PanelSettings.from(parsed)
+            }
+        } catch (_: java.io.IOException) {
+            throw SettingsWriteUnconfirmedException()
+        }
     }
 
-    suspend fun savePanelGeneral(session: Session, section: PanelGeneralSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "general", section.toJson()) }
+    suspend fun savePanelGeneral(
+        session: Session, base: PanelGeneralSection, draft: PanelGeneralSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.general.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.general.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        val body = if (latest.runtime != null) merged.changes else merged.complete
+        // custom_variables are stored in subscription and trigger a second full-section write.
+        if (!merged.changes.has("custom_variables")) body.remove("custom_variables")
+        putPanelSection(session, "general", body, merged)
+    }
 
-    suspend fun savePanelSubscription(session: Session, section: PanelSubscriptionSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "subscription", section.toJson()) }
+    suspend fun savePanelSubscription(
+        session: Session, base: PanelSubscriptionSection, draft: PanelSubscriptionSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.subscription.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.subscription.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        // Subscription.rules is required even when the list is empty.
+        if (!merged.complete.has("rules")) merged.complete.put("rules", org.json.JSONArray())
+        putPanelSection(session, "subscription", merged.complete, merged)
+    }
 
-    suspend fun savePanelHwid(session: Session, section: PanelHwidSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "hwid", section.toJson()) }
+    suspend fun savePanelHwid(
+        session: Session, base: PanelHwidSection, draft: PanelHwidSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.hwid.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.hwid.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        putPanelSection(session, "hwid", merged.complete, merged)
+    }
 
-    suspend fun savePanelNotifications(session: Session, section: PanelNotificationSection): PanelSettings =
-        withContext(Dispatchers.IO) { putPanelSection(session, "notification_settings", section.toJson()) }
+    suspend fun savePanelNotifications(
+        session: Session, base: PanelNotificationSection, draft: PanelNotificationSection
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        if (base.raw == null) throw SettingsUnavailableException()
+        val latest = panelSettings(session)
+        val raw = latest.notifications.raw ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), latest.notifications.toJson(), raw)
+        if (!merged.changed) return@withContext latest
+        // A full replacement cannot preserve a server-masked token. Require the actual token.
+        if (latest.notifications.tokenMasked && !merged.changes.has("telegram_api_token")) {
+            throw SettingsMaskedSecretException()
+        }
+        putPanelSection(session, "notification_settings", merged.complete, merged)
+    }
+
+    suspend fun savePanelRuntime(
+        session: Session, base: PanelRuntimeSettings, draft: PanelRuntimeSettings
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        require(draft.isValid()) { "Invalid runtime settings" }
+        val latest = panelSettings(session)
+        val current = latest.runtime ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), current.toJson(), current.raw)
+        if (!merged.changed) return@withContext latest
+        putPanelSection(session, "general", merged.changes, merged)
+    }
+
+    suspend fun savePanelCleanup(
+        session: Session, base: PanelCleanupSettings, draft: PanelCleanupSettings
+    ): PanelSettings = withContext(Dispatchers.IO) {
+        require(draft.isValid()) { "Invalid cleanup settings" }
+        val latest = panelSettings(session)
+        val current = latest.cleanup ?: throw SettingsUnavailableException()
+        val merged = SettingsEditMerge.merge(base.toJson(), draft.toJson(), current.toJson(), current.raw)
+        if (!merged.changed) return@withContext latest
+        if (PanelCleanupSettings.from(merged.complete)?.isValid() != true) {
+            throw SettingsEditConflictException(listOf("cleanup"))
+        }
+        putPanelSection(session, "cleanup", merged.complete, merged)
+    }
 
     // ── پارسِ زیرساخت ────────────────────────────────────────────────────
 
@@ -2517,14 +2681,35 @@ object PanelApi {
     }
 
     /** مثلِ [executeJson] ولی بدنهٔ پاسخ را هم برمی‌گرداند (برای POST/PUT که آبجکت می‌دهند). */
-    private fun executeJsonForBody(request: Request): JSONObject {
-        client.newCall(request).execute().use { response ->
-            val raw = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+    private fun executeJsonForBody(request: Request): JSONObject =
+        client.newCall(request).execute().use { parseJsonResponse(it) }
+
+    /** Do not forward API-key headers through a redirect from a sensitive endpoint. */
+    private fun executeInfrastructureJsonForBody(request: Request): JSONObject =
+        infrastructureReadClient.newCall(request).execute().use { parseJsonResponse(it) }
+
+    /** Cancel a pending statistics request when its filter or screen goes away. */
+    private suspend fun executeCancellableInfrastructureJson(request: Request): JSONObject = coroutineScope {
+        suspendCancellableCoroutine { continuation ->
+            val call = infrastructureReadClient.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            launch(Dispatchers.IO) {
+                try {
+                    val result = call.execute().use { parseJsonResponse(it) }
+                    if (continuation.isActive) continuation.resume(result)
+                } catch (error: Exception) {
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                }
             }
-            return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
         }
+    }
+
+    private fun parseJsonResponse(response: okhttp3.Response): JSONObject {
+        val raw = response.body?.string().orEmpty()
+        if (!response.isSuccessful) {
+            error("Request failed: ${response.code} ${errorDetail(raw)}".trim())
+        }
+        return runCatching { JSONObject(raw.ifBlank { "{}" }) }.getOrElse { JSONObject() }
     }
 
     private fun gbToBytes(value: Double): Long = (value * 1024 * 1024 * 1024).toLong()

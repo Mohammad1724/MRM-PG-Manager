@@ -46,6 +46,23 @@ class AdminAccessTest {
         assertTrue(AdminAccess.scopeAll("nodes", "read"))
     }
 
+    @Test fun `permissions belong only to the authenticated session`() = runBlocking {
+        AdminAccess.refreshWith(first) { owner }
+        assertTrue(AdminAccess.canFor(first, "settings", "read"))
+        assertFalse(AdminAccess.canFor(second, "settings", "read"))
+        assertFalse(AdminAccess.canFor(first.copy(token = "different-token"), "settings", "read"))
+        AdminAccess.reset()
+        assertFalse(AdminAccess.canFor(first, "settings", "read"))
+    }
+
+    @Test fun `equal admin data in a new session is published with the new identity`() = runBlocking {
+        AdminAccess.refreshWith(first) { owner }
+        AdminAccess.refreshWith(second) { owner }
+        assertFalse(AdminAccess.canFor(first, "settings", "read"))
+        assertTrue(AdminAccess.canFor(second, "settings", "read"))
+        assertEquals(owner, AdminAccess.current)
+    }
+
     @Test fun `stale refresh cannot replace a different account`() = runBlocking {
         val started = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()

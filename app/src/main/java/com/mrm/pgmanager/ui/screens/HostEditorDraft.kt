@@ -153,7 +153,14 @@ internal val HOST_EDITABLE_FIELDS = listOf(
     HostFieldSpec("transport_settings.masque_settings.xmux.max_connections", HostFieldType.TEXT, pattern = hostRangePattern),
     HostFieldSpec("transport_settings.masque_settings.xmux.c_max_reuse_times", HostFieldType.TEXT, pattern = hostRangePattern),
     HostFieldSpec("transport_settings.masque_settings.xmux.h_max_reusable_secs", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.masque_settings.xmux.h_max_request_times", HostFieldType.TEXT, pattern = hostRangePattern),
     HostFieldSpec("transport_settings.masque_settings.xmux.h_keep_alive_period", HostFieldType.INTEGER),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.max_concurrency", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.max_connections", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.c_max_reuse_times", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.h_max_reusable_secs", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.h_max_request_times", HostFieldType.TEXT, pattern = hostRangePattern),
+    HostFieldSpec("transport_settings.xdrive_settings.xmux.h_keep_alive_period", HostFieldType.INTEGER),
     HostFieldSpec("transport_settings.grpc_settings.multi_mode", HostFieldType.BOOLEAN, default = "false"),
     HostFieldSpec("transport_settings.grpc_settings.idle_timeout", HostFieldType.INTEGER),
     HostFieldSpec("transport_settings.grpc_settings.health_check_timeout", HostFieldType.INTEGER),
@@ -236,6 +243,7 @@ internal data class HostDraft(
     val finalMaskText: String,
     val finalMaskSupported: Boolean,
     val finalMaskTouched: Boolean,
+    val xdriveReported: Boolean,
     val fields: Map<String, String>
 ) {
     val addresses: List<String> get() = hostStringValues(addressesText)
@@ -321,19 +329,22 @@ internal data class HostDraft(
         if (field(tcpStatus) != original.field(tcpStatus) && !Regex("[1-5][0-9]{2}").matches(field(tcpStatus))) {
             return HostDraftProblem("advanced", tcpStatus)
         }
-        val masque = "transport_settings.masque_settings.xmux."
-        val maxConnections = field(masque + "max_connections")
-        val maxConcurrency = field(masque + "max_concurrency")
-        for (key in listOf("max_connections", "max_concurrency", "c_max_reuse_times", "h_max_reusable_secs")) {
-            val value = field(masque + key)
-            if (value != original.field(masque + key) && value.isNotEmpty() && !validMasqueRange(value)) {
-                return HostDraftProblem("advanced", masque + key)
+        for (transport in listOf("masque_settings", "xdrive_settings")) {
+            val prefix = "transport_settings.$transport.xmux."
+            val maxConnections = field(prefix + "max_connections")
+            val maxConcurrency = field(prefix + "max_concurrency")
+            val rangeKeys = listOf("max_connections", "max_concurrency", "c_max_reuse_times", "h_max_reusable_secs", "h_max_request_times")
+            for (key in rangeKeys) {
+                val value = field(prefix + key)
+                if (value != original.field(prefix + key) && value.isNotEmpty() && !validMasqueRange(value)) {
+                    return HostDraftProblem("advanced", prefix + key)
+                }
             }
-        }
-        if (maxConnections != original.field(masque + "max_connections") || maxConcurrency != original.field(masque + "max_concurrency")) {
-            if ((maxConnections.substringAfterLast('-').toLongOrNull() ?: 0L) > 0L &&
-                (maxConcurrency.substringAfterLast('-').toLongOrNull() ?: 0L) > 0L) {
-                return HostDraftProblem("masque_xmux_conflict")
+            if (maxConnections != original.field(prefix + "max_connections") || maxConcurrency != original.field(prefix + "max_concurrency")) {
+                if ((maxConnections.substringAfterLast('-').toLongOrNull() ?: 0L) > 0L &&
+                    (maxConcurrency.substringAfterLast('-').toLongOrNull() ?: 0L) > 0L) {
+                    return HostDraftProblem(if (transport == "xdrive_settings") "xdrive_xmux_conflict" else "masque_xmux_conflict")
+                }
             }
         }
         val fragment = HOST_EDITABLE_FIELDS.filter { it.key.startsWith("fragment_settings.xray.") }
@@ -448,6 +459,7 @@ internal data class HostDraft(
                 finalMaskText = finalMaskText,
                 finalMaskSupported = finalMaskSupported,
                 finalMaskTouched = false,
+                xdriveReported = raw.optJSONObject("transport_settings")?.has("xdrive_settings") == true,
                 fields = HOST_EDITABLE_FIELDS.associate { it.key to it.read(raw) }
             )
         }
